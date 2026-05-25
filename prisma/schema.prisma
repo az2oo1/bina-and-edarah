@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Property {
+  id               String   @id @default(uuid())
+  titleAr          String   // Arabic Title
+  titleEn          String   // English Title
+  type             String   // 'SALE' or 'RENT'
+  propertyCategory String   @default("VILLA") // 'VILLA', 'APARTMENT', 'LAND', 'OFFICE', 'SHOP', 'BUILDING'
+  paymentFrequency String?  // 'YEARLY' or 'MONTHLY'
+  paymentsCount    Int?     // e.g. 1, 2, 4 payments
+  area             Float    @default(0)
+  details          String?  // JSON stringified array of {key, value}
+  locationLink     String?  // Google maps link
+  locationText     String?  // Plain text location/neighborhood
+  description      String
+  features         String?  // Comma separated features
+  propertyAge      Int      @default(0)
+  electricityCost  Float    @default(0) // 0 if included/not applicable
+  electricityFrequency String? // YEARLY or MONTHLY
+  vat              Float    @default(0) // VAT amount
+  commission       Float    @default(0)
+  price            Float
+  imageUrls        String   @default("[]") // JSON stringified array of base64 images
+  aqarLink         String?  // Direct link to the Aqar landing page
+  createdAt        DateTime @default(now())
+
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id])
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  nameAr      String   // e.g., تطوير، تأجير، إدارة املاك
+  nameEn      String   // e.g., Development, Leasing, Property Management
+  description String
+}
+
+model Admin {
+  id       String @id @default(uuid())
+  username String @unique
+  password String // Hashed
+}
+
+model User {
+  id       String @id @default(uuid())
+  username String @unique
+  password String
+  name     String
+  properties Property[]
+}
+
+model Project {
+  id               String   @id @default(uuid())
+  titleAr          String   // Arabic Title
+  titleEn          String   // English Title
+  tier             String   @default("OTHER") // 'BIG', 'MID', 'OTHER'
+  propertyCategory String   @default("VILLA") // 'VILLA', 'APARTMENT', etc.
+  area             Float    @default(0)
+  details          String?  // JSON stringified array of {key, value}
+  locationLink     String?  // Google maps link
+  locationText     String?  // Plain text location/neighborhood
+  description      String
+  features         String?  // Comma separated features
+  propertyAge      Int      @default(0)
+  imageUrls        String   @default("[]") // JSON stringified array of base64 images
+  createdAt        DateTime @default(now())
+}
+
+model Settings {
+  id              String @id @default("global")
+  whatsappNumber  String @default("966500000000")
+  callingNumber   String @default("966500000000")
+  whatsappMessage String @default("مرحباً، أنا مهتم بهذا العقار: {title} - {link}")
+}
+
+model PageView {
+  id         String   @id @default(uuid())
+  path       String
+  propertyId String?  // Optional, for property views
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}
+

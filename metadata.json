@@ -1,0 +1,6 @@
+{
+  "name": "Benaa and Edara Real Estate",
+  "description": "Benaa and Edara Real Estate application featuring an admin panel, properties directory, Arabic/English i18n support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
