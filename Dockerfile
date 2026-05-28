@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY patch-xlsx.cjs ./
 COPY prisma ./prisma/
 
 # Install dependencies
