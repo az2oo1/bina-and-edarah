@@ -70,15 +70,16 @@ function Navbar() {
             {user ? (
               <div className="flex items-center gap-3">
                 <Link 
-                  to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} 
+                  to={user.role === 'ADMIN' ? '/admin' : user.role === 'RENTER' ? '/login' : '/dashboard'} 
                   className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-full transition-colors flex items-center gap-2"
                 >
                   <UserCircle className="w-5 h-5" />
-                  <span className="hidden sm:inline">{user.role === 'ADMIN' ? t('nav.admin') : t('nav.dashboard')}</span>
+                  <span className="hidden sm:inline">{user.role === 'ADMIN' ? t('nav.admin') : user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.dashboard')}</span>
                 </Link>
                 <button 
                   onClick={handleLogout}
-                  className="p-2 text-gray-400 hover:text-white transition-colors title={t('nav.logout')}"
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title={language === 'ar' ? 'تسجيل خروج' : 'Logout'}
                 >
                   <LogOut className="w-5 h-5" />
                 </button>

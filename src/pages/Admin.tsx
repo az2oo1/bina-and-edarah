@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 
 import AdminProjects from './AdminProjects';
+import AdminBuildings from './AdminBuildings';
+import AdminRenters from './AdminRenters';
+import AdminReceipts from './AdminReceipts';
 
 interface Property {
   id: string;
@@ -45,23 +49,29 @@ const PREDEFINED_DETAILS = [
   { keyAr: 'مؤثثة', keyEn: 'Furnished', example: 'نعم / لا' },
   { keyAr: 'مدخل خاص', keyEn: 'Private Entrance', example: 'نعم' },
   { keyAr: 'مطبخ راكب', keyEn: 'Kitchen Installed', example: 'نعم' },
+  { keyAr: 'مسبح', keyEn: 'Pool', example: 'نعم / لا' },
+  { keyAr: 'حديقة', keyEn: 'Garden', example: 'نعم / لا' },
+  { keyAr: 'غرفة خادمة', keyEn: 'Maid Room', example: 'نعم / لا' },
+  { keyAr: 'غرفة سائق', keyEn: 'Driver Room', example: 'نعم / لا' },
+  { keyAr: 'ملحق خارجي', keyEn: 'Outdoor Annex', example: 'نعم / لا' },
+  { keyAr: 'تكييف مركزي', keyEn: 'Central AC', example: 'نعم / لا' },
+  { keyAr: 'مكيفات راكبة', keyEn: 'Installed ACs', example: 'نعم / لا' },
+  { keyAr: 'مدخل سيارة', keyEn: 'Car Entrance', example: 'نعم / لا' },
+  { keyAr: 'مستودع', keyEn: 'Storage', example: 'نعم / لا' },
+  { keyAr: 'نظام ذكي', keyEn: 'Smart Home System', example: 'نعم / لا' },
+  { keyAr: 'نادي رياضي', keyEn: 'Gym', example: 'نعم / مشترك / خاص' },
+  { keyAr: 'كاميرات مراقبة', keyEn: 'Security Cameras', example: 'نعم / متوفرة' },
+  { keyAr: 'أمن وحراسة', keyEn: 'Security', example: 'نعم / متوفر' },
+  { keyAr: 'دخول ذكي', keyEn: 'Smart Access', example: 'نعم' },
 ];
 
 const PREDEFINED_FEATURES = [
-  { keyAr: 'مسبح', keyEn: 'Pool' },
-  { keyAr: 'حديقة', keyEn: 'Garden' },
-  { keyAr: 'غرفة خادمة', keyEn: 'Maid Room' },
-  { keyAr: 'غرفة سائق', keyEn: 'Driver Room' },
-  { keyAr: 'ملحق خارجي', keyEn: 'Outdoor Annex' },
-  { keyAr: 'تكييف مركزي', keyEn: 'Central AC' },
-  { keyAr: 'مكيفات راكبة', keyEn: 'Installed ACs' },
-  { keyAr: 'مدخل سيارة', keyEn: 'Car Entrance' },
-  { keyAr: 'مستودع', keyEn: 'Storage' },
-  { keyAr: 'نظام ذكي', keyEn: 'Smart Home System' },
-  { keyAr: 'نادي رياضي', keyEn: 'Gym' },
-  { keyAr: 'كاميرات مراقبة', keyEn: 'Security Cameras' },
-  { keyAr: 'أمن وحراسة', keyEn: 'Security' },
-  { keyAr: 'دخول ذكي', keyEn: 'Smart Access' },
+  { keyAr: 'قريب من المسجد', keyEn: 'Near Mosque' },
+  { keyAr: 'قريب من السوبر ماركت والمول والمحلات', keyEn: 'Near Supermarket, Mall & Shops' },
+  { keyAr: 'قريب من الخدمات والمدارس', keyEn: 'Near Services & Schools' },
+  { keyAr: 'تتوفر جميع الخدمات الحيوية بجانب العقار', keyEn: 'All essential services available nearby' },
+  { keyAr: 'مدخل ومخرج سهل وسريع للطرق الرئيسية', keyEn: 'Quick and easy access to highway / main roads' },
+  { keyAr: 'موقع هادئ وراقٍ ومناسب جداً للعائلات', keyEn: 'Quiet, premium residential area - very family-friendly' },
 ];
 
 export default function Admin() {
@@ -70,7 +80,7 @@ export default function Admin() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'analytics' | 'settings'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'analytics' | 'settings'>('manage');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -78,10 +88,16 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   // Settings Form State
+  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'account'>('whatsapp');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [callingNumber, setCallingNumber] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
+  const [otpWebhookUrl, setOtpWebhookUrl] = useState('');
+  const [otpMessageTemplate, setOtpMessageTemplate] = useState('رمز التحقق الخاص بك هو: {otp}');
+  const [otpWebhookPayload, setOtpWebhookPayload] = useState('{\n  "phone": "{phone}",\n  "otp": "{otp}",\n  "type": "template",\n  "message": "رمز التحقق الخاص بك هو: {otp}"\n}');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
 
   // Property Form State
   const [formData, setFormData] = useState({
@@ -111,7 +127,7 @@ export default function Admin() {
     try {
       const res = await fetch('/api/properties');
       const data = await res.json();
-      setProperties(data);
+      setProperties(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -126,6 +142,9 @@ export default function Admin() {
       if (data.whatsappNumber) setWhatsappNumber(data.whatsappNumber);
       if (data.callingNumber) setCallingNumber(data.callingNumber);
       if (data.whatsappMessage) setWhatsappMessage(data.whatsappMessage);
+      if (data.otpWebhookUrl !== undefined) setOtpWebhookUrl(data.otpWebhookUrl || '');
+      if (data.otpMessageTemplate) setOtpMessageTemplate(data.otpMessageTemplate);
+      if (data.otpWebhookPayload) setOtpWebhookPayload(data.otpWebhookPayload);
     } catch (err) {
       console.error(err);
     }
@@ -148,21 +167,47 @@ export default function Admin() {
   }, []);
 
   // Handle File Upload -> Base64
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [imageUploadMessage, setImageUploadMessage] = useState<{type: 'error', text: string} | null>(null);
+  const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
+    setImageUploadMessage(null);
+    setIsUploadingImages(true);
 
     let base64Images: string[] = [...formData.imageUrls];
-    Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target && typeof event.target.result === 'string') {
-          base64Images.push(event.target.result);
-          setFormData(prev => ({ ...prev, imageUrls: [...base64Images] }));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    let hasError = false;
+
+    // Process sequentially to avoid blocking UI too much
+    for (const file of Array.from(files) as File[]) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB per image limit
+        setImageUploadMessage({ type: 'error', text: language === 'ar' ? `الصورة ${file.name} تتجاوز الحجم المسموح (5MB)` : `Image ${file.name} exceeds 5MB limit`});
+        hasError = true;
+        continue;
+      }
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result && typeof event.target.result === 'string') resolve(event.target.result);
+            else reject(new Error('Failed to convert to base64'));
+          };
+          reader.onerror = () => reject(new Error('File reading error'));
+          reader.readAsDataURL(file);
+        });
+        base64Images.push(base64);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    
+    setFormData(prev => ({ ...prev, imageUrls: base64Images }));
+    setIsUploadingImages(false);
+    
+    // reset input
+    e.target.value = '';
   };
 
   const removeImage = (index: number) => {
@@ -171,8 +216,18 @@ export default function Admin() {
     setFormData(prev => ({ ...prev, imageUrls: newImages }));
   };
 
+  const showSubmitMessage = (type: 'success' | 'error', text: string) => {
+    setSubmitMessage({ type, text });
+    setTimeout(() => setSubmitMessage(null), 5000);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitMessage(null);
+    if (isUploadingImages) {
+      showSubmitMessage('error', language === 'ar' ? 'الرجاء الانتظار حتى يكتمل رفع الصور' : 'Please wait for images to finish uploading');
+      return;
+    }
     setLoading(true);
 
     const payload = {
@@ -193,15 +248,16 @@ export default function Admin() {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        alert(isEditing ? 'Property updated successfully!' : 'Property added successfully!');
+        showSubmitMessage('success', isEditing ? (language === 'ar' ? 'تم تحديث العقار بنجاح' : 'Property updated successfully!') : (language === 'ar' ? 'تم إضافة العقار بنجاح' : 'Property added successfully!'));
         resetForm();
         fetchProperties();
+        setTimeout(() => setShowAddForm(false), 2000);
       } else {
-        alert(isEditing ? 'Failed to update property.' : 'Failed to add property.');
+        showSubmitMessage('error', isEditing ? (language === 'ar' ? 'فشل تحديث العقار' : 'Failed to update property.') : (language === 'ar' ? 'فشل إضافة العقار' : 'Failed to add property.'));
       }
     } catch (err) {
       console.error(err);
-      alert('Error saving property.');
+      showSubmitMessage('error', language === 'ar' ? 'حدث خطأ في النظام' : 'Error saving property. Payload might be too large.');
     } finally {
       setLoading(false);
     }
@@ -295,18 +351,51 @@ export default function Admin() {
     e.preventDefault();
     setSavingSettings(true);
     try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage }),
-      });
-      if (res.ok) {
-        alert('Settings saved!');
+      if (activeSettingsSection === 'account') {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          const res = await fetch('/api/admin/credentials', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminId: u.id, currentUsername: u.username, newUsername: adminUsername, newPassword: adminPassword }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            alert(language === 'ar' ? 'تم تحديث بيانات الحساب بنجاح! سيتم تسجيل خروجك للمتابعة بالبيانات الجديدة.' : 'Account credentials updated successfully! You will be logged out.');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+          } else {
+            const errData = await res.json();
+            alert(language === 'ar' ? 'فشل التحديث: ' + errData.error : 'Update failed: ' + errData.error);
+          }
+        }
       } else {
-        alert('Failed to save settings.');
+        // Validate JSON payload before sending
+        try {
+          if (otpWebhookPayload.trim()) {
+             JSON.parse(otpWebhookPayload);
+          }
+        } catch(parseErr) {
+          alert(language === 'ar' ? 'الرجاء إدخال قالب JSON صحيح' : 'Please provide a valid JSON template format.');
+          setSavingSettings(false);
+          return;
+        }
+        
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload }),
+        });
+        if (res.ok) {
+          alert(language === 'ar' ? 'تم حفظ الإعدادات!' : 'Settings saved!');
+        } else {
+          alert(language === 'ar' ? 'فشل حفظ الإعدادات.' : 'Failed to save settings.');
+        }
       }
     } catch (err) {
       console.error(err);
+      alert(language === 'ar' ? 'خطأ في النظام.' : 'System error.');
     } finally {
       setSavingSettings(false);
     }
@@ -357,6 +446,36 @@ export default function Admin() {
             {language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects'}
           </button>
           <button 
+            onClick={() => setActiveTab('buildings')}
+            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+              activeTab === 'buildings' 
+                ? 'bg-black text-white shadow-lg' 
+                : 'text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {language === 'ar' ? 'إدارة المباني' : 'Buildings'}
+          </button>
+          <button 
+            onClick={() => setActiveTab('renters')}
+            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+              activeTab === 'renters' 
+                ? 'bg-black text-white shadow-lg' 
+                : 'text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {language === 'ar' ? 'المستأجرين' : 'Renters'}
+          </button>
+          <button 
+            onClick={() => setActiveTab('receipts')}
+            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+              activeTab === 'receipts' 
+                ? 'bg-black text-white shadow-lg' 
+                : 'text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {language === 'ar' ? 'الإيصالات' : 'Receipts'}
+          </button>
+          <button 
             onClick={() => setActiveTab('analytics')}
             className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
               activeTab === 'analytics' 
@@ -378,11 +497,20 @@ export default function Admin() {
           </button>
         </div>
 
-        {activeTab === 'projects' && (
-          <AdminProjects />
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={activeTab}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            {activeTab === 'projects' && <AdminProjects />}
+            {activeTab === 'buildings' && <AdminBuildings />}
+            {activeTab === 'renters' && <AdminRenters />}
+            {activeTab === 'receipts' && <AdminReceipts />}
 
-        {activeTab === 'manage' && (
+            {activeTab === 'manage' && (
           <div className="min-h-[500px]">
             <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
               <div className="flex items-center gap-4">
@@ -423,8 +551,8 @@ export default function Admin() {
                     <thead>
                       <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
                         <th className="p-4 font-bold rounded-tr-xl">#</th>
-                        <th className="p-4 font-bold">{t('admin.placeholder.titleAr')} / En</th>
-                        <th className="p-4 font-bold">Type</th>
+                        <th className="p-4 font-bold">{language === 'ar' ? 'اسم العقار' : 'Title (Ar/En)'}</th>
+                        <th className="p-4 font-bold">{language === 'ar' ? 'النوع' : 'Type'}</th>
                         <th className="p-4 font-bold">{t('admin.placeholder.price')}</th>
                         <th className="p-4 font-bold text-center rounded-tl-xl">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
                       </tr>
@@ -474,7 +602,13 @@ export default function Admin() {
                 </div>
               )
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <form onSubmit={handleSubmit} className="space-y-12">
+                {submitMessage && (
+                  <div className={`p-4 rounded-xl font-bold border flex items-center gap-3 ${submitMessage.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                     {submitMessage.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <X className="w-5 h-5 flex-shrink-0" />}
+                     {submitMessage.text}
+                  </div>
+                )}
                 {/* Basic Information Section */}
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Information'}</h3>
@@ -489,7 +623,7 @@ export default function Admin() {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'نوع العرض' : 'Type'}</label>
                       <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors">
                         <option value="SALE">{t('common.sale')}</option>
                         <option value="RENT">{t('common.rent')}</option>
@@ -533,15 +667,15 @@ export default function Admin() {
                   <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'الموقع الجغرافي' : 'Location & Links'}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationText')} (Optional)</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationText')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
                       <input type="text" value={formData.locationText} onChange={(e) => setFormData({ ...formData, locationText: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="Al Malqa, Riyadh..." />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationLink')} (Optional)</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
                       <input type="url" value={formData.locationLink} onChange={(e) => setFormData({ ...formData, locationLink: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="https://maps.google.com/..." />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.aqarLink')} (Optional)</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.aqarLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
                       <input type="url" value={formData.aqarLink} onChange={(e) => setFormData({ ...formData, aqarLink: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="https://sa.aqar.fm/..." />
                     </div>
                   </div>
@@ -751,11 +885,26 @@ export default function Admin() {
                 {/* Images Section */}
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'الصور' : 'Images'} (Max 50MB total)</h3>
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 bg-gray-50 text-center hover:bg-gray-100 transition-colors">
-                    <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
-                    <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center">
-                      <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
-                      <span className="text-gray-600 font-bold text-lg">{t('admin.placeholder.imagesDesc')}</span>
+                  
+                  {imageUploadMessage && (
+                    <div className="mb-4 p-4 rounded-xl font-bold border bg-red-50 text-red-700 border-red-200 flex items-center gap-3">
+                       <X className="w-5 h-5 flex-shrink-0" />
+                       {imageUploadMessage.text}
+                    </div>
+                  )}
+
+                  <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isUploadingImages ? 'border-gray-200 bg-gray-100 cursor-not-allowed' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}>
+                    <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" disabled={isUploadingImages} />
+                    <label htmlFor="image-upload" className={`flex flex-col items-center ${isUploadingImages ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                      {isUploadingImages ? (
+                        <Loader2 className="w-12 h-12 text-indigo-500 mb-4 animate-spin" />
+                      ) : (
+                        <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
+                      )}
+                      
+                      <span className={`font-bold text-lg ${isUploadingImages ? 'text-gray-500' : 'text-gray-600'}`}>
+                        {isUploadingImages ? (language === 'ar' ? 'جاري معالجة الصور...' : 'Processing Images...') : t('admin.placeholder.imagesDesc')}
+                      </span>
                     </label>
                   </div>
                   
@@ -864,75 +1013,211 @@ export default function Admin() {
               </div>
             </div>
             
-            <form onSubmit={handleSaveSettings} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-6 flex-wrap md:flex-nowrap">
+              <button 
+                onClick={() => setActiveSettingsSection('whatsapp')}
+                className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'whatsapp' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                {language === 'ar' ? 'الواتساب' : 'WhatsApp'}
+              </button>
+              <button 
+                onClick={() => setActiveSettingsSection('otp')}
+                className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'otp' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                {language === 'ar' ? 'رمز تحقق المستأجرين' : 'Renter OTP'}
+              </button>
+              <button 
+                onClick={() => setActiveSettingsSection('account')}
+                className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'account' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                {language === 'ar' ? 'حساب الإدارة' : 'Admin Account'}
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveSettings} className="space-y-8 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
               
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-5 inline-block">{language === 'ar' ? 'إعدادات الواتساب' : 'WhatsApp Settings'}</h3>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.whatsapp')}</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-4 pointer-events-none text-gray-400">
-                        <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+              {activeSettingsSection === 'whatsapp' && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-5 inline-block">{language === 'ar' ? 'إعدادات الواتساب' : 'WhatsApp Settings'}</h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.whatsapp')}</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-4 pointer-events-none text-gray-400">
+                          <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                        </div>
+                        <input
+                          required
+                          type="text"
+                          value={whatsappNumber}
+                          onChange={(e) => setWhatsappNumber(e.target.value)}
+                          className="w-full border border-gray-300 rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
+                          placeholder="966500000000"
+                          dir="ltr"
+                        />
                       </div>
-                      <input
-                        required
-                        type="text"
-                        value={whatsappNumber}
-                        onChange={(e) => setWhatsappNumber(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
-                        placeholder="966500000000"
-                        dir="ltr"
-                      />
-                    </div>
-                    <p className="mt-2 text-sm text-gray-500 leading-relaxed max-w-sm">
-                      {language === 'ar' ? 'أدخل الرقم مع رمز الدولة بدون (+) أو (00). مثال: ' : 'Include country code without + or 00. Example: '}
-                      <span className="font-mono text-xs bg-gray-100 px-1 rounded block mt-1 w-max">966500000000</span>
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-4 pointer-events-none text-gray-400">
-                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                      </div>
-                      <input
-                        required
-                        type="text"
-                        value={callingNumber}
-                        onChange={(e) => setCallingNumber(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
-                        placeholder="966500000000"
-                        dir="ltr"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'نص رسالة الواتساب الافتراضي' : 'Default WhatsApp Message'}</label>
-                    <textarea
-                      required
-                      rows={3}
-                      value={whatsappMessage}
-                      onChange={(e) => setWhatsappMessage(e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all resize-none font-medium text-gray-800"
-                      placeholder={language === 'ar' ? 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}' : 'Hello, I am interested in this property: {title} - {link}'}
-                    />
-                    <div className="mt-3 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                      <p className="font-bold flex items-center gap-1.5 mb-1.5 text-gray-700">
-                        <Info className="w-4 h-4" />
-                        {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
+                      <p className="mt-2 text-sm text-gray-500 leading-relaxed max-w-sm">
+                        {language === 'ar' ? 'أدخل الرقم مع رمز الدولة بدون (+) أو (00). مثال: ' : 'Include country code without + or 00. Example: '}
+                        <span className="font-mono text-xs bg-gray-100 px-1 rounded block mt-1 w-max">966500000000</span>
                       </p>
-                      <ul className="list-disc list-inside space-y-1 font-mono text-xs">
-                        <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{title}'}</span> - {language === 'ar' ? 'عنوان العقار' : 'Property Title'}</li>
-                        <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{link}'}</span> - {language === 'ar' ? 'رابط صفحة العقار' : 'Property Page Link'}</li>
-                      </ul>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-4 pointer-events-none text-gray-400">
+                          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                        </div>
+                        <input
+                          required
+                          type="text"
+                          value={callingNumber}
+                          onChange={(e) => setCallingNumber(e.target.value)}
+                          className="w-full border border-gray-300 rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
+                          placeholder="966500000000"
+                          dir="ltr"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'نص رسالة الواتساب الافتراضي' : 'Default WhatsApp Message'}</label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={whatsappMessage}
+                        onChange={(e) => setWhatsappMessage(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all resize-none font-medium text-gray-800"
+                        placeholder={language === 'ar' ? 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}' : 'Hello, I am interested in this property: {title} - {link}'}
+                      />
+                      <div className="mt-3 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-gray-700">
+                          <Info className="w-4 h-4" />
+                          {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 font-mono text-xs">
+                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{title}'}</span> - {language === 'ar' ? 'عنوان العقار' : 'Property Title'}</li>
+                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{link}'}</span> - {language === 'ar' ? 'رابط صفحة العقار' : 'Property Page Link'}</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {activeSettingsSection === 'otp' && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-5 inline-block">
+                    {language === 'ar' ? 'إعدادات تسجيل المستأجرين (OTP Webhook)' : 'Renter Login Settings (OTP Webhook)'}
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                         {language === 'ar' ? 'رابط الويب هوك (Whatomate URL)' : 'Webhook URL (Whatomate)'}
+                      </label>
+                      <input
+                        type="url"
+                        value={otpWebhookUrl}
+                        onChange={(e) => setOtpWebhookUrl(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-medium text-gray-800 dir-ltr"
+                        placeholder="https://hook.us2.make.com/..."
+                      />
+                      <p className="mt-2 text-sm text-gray-500">
+                        {language === 'ar' ? 'اتركه فارغاً لتعطيل إرسال الرسائل عبر الويب هوك.' : 'Leave empty to disable sending webhooks.'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        {language === 'ar' ? 'قالب رسالة رمز التحقق' : 'OTP Message Template'}
+                      </label>
+                      <textarea
+                        required
+                        rows={2}
+                        value={otpMessageTemplate}
+                        onChange={(e) => setOtpMessageTemplate(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all resize-none font-medium text-gray-800"
+                        placeholder={language === 'ar' ? 'رمز التحقق الخاص بك هو: {otp}' : 'Your verification code is: {otp}'}
+                      />
+                      <div className="mt-3 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-gray-700">
+                          <Info className="w-4 h-4" />
+                          {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 font-mono text-xs">
+                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{otp}'}</span> - {language === 'ar' ? 'رمز التحقق المكون من 4 أرقام' : 'The 4-digit verification code'}</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                         {language === 'ar' ? 'قالب JSON لإرسال الويب هوك (Whatomate JSON)' : 'Webhook JSON Payload Template'}
+                      </label>
+                      <textarea
+                        required
+                        rows={6}
+                        value={otpWebhookPayload}
+                        onChange={(e) => setOtpWebhookPayload(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-xs dir-ltr bg-gray-50"
+                        placeholder={'{\n  "phone": "{phone}",\n  "type": "template"\n}'}
+                      />
+                      <div className="mt-3 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-gray-700">
+                          <Info className="w-4 h-4" />
+                          {language === 'ar' ? 'المتغيرات المدعومة في قالب JSON:' : 'Supported Variables in JSON:'}
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 font-mono text-xs mb-2">
+                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{phone}'}</span> - {language === 'ar' ? 'رقم جوال المستأجر' : 'Renter phone number'}</li>
+                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{otp}'}</span> - {language === 'ar' ? 'رمز التحقق' : 'Verification code'}</li>
+                        </ul>
+                        <p className="text-xs">
+                          {language === 'ar' 
+                             ? 'يمكنك وضع صيغة JSON المطلوبة من Whatomate (مثلاً الرسائل القالبية WhatsApp Templates)، وسيتم استبدال المتغيرات قبل الإرسال.' 
+                             : 'You can define the exact JSON payload expected by Whatomate (e.g. WhatsApp Templates) and variables will be replaced before sending.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'account' && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-5 inline-block">
+                    {language === 'ar' ? 'إعدادات الحساب' : 'Account Settings'}
+                  </h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        {language === 'ar' ? 'اسم المستخدم الجديد للإدارة' : 'New Admin Username'}
+                      </label>
+                      <input
+                        type="text"
+                        value={adminUsername}
+                        onChange={(e) => setAdminUsername(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
+                        placeholder="admin"
+                        dir="ltr"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        {language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
+                      </label>
+                      <input
+                        type="password"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
+                        placeholder="********"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-4 border-t border-gray-100 pt-8">
                 <button
@@ -947,6 +1232,8 @@ export default function Admin() {
             </form>
           </div>
         )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

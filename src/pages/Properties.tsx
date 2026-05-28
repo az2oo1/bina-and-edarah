@@ -35,7 +35,7 @@ export default function Properties() {
     fetch('/api/properties')
       .then((res) => res.json())
       .then((data) => {
-        setProperties(data);
+        setProperties(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((err) => {

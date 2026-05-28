@@ -78,6 +78,9 @@ model Settings {
   whatsappNumber  String @default("966500000000")
   callingNumber   String @default("966500000000")
   whatsappMessage String @default("مرحباً، أنا مهتم بهذا العقار: {title} - {link}")
+  otpWebhookUrl   String?
+  otpMessageTemplate String @default("رمز التحقق الخاص بك هو: {otp}")
+  otpWebhookPayload  String?
 }
 
 model PageView {
@@ -86,5 +89,62 @@ model PageView {
   propertyId String?  // Optional, for property views
   ipAddress  String?
   createdAt  DateTime @default(now())
+}
+
+model Building {
+  id              String   @id @default(uuid())
+  name            String
+  transferDetails String?
+  photos          String?  @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  units           RenterUnit[]
+}
+
+model RenterUnit {
+  id              String   @id @default(uuid())
+  buildingId      String
+  building        Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  unitNumber      String
+  renterName      String
+  renterPhone     String
+  contractEndDate String?
+  isTanfeeth      Boolean  @default(false)
+  nextRentDue     String?
+  rentAmount      Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  rentHistory     RentHistory[]
+}
+
+model RentHistory {
+  id           String   @id @default(uuid())
+  renterUnitId String
+  renterUnit   RenterUnit @relation(fields: [renterUnitId], references: [id], onDelete: Cascade)
+  dueDate      String?
+  paidDate     String?
+  amount       String?
+  receiptUrl   String?
+  createdAt    DateTime @default(now())
+}
+
+model Receipt {
+  id           String   @id @default(uuid())
+  renterName   String
+  renterPhone  String
+  buildingName String?
+  unitNumber   String?
+  amount       String?
+  dueDate      String?
+  receiptUrl   String
+  createdAt    DateTime @default(now())
+}
+
+model OtpSession {
+  id        String   @id @default(uuid())
+  phone     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 

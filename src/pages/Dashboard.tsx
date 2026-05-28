@@ -38,10 +38,11 @@ export default function Dashboard() {
       .then(res => res.json())
       .then((data: Property[]) => {
         // If user is Admin, show all. If normal user, show only theirs
+        const propertiesArray = Array.isArray(data) ? data : [];
         if (u.role === 'ADMIN') {
-          setProperties(data);
+          setProperties(propertiesArray);
         } else {
-          setProperties(data.filter(p => p.userId === u.id));
+          setProperties(propertiesArray.filter((p: any) => p.userId === u.id));
         }
       });
   }, [navigate]);
