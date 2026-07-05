@@ -88,7 +88,7 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   // Settings Form State
-  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'account'>('whatsapp');
+  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'account' | 'images'>('whatsapp');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [callingNumber, setCallingNumber] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
@@ -98,6 +98,19 @@ export default function Admin() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+
+  // Home Images & Logo State
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [homeImages, setHomeImages] = useState<{
+    hero: string | null;
+    service1: string | null;
+    service2: string | null;
+    service3: string | null;
+    service4: string | null;
+  }>({
+    hero: null, service1: null, service2: null, service3: null, service4: null
+  });
+  const [imageSlotUploading, setImageSlotUploading] = useState<string | null>(null);
 
   // Property Form State
   const [formData, setFormData] = useState({
@@ -145,6 +158,13 @@ export default function Admin() {
       if (data.otpWebhookUrl !== undefined) setOtpWebhookUrl(data.otpWebhookUrl || '');
       if (data.otpMessageTemplate) setOtpMessageTemplate(data.otpMessageTemplate);
       if (data.otpWebhookPayload) setOtpWebhookPayload(data.otpWebhookPayload);
+      if (data.logoUrl) setLogoUrl(data.logoUrl);
+      if (data.homeImages) {
+        try {
+          const parsed = JSON.parse(data.homeImages);
+          setHomeImages(prev => ({ ...prev, ...parsed }));
+        } catch (_) {}
+      }
     } catch (err) {
       console.error(err);
     }
@@ -370,6 +390,22 @@ export default function Admin() {
             alert(language === 'ar' ? 'فشل التحديث: ' + errData.error : 'Update failed: ' + errData.error);
           }
         }
+      } else if (activeSettingsSection === 'images') {
+        // Save images settings
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload,
+            homeImages: JSON.stringify(homeImages),
+            logoUrl
+          }),
+        });
+        if (res.ok) {
+          alert(language === 'ar' ? 'تم حفظ الصور بنجاح! أعد تحميل الصفحة الرئيسية لرؤية التغييرات.' : 'Images saved! Reload the home page to see changes.');
+        } else {
+          alert(language === 'ar' ? 'فشل حفظ الصور.' : 'Failed to save images.');
+        }
       } else {
         // Validate JSON payload before sending
         try {
@@ -385,7 +421,7 @@ export default function Admin() {
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload }),
+          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages: JSON.stringify(homeImages), logoUrl }),
         });
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ الإعدادات!' : 'Settings saved!');
@@ -1027,6 +1063,12 @@ export default function Admin() {
                 {language === 'ar' ? 'رمز تحقق المستأجرين' : 'Renter OTP'}
               </button>
               <button 
+                onClick={() => setActiveSettingsSection('images')}
+                className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'images' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                {language === 'ar' ? 'صور الموقع' : 'Site Images'}
+              </button>
+              <button 
                 onClick={() => setActiveSettingsSection('account')}
                 className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'account' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
               >
@@ -1182,6 +1224,160 @@ export default function Admin() {
                   </div>
                 </div>
               )}
+
+              {activeSettingsSection === 'images' && (() => {
+                const imageSlots = [
+                  {
+                    key: 'logo' as const,
+                    labelAr: 'شعار الموقع (Logo)',
+                    labelEn: 'Site Logo',
+                    hintAr: 'يظهر في شريط التنقل والتذييل. يفضل PNG بخلفية شفافة.',
+                    hintEn: 'Appears in navbar & footer. PNG with transparent background preferred.',
+                    current: logoUrl,
+                    onUpload: (base64: string) => setLogoUrl(base64),
+                    onRemove: () => setLogoUrl(null),
+                  },
+                  {
+                    key: 'hero' as const,
+                    labelAr: 'صورة الخلفية الرئيسية (Hero)',
+                    labelEn: 'Hero Background Image',
+                    hintAr: 'الصورة الكبيرة خلف عنوان الصفحة الرئيسية.',
+                    hintEn: 'The large background image behind the main page title.',
+                    current: homeImages.hero,
+                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, hero: base64 })),
+                    onRemove: () => setHomeImages(p => ({ ...p, hero: null })),
+                  },
+                  {
+                    key: 'service1' as const,
+                    labelAr: 'صورة خدمة ١ – تطوير وتسويق عقاري',
+                    labelEn: 'Service Image 1 – Real Estate Development',
+                    hintAr: '', hintEn: '',
+                    current: homeImages.service1,
+                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, service1: base64 })),
+                    onRemove: () => setHomeImages(p => ({ ...p, service1: null })),
+                  },
+                  {
+                    key: 'service2' as const,
+                    labelAr: 'صورة خدمة ٢ – تأجير ومبيعات',
+                    labelEn: 'Service Image 2 – Leasing & Sales',
+                    hintAr: '', hintEn: '',
+                    current: homeImages.service2,
+                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, service2: base64 })),
+                    onRemove: () => setHomeImages(p => ({ ...p, service2: null })),
+                  },
+                  {
+                    key: 'service3' as const,
+                    labelAr: 'صورة خدمة ٣ – إدارة أملاك',
+                    labelEn: 'Service Image 3 – Property Management',
+                    hintAr: '', hintEn: '',
+                    current: homeImages.service3,
+                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, service3: base64 })),
+                    onRemove: () => setHomeImages(p => ({ ...p, service3: null })),
+                  },
+                  {
+                    key: 'service4' as const,
+                    labelAr: 'صورة خدمة ٤ – استشارات عقارية',
+                    labelEn: 'Service Image 4 – Consulting',
+                    hintAr: '', hintEn: '',
+                    current: homeImages.service4,
+                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, service4: base64 })),
+                    onRemove: () => setHomeImages(p => ({ ...p, service4: null })),
+                  },
+                ];
+
+                const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, onUpload: (b: string) => void) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) {
+                    alert(language === 'ar' ? 'حجم الصورة يتجاوز 5MB' : 'Image exceeds 5MB limit');
+                    return;
+                  }
+                  setImageSlotUploading(slotKey);
+                  const base64 = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = ev => resolve(ev.target?.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                  });
+                  onUpload(base64);
+                  setImageSlotUploading(null);
+                  e.target.value = '';
+                };
+
+                return (
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-6">
+                      {language === 'ar' ? 'صور الصفحة الرئيسية والشعار' : 'Home Page Images & Logo'}
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-6">
+                      {language === 'ar'
+                        ? 'ارفع صوراً مخصصة لكل قسم. إذا لم ترفع صورة سيتم استخدام الصورة الافتراضية.'
+                        : 'Upload custom images for each section. Default images will be used if none are uploaded.'}
+                    </p>
+                    <div className="space-y-6">
+                      {imageSlots.map(slot => (
+                        <div key={slot.key} className="border border-gray-100 rounded-2xl p-5 bg-gray-50 hover:bg-white transition-colors">
+                          <p className="font-bold text-gray-900 text-sm mb-1">
+                            {language === 'ar' ? slot.labelAr : slot.labelEn}
+                          </p>
+                          {(slot.hintAr || slot.hintEn) && (
+                            <p className="text-xs text-gray-500 mb-3">
+                              {language === 'ar' ? slot.hintAr : slot.hintEn}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 flex-wrap mt-3">
+                            {slot.current ? (
+                              <div className="relative w-28 h-20 rounded-xl overflow-hidden border-2 border-yellow-300 bg-gray-200 flex-shrink-0">
+                                <img src={slot.current} alt="preview" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={slot.onRemove}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow"
+                                  title={language === 'ar' ? 'حذف الصورة' : 'Remove image'}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="w-28 h-20 rounded-xl border-2 border-dashed border-gray-300 bg-white flex flex-col items-center justify-center flex-shrink-0">
+                                <ImagePlus className="w-6 h-6 text-gray-300" />
+                                <span className="text-xs text-gray-400 mt-1">{language === 'ar' ? 'افتراضية' : 'Default'}</span>
+                              </div>
+                            )}
+                            <div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                id={`img-slot-${slot.key}`}
+                                className="hidden"
+                                onChange={(e) => handleSlotUpload(e, slot.key, slot.onUpload)}
+                                disabled={imageSlotUploading === slot.key}
+                              />
+                              <label
+                                htmlFor={`img-slot-${slot.key}`}
+                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 bg-white text-sm font-bold cursor-pointer hover:bg-gray-50 transition-colors ${
+                                  imageSlotUploading === slot.key ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                              >
+                                {imageSlotUploading === slot.key ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <ImagePlus className="w-4 h-4 text-gray-500" />
+                                )}
+                                {slot.current
+                                  ? (language === 'ar' ? 'تغيير الصورة' : 'Change Image')
+                                  : (language === 'ar' ? 'رفع صورة' : 'Upload Image')
+                                }
+                              </label>
+                              <p className="text-xs text-gray-400 mt-2">{language === 'ar' ? 'الحد الأقصى 5MB' : 'Max 5MB'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {activeSettingsSection === 'account' && (
                 <div>

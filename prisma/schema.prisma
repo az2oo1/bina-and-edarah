@@ -81,6 +81,8 @@ model Settings {
   otpWebhookUrl   String?
   otpMessageTemplate String @default("رمز التحقق الخاص بك هو: {otp}")
   otpWebhookPayload  String?
+  homeImages      String? // JSON stringified object: {hero, service1, service2, service3, service4}
+  logoUrl         String? // base64 or URL for the site logo
 }
 
 model PageView {

@@ -823,11 +823,11 @@ async function startServer() {
 
   app.post("/api/settings", async (req, res) => {
     try {
-      const { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload } = req.body;
+      const { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl } = req.body;
       const settings = await prisma.settings.upsert({
         where: { id: "global" },
-        update: { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload },
-        create: { id: "global", whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload }
+        update: { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl },
+        create: { id: "global", whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl }
       });
       res.json(settings);
     } catch (error) {
@@ -1030,6 +1030,11 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`--------------------------------------------------`);
+    console.log(`[ADMIN] Fallback credentials (if DB is empty):`);
+    console.log(`[ADMIN]   Username : admin`);
+    console.log(`[ADMIN]   Password : admin`);
+    console.log(`--------------------------------------------------`);
   });
 }
 

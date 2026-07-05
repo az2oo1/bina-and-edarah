@@ -1,11 +1,36 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, BuildingIcon, KeySquare, Hammer, Headphones } from 'lucide-react';
 import { Link } from 'react-router';
 
+const DEFAULT_IMAGES = {
+  hero: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop',
+  service1: 'https://images.unsplash.com/photo-1541885088926-d68a98b04a8e?auto=format&fit=crop&w=800&q=80',
+  service2: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80',
+  service3: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
+  service4: 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&w=800&q=80',
+};
+
+export type HomeImages = typeof DEFAULT_IMAGES;
+
 export default function Home() {
   const { t, language } = useLanguage();
   const Arrow = language === 'ar' ? ArrowLeft : ArrowRight;
+  const [images, setImages] = useState<HomeImages>(DEFAULT_IMAGES);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => {
+        if (data.homeImages) {
+          try {
+            const parsed = JSON.parse(data.homeImages);
+            setImages(prev => ({ ...prev, ...parsed }));
+          } catch (_) {}
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const services = [
     {
@@ -18,7 +43,7 @@ export default function Home() {
       bg: 'bg-blue-50',
       border: 'border-blue-100',
       color: 'text-blue-600',
-      image: "https://images.unsplash.com/photo-1541885088926-d68a98b04a8e?auto=format&fit=crop&w=800&q=80"
+      image: images.service1,
     },
     {
       id: 'leasing',
@@ -30,7 +55,7 @@ export default function Home() {
       bg: 'bg-yellow-50',
       border: 'border-yellow-100',
       color: 'text-yellow-600',
-      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80"
+      image: images.service2,
     },
     {
       id: 'management',
@@ -42,7 +67,7 @@ export default function Home() {
       bg: 'bg-green-50',
       border: 'border-green-100',
       color: 'text-green-600',
-      image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80"
+      image: images.service3,
     },
     {
       id: 'consulting',
@@ -54,7 +79,7 @@ export default function Home() {
       bg: 'bg-indigo-50',
       border: 'border-indigo-100',
       color: 'text-indigo-600',
-      image: "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&w=800&q=80"
+      image: images.service4,
     }
   ];
 
@@ -65,7 +90,7 @@ export default function Home() {
         {/* Background Image with Overlay */}
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center"
-          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop")' }}
+          style={{ backgroundImage: `url("${images.hero}")` }}
         >
           <div className="absolute inset-0 bg-black/60"></div>
         </div>

@@ -1,6 +1,22 @@
 import React from 'react';
 
-export function Logo({ className = "w-12 h-12" }: { className?: string }) {
+interface LogoProps {
+  className?: string;
+  logoUrl?: string | null;
+}
+
+export function Logo({ className = "w-12 h-12", logoUrl }: LogoProps) {
+  if (logoUrl) {
+    return (
+      <img
+        src={logoUrl}
+        alt="Logo"
+        className={className}
+        style={{ objectFit: 'contain' }}
+      />
+    );
+  }
+
   return (
     <svg 
       viewBox="0 0 100 100" 
@@ -21,4 +37,3 @@ export function Logo({ className = "w-12 h-12" }: { className?: string }) {
     </svg>
   );
 }
-

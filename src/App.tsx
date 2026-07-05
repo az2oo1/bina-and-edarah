@@ -12,10 +12,29 @@ import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
+function useLogoUrl() {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => { if (data.logoUrl) setLogoUrl(data.logoUrl); })
+      .catch(() => {});
+    // Listen for storage events so admin changes propagate without reload
+    const onStorage = () => {
+      const cached = sessionStorage.getItem('logoUrl');
+      if (cached) setLogoUrl(cached);
+    };
+    window.addEventListener('logoUpdated', onStorage);
+    return () => window.removeEventListener('logoUpdated', onStorage);
+  }, []);
+  return logoUrl;
+}
+
 function Navbar() {
   const { language, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const [user, setUser] = useState<{username: string, role: string} | null>(null);
+  const logoUrl = useLogoUrl();
 
   useEffect(() => {
     const checkUser = () => {
@@ -44,7 +63,7 @@ function Navbar() {
         <div className="flex justify-between h-20">
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center gap-3 mr-8 sm:rtl:ml-8 sm:rtl:mr-0">
-              <Logo className="h-14 w-14 text-white" />
+              <Logo className="h-14 w-14 text-white" logoUrl={logoUrl} />
               <span className="font-bold text-xl text-white tracking-wide hidden sm:block">{t('hero.title')}</span>
             </div>
             <div className="hidden sm:flex items-center gap-8 lg:gap-14">
@@ -102,10 +121,11 @@ function Navbar() {
 
 function Footer() {
   const { language } = useLanguage();
+  const logoUrl = useLogoUrl();
   return (
     <footer className="bg-black border-t border-gray-800 py-12 text-center text-gray-400">
       <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-4">
-        <Logo className="h-10 w-10 text-white opacity-50" />
+        <Logo className="h-10 w-10 text-white opacity-50" logoUrl={logoUrl} />
         <p>&copy; {new Date().getFullYear()} {language === 'ar' ? 'بناء وإدارة العقارية. جميع الحقوق محفوظة.' : 'Benaa and Edara Real Estate. All rights reserved.'}</p>
       </div>
     </footer>
