@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
+import AIImageGenerator from '../components/AIImageGenerator';
 
 import AdminProjects from './AdminProjects';
 import AdminBuildings from './AdminBuildings';
@@ -170,6 +171,7 @@ export default function Admin() {
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [imageUploadMessage, setImageUploadMessage] = useState<{type: 'error', text: string} | null>(null);
   const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -884,7 +886,18 @@ export default function Admin() {
 
                 {/* Images Section */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'الصور' : 'Images'} (Max 50MB total)</h3>
+                  <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-6">
+                    <h3 className="text-xl font-bold text-gray-900">{language === 'ar' ? 'الصور' : 'Images'} (Max 50MB total)</h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowAIGenerator(true)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black transition-all hover:scale-105 active:scale-95 shadow-sm"
+                      style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}
+                    >
+                      <Wand2 className="w-4 h-4" />
+                      {language === 'ar' ? 'توليد بالذكاء الاصطناعي ✨' : '✨ Generate with AI'}
+                    </button>
+                  </div>
                   
                   {imageUploadMessage && (
                     <div className="mb-4 p-4 rounded-xl font-bold border bg-red-50 text-red-700 border-red-200 flex items-center gap-3">
@@ -921,6 +934,18 @@ export default function Admin() {
                     </div>
                   )}
                 </div>
+
+                {/* AI Image Generator Modal */}
+                {showAIGenerator && (
+                  <AIImageGenerator
+                    language={language as 'ar' | 'en'}
+                    propertyType={formData.type}
+                    onClose={() => setShowAIGenerator(false)}
+                    onUseImage={(base64) => {
+                      setFormData(prev => ({ ...prev, imageUrls: [...prev.imageUrls, base64] }));
+                    }}
+                  />
+                )}
               
               <div className="pt-6">
                 <button

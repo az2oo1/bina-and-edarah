@@ -6,6 +6,7 @@ import { prisma } from "./src/lib/db.js";
 import fs from "fs";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
+import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
@@ -938,6 +939,44 @@ async function startServer() {
       res.status(201).json(newService);
     } catch (error) {
       res.status(500).json({ error: "Failed to create service" });
+    }
+  });
+
+  // AI Image Generation
+  app.post("/api/generate-image", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "GEMINI_API_KEY not configured" });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+
+      const response = await ai.models.generateImages({
+        model: 'imagen-3.0-generate-002',
+        prompt: prompt.trim(),
+        config: {
+          numberOfImages: 1,
+          aspectRatio: '4:3',
+          outputMimeType: 'image/jpeg',
+        },
+      });
+
+      const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+      if (!imageBytes) {
+        return res.status(500).json({ error: "No image was generated" });
+      }
+
+      const base64 = `data:image/jpeg;base64,${imageBytes}`;
+      res.json({ imageUrl: base64 });
+    } catch (error: any) {
+      console.error("Image generation error:", error);
+      res.status(500).json({ error: error?.message || "Failed to generate image" });
     }
   });
 
