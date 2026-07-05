@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 
@@ -88,7 +88,7 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   // Settings Form State
-  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'account' | 'images'>('whatsapp');
+  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'account' | 'images' | 'social' | 'backup'>('whatsapp');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [callingNumber, setCallingNumber] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
@@ -111,6 +111,20 @@ export default function Admin() {
     hero: null, service1: null, service2: null, service3: null, service4: null
   });
   const [imageSlotUploading, setImageSlotUploading] = useState<string | null>(null);
+
+  // Social Media & Contact State
+  const [socialEmail, setSocialEmail] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [twitterUrl, setTwitterUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
+
+  // Backup / Restore State
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreMessage, setRestoreMessage] = useState<{type:'success'|'error', text:string} | null>(null);
 
   // Property Form State
   const [formData, setFormData] = useState({
@@ -165,6 +179,13 @@ export default function Admin() {
           setHomeImages(prev => ({ ...prev, ...parsed }));
         } catch (_) {}
       }
+      if (data.email !== undefined) setSocialEmail(data.email || '');
+      if (data.instagramUrl !== undefined) setInstagramUrl(data.instagramUrl || '');
+      if (data.twitterUrl !== undefined) setTwitterUrl(data.twitterUrl || '');
+      if (data.facebookUrl !== undefined) setFacebookUrl(data.facebookUrl || '');
+      if (data.linkedinUrl !== undefined) setLinkedinUrl(data.linkedinUrl || '');
+      if (data.youtubeUrl !== undefined) setYoutubeUrl(data.youtubeUrl || '');
+      if (data.tiktokUrl !== undefined) setTiktokUrl(data.tiktokUrl || '');
     } catch (err) {
       console.error(err);
     }
@@ -389,6 +410,17 @@ export default function Admin() {
             const errData = await res.json();
             alert(language === 'ar' ? 'فشل التحديث: ' + errData.error : 'Update failed: ' + errData.error);
           }
+        }
+      } else if (activeSettingsSection === 'social') {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages: JSON.stringify(homeImages), logoUrl, email: socialEmail, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl }),
+        });
+        if (res.ok) {
+          alert(language === 'ar' ? 'تم حفظ معلومات التواصل الاجتماعي بنجاح!' : 'Social media info saved!');
+        } else {
+          alert(language === 'ar' ? 'فشل الحفظ.' : 'Save failed.');
         }
       } else if (activeSettingsSection === 'images') {
         // Save images settings
@@ -1049,30 +1081,24 @@ export default function Admin() {
               </div>
             </div>
             
-            <div className="flex bg-gray-100 p-1 rounded-xl mb-6 flex-wrap md:flex-nowrap">
-              <button 
-                onClick={() => setActiveSettingsSection('whatsapp')}
-                className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'whatsapp' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
-              >
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-6 flex-wrap gap-1">
+              <button onClick={() => setActiveSettingsSection('whatsapp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'whatsapp' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
                 {language === 'ar' ? 'الواتساب' : 'WhatsApp'}
               </button>
-              <button 
-                onClick={() => setActiveSettingsSection('otp')}
-                className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'otp' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
-              >
-                {language === 'ar' ? 'رمز تحقق المستأجرين' : 'Renter OTP'}
+              <button onClick={() => setActiveSettingsSection('otp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'otp' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+                {language === 'ar' ? 'رمز تحقق' : 'OTP'}
               </button>
-              <button 
-                onClick={() => setActiveSettingsSection('images')}
-                className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'images' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
-              >
-                {language === 'ar' ? 'صور الموقع' : 'Site Images'}
+              <button onClick={() => setActiveSettingsSection('social')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'social' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+                {language === 'ar' ? 'سوشيال' : 'Social'}
               </button>
-              <button 
-                onClick={() => setActiveSettingsSection('account')}
-                className={`flex-1 py-3 px-4 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${activeSettingsSection === 'account' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
-              >
-                {language === 'ar' ? 'حساب الإدارة' : 'Admin Account'}
+              <button onClick={() => setActiveSettingsSection('images')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'images' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+                {language === 'ar' ? 'صور' : 'Images'}
+              </button>
+              <button onClick={() => setActiveSettingsSection('backup')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'backup' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+                {language === 'ar' ? 'نسخة احتياطية' : 'Backup'}
+              </button>
+              <button onClick={() => setActiveSettingsSection('account')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'account' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+                {language === 'ar' ? 'حساب' : 'Account'}
               </button>
             </div>
             
@@ -1378,6 +1404,134 @@ export default function Admin() {
                   </div>
                 );
               })()}
+
+              {activeSettingsSection === 'social' && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-6">
+                    {language === 'ar' ? 'وسائل التواصل الاجتماعي والبريد الإلكتروني' : 'Social Media & Email'}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-6">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
+                  <div className="space-y-4">
+                    {[
+                      { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: '✉️' },
+                      { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: '📸' },
+                      { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: '🐦' },
+                      { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: '👤' },
+                      { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: '💼' },
+                      { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: '🎥' },
+                      { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: '🎵' },
+                    ].map(field => (
+                      <div key={field.label}>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">
+                          <span className="mr-1">{field.icon}</span> {field.label}
+                        </label>
+                        <input
+                          type={field.type}
+                          value={field.value}
+                          onChange={e => field.setter(e.target.value)}
+                          className="w-full border border-gray-300 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all text-gray-800 text-sm"
+                          placeholder={field.placeholder}
+                          dir="ltr"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'backup' && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-6">
+                    {language === 'ar' ? 'نسخة احتياطية واستعادة' : 'Backup & Restore'}
+                  </h3>
+
+                  {/* Download Backup */}
+                  <div className="border border-gray-100 rounded-2xl p-6 bg-gray-50 mb-6">
+                    <h4 className="font-bold text-gray-900 mb-1">{language === 'ar' ? 'تنزيل نسخة احتياطية' : 'Download Backup'}</h4>
+                    <p className="text-sm text-gray-500 mb-4">
+                      {language === 'ar'
+                        ? 'تحميل ملف ZIP يحتوي على قاعدة البيانات كاملة (مع جميع الصور) وملفات الصور كملفات حقيقية.'
+                        : 'Downloads a ZIP containing the full database (with all images embedded) plus extracted image files for convenience.'}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={backupLoading}
+                      onClick={async () => {
+                        setBackupLoading(true);
+                        try {
+                          const res = await fetch('/api/admin/backup');
+                          if (!res.ok) throw new Error('Failed');
+                          const blob = await res.blob();
+                          const cd = res.headers.get('Content-Disposition') || '';
+                          const match = cd.match(/filename="(.+?)"/);
+                          const filename = match ? match[1] : 'backup.zip';
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url; a.download = filename; a.click();
+                          URL.revokeObjectURL(url);
+                        } catch(e) {
+                          alert(language === 'ar' ? 'فشل تنزيل النسخة.' : 'Backup download failed.');
+                        } finally { setBackupLoading(false); }
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50"
+                    >
+                      {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                      {language === 'ar' ? 'تنزيل ZIP' : 'Download ZIP'}
+                    </button>
+                  </div>
+
+                  {/* Restore */}
+                  <div className="border border-red-100 rounded-2xl p-6 bg-red-50">
+                    <h4 className="font-bold text-red-700 mb-1">{language === 'ar' ? 'استعادة نسخة احتياطية' : 'Restore from Backup'}</h4>
+                    <p className="text-sm text-red-600 mb-4">
+                      {language === 'ar'
+                        ? 'تحذير: ستحل قاعدة البيانات الحالية. ارفع ملف ZIP أو .db من نسخة احتياطية سابقة.'
+                        : 'Warning: This will replace the current database. Upload a .zip or .db file from a previous backup.'}
+                    </p>
+                    {restoreMessage && (
+                      <div className={`mb-4 p-3 rounded-xl text-sm font-bold ${restoreMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-200 text-red-800'}`}>
+                        {restoreMessage.text}
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      id="restore-file-input"
+                      accept=".zip,.db"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (!window.confirm(language === 'ar' ? 'هل أنت متأكد؟ سيتم استبدال قاعدة البيانات الحالية.' : 'Are you sure? This will replace the current database.')) return;
+                        setRestoreLoading(true);
+                        setRestoreMessage(null);
+                        try {
+                          const fd = new FormData();
+                          fd.append('file', file);
+                          const res = await fetch('/api/admin/restore', { method: 'POST', body: fd });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setRestoreMessage({ type: 'success', text: language === 'ar' ? 'تمت الاستعادة بنجاح. أعد تحميل الصفحة.' : 'Restore successful! Please reload the page.' });
+                          } else {
+                            setRestoreMessage({ type: 'error', text: data.error || 'Restore failed' });
+                          }
+                        } catch(err) {
+                          setRestoreMessage({ type: 'error', text: 'Network error' });
+                        } finally {
+                          setRestoreLoading(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor="restore-file-input"
+                      className={`inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl cursor-pointer transition-colors ${restoreLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                      {restoreLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      {language === 'ar' ? 'اختر ملف للاستعادة' : 'Choose File to Restore'}
+                    </label>
+                  </div>
+                </div>
+              )}
 
               {activeSettingsSection === 'account' && (
                 <div>

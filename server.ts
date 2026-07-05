@@ -6,6 +6,9 @@ import { prisma } from "./src/lib/db.js";
 import fs from "fs";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
+import archiver from "archiver";
+import multer from "multer";
+import AdmZip from "adm-zip";
 
 async function startServer() {
   const app = express();
@@ -823,15 +826,132 @@ async function startServer() {
 
   app.post("/api/settings", async (req, res) => {
     try {
-      const { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl } = req.body;
+      const { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl } = req.body;
       const settings = await prisma.settings.upsert({
         where: { id: "global" },
-        update: { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl },
-        create: { id: "global", whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl }
+        update: { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl },
+        create: { id: "global", whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl }
       });
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  // ---- Backup & Restore ----
+
+  // GET /api/admin/backup  → streams a ZIP file containing:
+  //   - benaa-edara.db  (the raw SQLite database – contains everything including base64 images)
+  //   - images/         (extracted image files for convenience)
+  //   - manifest.json   (metadata)
+  app.get("/api/admin/backup", async (req, res) => {
+    try {
+      const dbPath = path.resolve(process.cwd(), 'prisma', 'dev.db');
+      if (!fs.existsSync(dbPath)) {
+        return res.status(404).json({ error: "Database file not found" });
+      }
+
+      const archive = archiver('zip', { zlib: { level: 6 } });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `benaa-edara-backup-${timestamp}.zip`;
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      archive.pipe(res);
+
+      // 1. Add the raw database file
+      archive.file(dbPath, { name: 'benaa-edara.db' });
+
+      // 2. Extract images from DB and add as real files
+      const settings = await prisma.settings.findUnique({ where: { id: 'global' } });
+      let imgIndex = 0;
+
+      const saveBase64 = (b64: string | null | undefined, name: string) => {
+        if (!b64 || !b64.startsWith('data:')) return;
+        const match = b64.match(/^data:(image\/\w+);base64,(.+)$/);
+        if (!match) return;
+        const ext = match[1].split('/')[1] || 'png';
+        const buf = Buffer.from(match[2], 'base64');
+        archive.append(buf, { name: `images/${name}.${ext}` });
+      };
+
+      if (settings?.logoUrl) saveBase64(settings.logoUrl, 'logo');
+      if (settings?.homeImages) {
+        try {
+          const hi = JSON.parse(settings.homeImages);
+          ['hero','service1','service2','service3','service4'].forEach(k => saveBase64(hi[k], `home-${k}`));
+        } catch(_) {}
+      }
+
+      // Property images
+      const properties = await prisma.property.findMany({ select: { id: true, titleEn: true, imageUrls: true } });
+      for (const prop of properties) {
+        try {
+          const imgs = JSON.parse(prop.imageUrls || '[]');
+          imgs.forEach((img: string, i: number) => saveBase64(img, `property-${prop.id.slice(0,8)}-img${i+1}`));
+        } catch(_) {}
+      }
+
+      // Project images
+      const projects = await prisma.project.findMany({ select: { id: true, titleEn: true, imageUrls: true } });
+      for (const proj of projects) {
+        try {
+          const imgs = JSON.parse(proj.imageUrls || '[]');
+          imgs.forEach((img: string, i: number) => saveBase64(img, `project-${proj.id.slice(0,8)}-img${i+1}`));
+        } catch(_) {}
+      }
+
+      // 3. Manifest
+      const manifest = {
+        createdAt: new Date().toISOString(),
+        version: '1.0',
+        properties: properties.length,
+        projects: projects.length,
+        note: 'Restore by uploading the .db file via Admin → Settings → Backup & Restore'
+      };
+      archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
+
+      await archive.finalize();
+    } catch (error) {
+      console.error('Backup error:', error);
+      if (!res.headersSent) res.status(500).json({ error: 'Backup failed' });
+    }
+  });
+
+  // POST /api/admin/restore  → accepts multipart upload of a .db file or a .zip containing a .db file
+  const restoreUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
+  app.post("/api/admin/restore", restoreUpload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+      const dbPath = path.resolve(process.cwd(), 'prisma', 'dev.db');
+      let dbBuffer: Buffer | null = null;
+
+      if (req.file.originalname.endsWith('.zip')) {
+        // Extract .db from zip
+        const zip = new AdmZip(req.file.buffer);
+        const entry = zip.getEntries().find(e => e.entryName.endsWith('.db'));
+        if (!entry) return res.status(400).json({ error: 'No .db file found in ZIP' });
+        dbBuffer = entry.getData();
+      } else if (req.file.originalname.endsWith('.db')) {
+        dbBuffer = req.file.buffer;
+      } else {
+        return res.status(400).json({ error: 'Please upload a .zip or .db file' });
+      }
+
+      // Write new DB (Prisma will pick it up on next query)
+      const backupPath = dbPath + '.bak';
+      if (fs.existsSync(dbPath)) fs.copyFileSync(dbPath, backupPath);
+      fs.writeFileSync(dbPath, dbBuffer);
+
+      // Disconnect and reconnect Prisma
+      await prisma.$disconnect();
+      await prisma.$connect();
+
+      res.json({ success: true, message: 'Database restored successfully. Please refresh the page.' });
+    } catch (error) {
+      console.error('Restore error:', error);
+      res.status(500).json({ error: 'Restore failed: ' + (error as any)?.message });
     }
   });
 

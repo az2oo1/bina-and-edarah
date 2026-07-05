@@ -74,15 +74,23 @@ model Project {
 }
 
 model Settings {
-  id              String @id @default("global")
-  whatsappNumber  String @default("966500000000")
-  callingNumber   String @default("966500000000")
-  whatsappMessage String @default("مرحباً، أنا مهتم بهذا العقار: {title} - {link}")
-  otpWebhookUrl   String?
-  otpMessageTemplate String @default("رمز التحقق الخاص بك هو: {otp}")
+  id                 String  @id @default("global")
+  whatsappNumber     String  @default("966500000000")
+  callingNumber      String  @default("966500000000")
+  whatsappMessage    String  @default("مرحباً، أنا مهتم بهذا العقار: {title} - {link}")
+  otpWebhookUrl      String?
+  otpMessageTemplate String  @default("رمز التحقق الخاص بك هو: {otp}")
   otpWebhookPayload  String?
-  homeImages      String? // JSON stringified object: {hero, service1, service2, service3, service4}
-  logoUrl         String? // base64 or URL for the site logo
+  homeImages         String? // JSON stringified object: {hero, service1, service2, service3, service4}
+  logoUrl            String? // base64 or URL for the site logo
+  // Social Media & Contact
+  email              String?
+  instagramUrl       String?
+  twitterUrl         String?
+  facebookUrl        String?
+  linkedinUrl        String?
+  youtubeUrl         String?
+  tiktokUrl          String?
 }
 
 model PageView {
