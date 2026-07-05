@@ -958,7 +958,7 @@ async function startServer() {
       const ai = new GoogleGenAI({ apiKey });
 
       const response = await ai.models.generateImages({
-        model: 'imagen-3.0-generate-002',
+        model: 'imagen-4.0-generate-001',
         prompt: prompt.trim(),
         config: {
           numberOfImages: 1,
@@ -967,12 +967,19 @@ async function startServer() {
         },
       });
 
-      const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+      const generatedImage = response.generatedImages?.[0];
+      const imageBytes = generatedImage?.image?.imageBytes;
       if (!imageBytes) {
-        return res.status(500).json({ error: "No image was generated" });
+        const reason = generatedImage?.raiFilteredReason;
+        return res.status(500).json({
+          error: reason
+            ? `Image blocked by safety filter: ${reason}`
+            : "No image was generated — the prompt may have been filtered"
+        });
       }
 
-      const base64 = `data:image/jpeg;base64,${imageBytes}`;
+      const mimeType = generatedImage?.image?.mimeType || 'image/jpeg';
+      const base64 = `data:${mimeType};base64,${imageBytes}`;
       res.json({ imageUrl: base64 });
     } catch (error: any) {
       console.error("Image generation error:", error);
