@@ -209,6 +209,7 @@ export default function Login() {
   };
 
   const handleLogoutUnit = () => {
+    fetch('/api/logout', { method: 'POST' }).catch(() => {});
     setUnits(null);
     setPhoneNumber('');
     setOtp('');
@@ -441,17 +442,17 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="mx-auto flex justify-center w-20 h-20 bg-black rounded-3xl shrink-0 items-center">
-          {mode === 'renter' ? <Phone className="w-10 h-10 text-white" /> : <Lock className="w-10 h-10 text-white" />}
+    <div className="min-h-screen bg-slate-50/50 flex flex-col justify-center py-12 sm:px-6 lg:px-8" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div className="mx-auto flex justify-center w-12 h-12 bg-primary rounded-lg shadow-xs items-center text-white">
+          {mode === 'renter' ? <Phone className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 className="mt-4 text-center text-2xl font-bold text-foreground tracking-tight">
           {mode === 'renter' 
             ? (language === 'ar' ? 'بوابة المستأجرين' : 'Renter Portal')
             : (language === 'ar' ? 'تسجيل دخول الإدارة' : 'Admin Login')}
         </h2>
-        <p className="mt-2 text-center text-gray-500 font-medium max-w-sm mx-auto">
+        <p className="mt-2 text-center text-sm text-muted-foreground max-w-sm mx-auto">
           {mode === 'renter'
             ? (language === 'ar' ? 'الرجاء إدخال رقم الجوال المسجل في العقد للمتابعة' : 'Please enter your registered phone number to continue')
             : (language === 'ar' ? 'سجل دخولك لإدارة العقارات والمشاريع' : 'Login to manage properties and projects')}
@@ -459,23 +460,23 @@ export default function Login() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-3xl sm:px-10 border border-gray-100">
+        <div className="bg-white py-8 px-4 shadow-xs sm:rounded-lg sm:px-10 border border-border">
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-bold border border-red-100 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              {error}
+            <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-6 text-sm font-medium border border-destructive/20 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
           {mode === 'renter' ? (
-            <form className="space-y-6" onSubmit={hasOtpSent ? handleRenterLogin : handleRequestOtp}>
+            <form className="space-y-4" onSubmit={hasOtpSent ? handleRenterLogin : handleRequestOtp}>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   {language === 'ar' ? 'رقم الجوال' : 'Phone Number'}
                 </label>
                 <div className="relative">
                   <div className={`absolute inset-y-0 ${language === 'ar' ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
-                    <Phone className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   </div>
                   <input
                     type="tel"
@@ -484,13 +485,13 @@ export default function Login() {
                     dir="ltr"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className={`block w-full border border-gray-300 rounded-xl p-4 font-medium text-lg focus:ring-2 focus:ring-black outline-none transition-shadow ${language === 'ar' ? 'pr-10' : 'pl-10'} disabled:bg-gray-100 disabled:text-gray-500`}
+                    className={`block w-full border border-input rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-ring outline-none transition-shadow ${language === 'ar' ? 'pr-9' : 'pl-9'} disabled:bg-muted disabled:text-muted-foreground`}
                     placeholder="0500000000"
                   />
                 </div>
                 {!hasOtpSent && (
-                  <p className="text-sm mt-3 font-medium text-gray-500 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                  <p className="text-xs mt-2 text-muted-foreground flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse" />
                     {language === 'ar' ? 'سيتم إرسال رمز التحقق عبر الواتساب (WhatsApp)' : 'Verification code will be sent via WhatsApp'}
                   </p>
                 )}
@@ -498,12 +499,12 @@ export default function Login() {
 
               {hasOtpSent && (
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
                     {language === 'ar' ? 'رمز التحقق (OTP)' : 'Verification Code (OTP)'}
                   </label>
                   <div className="relative">
                     <div className={`absolute inset-y-0 ${language === 'ar' ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
-                      <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                      <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     </div>
                     <input
                       type="text"
@@ -511,12 +512,12 @@ export default function Login() {
                       dir="ltr"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
-                      className={`block w-full border border-gray-300 rounded-xl p-4 font-medium text-lg focus:ring-2 focus:ring-black outline-none transition-shadow tracking-widest ${language === 'ar' ? 'pr-10' : 'pl-10'}`}
+                      className={`block w-full border border-input rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-ring outline-none transition-shadow tracking-widest ${language === 'ar' ? 'pr-9' : 'pl-9'}`}
                       placeholder="----"
                       maxLength={4}
                     />
                   </div>
-                  <button type="button" onClick={() => {setHasOtpSent(false); setOtp('');}} className="mt-2 text-sm text-indigo-600 hover:underline">
+                  <button type="button" onClick={() => {setHasOtpSent(false); setOtp('');}} className="mt-2 text-xs text-primary hover:underline font-medium">
                     {language === 'ar' ? 'تعديل رقم الجوال' : 'Change Phone Number'}
                   </button>
                 </div>
@@ -525,54 +526,54 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-lg font-bold text-white bg-black hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                className="btn-primary w-full flex justify-center py-2 px-4 shadow-sm text-sm font-medium text-white transition-colors focus:outline-none"
               >
                 {loading ? (language === 'ar' ? 'يرجى الانتظار...' : 'Please Wait...') : (
                   hasOtpSent ? (language === 'ar' ? 'تحقق ودخول' : 'Verify & Login') : (language === 'ar' ? 'إرسال الرمز' : 'Send Code')
                 )}
               </button>
               
-              <div className="mt-6 text-center text-sm font-bold border-t pt-6 border-gray-100">
-                 <button type="button" onClick={() => { setMode('admin'); setError(''); }} className="text-gray-500 hover:text-black transition-colors flex items-center justify-center gap-2 w-full">
-                   <Lock className="w-4 h-4" />
+              <div className="mt-4 text-center text-sm border-t pt-4 border-border">
+                 <button type="button" onClick={() => { setMode('admin'); setError(''); }} className="btn-ghost w-full text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-2">
+                   <Lock className="w-3.5 h-3.5" />
                    {language === 'ar' ? 'دخول موظفي الإدارة' : 'Admin Login'}
                  </button>
               </div>
             </form>
           ) : (
-            <form className="space-y-6" onSubmit={handleAdminLogin}>
+            <form className="space-y-4" onSubmit={handleAdminLogin}>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   {language === 'ar' ? 'اسم المستخدم' : 'Username'}
                 </label>
                 <div className="relative">
                   <div className={`absolute inset-y-0 ${language === 'ar' ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
-                    <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   </div>
                   <input
                     type="text"
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className={`block w-full border border-gray-300 rounded-xl p-4 font-medium text-lg focus:ring-2 focus:ring-black outline-none transition-shadow ${language === 'ar' ? 'pr-10' : 'pl-10'}`}
+                    className={`block w-full border border-input rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-ring outline-none transition-shadow ${language === 'ar' ? 'pr-9' : 'pl-9'}`}
                   />
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   {language === 'ar' ? 'كلمة المرور' : 'Password'}
                 </label>
                 <div className="relative">
                   <div className={`absolute inset-y-0 ${language === 'ar' ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
-                    <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   </div>
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className={`block w-full border border-gray-300 rounded-xl p-4 font-medium text-lg focus:ring-2 focus:ring-black outline-none transition-shadow ${language === 'ar' ? 'pr-10' : 'pl-10'}`}
+                    className={`block w-full border border-input rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-ring outline-none transition-shadow ${language === 'ar' ? 'pr-9' : 'pl-9'}`}
                   />
                 </div>
               </div>
@@ -580,14 +581,14 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-lg font-bold text-black bg-yellow-500 hover:bg-yellow-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                className="btn-primary w-full flex justify-center py-2 px-4 shadow-sm text-sm font-medium text-white transition-colors focus:outline-none"
               >
                 {loading ? (language === 'ar' ? 'جاري التحقق...' : 'Logging in...') : (language === 'ar' ? 'دخول' : 'Login')}
               </button>
               
-              <div className="mt-6 text-center text-sm font-bold border-t pt-6 border-gray-100 flex flex-col gap-3">
-                 <button type="button" onClick={() => { setMode('renter'); setError(''); }} className="text-gray-500 hover:text-black transition-colors flex items-center justify-center gap-2 w-full">
-                   <Phone className="w-4 h-4" />
+              <div className="mt-4 text-center text-sm border-t pt-4 border-border">
+                 <button type="button" onClick={() => { setMode('renter'); setError(''); }} className="btn-ghost w-full text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-2">
+                   <Phone className="w-3.5 h-3.5" />
                    {language === 'ar' ? 'العودة لبوابة المستأجرين' : 'Back to Renter Portal'}
                  </button>
               </div>

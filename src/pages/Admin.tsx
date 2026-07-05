@@ -8,6 +8,7 @@ import AdminProjects from './AdminProjects';
 import AdminBuildings from './AdminBuildings';
 import AdminRenters from './AdminRenters';
 import AdminReceipts from './AdminReceipts';
+import { compressImage } from '../lib/image';
 
 interface Property {
   id: string;
@@ -45,27 +46,27 @@ const PREDEFINED_DETAILS = [
   { keyAr: 'عدد الوحدات', keyEn: 'Number of Units', example: '4' },
   { keyAr: 'مسطح البناء', keyEn: 'Built Area', example: '300 م²' },
   { keyAr: 'حالة العقار', keyEn: 'Condition', example: 'ممتازة / مجددة' },
-  { keyAr: 'خزان غاز', keyEn: 'Gas Tank', example: 'مستقل / مشترك' },
-  { keyAr: 'مؤثثة', keyEn: 'Furnished', example: 'نعم / لا' },
-  { keyAr: 'مدخل خاص', keyEn: 'Private Entrance', example: 'نعم' },
-  { keyAr: 'مطبخ راكب', keyEn: 'Kitchen Installed', example: 'نعم' },
-  { keyAr: 'مسبح', keyEn: 'Pool', example: 'نعم / لا' },
-  { keyAr: 'حديقة', keyEn: 'Garden', example: 'نعم / لا' },
-  { keyAr: 'غرفة خادمة', keyEn: 'Maid Room', example: 'نعم / لا' },
-  { keyAr: 'غرفة سائق', keyEn: 'Driver Room', example: 'نعم / لا' },
-  { keyAr: 'ملحق خارجي', keyEn: 'Outdoor Annex', example: 'نعم / لا' },
-  { keyAr: 'تكييف مركزي', keyEn: 'Central AC', example: 'نعم / لا' },
-  { keyAr: 'مكيفات راكبة', keyEn: 'Installed ACs', example: 'نعم / لا' },
-  { keyAr: 'مدخل سيارة', keyEn: 'Car Entrance', example: 'نعم / لا' },
-  { keyAr: 'مستودع', keyEn: 'Storage', example: 'نعم / لا' },
-  { keyAr: 'نظام ذكي', keyEn: 'Smart Home System', example: 'نعم / لا' },
-  { keyAr: 'نادي رياضي', keyEn: 'Gym', example: 'نعم / مشترك / خاص' },
-  { keyAr: 'كاميرات مراقبة', keyEn: 'Security Cameras', example: 'نعم / متوفرة' },
-  { keyAr: 'أمن وحراسة', keyEn: 'Security', example: 'نعم / متوفر' },
-  { keyAr: 'دخول ذكي', keyEn: 'Smart Access', example: 'نعم' },
 ];
 
 const PREDEFINED_FEATURES = [
+  { keyAr: 'نظام ذكي', keyEn: 'Smart Home System' },
+  { keyAr: 'نادي رياضي', keyEn: 'Gym' },
+  { keyAr: 'كاميرات مراقبة', keyEn: 'Security Cameras' },
+  { keyAr: 'أمن وحراسة', keyEn: 'Security' },
+  { keyAr: 'دخول ذكي', keyEn: 'Smart Access' },
+  { keyAr: 'مستودع', keyEn: 'Storage' },
+  { keyAr: 'مسبح', keyEn: 'Pool' },
+  { keyAr: 'حديقة', keyEn: 'Garden' },
+  { keyAr: 'مدخل خاص', keyEn: 'Private Entrance' },
+  { keyAr: 'مطبخ راكب', keyEn: 'Kitchen Installed' },
+  { keyAr: 'غرفة خادمة', keyEn: 'Maid Room' },
+  { keyAr: 'غرفة سائق', keyEn: 'Driver Room' },
+  { keyAr: 'ملحق خارجي', keyEn: 'Outdoor Annex' },
+  { keyAr: 'تكييف مركزي', keyEn: 'Central AC' },
+  { keyAr: 'مكيفات راكبة', keyEn: 'Installed ACs' },
+  { keyAr: 'مدخل سيارة', keyEn: 'Car Entrance' },
+  { keyAr: 'خزان غاز', keyEn: 'Gas Tank' },
+  { keyAr: 'مؤثثة', keyEn: 'Furnished' },
   { keyAr: 'قريب من المسجد', keyEn: 'Near Mosque' },
   { keyAr: 'قريب من السوبر ماركت والمول والمحلات', keyEn: 'Near Supermarket, Mall & Shops' },
   { keyAr: 'قريب من الخدمات والمدارس', keyEn: 'Near Services & Schools' },
@@ -229,15 +230,7 @@ export default function Admin() {
         continue;
       }
       try {
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            if (event.target?.result && typeof event.target.result === 'string') resolve(event.target.result);
-            else reject(new Error('Failed to convert to base64'));
-          };
-          reader.onerror = () => reject(new Error('File reading error'));
-          reader.readAsDataURL(file);
-        });
+        const base64 = await compressImage(file);
         base64Images.push(base64);
       } catch (err) {
         console.error(err);
@@ -404,6 +397,7 @@ export default function Admin() {
           if (res.ok) {
             const data = await res.json();
             alert(language === 'ar' ? 'تم تحديث بيانات الحساب بنجاح! سيتم تسجيل خروجك للمتابعة بالبيانات الجديدة.' : 'Account credentials updated successfully! You will be logged out.');
+            await fetch('/api/logout', { method: 'POST' }).catch(() => {});
             localStorage.removeItem('user');
             window.location.href = '/login';
           } else {
@@ -492,73 +486,73 @@ export default function Admin() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Navigation Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-gray-200 pb-4 overflow-x-auto">
+        <div className="inline-flex w-full items-center justify-start rounded-lg bg-slate-100 p-1 text-slate-500 mb-6 overflow-x-auto select-none">
           <button 
             onClick={() => setActiveTab('manage')}
-            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'manage' 
-                ? 'bg-black text-white shadow-lg' 
-                : 'text-gray-500 hover:bg-gray-200'
+                ? 'bg-white text-foreground shadow-xs' 
+                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
             }`}
           >
             {t('admin.manageProperties')}
           </button>
           <button 
             onClick={() => setActiveTab('projects')}
-            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'projects' 
-                ? 'bg-black text-white shadow-lg' 
-                : 'text-gray-500 hover:bg-gray-200'
+                ? 'bg-white text-foreground shadow-xs' 
+                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects'}
           </button>
           <button 
             onClick={() => setActiveTab('buildings')}
-            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'buildings' 
-                ? 'bg-black text-white shadow-lg' 
-                : 'text-gray-500 hover:bg-gray-200'
+                ? 'bg-white text-foreground shadow-xs' 
+                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'إدارة المباني' : 'Buildings'}
           </button>
           <button 
             onClick={() => setActiveTab('renters')}
-            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'renters' 
-                ? 'bg-black text-white shadow-lg' 
-                : 'text-gray-500 hover:bg-gray-200'
+                ? 'bg-white text-foreground shadow-xs' 
+                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'المستأجرين' : 'Renters'}
           </button>
           <button 
             onClick={() => setActiveTab('receipts')}
-            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'receipts' 
-                ? 'bg-black text-white shadow-lg' 
-                : 'text-gray-500 hover:bg-gray-200'
+                ? 'bg-white text-foreground shadow-xs' 
+                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'الإيصالات' : 'Receipts'}
           </button>
           <button 
             onClick={() => setActiveTab('analytics')}
-            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'analytics' 
-                ? 'bg-black text-white shadow-lg' 
-                : 'text-gray-500 hover:bg-gray-200'
+                ? 'bg-white text-foreground shadow-xs' 
+                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'الإحصائيات' : 'Analytics'}
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
-            className={`text-lg sm:text-xl font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'settings' 
-                ? 'bg-black text-white shadow-lg' 
-                : 'text-gray-500 hover:bg-gray-200'
+                ? 'bg-white text-foreground shadow-xs' 
+                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
             }`}
           >
             {t('admin.settings')}
@@ -627,27 +621,27 @@ export default function Admin() {
                     </thead>
                     <tbody>
                       {properties.map((property, index) => (
-                        <tr key={property.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                          <td className="p-4 text-gray-500">{index + 1}</td>
+                        <tr key={property.id} className="border-b border-border hover:bg-slate-50/40 transition-colors">
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{index + 1}</td>
                           <td className="p-4">
-                            <p className="font-bold text-gray-900">{property.titleAr}</p>
-                            <p className="text-sm text-gray-500 font-sans" dir="ltr">{property.titleEn}</p>
+                            <p className="font-semibold text-xs text-foreground">{property.titleAr}</p>
+                            <p className="text-[10px] text-muted-foreground font-sans mt-0.5" dir="ltr">{property.titleEn}</p>
                           </td>
                           <td className="p-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              property.type === 'SALE' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                              property.type === 'SALE' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                             }`}>
                               {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                             </span>
                           </td>
-                          <td className="p-4 font-bold text-gray-900 flex items-center gap-1.5 justify-end">
+                          <td className="px-4 py-3 font-semibold text-xs text-foreground font-mono flex items-center gap-1.5 justify-end">
                             {property.price.toLocaleString()} <SrIcon className="w-4 h-4 text-gray-600" />
                           </td>
                           <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => handleEditClick(property)}
-                                className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors inline-block"
+                                className="p-2 text-muted-foreground hover:text-foreground rounded border border-border bg-white cursor-pointer transition-colors inline-block"
                                 title={language === 'ar' ? 'تعديل' : 'Edit'}
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -656,7 +650,7 @@ export default function Admin() {
                               </button>
                               <button
                                 onClick={() => handleDelete(property.id)}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-block"
+                                className="p-2 text-red-500 hover:bg-red-50 rounded border border-border bg-white cursor-pointer transition-colors inline-block"
                                 title={t('admin.deleteProperty')}
                               >
                                 <Trash2 className="w-5 h-5" />
@@ -1102,11 +1096,11 @@ export default function Admin() {
               </button>
             </div>
             
-            <form onSubmit={handleSaveSettings} className="space-y-8 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+            <form onSubmit={handleSaveSettings} className="space-y-6 shadcn-card p-6">
               
               {activeSettingsSection === 'whatsapp' && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-5 inline-block">{language === 'ar' ? 'إعدادات الواتساب' : 'WhatsApp Settings'}</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">{language === 'ar' ? 'إعدادات الواتساب' : 'WhatsApp Settings'}</h3>
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.whatsapp')}</label>
@@ -1319,12 +1313,7 @@ export default function Admin() {
                     return;
                   }
                   setImageSlotUploading(slotKey);
-                  const base64 = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = ev => resolve(ev.target?.result as string);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                  });
+                  const base64 = await compressImage(file);
                   onUpload(base64);
                   setImageSlotUploading(null);
                   e.target.value = '';

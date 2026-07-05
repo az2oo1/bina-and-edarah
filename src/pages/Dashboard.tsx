@@ -62,62 +62,62 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-16">
+    <div className="bg-slate-50/50 min-h-screen py-10 text-foreground">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight mb-1">
           {language === 'ar' ? `مرحباً بك، ${user.name}` : `Welcome back, ${user.name}`}
         </h1>
-        <p className="text-gray-500 text-lg mb-12">
+        <p className="text-xs sm:text-sm text-muted-foreground mb-8">
           {language === 'ar' ? 'إليك نظرة عامة على عقاراتك وإحصائياتها.' : 'Here is an overview and analytics of your properties.'}
         </p>
 
         {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-              <Building2 className="w-8 h-8" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="shadcn-card p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded bg-accent text-primary flex items-center justify-center border border-border">
+              <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-gray-500 font-medium mb-1">{language === 'ar' ? 'إجمالي العقارات' : 'Total Properties'}</p>
-              <h3 className="text-3xl font-black text-gray-900">{totalProperties}</h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{language === 'ar' ? 'إجمالي العقارات' : 'Total Properties'}</p>
+              <h3 className="text-lg font-bold text-foreground">{totalProperties}</h3>
             </div>
           </div>
           
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center text-green-600">
-              <TrendingUp className="w-8 h-8" />
+          <div className="shadcn-card p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded bg-accent text-primary flex items-center justify-center border border-border">
+              <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-gray-500 font-medium mb-1">{language === 'ar' ? 'قيمة الأصول (للبيع)' : 'Total Asset Value (Sale)'}</p>
-              <h3 className="text-3xl font-black text-gray-900">{totalValue.toLocaleString()} <span className="text-sm">{t('common.currency')}</span></h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{language === 'ar' ? 'قيمة الأصول (للبيع)' : 'Total Asset Value (Sale)'}</p>
+              <h3 className="text-lg font-bold text-foreground">{totalValue.toLocaleString()} <span className="text-xs">{t('common.currency')}</span></h3>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-yellow-50 flex items-center justify-center text-yellow-600">
-              <Wallet className="w-8 h-8" />
+          <div className="shadcn-card p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded bg-accent text-primary flex items-center justify-center border border-border">
+              <Wallet className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-gray-500 font-medium mb-1">{language === 'ar' ? 'العوائد الإيجارية' : 'Rental Yields'}</p>
-              <h3 className="text-3xl font-black text-gray-900">{totalRent.toLocaleString()} <span className="text-sm">{t('common.currency')}</span></h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{language === 'ar' ? 'العوائد الإيجارية' : 'Rental Yields'}</p>
+              <h3 className="text-lg font-bold text-foreground">{totalRent.toLocaleString()} <span className="text-xs">{t('common.currency')}</span></h3>
             </div>
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-8">{t('nav.properties')}</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">{t('nav.properties')}</h2>
         
         {properties.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <PieChart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-xl font-medium text-gray-500">
+          <div className="text-center py-16 bg-white border border-border rounded-lg shadow-xs">
+            <PieChart className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+            <p className="text-sm font-medium text-muted-foreground">
               {language === 'ar' ? 'لا يوجد لديك عقارات حالياً.' : 'You have no properties at the moment.'}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {properties.map((property) => (
-              <Link to={`/properties/${property.id}`} key={property.id} className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 group flex flex-col overflow-hidden hover:-translate-y-1 block">
-                <div className="relative h-64 overflow-hidden bg-gray-200">
+              <Link to={`/properties/${property.id}`} key={property.id} className="shadcn-card group overflow-hidden block flex flex-col hover:shadow-xs transition-shadow">
+                <div className="relative h-48 overflow-hidden bg-slate-100">
                   <img 
                     src={getThumbnail(property.imageUrls)} 
                     alt={language === 'ar' ? property.titleAr : property.titleEn} 
@@ -127,46 +127,46 @@ export default function Dashboard() {
                     }}
                   />
                   <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4 flex flex-wrap gap-2">
-                    <span className="bg-white/90 backdrop-blur-md text-gray-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-white/20">
+                    <span className="bg-white/90 backdrop-blur-xs text-foreground px-2 py-0.5 rounded text-[10px] font-semibold border border-border">
                       {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                     </span>
-                    <span className="bg-white/90 backdrop-blur-md text-gray-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-white/20">
+                    <span className="bg-white/90 backdrop-blur-xs text-foreground px-2 py-0.5 rounded text-[10px] font-semibold border border-border">
                       {t(`cat.${property.propertyCategory || 'VILLA'}`)}
                     </span>
                   </div>
                 </div>
                 
-                <div className="p-6 flex flex-col flex-grow">
-                  <h3 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-yellow-600 transition-colors line-clamp-1">
+                <div className="p-4 flex flex-col flex-grow">
+                  <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
                     {language === 'ar' ? property.titleAr : property.titleEn}
                   </h3>
                   
-                  <div className="grid grid-cols-3 gap-2 mt-4 mb-6">
-                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col items-center justify-center text-center transition-colors group-hover:bg-yellow-50/30">
-                      <Maximize className="w-4 h-4 text-gray-400 mb-1.5" />
-                      <span className="text-[11px] font-bold text-gray-900 font-mono">{property.area || 0} {t('common.sqm')}</span>
+                  <div className="grid grid-cols-3 gap-1.5 mt-2 mb-4">
+                    <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center">
+                      <Maximize className="w-3.5 h-3.5 text-muted-foreground/60 mb-1" />
+                      <span className="text-[10px] font-semibold text-foreground font-mono">{property.area || 0} {t('common.sqm')}</span>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col items-center justify-center text-center transition-colors group-hover:bg-yellow-50/30">
-                      <Building2 className="w-4 h-4 text-gray-400 mb-1.5" />
-                      <span className="text-[11px] font-bold text-gray-900 line-clamp-1">{t(`cat.${property.propertyCategory || 'VILLA'}`)}</span>
+                    <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center">
+                      <Building2 className="w-3.5 h-3.5 text-muted-foreground/60 mb-1" />
+                      <span className="text-[10px] font-semibold text-foreground line-clamp-1">{t(`cat.${property.propertyCategory || 'VILLA'}`)}</span>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col items-center justify-center text-center transition-colors group-hover:bg-yellow-50/30">
-                      <CalendarDays className="w-4 h-4 text-gray-400 mb-1.5" />
-                      <span className="text-[11px] font-bold text-gray-900">{property.propertyAge ? property.propertyAge : (language === 'ar' ? 'جديد' : 'New')}</span>
+                    <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center">
+                      <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/60 mb-1" />
+                      <span className="text-[10px] font-semibold text-foreground">{property.propertyAge ? property.propertyAge : (language === 'ar' ? 'جديد' : 'New')}</span>
                     </div>
                   </div>
 
-                  <div className="mt-auto pt-4 border-t border-gray-100 flex items-end justify-between">
+                  <div className="mt-auto pt-3 border-t border-border flex items-end justify-between">
                     <div>
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('common.price')}</p>
-                      <p className="text-2xl font-black text-gray-900 font-mono tracking-tighter flex items-center gap-1">
-                        {(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()} <SrIcon className="w-6 h-6 text-yellow-600" />
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">{t('common.price')}</p>
+                      <p className="text-base font-bold text-foreground font-mono flex items-center gap-1">
+                        {(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()} <SrIcon className="w-4 h-4 text-primary" />
                       </p>
                     </div>
                     {property.vat && property.vat > 0 ? (
                       <div className="text-right">
-                         <span className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-700 px-2.5 py-1.5 rounded-lg text-[10px] font-bold shadow-sm border border-yellow-100">
-                           <Coins className="w-3.5 h-3.5" /> {language === 'ar' ? 'شامل الضريبة' : 'VAT Included'}
+                         <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[9px] font-semibold border border-primary/20">
+                           <Coins className="w-3 h-3" /> {language === 'ar' ? 'شامل الضريبة' : 'VAT Included'}
                          </span>
                       </div>
                     ) : null}

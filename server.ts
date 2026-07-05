@@ -9,13 +9,161 @@ import { Readable } from "stream";
 import archiver from "archiver";
 import multer from "multer";
 import AdmZip from "adm-zip";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
+
+const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
+
+const LOG_FILE = fs.existsSync('/data') 
+  ? '/data/server.log' 
+  : path.resolve(process.cwd(), 'server.log');
+
+const logger = {
+  info: (msg: string, ...meta: any[]) => {
+    const time = new Date().toISOString();
+    const logMsg = `[${time}] [INFO] ${msg} ${meta.length ? JSON.stringify(meta) : ""}\n`;
+    console.log(logMsg.trim());
+    try {
+      fs.appendFileSync(LOG_FILE, logMsg);
+    } catch (e) {
+      console.error("Failed to write to log file", e);
+    }
+  },
+  error: (msg: string, ...meta: any[]) => {
+    const time = new Date().toISOString();
+    const logMsg = `[${time}] [ERROR] ${msg} ${meta.length ? JSON.stringify(meta) : ""}\n`;
+    console.error(logMsg.trim());
+    try {
+      fs.appendFileSync(LOG_FILE, logMsg);
+    } catch (e) {
+      console.error("Failed to write to log file", e);
+    }
+  },
+  warn: (msg: string, ...meta: any[]) => {
+    const time = new Date().toISOString();
+    const logMsg = `[${time}] [WARN] ${msg} ${meta.length ? JSON.stringify(meta) : ""}\n`;
+    console.warn(logMsg.trim());
+    try {
+      fs.appendFileSync(LOG_FILE, logMsg);
+    } catch (e) {
+      console.error("Failed to write to log file", e);
+    }
+  }
+};
+
+interface CacheStore {
+  properties: any | null;
+  projects: any | null;
+}
+const dbCache: CacheStore = {
+  properties: null,
+  projects: null
+};
+
+function invalidateCache(type: 'properties' | 'projects') {
+  dbCache[type] = null;
+  logger.info(`Cache invalidated for ${type}`);
+}
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { error: "Too many login attempts. Please try again after 15 minutes." }
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many OTP requests. Please try again after an hour." }
+});
+
+const UPLOADS_DIR = fs.existsSync('/data') 
+  ? '/data/uploads' 
+  : path.resolve(process.cwd(), 'uploads');
+
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+function saveBase64Image(dataStr: string): string {
+  if (!dataStr || typeof dataStr !== 'string') return dataStr;
+  
+  // Check if it's a base64 data URL
+  const match = dataStr.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+  if (!match) {
+    // Check if it's pdf/other document type
+    const docMatch = dataStr.match(/^data:application\/([a-zA-Z0-9+]+);base64,(.+)$/);
+    if (docMatch) {
+      const ext = docMatch[1];
+      const base64Data = docMatch[2];
+      const filename = `${crypto.randomUUID()}.${ext}`;
+      const filepath = path.join(UPLOADS_DIR, filename);
+      fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
+      return `/uploads/${filename}`;
+    }
+    return dataStr;
+  }
+  
+  const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+  const base64Data = match[2];
+  const filename = `${crypto.randomUUID()}.${ext}`;
+  const filepath = path.join(UPLOADS_DIR, filename);
+  
+  fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
+  return `/uploads/${filename}`;
+}
+
+function processImageUrls(urlsInput: string | string[] | null | undefined): string {
+  if (!urlsInput) return JSON.stringify([]);
+  try {
+    const urls = typeof urlsInput === 'string' ? JSON.parse(urlsInput) : urlsInput;
+    if (Array.isArray(urls)) {
+      const processed = urls.map(url => saveBase64Image(url));
+      return JSON.stringify(processed);
+    }
+  } catch (e) {
+    // fallback if parsing fails
+  }
+  if (typeof urlsInput === 'string') {
+    return JSON.stringify([saveBase64Image(urlsInput)]);
+  }
+  return JSON.stringify([]);
+}
+
+function adminAuthMiddleware(req: any, res: any, next: any) {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: Missing session token" });
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (decoded.role !== 'ADMIN') {
+      return res.status(403).json({ error: "Forbidden: Admin privileges required" });
+    }
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Unauthorized: Invalid or expired session token" });
+  }
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Read cookies
+  app.use(cookieParser());
+
   // Increase payload size for base64 multi-image uploads
   app.use(express.json({ limit: '50mb' }));
+  
+  // Serve static uploaded files
+  app.use('/uploads', express.static(UPLOADS_DIR));
+
+  // Protect all admin endpoints
+  app.use('/api/admin', adminAuthMiddleware);
 
   // API Routes
 
@@ -53,7 +201,7 @@ async function startServer() {
       const { transferDetails, photos } = req.body;
       const building = await prisma.building.update({
         where: { id: req.params.id },
-        data: { transferDetails, photos }
+        data: { transferDetails, photos: processImageUrls(photos) }
       });
       res.json(building);
     } catch (error) {
@@ -426,8 +574,9 @@ async function startServer() {
 
 
   // --- Renter Portal (OTP and Login) ---
-  app.post('/api/renter/request-otp', async (req, res) => {
+  app.post('/api/renter/request-otp', otpLimiter, async (req, res) => {
     const { phone } = req.body;
+    logger.info(`OTP request for phone: ${phone}`);
     if (!phone) return res.status(400).json({ error: "Phone number is required." });
 
     let normalizedPhone = phone.trim().replace(/\D/g, '');
@@ -498,9 +647,10 @@ async function startServer() {
     res.json({ success: true, fakeOtpDelivery: !webhookUrl ? otp : undefined }); 
   });
 
-  app.post('/api/renter/login', async (req, res) => {
+  app.post('/api/renter/login', otpLimiter, async (req, res) => {
     try {
       const { phone, otp } = req.body;
+      logger.info(`Renter login attempt for phone: ${phone}`);
       if (!phone || !otp) return res.status(400).json({ error: "Phone number and OTP are required." });
 
       let normalizedPhone = phone.trim().replace(/\D/g, '');
@@ -517,8 +667,11 @@ async function startServer() {
       });
 
       if (!validOtp && otp !== '0000') {
+        logger.warn(`Failed renter login for phone: ${normalizedPhone} (invalid OTP)`);
         return res.status(401).json({ error: "رمز التحقق غير صحيح أو منتهي الصلاحية. (Invalid or expired OTP)" });
       }
+
+      logger.info(`Successful renter login for phone: ${normalizedPhone}`);
 
       if (validOtp) {
         // Delete OTP so it can't be reused
@@ -568,9 +721,10 @@ async function startServer() {
       const { historyId, receiptUrl } = req.body;
       if (!historyId || !receiptUrl) return res.status(400).json({ error: "Missing parameters" });
       
+      const processedUrl = saveBase64Image(receiptUrl);
       const history = await prisma.rentHistory.update({
         where: { id: historyId },
-        data: { receiptUrl, paidDate: new Date().toLocaleDateString('en-GB') }, // Mark it paidish
+        data: { receiptUrl: processedUrl, paidDate: new Date().toLocaleDateString('en-GB') }, // Mark it paidish
         include: { renterUnit: { include: { building: true } } }
       });
       
@@ -582,7 +736,7 @@ async function startServer() {
           unitNumber: history.renterUnit.unitNumber,
           amount: history.amount || history.renterUnit.rentAmount?.toString(),
           dueDate: history.dueDate,
-          receiptUrl: receiptUrl
+          receiptUrl: processedUrl
         }
       });
       res.json(history);
@@ -595,11 +749,18 @@ async function startServer() {
   // Properties
   app.get("/api/properties", async (req, res) => {
     try {
+      if (dbCache.properties) {
+        logger.info("Serving properties from cache");
+        return res.json(dbCache.properties);
+      }
       const properties = await prisma.property.findMany({
         orderBy: { createdAt: 'desc' }
       });
+      dbCache.properties = properties;
+      logger.info("Serving properties from database & saving to cache");
       res.json(properties);
     } catch (error) {
+      logger.error("Failed to fetch properties", error);
       res.status(500).json({ error: "Failed to fetch properties" });
     }
   });
@@ -612,6 +773,7 @@ async function startServer() {
       if (!property) return res.status(404).json({ error: "Property not found" });
       res.json(property);
     } catch (error) {
+      logger.error(`Failed to fetch property by id: ${req.params.id}`, error);
       res.status(500).json({ error: "Failed to fetch property" });
     }
   });
@@ -637,7 +799,7 @@ async function startServer() {
     return Number.isNaN(parsed) ? null : parsed;
   };
 
-  app.post("/api/properties", async (req, res) => {
+  app.post("/api/properties", adminAuthMiddleware, async (req, res) => {
     try {
       const body = req.body;
       const type = body.type || "SALE";
@@ -661,19 +823,20 @@ async function startServer() {
           vat: safeFloat(body.vat),
           commission: safeFloat(body.commission),
           price: safeFloat(body.price),
-          imageUrls: typeof body.imageUrls === 'string' ? body.imageUrls : JSON.stringify(body.imageUrls || []),
+          imageUrls: processImageUrls(body.imageUrls),
           aqarLink: body.aqarLink || null,
           userId: body.userId || null,
         }
       });
+      invalidateCache('properties');
       res.status(201).json(newProperty);
     } catch (error) {
-      console.error("Error creating property:", error);
+      logger.error("Error creating property:", error);
       res.status(500).json({ error: "Failed to create property" });
     }
   });
 
-  app.put("/api/properties/:id", async (req, res) => {
+  app.put("/api/properties/:id", adminAuthMiddleware, async (req, res) => {
     try {
       const body = req.body;
       const type = body.type || "SALE";
@@ -698,26 +861,28 @@ async function startServer() {
           vat: safeFloat(body.vat),
           commission: safeFloat(body.commission),
           price: safeFloat(body.price),
-          imageUrls: typeof body.imageUrls === 'string' ? body.imageUrls : JSON.stringify(body.imageUrls || []),
+          imageUrls: processImageUrls(body.imageUrls),
           aqarLink: body.aqarLink || null,
           userId: body.userId || null,
         }
       });
+      invalidateCache('properties');
       res.json(updatedProperty);
     } catch (error) {
-      console.error("Error updating property:", error);
+      logger.error("Error updating property:", error);
       res.status(500).json({ error: "Failed to update property" });
     }
   });
 
-  app.delete("/api/properties/:id", async (req, res) => {
+  app.delete("/api/properties/:id", adminAuthMiddleware, async (req, res) => {
     try {
       await prisma.property.delete({
         where: { id: req.params.id }
       });
+      invalidateCache('properties');
       res.json({ success: true });
     } catch (error) {
-      console.error(error);
+      logger.error(`Error deleting property ${req.params.id}:`, error);
       res.status(500).json({ error: "Failed to delete property" });
     }
   });
@@ -725,11 +890,18 @@ async function startServer() {
   // Projects
   app.get("/api/projects", async (req, res) => {
     try {
+      if (dbCache.projects) {
+        logger.info("Serving projects from cache");
+        return res.json(dbCache.projects);
+      }
       const projects = await prisma.project.findMany({
         orderBy: { createdAt: 'desc' }
       });
+      dbCache.projects = projects;
+      logger.info("Serving projects from database & saving to cache");
       res.json(projects);
     } catch (error) {
+      logger.error("Failed to fetch projects", error);
       res.status(500).json({ error: "Failed to fetch projects" });
     }
   });
@@ -742,11 +914,12 @@ async function startServer() {
       if (!project) return res.status(404).json({ error: "Project not found" });
       res.json(project);
     } catch (error) {
+      logger.error(`Failed to fetch project by id: ${req.params.id}`, error);
       res.status(500).json({ error: "Failed to fetch project" });
     }
   });
 
-  app.post("/api/projects", async (req, res) => {
+  app.post("/api/projects", adminAuthMiddleware, async (req, res) => {
     try {
       const body = req.body;
       const newProject = await prisma.project.create({
@@ -762,17 +935,18 @@ async function startServer() {
           description: body.description || "",
           features: body.features || null,
           propertyAge: safeInt(body.propertyAge),
-          imageUrls: typeof body.imageUrls === 'string' ? body.imageUrls : JSON.stringify(body.imageUrls || []),
+          imageUrls: processImageUrls(body.imageUrls),
         }
       });
+      invalidateCache('projects');
       res.status(201).json(newProject);
     } catch (error) {
-      console.error("Error creating project:", error);
+      logger.error("Error creating project:", error);
       res.status(500).json({ error: "Failed to create project" });
     }
   });
 
-  app.put("/api/projects/:id", async (req, res) => {
+  app.put("/api/projects/:id", adminAuthMiddleware, async (req, res) => {
     try {
       const body = req.body;
       const updatedProject = await prisma.project.update({
@@ -789,24 +963,26 @@ async function startServer() {
           description: body.description || "",
           features: body.features || null,
           propertyAge: safeInt(body.propertyAge),
-          imageUrls: typeof body.imageUrls === 'string' ? body.imageUrls : JSON.stringify(body.imageUrls || []),
+          imageUrls: processImageUrls(body.imageUrls),
         }
       });
+      invalidateCache('projects');
       res.json(updatedProject);
     } catch (error) {
-      console.error("Error updating project:", error);
+      logger.error("Error updating project:", error);
       res.status(500).json({ error: "Failed to update project" });
     }
   });
 
-  app.delete("/api/projects/:id", async (req, res) => {
+  app.delete("/api/projects/:id", adminAuthMiddleware, async (req, res) => {
     try {
       await prisma.project.delete({
         where: { id: req.params.id }
       });
+      invalidateCache('projects');
       res.json({ success: true });
     } catch (error) {
-      console.error(error);
+      logger.error(`Error deleting project ${req.params.id}:`, error);
       res.status(500).json({ error: "Failed to delete project" });
     }
   });
@@ -824,13 +1000,38 @@ async function startServer() {
     }
   });
 
-  app.post("/api/settings", async (req, res) => {
+  app.post("/api/settings", adminAuthMiddleware, async (req, res) => {
     try {
       const { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl } = req.body;
+      
+      let processedHomeImages = homeImages;
+      if (homeImages) {
+        try {
+          const parsed = typeof homeImages === 'string' ? JSON.parse(homeImages) : homeImages;
+          const processed: any = {};
+          for (const key of Object.keys(parsed)) {
+            processed[key] = saveBase64Image(parsed[key]);
+          }
+          processedHomeImages = JSON.stringify(processed);
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+      
+      const processedLogoUrl = logoUrl ? saveBase64Image(logoUrl) : logoUrl;
+
       const settings = await prisma.settings.upsert({
         where: { id: "global" },
-        update: { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl },
-        create: { id: "global", whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl }
+        update: { 
+          whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, 
+          homeImages: processedHomeImages, logoUrl: processedLogoUrl, 
+          email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl 
+        },
+        create: { 
+          id: "global", whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, 
+          homeImages: processedHomeImages, logoUrl: processedLogoUrl, 
+          email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl 
+        }
       });
       res.json(settings);
     } catch (error) {
@@ -956,31 +1157,67 @@ async function startServer() {
   });
 
   // Users & Auth
-  app.post("/api/login", async (req, res) => {
+  app.post("/api/login", authLimiter, async (req, res) => {
     try {
       const { username, password } = req.body;
+      logger.info(`Login attempt for username: ${username}`);
       
       // Check Admin
       const admin = await prisma.admin.findUnique({ where: { username } });
       if (admin && admin.password === password) {
-        return res.json({ id: admin.id, username: admin.username, role: 'ADMIN', name: 'Administrator' });
+        const userPayload = { id: admin.id, username: admin.username, role: 'ADMIN', name: 'Administrator' };
+        const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
+        logger.info(`Admin login successful for ${username}`);
+        return res.json(userPayload);
       }
 
       // Check User
       const user = await prisma.user.findUnique({ where: { username } });
       if (user && user.password === password) {
-        return res.json({ id: user.id, username: user.username, role: 'USER', name: user.name });
+        const userPayload = { id: user.id, username: user.username, role: 'USER', name: user.name };
+        const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
+        logger.info(`User login successful for ${username}`);
+        return res.json(userPayload);
       }
 
       // Hardcoded admin fallback for preview if DB is empty
       if (username === 'admin' && password === 'admin') {
-        return res.json({ id: 'admin-fallback', username: 'admin', role: 'ADMIN', name: 'Administrator' });
+        const userPayload = { id: 'admin-fallback', username: 'admin', role: 'ADMIN', name: 'Administrator' };
+        const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
+        logger.info(`Fallback admin login successful`);
+        return res.json(userPayload);
       }
 
+      logger.warn(`Failed login attempt for username: ${username}`);
       res.status(401).json({ error: "Invalid credentials" });
     } catch (error) {
+      logger.error(`Login error for username: ${req.body?.username}`, error);
       res.status(500).json({ error: "Login failed" });
     }
+  });
+
+  app.post("/api/logout", (req, res) => {
+    res.clearCookie('token');
+    logger.info("User logged out");
+    res.json({ success: true, message: "Logged out successfully" });
   });
 
   app.put("/api/admin/credentials", async (req, res) => {
@@ -1012,18 +1249,19 @@ async function startServer() {
     }
   });
 
-  app.get("/api/users", async (req, res) => {
+  app.get("/api/users", adminAuthMiddleware, async (req, res) => {
     try {
       const users = await prisma.user.findMany({
         select: { id: true, username: true, name: true }
       });
       res.json(users);
     } catch (error) {
+      logger.error("Failed to fetch users", error);
       res.status(500).json({ error: "Failed to fetch users" });
     }
   });
 
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", adminAuthMiddleware, async (req, res) => {
     try {
       const { username, password, name } = req.body;
       const user = await prisma.user.create({
@@ -1031,6 +1269,7 @@ async function startServer() {
       });
       res.json({ id: user.id, username: user.username, name: user.name });
     } catch (error) {
+      logger.error("Failed to create user", error);
       res.status(500).json({ error: "Failed to create user" });
     }
   });
@@ -1045,7 +1284,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/services", async (req, res) => {
+  app.post("/api/services", adminAuthMiddleware, async (req, res) => {
     try {
       const body = req.body;
       const newService = await prisma.service.create({
@@ -1057,6 +1296,7 @@ async function startServer() {
       });
       res.status(201).json(newService);
     } catch (error) {
+      logger.error("Failed to create service", error);
       res.status(500).json({ error: "Failed to create service" });
     }
   });
@@ -1084,12 +1324,12 @@ async function startServer() {
       });
       res.json({ success: true });
     } catch (error) {
-      console.error("Analytics Error:", error);
+      logger.error("Analytics Error:", error);
       res.status(500).json({ error: "Failed to record view" });
     }
   });
 
-  app.get("/api/analytics", async (req, res) => {
+  app.get("/api/analytics", adminAuthMiddleware, async (req, res) => {
     try {
       const totalViews = await prisma.pageView.count();
       
@@ -1126,7 +1366,7 @@ async function startServer() {
 
       res.json({ totalViews, propertiesViews, pathsViews });
     } catch (error) {
-      console.error(error);
+      logger.error("Failed to fetch analytics", error);
       res.status(500).json({ error: "Failed to fetch analytics" });
     }
   });
@@ -1147,6 +1387,20 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Global error handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    logger.error(`Global error handler caught: ${err?.message || err}`, {
+      url: req.url,
+      method: req.method,
+      stack: err?.stack
+    });
+    res.status(err?.status || 500).json({
+      error: process.env.NODE_ENV === 'production' 
+        ? 'Internal Server Error' 
+        : err?.message || 'Internal Server Error'
+    });
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
-import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone } from 'lucide-react';
+import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone, Compass, Ruler, DoorOpen, Armchair, Bath } from 'lucide-react';
 
 
 export default function ProjectDetails() {
@@ -61,56 +61,56 @@ export default function ProjectDetails() {
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
 
   return (
-    <div className="bg-gray-50 min-h-screen pb-24 font-sans" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="bg-slate-50/50 min-h-screen pb-16 font-sans text-foreground" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Breadcrumb & Navigation */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <Link to="/projects" className="text-gray-500 hover:text-black font-medium flex items-center gap-2 transition-colors">
-            {language === 'ar' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+      <div className="bg-white border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+          <Link to="/projects" className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 transition-colors">
+            {language === 'ar' ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             {language === 'ar' ? 'العودة للمشاريع' : 'Back to Projects'}
           </Link>
-          <div className="text-sm text-gray-400 font-medium">#{project.id.split('-')[0]}</div>
+          <div className="text-xs text-muted-foreground font-mono font-medium">#{project.id.split('-')[0]}</div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         
         {/* Title Section */}
-        <div className="mb-8">
-          <div className="flex flex-wrap items-center gap-4 mb-4">
-            <span className="bg-yellow-100 text-yellow-800 px-4 py-1.5 rounded-full text-sm font-bold tracking-wide">
+        <div className="mb-6">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-xs font-semibold">
               {project.tier === 'BIG' ? (language === 'ar' ? 'مشروع كبير' : 'Big Project') : project.tier === 'MID' ? (language === 'ar' ? 'مشروع متوسط' : 'Mid Project') : (language === 'ar' ? 'مشاريع أخرى' : 'Other Projects')}
             </span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">{language === 'ar' ? project.titleAr : project.titleEn}</h1>
-          <div className="flex items-center text-gray-500 gap-2 text-lg">
-            <MapPin className="w-5 h-5 text-gray-400" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight mb-2">{language === 'ar' ? project.titleAr : project.titleEn}</h1>
+          <div className="flex items-center text-muted-foreground gap-1.5 text-sm">
+            <MapPin className="w-4 h-4 text-muted-foreground/80" />
             <span>{project.locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}</span>
           </div>
         </div>
 
         {/* Gallery */}
-        <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 mb-12">
-          <div className="relative h-[400px] md:h-[600px] rounded-2xl overflow-hidden group">
+        <div className="bg-white rounded-lg p-2 border border-border shadow-xs mb-8">
+          <div className="relative h-80 sm:h-[500px] rounded overflow-hidden group bg-slate-100">
             <img 
               src={images[currentImageIndex]} 
               alt="Project" 
-              className="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-[1.02]"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.01]"
             />
             {images.length > 1 && (
               <>
-                <button onClick={prevImage} className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-black p-4 rounded-full shadow-xl transition-all hover:scale-110 z-10 backdrop-blur-sm">
-                  <ChevronLeft className="w-6 h-6" />
+                <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-10 cursor-pointer border border-border">
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button onClick={nextImage} className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-black p-4 rounded-full shadow-xl transition-all hover:scale-110 z-10 backdrop-blur-sm">
-                  <ChevronRight className="w-6 h-6" />
+                <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-10 cursor-pointer border border-border">
+                  <ChevronRight className="w-4 h-4" />
                 </button>
-                <div className="absolute bottom-6 left-1/2 -translate-y-1/2 flex gap-3 z-10 bg-black/30 px-4 py-2 rounded-full backdrop-blur-md">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-xs">
                   {images.map((_, idx) => (
                     <button 
                       key={idx}
                       onClick={() => setCurrentImageIndex(idx)}
-                      className={`h-2.5 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'w-8 bg-white' : 'w-2.5 bg-white/50 hover:bg-white/80'}`}
+                      className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${idx === currentImageIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white'}`}
                     />
                   ))}
                 </div>
@@ -119,70 +119,90 @@ export default function ProjectDetails() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Main Details */}
-          <div className="lg:col-span-2 space-y-12">
+          <div className="lg:col-span-2 space-y-6">
             
             {/* Quick Specs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
-                <Maximize2 className="w-8 h-8 text-yellow-500 mb-3" />
-                <span className="text-gray-500 text-sm mb-1">{language === 'ar' ? 'المساحة' : 'Area'}</span>
-                <span className="text-xl font-bold text-gray-900">{project.area} م²</span>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div className="bg-slate-50/50 p-4 border border-border rounded-lg flex flex-col items-center justify-center text-center shadow-xs">
+                <Maximize2 className="w-5 h-5 text-primary mb-2" />
+                <span className="text-muted-foreground text-xs mb-0.5">{language === 'ar' ? 'المساحة' : 'Area'}</span>
+                <span className="text-sm font-bold text-foreground">{project.area} م²</span>
               </div>
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
-                <Building2 className="w-8 h-8 text-yellow-500 mb-3" />
-                <span className="text-gray-500 text-sm mb-1">{language === 'ar' ? 'النوع' : 'Type'}</span>
-                <span className="text-xl font-bold text-gray-900">{t(`cat.${project.propertyCategory}`) || project.propertyCategory}</span>
+              <div className="bg-slate-50/50 p-4 border border-border rounded-lg flex flex-col items-center justify-center text-center shadow-xs">
+                <Building2 className="w-5 h-5 text-primary mb-2" />
+                <span className="text-muted-foreground text-xs mb-0.5">{language === 'ar' ? 'النوع' : 'Type'}</span>
+                <span className="text-sm font-bold text-foreground line-clamp-1">{t(`cat.${project.propertyCategory}`) || project.propertyCategory}</span>
               </div>
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
-                <Calendar className="w-8 h-8 text-yellow-500 mb-3" />
-                <span className="text-gray-500 text-sm mb-1">{language === 'ar' ? 'عمر المشروع' : 'Age'}</span>
-                <span className="text-xl font-bold text-gray-900">{project.propertyAge > 0 ? `${project.propertyAge} ${language === 'ar' ? 'سنوات' : 'Years'}` : (language === 'ar' ? 'جديد' : 'New')}</span>
+              <div className="bg-slate-50/50 p-4 border border-border rounded-lg flex flex-col items-center justify-center text-center shadow-xs">
+                <Calendar className="w-5 h-5 text-primary mb-2" />
+                <span className="text-muted-foreground text-xs mb-0.5">{language === 'ar' ? 'عمر المشروع' : 'Age'}</span>
+                <span className="text-sm font-bold text-foreground">{project.propertyAge > 0 ? `${project.propertyAge} ${language === 'ar' ? 'سنوات' : 'Years'}` : (language === 'ar' ? 'جديد' : 'New')}</span>
               </div>
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
-                <Layers className="w-8 h-8 text-yellow-500 mb-3" />
-                <span className="text-gray-500 text-sm mb-1">{language === 'ar' ? 'التصنيف' : 'Tier'}</span>
-                <span className="text-xl font-bold text-gray-900">{project.tier}</span>
+              <div className="bg-slate-50/50 p-4 border border-border rounded-lg flex flex-col items-center justify-center text-center shadow-xs">
+                <Layers className="w-5 h-5 text-primary mb-2" />
+                <span className="text-muted-foreground text-xs mb-0.5">{language === 'ar' ? 'التصنيف' : 'Tier'}</span>
+                <span className="text-sm font-bold text-foreground">{project.tier}</span>
               </div>
             </div>
 
             {/* Description */}
-            <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100">
-              <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3">
-                <Star className="w-7 h-7 text-yellow-500" />
+            <div className="shadcn-card p-6">
+              <h2 className="text-base font-bold text-foreground tracking-tight mb-4 flex items-center gap-2">
+                <Star className="w-4 h-4 text-primary" />
                 {language === 'ar' ? 'تفاصيل المشروع' : 'Project Details'}
               </h2>
-              <p className="text-gray-600 text-lg leading-loose whitespace-pre-wrap">
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                 {project.description}
               </p>
             </div>
 
             {/* Additional Details Grid */}
             {project.detailsList && project.detailsList.length > 0 && (
-              <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100">
-                <h2 className="text-2xl font-black text-gray-900 mb-8">{language === 'ar' ? 'مواصفات إضافية' : 'Additional Specifications'}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                  {project.detailsList.map((detail: any, idx: number) => (
-                    <div key={idx} className="flex justify-between items-center py-4 border-b border-gray-100 last:border-0 md:[&:nth-last-child(-n+2)]:border-0">
-                      <span className="text-gray-500 font-medium">{detail.key}</span>
-                      <span className="font-bold text-gray-900">{detail.value}</span>
-                    </div>
-                  ))}
+              <div className="shadcn-card p-6">
+                <h2 className="text-base font-bold text-foreground tracking-tight mb-4 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  {language === 'ar' ? 'مواصفات إضافية' : 'Additional Specifications'}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {project.detailsList.map((detail: any, idx: number) => {
+                    const lowerKey = detail.key.toLowerCase();
+                    let icon = <Layers className="w-4 h-4" />;
+                    if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) icon = <Compass className="w-4 h-4" />;
+                    else if (lowerKey.includes('شارع') || lowerKey.includes('street')) icon = <Ruler className="w-4 h-4" />;
+                    else if (lowerKey.includes('غرف') || lowerKey.includes('room')) icon = <DoorOpen className="w-4 h-4" />;
+                    else if (lowerKey.includes('صالة') || lowerKey.includes('hall')) icon = <Armchair className="w-4 h-4" />;
+                    else if (lowerKey.includes('حمام') || lowerKey.includes('bathroom')) icon = <Bath className="w-4 h-4" />;
+                    else if (lowerKey.includes('ضمان') || lowerKey.includes('warrant')) icon = <CheckCircle className="w-4 h-4" />;
+                    else if (lowerKey.includes('تاريخ') || lowerKey.includes('date') || lowerKey.includes('تسليم')) icon = <Calendar className="w-4 h-4" />;
+
+                    return (
+                      <div key={idx} className="flex items-center gap-3.5 p-3 rounded-lg bg-slate-50/50 border border-border transition-colors">
+                        <div className="p-2 bg-white rounded border border-border text-primary shadow-xs">
+                          {icon}
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground mb-0.5">{detail.key}</p>
+                          <p className="text-sm font-semibold text-foreground">{detail.value}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {/* Features */}
             {project.featuresList && project.featuresList.length > 0 && (
-              <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100">
-                <h2 className="text-2xl font-black text-gray-900 mb-8">{language === 'ar' ? 'المميزات والمرافق' : 'Features & Facilities'}</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="shadcn-card p-6">
+                <h2 className="text-base font-bold text-foreground tracking-tight mb-4">{language === 'ar' ? 'المميزات والمرافق' : 'Features & Facilities'}</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
                   {project.featuresList.map((feature: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl">
-                      <CheckCircle className="w-6 h-6 text-yellow-500 flex-shrink-0" />
-                      <span className="font-semibold text-gray-800">{feature.value}</span>
+                    <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-border p-3 rounded-md">
+                      <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-xs font-semibold text-foreground">{feature.value}</span>
                     </div>
                   ))}
                 </div>
@@ -191,18 +211,18 @@ export default function ProjectDetails() {
 
             {/* Location Link */}
             {project.locationLink && (
-              <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex items-center justify-between">
+              <div className="shadcn-card p-5 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{language === 'ar' ? 'الموقع على الخريطة' : 'Location on Map'}</h3>
-                  <p className="text-gray-500">{project.locationText}</p>
+                  <h3 className="text-sm font-bold text-foreground mb-1">{language === 'ar' ? 'الموقع على الخريطة' : 'Location on Map'}</h3>
+                  <p className="text-xs text-muted-foreground">{project.locationText}</p>
                 </div>
                 <a 
                   href={project.locationLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-xl transition-colors flex items-center gap-2"
+                  className="btn-primary py-2 px-4 text-xs flex items-center gap-1.5 shadow-xs"
                 >
-                  <MapPin className="w-5 h-5" />
+                  <MapPin className="w-4 h-4" />
                   {language === 'ar' ? 'عرض في جوجل ماب' : 'View in Google Maps'}
                 </a>
               </div>
@@ -212,19 +232,18 @@ export default function ProjectDetails() {
 
           {/* Sticky Sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-28 space-y-6">
+            <div className="sticky top-24 space-y-6">
               
-              <div className="bg-white rounded-3xl p-8 shadow-xl shadow-gray-200/50 border border-gray-100 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-yellow-500"></div>
-                <h3 className="text-2xl font-black text-gray-900 mb-2">{language === 'ar' ? 'مهتم بهذا المشروع؟' : 'Interested in this project?'}</h3>
-                <p className="text-gray-500 mb-8">{language === 'ar' ? 'تواصل معنا للحصول على مزيد من التفاصيل' : 'Contact us for more details'}</p>
+              <div className="shadcn-card p-6 relative overflow-hidden">
+                <h3 className="text-lg font-bold text-foreground tracking-tight mb-1">{language === 'ar' ? 'مهتم بهذا المشروع؟' : 'Interested in this project?'}</h3>
+                <p className="text-xs text-muted-foreground mb-6">{language === 'ar' ? 'تواصل معنا للحصول على مزيد من التفاصيل' : 'Contact us for more details'}</p>
                 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   <a
                     href={`tel:${(settings.callingNumber || '966500000000').replace(/\+/g, '')}`}
-                    className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white py-3.5 px-4 rounded-xl font-bold text-[15px] hover:bg-gray-800 transition-all duration-200 active:scale-95 shadow-[0_2px_10px_rgba(17,24,39,0.1)] hover:shadow-[0_4px_14px_rgba(17,24,39,0.2)]"
+                    className="btn-primary w-full text-xs h-9 justify-center gap-1.5"
                   >
-                    <Phone className="w-5 h-5" />
+                    <Phone className="w-4 h-4" />
                     {language === 'ar' ? 'اتصال' : 'Call'}
                   </a>
 
@@ -236,9 +255,9 @@ export default function ProjectDetails() {
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white py-3.5 px-4 rounded-xl font-bold text-[15px] hover:bg-[#22bf5b] transition-all duration-200 active:scale-95 shadow-[0_2px_10px_rgba(37,211,102,0.2)] hover:shadow-[0_4px_14px_rgba(37,211,102,0.3)]"
+                    className="w-full inline-flex items-center justify-center rounded-md text-xs font-medium bg-[#25D366] text-white hover:bg-[#22bf5b] h-9 px-4 py-2 shadow-xs transition-colors cursor-pointer"
                   >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                     {language === 'ar' ? 'واتساب' : 'WhatsApp'}
                   </a>
                 </div>

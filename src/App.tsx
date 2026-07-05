@@ -82,6 +82,7 @@ function Navbar() {
   }, []);
 
   const handleLogout = () => {
+    fetch('/api/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem('user');
     setUser(null);
     navigate('/');

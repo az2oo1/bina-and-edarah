@@ -133,22 +133,22 @@ export default function AdminRenters() {
     >
       {selectedRenterPhone && customerUnits.length > 0 ? (
         <div className="space-y-6">
-          <div className="flex items-center gap-4 pb-6 border-b border-gray-200">
-             <button onClick={() => { setSelectedRenterPhone(null); }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-200 text-gray-500 hover:text-black transition-colors">
+          <div className="flex items-center gap-3 pb-4 border-b border-border mb-4">
+             <button onClick={() => { setSelectedRenterPhone(null); }} className="w-7 h-7 bg-white rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
                 <ArrowRight className="w-5 h-5 rtl:block hidden" />
                 <ArrowRight className="w-5 h-5 ltr:block hidden rotate-180" />
              </button>
-             <h2 className="text-2xl font-extrabold text-gray-900">{language === 'ar' ? 'تفاصيل الحساب' : 'Account Details'}</h2>
+             <h2 className="text-sm font-bold text-foreground">{language === 'ar' ? 'تفاصيل الحساب' : 'Account Details'}</h2>
           </div>
           
-          <div className="bg-white rounded-3xl w-full border border-gray-200 overflow-hidden shadow-sm flex flex-col">
-             <div className="bg-gray-50 border-b border-gray-100 p-6 flex items-center justify-between shrink-0">
+          <div className="bg-white rounded-lg border border-border w-full overflow-hidden shadow-xs flex flex-col">
+             <div className="bg-slate-50 border-b border-border p-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${customerHasCourtOrder ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                  <div className={`w-10 h-10 rounded border border-border flex items-center justify-center ${customerHasCourtOrder ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-100 text-primary'}`}>
                     <Users className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                       {customerName}
                       {customerHasCourtOrder && (
                         <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-md font-bold uppercase tracking-wider flex items-center gap-1">
@@ -157,7 +157,7 @@ export default function AdminRenters() {
                         </span>
                       )}
                     </h3>
-                    <div className="text-gray-500 font-medium flex items-center gap-4 mt-2">
+                    <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
                       <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> <span dir="ltr">{selectedRenterPhone}</span></span>
                       <span className="flex items-center gap-1"><Building2 className="w-4 h-4" /> {customerUnits.length} {language === 'ar' ? 'وحدات' : 'Units'}</span>
                     </div>
@@ -166,28 +166,28 @@ export default function AdminRenters() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => openWhatsApp(selectedRenterPhone!, customerNames)}
-                    className="w-10 h-10 bg-green-50 text-green-600 rounded-full flex items-center justify-center shadow-sm border border-green-200 hover:bg-green-100 transition-colors"
+                    className="w-7 h-7 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded flex items-center justify-center hover:bg-emerald-100/5 transition-colors cursor-pointer"
                   >
                     <WhatsAppIcon className="w-5 h-5" />
                   </button>
                 </div>
              </div>
              
-             <div className="p-6 bg-gray-50/50 flex-1 space-y-8">
+             <div className="p-5 bg-slate-50/30 flex-1 space-y-5">
                {customerUnits.map((unit, idx) => (
-                 <div key={unit.id || idx} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                   <div className="bg-gray-50 p-4 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                 <div key={unit.id || idx} className="shadcn-card overflow-hidden">
+                   <div className="bg-slate-50 p-3 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
                      <div>
-                       <h4 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                         <Building2 className="w-5 h-5 text-indigo-500" />
+                       <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                         <Building2 className="w-4 h-4 text-primary" />
                          {unit.building?.name || (language === 'ar' ? 'مبنى غير محدد' : 'Unknown Building')}
                        </h4>
                        <p className="text-gray-500 text-sm mt-1 flex flex-wrap items-center gap-2 font-medium">
-                         <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs flex items-center gap-1">
+                         <span className="bg-slate-100 border border-border text-foreground px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1">
                            <Users className="w-3 h-3" />
                            {unit.renterName}
                          </span>
-                         <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs">
+                         <span className="bg-slate-100 border border-border text-foreground px-1.5 py-0.5 rounded text-[10px]">
                            {language === 'ar' ? 'رقم الوحدة:' : 'Unit Number:'} {unit.unitNumber}
                          </span>
                          {unit.isTanfeeth && (
@@ -200,20 +200,20 @@ export default function AdminRenters() {
                      </div>
                      <div className="flex gap-4 sm:flex-row flex-col text-sm md:text-right">
                        <div>
-                         <span className="text-gray-400 block text-xs">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</span>
-                         <span className="font-bold text-gray-900 flex items-center gap-1 md:justify-end">
+                         <span className="text-muted-foreground block text-[10px] uppercase font-bold">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</span>
+                         <span className="font-semibold text-xs text-foreground flex items-center gap-1 md:justify-end">
                            {unit.rentAmount?.toLocaleString() || '-'} <SrIcon className="w-3 h-3 text-gray-400" />
                          </span>
                        </div>
                        <div>
-                         <span className="text-gray-400 block text-xs">{language === 'ar' ? 'نهاية العقد' : 'Contract Ends'}</span>
-                         <span className="font-bold text-gray-900 flex items-center gap-1 md:justify-end">
+                         <span className="text-muted-foreground block text-[10px] uppercase font-bold">{language === 'ar' ? 'نهاية العقد' : 'Contract Ends'}</span>
+                         <span className="font-semibold text-xs text-foreground flex items-center gap-1 md:justify-end">
                            {unit.contractEndDate || '-'}
                          </span>
                        </div>
                        <div>
-                         <span className="text-gray-400 block text-xs">{language === 'ar' ? 'الدفعة القادمة' : 'Next Due'}</span>
-                         <span className="font-bold text-orange-600 flex items-center gap-1 md:justify-end">
+                         <span className="text-muted-foreground block text-[10px] uppercase font-bold">{language === 'ar' ? 'الدفعة القادمة' : 'Next Due'}</span>
+                         <span className="font-semibold text-orange-600 flex items-center gap-1 md:justify-end">
                            {unit.nextRentDue || '-'}
                          </span>
                        </div>
@@ -221,7 +221,7 @@ export default function AdminRenters() {
                    </div>
                    
                    <div className="p-4">
-                     <h5 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                     <h5 className="font-bold text-xs text-foreground mb-3 flex items-center gap-2">
                        <Wallet className="w-4 h-4 text-gray-400" />
                        {language === 'ar' ? 'الدفعات المستحقة والسجل' : 'Payments & History'}
                      </h5>
@@ -268,7 +268,7 @@ export default function AdminRenters() {
                            const isDue = !isPaid && !isLate && isUnpaidPassed;
 
                            return (
-                             <div key={h.id || i} className={`border rounded-xl p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-gray-50'}`}>
+                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-gray-50'}`}>
                                <div className="flex items-start justify-between gap-2">
                                   <div className="flex items-center gap-2">
                                      <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
@@ -280,7 +280,7 @@ export default function AdminRenters() {
                                      </div>
                                   </div>
                                   {h.receiptUrl && (
-                                     <a href={h.receiptUrl} target="_blank" rel="noreferrer" className="text-xs bg-white border border-gray-200 hover:bg-gray-100 text-black font-bold px-2 py-1 rounded-lg transition-colors shrink-0 flex items-center gap-1">
+                                     <a href={h.receiptUrl} target="_blank" rel="noreferrer" className="btn-outline h-7 px-2.5 text-[10px] rounded-md shadow-xs shrink-0 inline-flex items-center justify-center gap-1 cursor-pointer">
                                        <Eye className="w-3 h-3" />
                                        {language === 'ar' ? 'عرض الإيصال' : 'Receipt'}
                                      </a>
@@ -323,16 +323,16 @@ export default function AdminRenters() {
         </div>
       ) : (
         <>
-          <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-8 pb-6 border-b border-gray-200">
+          <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-6 pb-4 border-b border-border">
             <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center">
-            <Users className="w-6 h-6 text-green-500" />
+          <div className="w-10 h-10 bg-accent text-primary border border-border rounded-lg flex items-center justify-center shadow-xs">
+            <Users className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-3xl font-extrabold text-gray-900 leading-none">
+            <h2 className="text-lg font-bold text-foreground leading-none">
               {language === 'ar' ? 'المستأجرين' : 'Renters'}
             </h2>
-            <p className="text-gray-500 font-medium mt-2 leading-none">
+            <p className="text-xs text-muted-foreground mt-1 leading-none">
               {language === 'ar' ? 'عرض والبحث في جميع المستأجرين' : 'View and search all renters'}
             </p>
           </div>
@@ -346,13 +346,13 @@ export default function AdminRenters() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full border border-gray-300 rounded-xl py-3 outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 ltr:pl-10 rtl:pr-10"
+            className="w-full input-field py-1.5 ltr:pl-10 rtl:pr-10"
             placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-border shadow-xs overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Loading...</div>
         ) : filtered.length === 0 ? (
@@ -363,12 +363,12 @@ export default function AdminRenters() {
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse">
               <thead>
-                <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
-                  <th className="p-4 font-bold">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
-                  <th className="p-4 font-bold">{language === 'ar' ? 'التواصل' : 'Contact'}</th>
-                  <th className="p-4 font-bold">{language === 'ar' ? 'المبنى / الوحدة' : 'Building / Unit'}</th>
-                  <th className="p-4 font-bold">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</th>
-                  <th className="p-4 font-bold">{language === 'ar' ? 'عرض الحساب' : 'Account'}</th>
+                <tr className="bg-slate-50 text-muted-foreground text-xs border-b border-border">
+                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
+                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'التواصل' : 'Contact'}</th>
+                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المبنى / الوحدة' : 'Building / Unit'}</th>
+                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</th>
+                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'عرض الحساب' : 'Account'}</th>
                 </tr>
               </thead>
               <motion.tbody 
@@ -385,24 +385,24 @@ export default function AdminRenters() {
                       hidden: { opacity: 0, y: 10 },
                       visible: { opacity: 1, y: 0 }
                     }}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="border-b border-border hover:bg-slate-50/40 transition-colors"
                   >
                     <td className="p-4">
-                      <p className="font-bold text-gray-900">{r.allNames.join(' | ')}</p>
-                      <p className="text-sm text-gray-500 dir-ltr text-left md:text-right font-mono mt-1">{r.renterPhone}</p>
+                      <p className="font-semibold text-xs text-foreground">{r.allNames.join(' | ')}</p>
+                      <p className="text-[10px] text-muted-foreground dir-ltr font-mono mt-0.5">{r.renterPhone}</p>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <a 
                           href={`tel:${r.renterPhone}`}
-                          className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex flex-col items-center justify-center hover:bg-blue-100 transition-colors"
+                          className="w-7 h-7 rounded bg-slate-100 border border-border text-foreground hover:bg-slate-200/50 flex flex-col items-center justify-center transition-colors"
                           title={language === 'ar' ? 'اتصال' : 'Call'}
                         >
                           <Phone className="w-4 h-4" />
                         </a>
                         <button 
                           onClick={() => openWhatsApp(r.renterPhone, r.allNames)}
-                          className="w-8 h-8 rounded-full bg-green-50 text-green-600 flex flex-col items-center justify-center hover:bg-green-100 transition-colors"
+                          className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 flex flex-col items-center justify-center hover:bg-emerald-100/50 transition-colors cursor-pointer"
                           title="WhatsApp"
                         >
                           <WhatsAppIcon className="w-4 h-4" />
@@ -410,12 +410,12 @@ export default function AdminRenters() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <p className="font-bold text-gray-900 line-clamp-1 max-w-[200px]">
+                      <p className="font-semibold text-xs text-foreground line-clamp-1 max-w-[200px]">
                         {r.allBuildings.length > 1 ? r.allBuildings.join('، ') : (r.allBuildings[0] || (language === 'ar' ? 'غير محدد' : 'Unknown'))}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1 max-w-[200px]">
                         {renters.filter(u => u.renterPhone === r.renterPhone).map((u, i) => (
-                           <span key={i} className="inline-flex items-center justify-center bg-gray-100 border border-gray-200 text-gray-800 text-xs font-bold px-2 py-1 rounded-md">
+                           <span key={i} className="inline-flex items-center justify-center bg-slate-100 border border-border text-foreground text-[10px] px-1.5 py-0.5 rounded">
                              {u.unitNumber}
                            </span>
                         ))}
@@ -439,7 +439,7 @@ export default function AdminRenters() {
                         onClick={() => {
                           setSelectedRenterPhone(r.renterPhone);
                         }}
-                        className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                        className="btn-secondary px-3 py-1.5 text-xs rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer"
                       >
                         <Wallet className="w-4 h-4" />
                         {language === 'ar' ? 'عرض الحساب' : 'View Account'}
@@ -459,25 +459,25 @@ export default function AdminRenters() {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
         >
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8"
+            className="bg-white rounded-lg border border-border shadow-md w-full max-w-md p-6"
           >
-            <h3 className="text-xl font-bold text-gray-900 mb-4">{language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}</h3>
-            <p className="text-gray-600 mb-8">{language === 'ar' ? 'هل أنت متأكد من حذف هذه الوحدة؟ لن تتمكن من استعادة البيانات المرتبطة بها مثل الإيصالات.' : 'Are you sure you want to delete this unit? You will not be able to recover associated data like receipts.'}</p>
+            <h3 className="text-sm font-bold text-foreground mb-3">{language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}</h3>
+            <p className="text-xs text-muted-foreground mb-6">{language === 'ar' ? 'هل أنت متأكد من حذف هذه الوحدة؟ لن تتمكن من استعادة البيانات المرتبطة بها مثل الإيصالات.' : 'Are you sure you want to delete this unit? You will not be able to recover associated data like receipts.'}</p>
             <div className="flex gap-4">
               <button
                 onClick={() => executeDeleteUnit(deleteUnitConfirmId)}
-                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors shadow-sm"
+                className="flex-1 btn-primary bg-red-600 hover:bg-red-700 border-red-600 text-white h-9 px-4 text-xs font-semibold rounded-md shadow-xs cursor-pointer"
               >
                 {language === 'ar' ? 'نعم، احذف الوحدة' : 'Yes, delete unit'}
               </button>
               <button
                 onClick={() => setDeleteUnitConfirmId(null)}
-                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-xl transition-colors"
+                className="flex-1 btn-outline h-9 px-4 text-xs font-semibold rounded-md shadow-xs cursor-pointer"
               >
                 {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>

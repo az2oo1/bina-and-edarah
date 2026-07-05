@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { PlusCircle, Loader2, Trash2, MapPin, ImagePlus, X, Building2 } from 'lucide-react';
+import { compressImage } from '../lib/image';
 
 interface Project {
   id: string;
@@ -28,19 +29,24 @@ const PREDEFINED_DETAILS = [
 ];
 
 const PREDEFINED_FEATURES = [
-  { keyAr: 'مسبح', keyEn: 'Pool' },
-  { keyAr: 'حديقة', keyEn: 'Garden' },
-  { keyAr: 'غرفة خادمة', keyEn: 'Maid Room' },
-  { keyAr: 'غرفة سائق', keyEn: 'Driver Room' },
-  { keyAr: 'ملحق خارجي', keyEn: 'Outdoor Annex' },
-  { keyAr: 'تكييف مركزي', keyEn: 'Central AC' },
-  { keyAr: 'مدخل سيارة', keyEn: 'Car Entrance' },
-  { keyAr: 'مستودع', keyEn: 'Storage' },
   { keyAr: 'نظام ذكي', keyEn: 'Smart Home System' },
   { keyAr: 'نادي رياضي', keyEn: 'Gym' },
   { keyAr: 'كاميرات مراقبة', keyEn: 'Security Cameras' },
   { keyAr: 'أمن وحراسة', keyEn: 'Security' },
   { keyAr: 'دخول ذكي', keyEn: 'Smart Access' },
+  { keyAr: 'مستودع', keyEn: 'Storage' },
+  { keyAr: 'مسبح', keyEn: 'Pool' },
+  { keyAr: 'حديقة', keyEn: 'Garden' },
+  { keyAr: 'مدخل خاص', keyEn: 'Private Entrance' },
+  { keyAr: 'مطبخ راكب', keyEn: 'Kitchen Installed' },
+  { keyAr: 'غرفة خادمة', keyEn: 'Maid Room' },
+  { keyAr: 'غرفة سائق', keyEn: 'Driver Room' },
+  { keyAr: 'ملحق خارجي', keyEn: 'Outdoor Annex' },
+  { keyAr: 'تكييف مركزي', keyEn: 'Central AC' },
+  { keyAr: 'مكيفات راكبة', keyEn: 'Installed ACs' },
+  { keyAr: 'مدخل سيارة', keyEn: 'Car Entrance' },
+  { keyAr: 'خزان غاز', keyEn: 'Gas Tank' },
+  { keyAr: 'مؤثثة', keyEn: 'Furnished' },
 ];
 
 export default function AdminProjects() {
@@ -82,21 +88,21 @@ export default function AdminProjects() {
     fetchProjects();
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
     let base64Images: string[] = [...formData.imageUrls];
-    Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target && typeof event.target.result === 'string') {
-          base64Images.push(event.target.result);
-          setFormData(prev => ({ ...prev, imageUrls: [...base64Images] }));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    for (const file of Array.from(files) as File[]) {
+      try {
+        const base64 = await compressImage(file);
+        base64Images.push(base64);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setFormData(prev => ({ ...prev, imageUrls: base64Images }));
+    e.target.value = '';
   };
 
   const removeImage = (index: number) => {
@@ -268,26 +274,26 @@ export default function AdminProjects() {
       </div>
 
       {showAddForm ? (
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+        <form onSubmit={handleSubmit} className="shadcn-card p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
-              <h3 className="text-xl font-bold border-b pb-2">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Info'}</h3>
+              <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Info'}</h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.titleAr') || 'Title (Ar)'}</label>
-                  <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({...formData, titleAr: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500" dir="rtl" />
+                  <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({...formData, titleAr: e.target.value})} className="input-field" dir="rtl" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.titleEn') || 'Title (En)'}</label>
-                  <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({...formData, titleEn: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500" dir="ltr" />
+                  <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({...formData, titleEn: e.target.value})} className="input-field" dir="ltr" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'تصنيف المشروع (Tier)' : 'Project Tier'}</label>
-                  <select value={formData.tier} onChange={(e) => setFormData({...formData, tier: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3 bg-white">
+                  <select value={formData.tier} onChange={(e) => setFormData({...formData, tier: e.target.value})} className="input-field">
                     <option value="BIG">{language === 'ar' ? 'مشروع كبير (Big)' : 'Big Project'}</option>
                     <option value="MID">{language === 'ar' ? 'مشروع متوسط (Mid)' : 'Mid Project'}</option>
                     <option value="OTHER">{language === 'ar' ? 'مشاريع أخرى (Other)' : 'Other Projects'}</option>
@@ -295,7 +301,7 @@ export default function AdminProjects() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.category') || 'Property Category'}</label>
-                  <select value={formData.propertyCategory} onChange={(e) => setFormData({...formData, propertyCategory: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3 bg-white">
+                  <select value={formData.propertyCategory} onChange={(e) => setFormData({...formData, propertyCategory: e.target.value})} className="input-field">
                     <option value="VILLA">{t('cat.VILLA') || 'Villa'}</option>
                     <option value="APARTMENT">{t('cat.APARTMENT') || 'Apartment'}</option>
                     <option value="COMPOUND">{t('cat.COMPOUND') || 'Compound'}</option>
@@ -316,39 +322,39 @@ export default function AdminProjects() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'الوصف (عربي أو إنجليزي)' : 'Description'}</label>
-                <textarea required rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3" dir="rtl" />
+                <textarea required rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="input-field" dir="rtl" />
               </div>
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-xl font-bold border-b pb-2">{language === 'ar' ? 'الموقع والمساحة' : 'Location & Area'}</h3>
+              <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'الموقع والمساحة' : 'Location & Area'}</h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.area') || 'Area'}</label>
-                  <input type="number" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3" />
+                  <input type="number" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.age') || 'Age'}</label>
-                  <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({...formData, propertyAge: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3" />
+                  <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({...formData, propertyAge: e.target.value})} className="input-field" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationLink') || 'Location Link'}</label>
-                <input type="url" value={formData.locationLink} onChange={(e) => setFormData({...formData, locationLink: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3" dir="ltr" />
+                <input type="url" value={formData.locationLink} onChange={(e) => setFormData({...formData, locationLink: e.target.value})} className="input-field" dir="ltr" />
               </div>
               
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationText') || 'Location Text'}</label>
-                <input type="text" value={formData.locationText} onChange={(e) => setFormData({...formData, locationText: e.target.value})} className="w-full border border-gray-300 rounded-xl p-3" />
+                <input type="text" value={formData.locationText} onChange={(e) => setFormData({...formData, locationText: e.target.value})} className="input-field" />
               </div>
             </div>
           </div>
 
           <div className="mt-8 space-y-6">
-            <h3 className="text-xl font-bold border-b pb-2">{language === 'ar' ? 'الصور' : 'Images'}</h3>
-            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:bg-gray-50 transition-colors">
+            <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'الصور' : 'Images'}</h3>
+            <div className="border border-dashed border-border rounded-lg p-6 text-center hover:bg-slate-50 transition-colors bg-slate-50/30">
               <label className="cursor-pointer flex flex-col items-center">
                 <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
                 <span className="text-gray-600 font-medium mb-2">{language === 'ar' ? 'اضغط لاختيار الصور' : 'Click to select images'}</span>
@@ -358,7 +364,7 @@ export default function AdminProjects() {
             {formData.imageUrls.length > 0 && (
               <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4">
                 {formData.imageUrls.map((url, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group shadow-sm">
+                  <div key={idx} className="relative aspect-square rounded-md border border-border overflow-hidden group shadow-xs">
                     <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
                     <button type="button" onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
                       <X className="w-4 h-4" />
@@ -370,14 +376,14 @@ export default function AdminProjects() {
           </div>
 
           <div className="mt-8 space-y-6">
-            <h3 className="text-xl font-bold border-b pb-2">{language === 'ar' ? 'التفاصيل الإضافية (مثل: عدد الغرف، الواجهة)' : 'Additional Details (e.g., Rooms, Facade)'}</h3>
+            <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'التفاصيل الإضافية (مثل: عدد الغرف، الواجهة)' : 'Additional Details (e.g., Rooms, Facade)'}</h3>
             <div className="flex flex-wrap gap-2 mb-4">
               {PREDEFINED_DETAILS.map((d, i) => (
                 <button 
                   key={i} 
                   type="button" 
                   onClick={() => addDetail(language === 'ar' ? d.keyAr : d.keyEn)}
-                  className="bg-yellow-50 text-yellow-800 hover:bg-yellow-100 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border border-yellow-200"
+                  className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 px-2.5 py-1 rounded text-xs font-semibold"
                 >
                   + {language === 'ar' ? d.keyAr : d.keyEn}
                 </button>
@@ -387,18 +393,18 @@ export default function AdminProjects() {
               {formData.detailsList.map((detail, index) => (
                 <div key={detail.id} className="flex gap-4 items-center">
                   <div className="w-1/3">
-                    <input type="text" placeholder={language === 'ar' ? 'الخاصية (مثال: عدد الغرف)' : 'Key (e.g. Rooms)'} value={detail.key} onChange={(e) => updateDetail(detail.id, 'key', e.target.value)} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 outline-none" />
+                    <input type="text" placeholder={language === 'ar' ? 'الخاصية (مثال: عدد الغرف)' : 'Key (e.g. Rooms)'} value={detail.key} onChange={(e) => updateDetail(detail.id, 'key', e.target.value)} className="input-field" />
                   </div>
                   <div className="flex-1">
-                    <input type="text" placeholder={language === 'ar' ? 'القيمة (مثال: 5)' : 'Value (e.g. 5)'} value={detail.value} onChange={(e) => updateDetail(detail.id, 'value', e.target.value)} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 outline-none" />
+                    <input type="text" placeholder={language === 'ar' ? 'القيمة (مثال: 5)' : 'Value (e.g. 5)'} value={detail.value} onChange={(e) => updateDetail(detail.id, 'value', e.target.value)} className="input-field" />
                   </div>
-                  <button type="button" onClick={() => removeDetail(detail.id)} className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                  <button type="button" onClick={() => removeDetail(detail.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border">
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               ))}
               <div className="flex flex-wrap gap-2 mt-4">
-                <button type="button" onClick={() => addDetail()} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold transition-colors">
+                <button type="button" onClick={() => addDetail()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
                   + {language === 'ar' ? 'إضافة تفصيل مخصص' : 'Add Custom Detail'}
                 </button>
               </div>
@@ -406,14 +412,14 @@ export default function AdminProjects() {
           </div>
 
           <div className="mt-8 space-y-6">
-            <h3 className="text-xl font-bold border-b pb-2">{language === 'ar' ? 'المميزات والمرافق (مثل: مسبح، حديقة)' : 'Features & Facilities (e.g., Pool, Garden)'}</h3>
+            <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'المميزات والمرافق (مثل: مسبح، حديقة)' : 'Features & Facilities (e.g., Pool, Garden)'}</h3>
             <div className="flex flex-wrap gap-2 mb-4">
               {PREDEFINED_FEATURES.map((f, i) => (
                 <button 
                   key={i} 
                   type="button" 
                   onClick={() => addFeature(language === 'ar' ? f.keyAr : f.keyEn)}
-                  className="bg-green-50 text-green-800 hover:bg-green-100 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border border-green-200"
+                  className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 px-2.5 py-1 rounded text-xs font-semibold"
                 >
                   + {language === 'ar' ? f.keyAr : f.keyEn}
                 </button>
@@ -423,15 +429,15 @@ export default function AdminProjects() {
               {formData.featuresList.map((feature) => (
                 <div key={feature.id} className="flex gap-4 items-center">
                   <div className="flex-1">
-                    <input type="text" placeholder={language === 'ar' ? 'الميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'} value={feature.value} onChange={(e) => updateFeature(feature.id, e.target.value)} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-green-500 outline-none" />
+                    <input type="text" placeholder={language === 'ar' ? 'الميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'} value={feature.value} onChange={(e) => updateFeature(feature.id, e.target.value)} className="input-field" />
                   </div>
-                  <button type="button" onClick={() => removeFeature(feature.id)} className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                  <button type="button" onClick={() => removeFeature(feature.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border">
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               ))}
               <div className="flex flex-wrap gap-2 mt-4">
-                <button type="button" onClick={() => addFeature()} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold transition-colors">
+                <button type="button" onClick={() => addFeature()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
                   + {language === 'ar' ? 'إضافة ميزة مخصصة' : 'Add Custom Feature'}
                 </button>
               </div>
@@ -439,13 +445,13 @@ export default function AdminProjects() {
           </div>
 
           <div className="mt-10 border-t pt-8">
-            <button type="submit" disabled={loading} className="w-full bg-black text-white font-bold py-4 px-4 rounded-xl hover:bg-gray-900 transition-all flex justify-center items-center gap-2 text-lg shadow-lg">
+            <button type="submit" disabled={loading} className="btn-primary w-full h-10 text-sm rounded-md shadow-xs cursor-pointer">
               {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (editingId ? (language === 'ar' ? 'حفظ التعديلات' : 'Save Changes') : (language === 'ar' ? 'حفظ المشروع' : 'Save Project'))}
             </button>
           </div>
         </form>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {fetching ? (
             <div className="col-span-full py-20 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-gray-400" /></div>
           ) : projects.length === 0 ? (
@@ -454,24 +460,24 @@ export default function AdminProjects() {
             </div>
           ) : (
             projects.map((project) => (
-              <div key={project.id} className="bg-white border text-left border-gray-200 rounded-3xl overflow-hidden hover:shadow-xl transition-shadow group">
+              <div key={project.id} className="shadcn-card group overflow-hidden block flex flex-col hover:shadow-xs transition-shadow">
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-black text-xl text-gray-900 mb-1" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                      <h3 className="font-bold text-sm text-foreground mb-1" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                         {language === 'ar' ? project.titleAr : project.titleEn}
                       </h3>
-                      <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded font-bold">
+                      <span className="inline-flex bg-primary/10 text-primary border border-primary/20 text-[10px] px-2 py-0.5 rounded font-semibold">
                          {project.tier === 'BIG' ? (language === 'ar' ? 'مشروع كبير' : 'Big Project') : project.tier === 'MID' ? (language === 'ar' ? 'مشروع متوسط' : 'Mid Project') : (language === 'ar' ? 'مشاريع أخرى' : 'Other Projects')}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="px-6 py-4 bg-gray-50 flex justify-between items-center border-t border-gray-100">
+                <div className="px-4 py-3 bg-slate-50 border-t border-border flex justify-between items-center">
                   <button onClick={() => handleDelete(project.id)} className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors">
                     <Trash2 className="w-5 h-5" />
                   </button>
-                  <button onClick={() => handleEdit(project.id)} className="bg-black text-white px-6 py-2 rounded-xl font-bold hover:bg-gray-800 transition-colors">
+                  <button onClick={() => handleEdit(project.id)} className="btn-primary px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
                     {language === 'ar' ? 'تعديل' : 'Edit'}
                   </button>
                 </div>

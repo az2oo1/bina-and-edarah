@@ -308,8 +308,8 @@ export default function AdminBuildings() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-xl font-bold mb-4">{language === 'ar' ? 'إضافة مبنى جديد' : 'Add New Building'}</h3>
+      <div className="shadcn-card p-5 mb-6">
+        <h3 className="text-sm font-bold text-foreground mb-3">{language === 'ar' ? 'إضافة مبنى جديد' : 'Add New Building'}</h3>
         <form onSubmit={handleAddBuilding} className="flex gap-4">
           <input 
             type="text" 
@@ -317,12 +317,12 @@ export default function AdminBuildings() {
             value={newBuildingName}
             onChange={e => setNewBuildingName(e.target.value)}
             placeholder={language === 'ar' ? 'اسم المبنى (مثال: عمارة الشدي الوادي)' : 'Building Name'}
-            className="flex-1 border border-gray-300 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            className="flex-1 input-field"
           />
           <button 
             type="submit" 
             disabled={addingBuilding}
-            className="bg-black text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800 disabled:opacity-50"
+            className="btn-primary h-9 px-4 text-xs font-semibold rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {addingBuilding ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlusCircle className="w-5 h-5" />}
             {language === 'ar' ? 'إضافة' : 'Add'}
@@ -339,16 +339,16 @@ export default function AdminBuildings() {
 
       <div className="grid grid-cols-1 gap-6">
         {buildings.map(b => (
-          <div key={b.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-6 md:items-center justify-between">
+          <div key={b.id} className="shadcn-card p-4 flex flex-col md:flex-row gap-4 md:items-center justify-between">
             <div>
-              <h3 className="font-bold text-xl text-gray-900 mb-2">{b.name}</h3>
-              <p className="flex items-center gap-2 text-gray-500 font-medium">
+              <h3 className="font-bold text-sm text-foreground mb-1">{b.name}</h3>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Users className="w-5 h-5" /> 
                 <span>{b._count.units} {language === 'ar' ? 'وحدة / مستأجر' : 'Units / Renters'}</span>
               </p>
             </div>
             <div className="flex flex-wrap gap-4 items-center">
-              <label className="relative cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-xl font-bold transition-colors flex items-center gap-2">
+              <label className="relative cursor-pointer bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5">
                  <input 
                    type="file" 
                    accept=".csv,.xlsx,.xls,.numbers"
@@ -367,7 +367,7 @@ export default function AdminBuildings() {
               <button 
                 onClick={() => openBuildingRenters(b)}
                 disabled={loadingRentersBuilding === b.id}
-                className="bg-gray-900 hover:bg-gray-800 text-white font-bold px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
+                className="btn-secondary px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                 title={language === 'ar' ? 'عرض المستأجرين' : 'View Renters'}
               >
                 {loadingRentersBuilding === b.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
@@ -376,7 +376,7 @@ export default function AdminBuildings() {
 
               <button 
                 onClick={() => openEditModal(b)}
-                className="p-3 text-gray-500 hover:bg-gray-100 hover:text-black rounded-xl transition-colors"
+                className="p-2 text-muted-foreground hover:text-foreground rounded border border-border bg-white cursor-pointer"
                 title={language === 'ar' ? 'تعديل بيانات المبنى' : 'Edit Building Details'}
               >
                 <SettingsIcon className="w-5 h-5" />
@@ -384,7 +384,7 @@ export default function AdminBuildings() {
               
               <button 
                 onClick={() => setDeleteConfirmId(b.id)}
-                className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                className="p-2 text-red-500 hover:bg-red-50 rounded border border-border bg-white cursor-pointer"
                 title={language === 'ar' ? 'حذف' : 'Delete'}
               >
                 <Trash2 className="w-5 h-5" />
@@ -393,22 +393,22 @@ export default function AdminBuildings() {
           </div>
         ))}
         {buildings.length === 0 && (
-          <div className="text-center p-8 text-gray-500 bg-white rounded-2xl border border-gray-100">
+          <div className="text-center p-8 text-sm text-muted-foreground bg-white rounded-lg border border-border">
             {language === 'ar' ? 'لا يوجد مباني مضافة حتى الآن' : 'No buildings added yet'}
           </div>
         )}
       </div>
 
       {editingBuildingId && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="bg-gray-50 p-6 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-2xl font-black text-gray-900">{language === 'ar' ? 'تعديل بيانات المبنى' : 'Edit Building Details'}</h3>
-              <button onClick={() => setEditingBuildingId(null)} className="w-10 h-10 rounded-full flex items-center justify-center bg-white border shadow-sm text-gray-500 hover:text-black">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-lg border border-border w-full max-w-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
+            <div className="bg-slate-50 p-4 border-b border-border flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">{language === 'ar' ? 'تعديل بيانات المبنى' : 'Edit Building Details'}</h3>
+              <button onClick={() => setEditingBuildingId(null)} className="w-7 h-7 rounded border border-border flex items-center justify-center bg-white text-muted-foreground hover:text-foreground">
                  <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto bg-gray-50/50 flex-1 space-y-6">
+            <div className="p-5 overflow-y-auto bg-slate-50/30 flex-1 space-y-5">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'تفاصيل التحويل البنكي' : 'Bank Transfer Details'}</label>
                 <textarea 
@@ -416,7 +416,7 @@ export default function AdminBuildings() {
                   onChange={e => setEditTransferDetails(e.target.value)}
                   placeholder={language === 'ar' ? 'أدخل تفاصيل ومشتملات الحساب البنكي، والآيبان...' : 'Enter bank account details, IBAN...'}
                   rows={4}
-                  className="w-full border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full input-field min-h-[100px] py-2"
                 />
               </div>
 
@@ -424,7 +424,7 @@ export default function AdminBuildings() {
                 <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'صور المبنى' : 'Building Photos'}</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {editPhotos.map((url, index) => (
-                    <div key={index} className="relative aspect-[4/3] rounded-xl overflow-hidden group border border-gray-200">
+                    <div key={index} className="relative aspect-[4/3] rounded-md overflow-hidden group border border-border shadow-xs">
                       <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <button 
@@ -437,7 +437,7 @@ export default function AdminBuildings() {
                       </div>
                     </div>
                   ))}
-                  <label className="aspect-[4/3] flex flex-col items-center justify-center border-2 border-dashed border-gray-300 hover:border-indigo-500 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors bg-white">
+                  <label className="aspect-[4/3] flex flex-col items-center justify-center border border-dashed border-border rounded-md cursor-pointer transition-colors bg-slate-50/30 hover:bg-slate-50">
                     <ImagePlus className="w-8 h-8 text-indigo-400 mb-2" />
                     <span className="text-sm font-bold text-indigo-600">{language === 'ar' ? 'إضافة صور' : 'Add Photos'}</span>
                     <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
@@ -446,11 +446,11 @@ export default function AdminBuildings() {
               </div>
             </div>
             
-            <div className="p-6 bg-white border-t border-gray-100 flex justify-end gap-3">
-               <button onClick={() => setEditingBuildingId(null)} className="px-6 py-3 font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            <div className="p-4 bg-white border-t border-border flex justify-end gap-2">
+               <button onClick={() => setEditingBuildingId(null)} className="btn-outline px-4 h-9 text-xs font-semibold rounded-md shadow-xs cursor-pointer">
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                </button>
-               <button onClick={executeSaveEdit} disabled={savingEdit} className="px-6 py-3 font-bold text-white bg-black hover:bg-gray-800 rounded-xl transition-colors flex items-center gap-2">
+               <button onClick={executeSaveEdit} disabled={savingEdit} className="btn-primary px-4 h-9 text-xs font-semibold rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer">
                   {savingEdit ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                   {language === 'ar' ? 'حفظ التعديلات' : 'Save Changes'}
                </button>
@@ -491,21 +491,21 @@ export default function AdminBuildings() {
       )}
 
       {selectedBuildingForRenters && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-6xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="bg-gray-50 p-6 border-b border-gray-100 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-lg border border-border w-full max-w-6xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
+            <div className="bg-slate-50 p-4 border-b border-border flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Building2 className="w-6 h-6 text-indigo-500" />
                   {selectedBuildingForRenters.name} — {language === 'ar' ? 'المستأجرين' : 'Renters'}
                 </h3>
               </div>
-              <button onClick={() => setSelectedBuildingForRenters(null)} className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-black">
+              <button onClick={() => setSelectedBuildingForRenters(null)} className="w-7 h-7 bg-white border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
                  <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-3 border-b border-border">
                <div className="relative max-w-md">
                  <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-3 pointer-events-none text-gray-400">
                    <Search className="w-5 h-5" />
@@ -514,13 +514,13 @@ export default function AdminBuildings() {
                    type="text"
                    value={searchRenters}
                    onChange={e => setSearchRenters(e.target.value)}
-                   className="w-full border border-gray-300 rounded-xl py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 ltr:pl-10 rtl:pr-10"
+                   className="w-full input-field py-1.5 ltr:pl-10 rtl:pr-10"
                    placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
                  />
                </div>
             </div>
             
-            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+            <div className="p-5 overflow-y-auto flex-1 bg-slate-50/30">
                {(() => {
                  const grouped = new Map<string, Renter & { allUnitNumbers: string[], totalRent: number, history?: any[] }>();
                  for (const r of buildingRenters) {
@@ -558,15 +558,15 @@ export default function AdminBuildings() {
                    return <div className="text-center text-gray-400 py-12">{language === 'ar' ? 'لا يوجد مستأجرين' : 'No renters found'}</div>;
                  }
                  return (
-                   <div className="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
+                   <div className="overflow-x-auto bg-white rounded-lg border border-border">
                      <table className="w-full text-right border-collapse">
                        <thead>
-                         <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
-                           <th className="p-4 font-bold">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
-                           <th className="p-4 font-bold">{language === 'ar' ? 'التواصل' : 'Contact'}</th>
-                           <th className="p-4 font-bold">{language === 'ar' ? 'الوحدة' : 'Unit'}</th>
-                           <th className="p-4 font-bold">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</th>
-                           <th className="p-4 font-bold">{language === 'ar' ? 'التاريخ/التفاصيل' : 'History'}</th>
+                         <tr className="bg-slate-50 text-muted-foreground text-xs border-b border-border">
+                           <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
+                           <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'التواصل' : 'Contact'}</th>
+                           <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'الوحدة' : 'Unit'}</th>
+                           <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</th>
+                           <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'التاريخ/التفاصيل' : 'History'}</th>
                          </tr>
                        </thead>
                        <motion.tbody
@@ -585,15 +585,15 @@ export default function AdminBuildings() {
                                 hidden: { opacity: 0, y: 10 },
                                 visible: { opacity: 1, y: 0 }
                               }}
-                              className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${isEmpty ? 'bg-gray-50/50' : ''}`}
+                              className={`border-b border-border hover:bg-slate-50/40 transition-colors ${isEmpty ? 'bg-slate-50/20' : ''}`}
                             >
                               <td className="p-4">
                                 {isEmpty ? (
                                   <p className="font-bold text-gray-400">{r.renterName}</p>
                                 ) : (
                                   <>
-                                    <p className="font-bold text-gray-900">{r.renterName}</p>
-                                    <p className="text-sm text-gray-500 dir-ltr text-left md:text-right font-mono mt-1">{r.renterPhone}</p>
+                                    <p className="font-semibold text-xs text-foreground">{r.renterName}</p>
+                                    <p className="text-[10px] text-muted-foreground dir-ltr font-mono mt-0.5">{r.renterPhone}</p>
                                   </>
                                 )}
                               </td>
@@ -602,14 +602,14 @@ export default function AdminBuildings() {
                                 <div className="flex items-center gap-2">
                                   <a 
                                     href={`tel:${r.renterPhone}`}
-                                    className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex flex-col items-center justify-center hover:bg-blue-100 transition-colors"
+                                    className="w-7 h-7 rounded bg-slate-100 border border-border text-foreground hover:bg-slate-200/50 flex flex-col items-center justify-center transition-colors"
                                     title={language === 'ar' ? 'اتصال' : 'Call'}
                                   >
                                     <Phone className="w-4 h-4" />
                                   </a>
                                   <button 
                                     onClick={() => openWhatsApp(r.renterPhone, r.renterName)}
-                                    className="w-8 h-8 rounded-full bg-green-50 text-green-600 flex flex-col items-center justify-center hover:bg-green-100 transition-colors"
+                                    className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 flex flex-col items-center justify-center hover:bg-emerald-100/50 transition-colors"
                                     title="WhatsApp"
                                   >
                                     <WhatsAppIcon className="w-4 h-4" />
@@ -621,7 +621,7 @@ export default function AdminBuildings() {
                                <div className="flex flex-wrap gap-1 max-w-[200px]">
                                  {r.allUnitNumbers && r.allUnitNumbers.length > 0 ? (
                                     r.allUnitNumbers.map((u, i) => (
-                                      <span key={i} className="inline-flex items-center justify-center bg-gray-100 border border-gray-200 text-gray-800 text-xs font-bold px-2 py-1 rounded-md">
+                                      <span key={i} className="inline-flex items-center justify-center bg-slate-100 border border-border text-foreground text-[10px] px-1.5 py-0.5 rounded">
                                         {u}
                                       </span>
                                     ))
@@ -643,7 +643,7 @@ export default function AdminBuildings() {
                                 {!isEmpty && (
                                 <button 
                                   onClick={() => setSelectedRenterForHistory(r)}
-                                  className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                                  className="btn-secondary px-3 py-1.5 text-xs rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer"
                                 >
                                   <History className="w-4 h-4" />
                                   {language === 'ar' ? 'السجل' : 'History'}
@@ -664,8 +664,8 @@ export default function AdminBuildings() {
       )}
 
       {selectedRenterForHistory && (
-         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-           <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+           <div className="bg-white rounded-lg border border-border w-full max-w-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
              <div className="bg-gray-50 p-6 border-b border-gray-100 flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-black text-gray-900">{selectedRenterForHistory.renterName}</h3>
@@ -674,12 +674,12 @@ export default function AdminBuildings() {
                     {selectedRenterForHistory.building?.name || selectedBuildingForRenters?.name} — {language === 'ar' ? 'وحدة' : 'Unit'} {selectedRenterForHistory.unitNumber}
                   </div>
                 </div>
-                <button onClick={() => setSelectedRenterForHistory(null)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-200 text-gray-500 hover:text-black">
+                <button onClick={() => setSelectedRenterForHistory(null)} className="w-7 h-7 bg-white rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
                    <X className="w-5 h-5" />
                 </button>
              </div>
              
-             <div className="p-6 overflow-y-auto bg-gray-50/50 flex-1">
+             <div className="p-5 overflow-y-auto bg-slate-50/30 flex-1">
                {selectedRenterForHistory.rentHistory && selectedRenterForHistory.rentHistory.length > 0 ? (
                  <div className="space-y-4">
                    {selectedRenterForHistory.rentHistory.map((h, i) => {
@@ -728,7 +728,7 @@ export default function AdminBuildings() {
                            const isDue = !isPaid && !isCourt && !isLate && isUnpaidPassed;
 
                            return (
-                             <div key={h.id || i} className={`border rounded-xl p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-gray-50'}`}>
+                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-gray-50'}`}>
                                <div className="flex items-start justify-between gap-2">
                                   <div className="flex items-center gap-2">
                                      <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isCourt ? 'bg-red-100 text-red-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
@@ -740,7 +740,7 @@ export default function AdminBuildings() {
                                 </div>
                              </div>
                              {h.receiptUrl && (
-                                <a href={h.receiptUrl} target="_blank" rel="noreferrer" className="text-xs bg-white border border-gray-200 hover:bg-gray-100 text-black font-bold px-2 py-1 rounded-lg transition-colors shrink-0">
+                                <a href={h.receiptUrl} target="_blank" rel="noreferrer" className="btn-outline h-7 px-2.5 text-[10px] rounded-md shadow-xs shrink-0 inline-flex items-center justify-center">
                                   {language === 'ar' ? 'عرض الإيصال' : 'Receipt'}
                                 </a>
                              )}
