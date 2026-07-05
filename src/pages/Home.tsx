@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, BuildingIcon, KeySquare, Hammer, Headphones, Mail } from 'lucide-react';
 import { Link } from 'react-router';
+import { SocialIconsRow } from '../components/SocialIcons';
 
 const DEFAULT_IMAGES = {
   hero: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop',

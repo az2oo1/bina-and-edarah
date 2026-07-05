@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router';
 import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
 import { Logo } from './components/Logo';
+import { SocialIconsRow, SocialLinks } from './components/SocialIcons';
 import Home from './pages/Home';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
@@ -17,9 +18,19 @@ function useLogoUrl() {
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
-      .then(data => { if (data.logoUrl) setLogoUrl(data.logoUrl); })
+      .then(data => {
+        if (data.logoUrl) {
+          setLogoUrl(data.logoUrl);
+          let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = data.logoUrl;
+        }
+      })
       .catch(() => {});
-    // Listen for storage events so admin changes propagate without reload
     const onStorage = () => {
       const cached = sessionStorage.getItem('logoUrl');
       if (cached) setLogoUrl(cached);
@@ -28,6 +39,26 @@ function useLogoUrl() {
     return () => window.removeEventListener('logoUpdated', onStorage);
   }, []);
   return logoUrl;
+}
+
+function useSocialSettings(): SocialLinks {
+  const [links, setLinks] = useState<SocialLinks>({});
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => setLinks({
+        whatsappNumber: data.whatsappNumber,
+        instagramUrl: data.instagramUrl,
+        twitterUrl: data.twitterUrl,
+        facebookUrl: data.facebookUrl,
+        linkedinUrl: data.linkedinUrl,
+        youtubeUrl: data.youtubeUrl,
+        tiktokUrl: data.tiktokUrl,
+        email: data.email,
+      }))
+      .catch(() => {});
+  }, []);
+  return links;
 }
 
 function Navbar() {
@@ -125,13 +156,15 @@ function Navbar() {
 function Footer() {
   const { language } = useLanguage();
   const logoUrl = useLogoUrl();
+  const socialLinks = useSocialSettings();
   return (
-    <footer style={{ backgroundColor: '#1e3448' }} className="border-t border-blue-900 py-12 text-center text-blue-200">
-      <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-4">
+    <footer style={{ backgroundColor: '#1e3448' }} className="border-t border-blue-900 py-10 text-center text-blue-200">
+      <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-5">
         <div className="bg-white rounded-xl p-2 opacity-80">
           <Logo className="h-8 w-8" logoUrl={logoUrl} />
         </div>
-        <p className="text-sm">&copy; {new Date().getFullYear()} {language === 'ar' ? 'بناء وإدارة العقارية. جميع الحقوق محفوظة.' : 'Benaa and Edara Real Estate. All rights reserved.'}</p>
+        <SocialIconsRow links={socialLinks} size="sm" />
+        <p className="text-xs opacity-70">&copy; {new Date().getFullYear()} {language === 'ar' ? 'بناء وإدارة العقارية. جميع الحقوق محفوظة.' : 'Benaa and Edara Real Estate. All rights reserved.'}</p>
       </div>
     </footer>
   );
