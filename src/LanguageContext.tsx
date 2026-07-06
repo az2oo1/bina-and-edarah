@@ -11,7 +11,7 @@ interface LanguageContextType {
 const translations: Record<Language, Record<string, string>> = {
   ar: {
     'nav.home': 'الرئيسية',
-    'nav.projects': 'مشاريع قمنا بتطويرها',
+    'nav.projects': 'مشاريعنا',
     'nav.properties': 'عقارات للبيع أو الإيجار',
     'nav.admin': 'لوحة الإدارة',
     'nav.login': 'تسجيل الدخول',

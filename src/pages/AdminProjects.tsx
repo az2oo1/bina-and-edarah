@@ -18,7 +18,6 @@ const PREDEFINED_DETAILS = [
   { keyAr: 'الصالات', keyEn: 'Halls', example: '2' },
   { keyAr: 'دورات المياه', keyEn: 'Bathrooms', example: '3' },
   { keyAr: 'الدور', keyEn: 'Floor', example: '2' },
-  { keyAr: 'عمر العقار', keyEn: 'Property Age', example: 'جديد / 5 سنوات' },
   { keyAr: 'مواقف سيارات', keyEn: 'Parking Spaces', example: '2' },
   { keyAr: 'مصاعد', keyEn: 'Elevators', example: '1' },
   { keyAr: 'عدد الوحدات', keyEn: 'Number of Units', example: '4' },
@@ -375,71 +374,131 @@ export default function AdminProjects() {
             )}
           </div>
 
-          <div className="mt-8 space-y-6">
-            <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'التفاصيل الإضافية (مثل: عدد الغرف، الواجهة)' : 'Additional Details (e.g., Rooms, Facade)'}</h3>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {PREDEFINED_DETAILS.map((d, i) => (
-                <button 
-                  key={i} 
-                  type="button" 
-                  onClick={() => addDetail(language === 'ar' ? d.keyAr : d.keyEn)}
-                  className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 px-2.5 py-1 rounded text-xs font-semibold"
-                >
-                  + {language === 'ar' ? d.keyAr : d.keyEn}
-                </button>
-              ))}
-            </div>
-            <div className="space-y-4">
-              {formData.detailsList.map((detail, index) => (
-                <div key={detail.id} className="flex gap-4 items-center">
-                  <div className="w-1/3">
-                    <input type="text" placeholder={language === 'ar' ? 'الخاصية (مثال: عدد الغرف)' : 'Key (e.g. Rooms)'} value={detail.key} onChange={(e) => updateDetail(detail.id, 'key', e.target.value)} className="input-field" />
+          {/* Details & Features Container */}
+          <div className="mt-8 space-y-8">
+            {/* Additional Details (Key-Value) Card */}
+            <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
+                  <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">1</span>
+                  {language === 'ar' ? 'التفاصيل الإضافية للمشروع (خصائص بقيمة)' : 'Project Additional Details (Key & Value)'}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'أدخل خصائص محددة بقيمة للمشروع، مثل: (الواجهة: شمالية، الضمانات: 10 سنوات). ملاحظة: عمر العقار موجود في البيانات الأساسية.'
+                    : 'Enter specific key-value properties for the project, e.g., (Facade: North, Warranties: 10 Years). Note: Property Age is configured under Basic Information.'}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 py-2">
+                {PREDEFINED_DETAILS.map((d, i) => (
+                  <button 
+                    key={i} 
+                    type="button" 
+                    onClick={() => addDetail(language === 'ar' ? d.keyAr : d.keyEn)}
+                    className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
+                  >
+                    + {language === 'ar' ? d.keyAr : d.keyEn}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="space-y-4">
+                {formData.detailsList.length > 0 && (
+                  <div className="grid grid-cols-[1fr_2fr_auto] gap-4 px-1 text-xs font-semibold text-muted-foreground">
+                    <div>{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
+                    <div>{language === 'ar' ? 'القيمة' : 'Value'}</div>
+                    <div className="w-10"></div>
                   </div>
-                  <div className="flex-1">
-                    <input type="text" placeholder={language === 'ar' ? 'القيمة (مثال: 5)' : 'Value (e.g. 5)'} value={detail.value} onChange={(e) => updateDetail(detail.id, 'value', e.target.value)} className="input-field" />
+                )}
+                {formData.detailsList.map((detail, index) => (
+                  <div key={detail.id} className="flex gap-4 items-center">
+                    <div className="w-1/3">
+                      <input 
+                        type="text" 
+                        placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'} 
+                        value={detail.key} 
+                        onChange={(e) => updateDetail(detail.id, 'key', e.target.value)} 
+                        className="input-field text-sm" 
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <input 
+                        type="text" 
+                        placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'} 
+                        value={detail.value} 
+                        onChange={(e) => updateDetail(detail.id, 'value', e.target.value)} 
+                        className="input-field text-sm" 
+                      />
+                    </div>
+                    <button type="button" onClick={() => removeDetail(detail.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border transition">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button type="button" onClick={() => removeDetail(detail.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border">
-                    <Trash2 className="w-5 h-5" />
+                ))}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <button type="button" onClick={() => addDetail()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
+                    + {language === 'ar' ? 'إضافة تفصيل مخصص' : 'Add Custom Detail'}
                   </button>
                 </div>
-              ))}
-              <div className="flex flex-wrap gap-2 mt-4">
-                <button type="button" onClick={() => addDetail()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
-                  + {language === 'ar' ? 'إضافة تفصيل مخصص' : 'Add Custom Detail'}
-                </button>
               </div>
             </div>
-          </div>
 
-          <div className="mt-8 space-y-6">
-            <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'المميزات والمرافق (مثل: مسبح، حديقة)' : 'Features & Facilities (e.g., Pool, Garden)'}</h3>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {PREDEFINED_FEATURES.map((f, i) => (
-                <button 
-                  key={i} 
-                  type="button" 
-                  onClick={() => addFeature(language === 'ar' ? f.keyAr : f.keyEn)}
-                  className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 px-2.5 py-1 rounded text-xs font-semibold"
-                >
-                  + {language === 'ar' ? f.keyAr : f.keyEn}
-                </button>
-              ))}
-            </div>
-            <div className="space-y-4">
-              {formData.featuresList.map((feature) => (
-                <div key={feature.id} className="flex gap-4 items-center">
-                  <div className="flex-1">
-                    <input type="text" placeholder={language === 'ar' ? 'الميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'} value={feature.value} onChange={(e) => updateFeature(feature.id, e.target.value)} className="input-field" />
+            {/* Features & Amenities (Single Tags) Card */}
+            <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
+                  <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">2</span>
+                  {language === 'ar' ? 'المميزات والمرافق للمشروع (نصوص فردية)' : 'Project Features & Amenities (Single Tags)'}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ar' 
+                    ? 'أدخل مميزات فردية أو خدمات عامة للمشروع، مثل: (مسبح، نادي رياضي، دخول ذكي، حديقة).' 
+                    : 'Enter individual amenities or facilities, e.g., (Pool, Gym, Smart Access, Garden).'}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 py-2">
+                {PREDEFINED_FEATURES.map((f, i) => (
+                  <button 
+                    key={i} 
+                    type="button" 
+                    onClick={() => addFeature(language === 'ar' ? f.keyAr : f.keyEn)}
+                    className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
+                  >
+                    + {language === 'ar' ? f.keyAr : f.keyEn}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="space-y-4">
+                {formData.featuresList.length > 0 && (
+                  <div className="grid grid-cols-[1fr_auto] gap-4 px-1 text-xs font-semibold text-muted-foreground">
+                    <div>{language === 'ar' ? 'اسم الميزة' : 'Feature Name'}</div>
+                    <div className="w-10"></div>
                   </div>
-                  <button type="button" onClick={() => removeFeature(feature.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border">
-                    <Trash2 className="w-5 h-5" />
+                )}
+                {formData.featuresList.map((feature) => (
+                  <div key={feature.id} className="flex gap-4 items-center">
+                    <div className="flex-1">
+                      <input 
+                        type="text" 
+                        placeholder={language === 'ar' ? 'الميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'} 
+                        value={feature.value} 
+                        onChange={(e) => updateFeature(feature.id, e.target.value)} 
+                        className="input-field text-sm" 
+                      />
+                    </div>
+                    <button type="button" onClick={() => removeFeature(feature.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border transition">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <button type="button" onClick={() => addFeature()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
+                    + {language === 'ar' ? 'إضافة ميزة مخصصة' : 'Add Custom Feature'}
                   </button>
                 </div>
-              ))}
-              <div className="flex flex-wrap gap-2 mt-4">
-                <button type="button" onClick={() => addFeature()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
-                  + {language === 'ar' ? 'إضافة ميزة مخصصة' : 'Add Custom Feature'}
-                </button>
               </div>
             </div>
           </div>

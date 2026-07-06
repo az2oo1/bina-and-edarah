@@ -44,7 +44,6 @@ const PREDEFINED_DETAILS = [
   { keyAr: 'دورات المياه', keyEn: 'Bathrooms', example: '3' },
   { keyAr: 'الدور', keyEn: 'Floor', example: '2' },
   { keyAr: 'الفئة', keyEn: 'Category', example: 'عوائل / عزاب' },
-  { keyAr: 'عمر العقار', keyEn: 'Property Age', example: 'جديد / 5 سنوات' },
   { keyAr: 'مواقف سيارات', keyEn: 'Parking Spaces', example: '2' },
   { keyAr: 'مصاعد', keyEn: 'Elevators', example: '1' },
   { keyAr: 'عدد الوحدات', keyEn: 'Number of Units', example: '4' },
@@ -1044,131 +1043,171 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'التفاصيل' : 'Details'}</h3>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {PREDEFINED_DETAILS.map(pd => (
-                      <button
-                        key={pd.keyEn}
-                        type="button"
-                        onClick={() => {
-                          setFormData({ 
-                            ...formData, 
-                            detailsList: [...formData.detailsList, { id: Math.random().toString(), key: language === 'ar' ? pd.keyAr : pd.keyEn, value: '' }] 
-                          });
-                        }}
-                        className="bg-card border border-border text-foreground px-3 py-1.5 rounded-full text-sm font-bold hover:bg-card flex items-center gap-1 transition shadow-sm"
-                        title={pd.example}
-                      >
-                        <PlusCircle className="w-4 h-4 text-gray-400" />
-                        {language === 'ar' ? pd.keyAr : pd.keyEn}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {formData.detailsList.map((detail, idx) => (
-                      <div key={detail.id} className="flex gap-2 items-center relative group">
-                        <input
-                          type="text"
-                          value={detail.key}
-                          onChange={(e) => {
-                            const newList = [...formData.detailsList];
-                            newList[idx].key = e.target.value;
-                            setFormData({ ...formData, detailsList: newList });
-                          }}
-                          placeholder={language === 'ar' ? 'الميزة (مثال: الغرف)' : 'Key (e.g. Rooms)'}
-                          className="flex-1 border border-border rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-                        />
-                        <input
-                          type="text"
-                          value={detail.value}
-                          onChange={(e) => {
-                            const newList = [...formData.detailsList];
-                            newList[idx].value = e.target.value;
-                            setFormData({ ...formData, detailsList: newList });
-                          }}
-                          placeholder={language === 'ar' ? 'القيمة (مثال: 5)' : 'Value (e.g. 5)'}
-                          className="flex-1 border border-border rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newList = formData.detailsList.filter((_, i) => i !== idx);
-                            setFormData({ ...formData, detailsList: newList });
-                          }}
-                          className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
-                        >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, detailsList: [...formData.detailsList, { id: Math.random().toString(), key: '', value: '' }] })}
-                      className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2"
-                    >
-                      <PlusCircle className="w-5 h-5" />
-                      {language === 'ar' ? 'إضافة تفصيل جديد' : 'Add Detail'}
-                    </button>
-                  </div>
-                </div>
+                {/* Details & Features Section */}
+                <div className="space-y-8">
+                  {/* Additional Details (Key-Value) Card */}
+                  <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
+                        <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">1</span>
+                        {language === 'ar' ? 'التفاصيل الإضافية (خصائص بقيمة)' : 'Additional Details (Key & Value)'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {language === 'ar' 
+                          ? 'أدخل خصائص محددة بقيمة، مثل: (الواجهة: شمالية، عدد الصالات: 2، مسطح البناء: 300 م²). ملاحظة: عمر العقار موجود في البيانات الأساسية.'
+                          : 'Enter specific key-value properties, e.g., (Facade: North, Halls: 2, Built Area: 300 m²). Note: Property Age is configured under Basic Information.'}
+                      </p>
+                    </div>
 
-                {/* Additional Features Section */}
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'المميزات الإضافية' : 'Additional Features'}</h3>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {PREDEFINED_FEATURES.map(pf => (
-                      <button
-                        key={pf.keyEn}
-                        type="button"
-                        onClick={() => {
-                          setFormData({ 
-                            ...formData, 
-                            featuresList: [...formData.featuresList, { id: Math.random().toString(), value: language === 'ar' ? pf.keyAr : pf.keyEn }] 
-                          });
-                        }}
-                        className="bg-card border border-border text-foreground px-3 py-1.5 rounded-full text-sm font-bold hover:bg-card flex items-center gap-1 transition shadow-sm"
-                      >
-                        <PlusCircle className="w-4 h-4 text-gray-400" />
-                        {language === 'ar' ? pf.keyAr : pf.keyEn}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="space-y-3">
-                    {formData.featuresList.map((feature, idx) => (
-                      <div key={feature.id} className="flex gap-2 items-center relative group">
-                        <input
-                          type="text"
-                          value={feature.value}
-                          onChange={(e) => {
-                            const newList = [...formData.featuresList];
-                            newList[idx].value = e.target.value;
-                            setFormData({ ...formData, featuresList: newList });
-                          }}
-                          placeholder={language === 'ar' ? 'ميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'}
-                          className="w-full border border-border rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-                        />
+                    <div className="flex flex-wrap gap-1.5 py-2">
+                      {PREDEFINED_DETAILS.map(pd => (
                         <button
+                          key={pd.keyEn}
                           type="button"
                           onClick={() => {
-                            const newList = formData.featuresList.filter((_, i) => i !== idx);
-                            setFormData({ ...formData, featuresList: newList });
+                            setFormData({ 
+                              ...formData, 
+                              detailsList: [...formData.detailsList, { id: Math.random().toString(), key: language === 'ar' ? pd.keyAr : pd.keyEn, value: '' }] 
+                            });
                           }}
-                          className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
+                          className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
+                          title={pd.example}
                         >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                          <PlusCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                          {language === 'ar' ? pd.keyAr : pd.keyEn}
                         </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, featuresList: [...formData.featuresList, { id: Math.random().toString(), value: '' }] })}
-                      className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2"
-                    >
-                      <PlusCircle className="w-5 h-5" />
-                      {language === 'ar' ? 'إضافة ميزة' : 'Add Feature'}
-                    </button>
+                      ))}
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {formData.detailsList.length > 0 && (
+                        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-1 text-xs font-semibold text-muted-foreground">
+                          <div>{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
+                          <div>{language === 'ar' ? 'القيمة' : 'Value'}</div>
+                          <div className="w-10"></div>
+                        </div>
+                      )}
+                      {formData.detailsList.map((detail, idx) => (
+                        <div key={detail.id} className="flex gap-2 items-center relative group">
+                          <input
+                            type="text"
+                            value={detail.key}
+                            onChange={(e) => {
+                              const newList = [...formData.detailsList];
+                              newList[idx].key = e.target.value;
+                              setFormData({ ...formData, detailsList: newList });
+                            }}
+                            placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'}
+                            className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                          />
+                          <input
+                            type="text"
+                            value={detail.value}
+                            onChange={(e) => {
+                              const newList = [...formData.detailsList];
+                              newList[idx].value = e.target.value;
+                              setFormData({ ...formData, detailsList: newList });
+                            }}
+                            placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'}
+                            className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newList = formData.detailsList.filter((_, i) => i !== idx);
+                              setFormData({ ...formData, detailsList: newList });
+                            }}
+                            className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, detailsList: [...formData.detailsList, { id: Math.random().toString(), key: '', value: '' }] })}
+                        className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2 text-sm"
+                      >
+                        <PlusCircle className="w-4.5 h-4.5" />
+                        {language === 'ar' ? 'إضافة تفصيل مخصص' : 'Add Custom Detail'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Additional Features (amenity tags) Card */}
+                  <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
+                        <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">2</span>
+                        {language === 'ar' ? 'المميزات الإضافية (نصوص فردية)' : 'Additional Features (Single Tags)'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {language === 'ar' 
+                          ? 'أدخل مميزات فردية أو خدمات عامة للعقار، مثل: (مسبح، نادي رياضي، دخول ذكي، حديقة).' 
+                          : 'Enter individual amenities or facilities, e.g., (Pool, Gym, Smart Access, Garden).'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 py-2">
+                      {PREDEFINED_FEATURES.map(pf => (
+                        <button
+                          key={pf.keyEn}
+                          type="button"
+                          onClick={() => {
+                            setFormData({ 
+                              ...formData, 
+                              featuresList: [...formData.featuresList, { id: Math.random().toString(), value: language === 'ar' ? pf.keyAr : pf.keyEn }] 
+                            });
+                          }}
+                          className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
+                        >
+                          <PlusCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                          {language === 'ar' ? pf.keyAr : pf.keyEn}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {formData.featuresList.length > 0 && (
+                        <div className="grid grid-cols-[1fr_auto] gap-2 px-1 text-xs font-semibold text-muted-foreground">
+                          <div>{language === 'ar' ? 'اسم الميزة' : 'Feature Name'}</div>
+                          <div className="w-10"></div>
+                        </div>
+                      )}
+                      {formData.featuresList.map((feature, idx) => (
+                        <div key={feature.id} className="flex gap-2 items-center relative group">
+                          <input
+                            type="text"
+                            value={feature.value}
+                            onChange={(e) => {
+                              const newList = [...formData.featuresList];
+                              newList[idx].value = e.target.value;
+                              setFormData({ ...formData, featuresList: newList });
+                            }}
+                            placeholder={language === 'ar' ? 'ميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'}
+                            className="w-full border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newList = formData.featuresList.filter((_, i) => i !== idx);
+                              setFormData({ ...formData, featuresList: newList });
+                            }}
+                            className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, featuresList: [...formData.featuresList, { id: Math.random().toString(), value: '' }] })}
+                        className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2 text-sm"
+                      >
+                        <PlusCircle className="w-4.5 h-4.5" />
+                        {language === 'ar' ? 'إضافة ميزة مخصصة' : 'Add Custom Feature'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
