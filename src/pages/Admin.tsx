@@ -1465,42 +1465,42 @@ export default function Admin() {
 
                 return (
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-6">
+                    <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">
                       {language === 'ar' ? 'صور الصفحة الرئيسية والشعار' : 'Home Page Images & Logo'}
                     </h3>
-                    <p className="text-sm text-gray-500 mb-6">
+                    <p className="text-xs text-muted-foreground mb-4">
                       {language === 'ar'
                         ? 'ارفع صوراً مخصصة لكل قسم. إذا لم ترفع صورة سيتم استخدام الصورة الافتراضية.'
                         : 'Upload custom images for each section. Default images will be used if none are uploaded.'}
                     </p>
                     <div className="space-y-6">
                       {imageSlots.map(slot => (
-                        <div key={slot.key} className="border border-gray-100 rounded-2xl p-5 bg-gray-50 hover:bg-white transition-colors">
-                          <p className="font-bold text-gray-900 text-sm mb-1">
+                        <div key={slot.key} className="border border-border rounded-2xl p-5 bg-muted/20 hover:bg-muted/40 transition-colors">
+                          <p className="font-bold text-foreground text-sm mb-1">
                             {language === 'ar' ? slot.labelAr : slot.labelEn}
                           </p>
                           {(slot.hintAr || slot.hintEn) && (
-                            <p className="text-xs text-gray-500 mb-3">
+                            <p className="text-xs text-muted-foreground mb-3">
                               {language === 'ar' ? slot.hintAr : slot.hintEn}
                             </p>
                           )}
                           <div className="flex items-center gap-4 flex-wrap mt-3">
                             {slot.current ? (
-                              <div className="relative w-28 h-20 rounded-xl overflow-hidden border-2 border-primary bg-gray-200 flex-shrink-0">
+                              <div className="relative w-28 h-20 rounded-xl overflow-hidden border-2 border-primary bg-muted flex-shrink-0">
                                 <img src={slot.current} alt="preview" className="w-full h-full object-cover" />
                                 <button
                                   type="button"
                                   onClick={slot.onRemove}
-                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow"
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow cursor-pointer"
                                   title={language === 'ar' ? 'حذف الصورة' : 'Remove image'}
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
                               </div>
                             ) : (
-                              <div className="w-28 h-20 rounded-xl border-2 border-dashed border-gray-300 bg-white flex flex-col items-center justify-center flex-shrink-0">
-                                <ImagePlus className="w-6 h-6 text-gray-300" />
-                                <span className="text-xs text-gray-400 mt-1">{language === 'ar' ? 'افتراضية' : 'Default'}</span>
+                              <div className="w-28 h-20 rounded-xl border-2 border-dashed border-border bg-card flex flex-col items-center justify-center flex-shrink-0">
+                                <ImagePlus className="w-6 h-6 text-muted-foreground/60" />
+                                <span className="text-xs text-muted-foreground/80 mt-1">{language === 'ar' ? 'افتراضية' : 'Default'}</span>
                               </div>
                             )}
                             <div>
@@ -1514,21 +1514,21 @@ export default function Admin() {
                               />
                               <label
                                 htmlFor={`img-slot-${slot.key}`}
-                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 bg-white text-sm font-bold cursor-pointer hover:bg-gray-50 transition-colors ${
+                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-foreground text-sm font-bold cursor-pointer hover:bg-muted/40 transition-colors ${
                                   imageSlotUploading === slot.key ? 'opacity-50 cursor-not-allowed' : ''
                                 }`}
                               >
                                 {imageSlotUploading === slot.key ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                  <ImagePlus className="w-4 h-4 text-gray-500" />
+                                  <ImagePlus className="w-4 h-4 text-muted-foreground" />
                                 )}
                                 {slot.current
                                   ? (language === 'ar' ? 'تغيير الصورة' : 'Change Image')
                                   : (language === 'ar' ? 'رفع صورة' : 'Upload Image')
                                 }
                               </label>
-                              <p className="text-xs text-gray-400 mt-2">{language === 'ar' ? 'الحد الأقصى 5MB' : 'Max 5MB'}</p>
+                              <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? 'الحد الأقصى 5MB' : 'Max 5MB'}</p>
                             </div>
                           </div>
                         </div>

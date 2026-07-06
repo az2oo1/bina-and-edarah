@@ -317,7 +317,7 @@ export default function AdminBuildings() {
             value={newBuildingName}
             onChange={e => setNewBuildingName(e.target.value)}
             placeholder={language === 'ar' ? 'اسم المبنى (مثال: عمارة الشدي الوادي)' : 'Building Name'}
-            className="flex-1 input-field"
+            className="flex-1 cn-input"
           />
           <button 
             type="submit" 
@@ -376,7 +376,7 @@ export default function AdminBuildings() {
 
               <button 
                 onClick={() => openEditModal(b)}
-                className="p-2 text-muted-foreground hover:text-foreground rounded border border-border bg-white cursor-pointer"
+                className="p-2 text-muted-foreground hover:text-foreground rounded border border-border bg-card cursor-pointer"
                 title={language === 'ar' ? 'تعديل بيانات المبنى' : 'Edit Building Details'}
               >
                 <SettingsIcon className="w-5 h-5" />
@@ -384,7 +384,7 @@ export default function AdminBuildings() {
               
               <button 
                 onClick={() => setDeleteConfirmId(b.id)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded border border-border bg-white cursor-pointer"
+                className="p-2 text-red-500 hover:bg-red-500/10 rounded border border-border bg-card cursor-pointer"
                 title={language === 'ar' ? 'حذف' : 'Delete'}
               >
                 <Trash2 className="w-5 h-5" />
@@ -393,7 +393,7 @@ export default function AdminBuildings() {
           </div>
         ))}
         {buildings.length === 0 && (
-          <div className="text-center p-8 text-sm text-muted-foreground bg-white rounded-lg border border-border">
+          <div className="text-center p-8 text-sm text-muted-foreground bg-card rounded-lg border border-border shadow-xs">
             {language === 'ar' ? 'لا يوجد مباني مضافة حتى الآن' : 'No buildings added yet'}
           </div>
         )}
@@ -401,27 +401,27 @@ export default function AdminBuildings() {
 
       {editingBuildingId && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-lg border border-border w-full max-w-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
-            <div className="bg-slate-50 p-4 border-b border-border flex items-center justify-between">
+          <div className="bg-card rounded-lg border border-border w-full max-w-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
+            <div className="bg-muted/40 p-4 border-b border-border flex items-center justify-between">
               <h3 className="text-sm font-bold text-foreground">{language === 'ar' ? 'تعديل بيانات المبنى' : 'Edit Building Details'}</h3>
-              <button onClick={() => setEditingBuildingId(null)} className="w-7 h-7 rounded border border-border flex items-center justify-center bg-white text-muted-foreground hover:text-foreground">
+              <button onClick={() => setEditingBuildingId(null)} className="w-7 h-7 rounded border border-border flex items-center justify-center bg-card text-muted-foreground hover:text-foreground cursor-pointer">
                  <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-5 overflow-y-auto bg-slate-50/30 flex-1 space-y-5">
+            <div className="p-5 overflow-y-auto bg-muted/10 flex-1 space-y-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'تفاصيل التحويل البنكي' : 'Bank Transfer Details'}</label>
+                <label className="cn-label mb-2">{language === 'ar' ? 'تفاصيل التحويل البنكي' : 'Bank Transfer Details'}</label>
                 <textarea 
                   value={editTransferDetails}
                   onChange={e => setEditTransferDetails(e.target.value)}
                   placeholder={language === 'ar' ? 'أدخل تفاصيل ومشتملات الحساب البنكي، والآيبان...' : 'Enter bank account details, IBAN...'}
                   rows={4}
-                  className="w-full input-field min-h-[100px] py-2"
+                  className="cn-input min-h-[100px] resize-y"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'صور المبنى' : 'Building Photos'}</label>
+                <label className="cn-label mb-2">{language === 'ar' ? 'صور المبنى' : 'Building Photos'}</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {editPhotos.map((url, index) => (
                     <div key={index} className="relative aspect-[4/3] rounded-md overflow-hidden group border border-border shadow-xs">
@@ -430,23 +430,23 @@ export default function AdminBuildings() {
                         <button 
                           type="button"
                           onClick={() => setEditPhotos(editPhotos.filter((_, i) => i !== index))}
-                          className="bg-red-500 text-white p-2 rounded-full hover:scale-110 transition-transform"
+                          className="bg-red-500 text-white p-2 rounded-full hover:scale-110 transition-transform cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   ))}
-                  <label className="aspect-[4/3] flex flex-col items-center justify-center border border-dashed border-border rounded-md cursor-pointer transition-colors bg-slate-50/30 hover:bg-slate-50">
-                    <ImagePlus className="w-8 h-8 text-indigo-400 mb-2" />
-                    <span className="text-sm font-bold text-indigo-600">{language === 'ar' ? 'إضافة صور' : 'Add Photos'}</span>
+                  <label className="aspect-[4/3] flex flex-col items-center justify-center border border-dashed border-border rounded-md cursor-pointer transition-colors bg-muted/10 hover:bg-muted/30">
+                    <ImagePlus className="w-8 h-8 text-primary mb-2" />
+                    <span className="text-sm font-bold text-primary">{language === 'ar' ? 'إضافة صور' : 'Add Photos'}</span>
                     <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
                   </label>
                 </div>
               </div>
             </div>
             
-            <div className="p-4 bg-white border-t border-border flex justify-end gap-2">
+            <div className="p-4 bg-card border-t border-border flex justify-end gap-2">
                <button onClick={() => setEditingBuildingId(null)} className="btn-outline px-4 h-9 text-xs font-semibold rounded-md shadow-xs cursor-pointer">
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                </button>
@@ -492,15 +492,15 @@ export default function AdminBuildings() {
 
       {selectedBuildingForRenters && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-lg border border-border w-full max-w-6xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
-            <div className="bg-slate-50 p-4 border-b border-border flex items-center justify-between">
+          <div className="bg-card rounded-lg border border-border w-full max-w-6xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
+            <div className="bg-muted/40 p-4 border-b border-border flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Building2 className="w-6 h-6 text-indigo-500" />
+                  <Building2 className="w-6 h-6 text-primary" />
                   {selectedBuildingForRenters.name} — {language === 'ar' ? 'المستأجرين' : 'Renters'}
                 </h3>
               </div>
-              <button onClick={() => setSelectedBuildingForRenters(null)} className="w-7 h-7 bg-white border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+              <button onClick={() => setSelectedBuildingForRenters(null)} className="w-7 h-7 bg-card border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
                  <X className="w-5 h-5" />
               </button>
             </div>
@@ -514,7 +514,7 @@ export default function AdminBuildings() {
                    type="text"
                    value={searchRenters}
                    onChange={e => setSearchRenters(e.target.value)}
-                   className="w-full input-field py-1.5 ltr:pl-10 rtl:pr-10"
+                   className="cn-input ltr:pl-10 rtl:pr-10"
                    placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
                  />
                </div>
@@ -555,13 +555,13 @@ export default function AdminBuildings() {
                  );
 
                  if (filtered.length === 0) {
-                   return <div className="text-center text-gray-400 py-12">{language === 'ar' ? 'لا يوجد مستأجرين' : 'No renters found'}</div>;
+                   return <div className="text-center text-muted-foreground py-12">{language === 'ar' ? 'لا يوجد مستأجرين' : 'No renters found'}</div>;
                  }
                  return (
-                   <div className="overflow-x-auto bg-white rounded-lg border border-border">
+                   <div className="overflow-x-auto bg-card rounded-lg border border-border">
                      <table className="w-full text-right border-collapse">
                        <thead>
-                         <tr className="bg-slate-50 text-muted-foreground text-xs border-b border-border">
+                         <tr className="bg-muted/40 text-muted-foreground text-xs border-b border-border">
                            <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
                            <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'التواصل' : 'Contact'}</th>
                            <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'الوحدة' : 'Unit'}</th>
@@ -665,16 +665,16 @@ export default function AdminBuildings() {
 
       {selectedRenterForHistory && (
          <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
-           <div className="bg-white rounded-lg border border-border w-full max-w-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
-             <div className="bg-gray-50 p-6 border-b border-gray-100 flex items-center justify-between">
+           <div className="bg-card rounded-lg border border-border w-full max-w-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
+             <div className="bg-muted/40 p-6 border-b border-border flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-black text-gray-900">{selectedRenterForHistory.renterName}</h3>
-                  <div className="text-gray-500 font-medium flex items-center gap-2 mt-2">
+                  <h3 className="text-2xl font-black text-foreground">{selectedRenterForHistory.renterName}</h3>
+                  <div className="text-muted-foreground font-medium flex items-center gap-2 mt-2">
                     <Building2 className="w-4 h-4" />
                     {selectedRenterForHistory.building?.name || selectedBuildingForRenters?.name} — {language === 'ar' ? 'وحدة' : 'Unit'} {selectedRenterForHistory.unitNumber}
                   </div>
                 </div>
-                <button onClick={() => setSelectedRenterForHistory(null)} className="w-7 h-7 bg-white rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                <button onClick={() => setSelectedRenterForHistory(null)} className="w-7 h-7 bg-card rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
                    <X className="w-5 h-5" />
                 </button>
              </div>

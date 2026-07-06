@@ -346,24 +346,24 @@ export default function AdminRenters() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full input-field py-1.5 ltr:pl-10 rtl:pr-10"
+            className="cn-input ltr:pl-10 rtl:pr-10"
             placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-border shadow-xs overflow-hidden">
+      <div className="bg-card rounded-lg border border-border shadow-xs overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-400">Loading...</div>
+          <div className="p-12 text-center text-muted-foreground">Loading...</div>
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">
+          <div className="p-12 text-center text-muted-foreground">
             {language === 'ar' ? 'لا يوجد مستأجرين' : 'No renters found'}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-muted-foreground text-xs border-b border-border">
+                <tr className="bg-muted/40 text-muted-foreground text-xs border-b border-border">
                   <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
                   <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'التواصل' : 'Contact'}</th>
                   <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المبنى / الوحدة' : 'Building / Unit'}</th>
@@ -372,11 +372,11 @@ export default function AdminRenters() {
                 </tr>
               </thead>
               <motion.tbody 
-                 initial="hidden"
-                 animate="visible"
-                 variants={{
-                   visible: { transition: { staggerChildren: 0.05 } }
-                 }}
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  visible: { transition: { staggerChildren: 0.05 } }
+                }}
               >
                 {filtered.map(r => (
                   <motion.tr 
@@ -385,7 +385,7 @@ export default function AdminRenters() {
                       hidden: { opacity: 0, y: 10 },
                       visible: { opacity: 1, y: 0 }
                     }}
-                    className="border-b border-border hover:bg-slate-50/40 transition-colors"
+                    className="border-b border-border hover:bg-muted/30 transition-colors"
                   >
                     <td className="p-4">
                       <p className="font-semibold text-xs text-foreground">{r.allNames.join(' | ')}</p>

@@ -52,7 +52,7 @@ export default function AdminReceipts() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={language === 'ar' ? 'بحث (الاسم، الجوال، العقار)...' : 'Search (Name, Phone, Property)...'}
-            className="w-full input-field py-1.5 ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4"
+            className="cn-input ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4"
           />
         </div>
       </div>
@@ -60,7 +60,7 @@ export default function AdminReceipts() {
       {loading ? (
         <div className="text-center py-20 text-sm text-muted-foreground">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
       ) : filteredReceipts.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg border border-border shadow-xs">
+        <div className="text-center py-16 bg-card rounded-lg border border-border shadow-xs">
           <p className="text-sm text-muted-foreground">
             {language === 'ar' ? 'لا توجد إيصالات أو لم يتم العثور على نتائج' : 'No receipts found'}
           </p>
@@ -70,12 +70,12 @@ export default function AdminReceipts() {
           {filteredReceipts.map(r => (
             <div key={r.id} className="shadcn-card group overflow-hidden block flex flex-col hover:shadow-xs transition-shadow">
                {r.receiptUrl ? (
-                 <a href={r.receiptUrl} target="_blank" rel="noreferrer" className="block aspect-[4/3] bg-gray-100 overflow-hidden relative cursor-pointer border-b border-border">
+                 <a href={r.receiptUrl} target="_blank" rel="noreferrer" className="block aspect-[4/3] bg-muted/30 overflow-hidden relative cursor-pointer border-b border-border">
                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10"></div>
                    <img src={r.receiptUrl} alt="Receipt" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" />
                  </a>
                ) : (
-                 <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center text-xs text-muted-foreground border-b border-border">
+                 <div className="aspect-[4/3] bg-muted/30 flex items-center justify-center text-xs text-muted-foreground border-b border-border">
                    {language === 'ar' ? 'لا توجد صورة' : 'No Image'}
                  </div>
                )}

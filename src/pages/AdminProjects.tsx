@@ -240,12 +240,12 @@ export default function AdminProjects() {
 
   return (
     <div className="min-h-[500px]">
-      <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+      <div className="flex items-center justify-between mb-8 pb-6 border-b border-border">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
             <Building2 className="w-6 h-6 text-primary" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-3xl font-bold text-foreground">
             {showAddForm ? (editingId ? (language === 'ar' ? 'تعديل مشروع' : 'Edit Project') : (language === 'ar' ? 'إضافة مشروع' : 'Add Project')) : (language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects')}
           </h2>
         </div>
@@ -259,10 +259,10 @@ export default function AdminProjects() {
               setShowAddForm(true);
             }
           }}
-          className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all shadow-md ${
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all shadow-md cursor-pointer ${
             showAddForm 
-              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
-              : 'bg-primary text-white hover:opacity-90'
+              ? 'btn-secondary text-foreground' 
+              : 'btn-primary text-white hover:opacity-90'
           }`}
         >
           {showAddForm ? (
@@ -281,48 +281,48 @@ export default function AdminProjects() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.titleAr') || 'Title (Ar)'}</label>
-                  <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({...formData, titleAr: e.target.value})} className="input-field" dir="rtl" />
+                  <label className="cn-label mb-2">{t('admin.placeholder.titleAr') || 'Title (Ar)'}</label>
+                  <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({...formData, titleAr: e.target.value})} className="cn-input" dir="rtl" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.titleEn') || 'Title (En)'}</label>
-                  <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({...formData, titleEn: e.target.value})} className="input-field" dir="ltr" />
+                  <label className="cn-label mb-2">{t('admin.placeholder.titleEn') || 'Title (En)'}</label>
+                  <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({...formData, titleEn: e.target.value})} className="cn-input" dir="ltr" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'تصنيف المشروع (Tier)' : 'Project Tier'}</label>
-                  <select value={formData.tier} onChange={(e) => setFormData({...formData, tier: e.target.value})} className="input-field">
-                    <option value="BIG">{language === 'ar' ? 'مشروع كبير (Big)' : 'Big Project'}</option>
-                    <option value="MID">{language === 'ar' ? 'مشروع متوسط (Mid)' : 'Mid Project'}</option>
-                    <option value="OTHER">{language === 'ar' ? 'مشاريع أخرى (Other)' : 'Other Projects'}</option>
+                  <label className="cn-label mb-2">{language === 'ar' ? 'تصنيف المشروع (Tier)' : 'Project Tier'}</label>
+                  <select value={formData.tier} onChange={(e) => setFormData({...formData, tier: e.target.value})} className="cn-input">
+                    <option value="BIG" className="bg-card text-foreground">{language === 'ar' ? 'مشروع كبير (Big)' : 'Big Project'}</option>
+                    <option value="MID" className="bg-card text-foreground">{language === 'ar' ? 'مشروع متوسط (Mid)' : 'Mid Project'}</option>
+                    <option value="OTHER" className="bg-card text-foreground">{language === 'ar' ? 'مشاريع أخرى (Other)' : 'Other Projects'}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.category') || 'Property Category'}</label>
-                  <select value={formData.propertyCategory} onChange={(e) => setFormData({...formData, propertyCategory: e.target.value})} className="input-field">
-                    <option value="VILLA">{t('cat.VILLA') || 'Villa'}</option>
-                    <option value="APARTMENT">{t('cat.APARTMENT') || 'Apartment'}</option>
-                    <option value="COMPOUND">{t('cat.COMPOUND') || 'Compound'}</option>
-                    <option value="TOWER">{t('cat.TOWER') || 'Tower'}</option>
-                    <option value="BUILDING">{t('cat.BUILDING') || 'Building'}</option>
-                    <option value="MALL">{t('cat.MALL') || 'Mall'}</option>
-                    <option value="SHOP">{t('cat.SHOP') || 'Shop'}</option>
-                    <option value="OFFICE">{t('cat.OFFICE') || 'Office'}</option>
-                    <option value="RESORT">{t('cat.RESORT') || 'Resort'}</option>
-                    <option value="HOTEL">{t('cat.HOTEL') || 'Hotel'}</option>
-                    <option value="HOSPITAL">{t('cat.HOSPITAL') || 'Hospital'}</option>
-                    <option value="WAREHOUSE">{t('cat.WAREHOUSE') || 'Warehouse'}</option>
-                    <option value="FARM">{t('cat.FARM') || 'Farm'}</option>
-                    <option value="LAND">{t('cat.LAND') || 'Land'}</option>
+                  <label className="cn-label mb-2">{t('admin.placeholder.category') || 'Property Category'}</label>
+                  <select value={formData.propertyCategory} onChange={(e) => setFormData({...formData, propertyCategory: e.target.value})} className="cn-input">
+                    <option value="VILLA" className="bg-card text-foreground">{t('cat.VILLA') || 'Villa'}</option>
+                    <option value="APARTMENT" className="bg-card text-foreground">{t('cat.APARTMENT') || 'Apartment'}</option>
+                    <option value="COMPOUND" className="bg-card text-foreground">{t('cat.COMPOUND') || 'Compound'}</option>
+                    <option value="TOWER" className="bg-card text-foreground">{t('cat.TOWER') || 'Tower'}</option>
+                    <option value="BUILDING" className="bg-card text-foreground">{t('cat.BUILDING') || 'Building'}</option>
+                    <option value="MALL" className="bg-card text-foreground">{t('cat.MALL') || 'Mall'}</option>
+                    <option value="SHOP" className="bg-card text-foreground">{t('cat.SHOP') || 'Shop'}</option>
+                    <option value="OFFICE" className="bg-card text-foreground">{t('cat.OFFICE') || 'Office'}</option>
+                    <option value="RESORT" className="bg-card text-foreground">{t('cat.RESORT') || 'Resort'}</option>
+                    <option value="HOTEL" className="bg-card text-foreground">{t('cat.HOTEL') || 'Hotel'}</option>
+                    <option value="HOSPITAL" className="bg-card text-foreground">{t('cat.HOSPITAL') || 'Hospital'}</option>
+                    <option value="WAREHOUSE" className="bg-card text-foreground">{t('cat.WAREHOUSE') || 'Warehouse'}</option>
+                    <option value="FARM" className="bg-card text-foreground">{t('cat.FARM') || 'Farm'}</option>
+                    <option value="LAND" className="bg-card text-foreground">{t('cat.LAND') || 'Land'}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'الوصف (عربي أو إنجليزي)' : 'Description'}</label>
-                <textarea required rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="input-field" dir="rtl" />
+                <label className="cn-label mb-2">{language === 'ar' ? 'الوصف (عربي أو إنجليزي)' : 'Description'}</label>
+                <textarea required rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="cn-input min-h-[100px] resize-y" dir="rtl" />
               </div>
             </div>
 
@@ -331,23 +331,23 @@ export default function AdminProjects() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.area') || 'Area'}</label>
-                  <input type="number" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} className="input-field" />
+                  <label className="cn-label mb-2">{t('admin.placeholder.area') || 'Area'}</label>
+                  <input type="number" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} className="cn-input" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.age') || 'Age'}</label>
-                  <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({...formData, propertyAge: e.target.value})} className="input-field" />
+                  <label className="cn-label mb-2">{t('admin.placeholder.age') || 'Age'}</label>
+                  <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({...formData, propertyAge: e.target.value})} className="cn-input" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationLink') || 'Location Link'}</label>
-                <input type="url" value={formData.locationLink} onChange={(e) => setFormData({...formData, locationLink: e.target.value})} className="input-field" dir="ltr" />
+                <label className="cn-label mb-2">{t('admin.placeholder.locationLink') || 'Location Link'}</label>
+                <input type="url" value={formData.locationLink} onChange={(e) => setFormData({...formData, locationLink: e.target.value})} className="cn-input" dir="ltr" />
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationText') || 'Location Text'}</label>
-                <input type="text" value={formData.locationText} onChange={(e) => setFormData({...formData, locationText: e.target.value})} className="input-field" />
+                <label className="cn-label mb-2">{t('admin.placeholder.locationText') || 'Location Text'}</label>
+                <input type="text" value={formData.locationText} onChange={(e) => setFormData({...formData, locationText: e.target.value})} className="cn-input" />
               </div>
             </div>
           </div>
@@ -453,15 +453,15 @@ export default function AdminProjects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {fetching ? (
-            <div className="col-span-full py-20 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-gray-400" /></div>
+            <div className="col-span-full py-20 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-muted-foreground" /></div>
           ) : projects.length === 0 ? (
-            <div className="col-span-full py-20 text-center text-gray-500 bg-white rounded-3xl border border-dashed border-gray-300">
+            <div className="col-span-full py-20 text-center text-muted-foreground bg-card rounded-3xl border border-dashed border-border shadow-xs">
               {language === 'ar' ? 'لا توجد مشاريع مضافة' : 'No projects added yet'}
             </div>
           ) : (
             projects.map((project) => (
-              <div key={project.id} className="shadcn-card group overflow-hidden block flex flex-col hover:shadow-xs transition-shadow">
-                <div className="p-6">
+              <div key={project.id} className="shadcn-card group overflow-hidden block flex flex-col hover:shadow-sm transition-shadow">
+                <div className="p-6 flex-1">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="font-bold text-sm text-foreground mb-1" dir={language === 'ar' ? 'rtl' : 'ltr'}>
@@ -473,8 +473,8 @@ export default function AdminProjects() {
                     </div>
                   </div>
                 </div>
-                <div className="px-4 py-3 bg-slate-50 border-t border-border flex justify-between items-center">
-                  <button onClick={() => handleDelete(project.id)} className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors">
+                <div className="px-4 py-3 bg-muted/40 border-t border-border flex justify-between items-center">
+                  <button onClick={() => handleDelete(project.id)} className="text-red-500 hover:text-red-600 p-2 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer">
                     <Trash2 className="w-5 h-5" />
                   </button>
                   <button onClick={() => handleEdit(project.id)} className="btn-primary px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
