@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, BuildingIcon, KeySquare, Hammer, Headphones, Mail } from 'lucide-react';
+import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, BuildingIcon, KeySquare, Hammer, Headphones, Mail, Layers } from 'lucide-react';
 import { Link } from 'react-router';
 import { SocialIconsRow } from '../components/SocialIcons';
 
@@ -30,6 +30,20 @@ export default function Home() {
   const Arrow = language === 'ar' ? ArrowLeft : ArrowRight;
   const [images, setImages] = useState<HomeImages>(DEFAULT_IMAGES);
   const [social, setSocial] = useState<SocialSettings>({});
+
+    const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
+
+  useEffect(() => {
+    fetch('/api/projects')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setFeaturedProjects(data.slice(0, 6));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -180,6 +194,155 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Featured Projects Album Section */}
+      <section className="py-24 bg-slate-900 border-t border-b border-slate-800 relative overflow-hidden">
+        {/* Aesthetics lines */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-extrabold text-white tracking-tight">
+              {language === 'ar' ? 'ألبوم مشاريعنا المتميزة' : 'Featured Projects Album'}
+            </h2>
+            <p className="text-sm text-slate-400 mt-3 max-w-xl mx-auto leading-relaxed">
+              {language === 'ar' ? 'تصفح ألبوم صور المشاريع التي قمنا بتطويرها مؤخراً، انقر على أي مشروع للمزيد من التفاصيل.' : 'Browse the photo album of our recently developed projects, click on any project to view details.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredProjects.map((project) => {
+              let imagesArr = [];
+              try {
+                imagesArr = JSON.parse(project.imageUrls || '[]');
+              } catch(_) {}
+              const image = imagesArr[0] || DEFAULT_IMAGES.service1;
+
+              return (
+                <div
+                  key={project.id}
+                  onClick={() => setSelectedProject(project)}
+                  className="relative group h-80 rounded-xl overflow-hidden cursor-pointer shadow-2xl border border-white/5 bg-slate-950 transition-all duration-500 hover:scale-[1.01] hover:border-sky-500/20"
+                >
+                  <img 
+                    src={image} 
+                    alt={language === 'ar' ? project.titleAr : project.titleEn} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity duration-300"></div>
+                  
+                  {/* Info inside album item */}
+                  <div className="absolute inset-x-0 bottom-0 p-6 text-white flex flex-col justify-end">
+                    <div className="transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 border border-sky-500/30 text-sky-400 uppercase tracking-wider mb-2">
+                        {t(`cat.${project.propertyCategory}`)}
+                      </span>
+                      <h3 className="text-lg font-bold text-white leading-tight">
+                        {language === 'ar' ? project.titleAr : project.titleEn}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-sky-400" />
+                        <span>{project.locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')} • {project.area} {t('common.sqm')}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Absolute Top-Right Arrow button */}
+                  <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-y-2 group-hover:translate-y-0">
+                    <Arrow className="w-4 h-4 text-sky-400" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {featuredProjects.length === 0 && (
+            <div className="text-center py-12 text-slate-500 text-sm">
+              {language === 'ar' ? 'سيتم إضافة ألبوم المشاريع قريباً.' : 'Featured projects album will be added soon.'}
+            </div>
+          )}
+        </div>
+
+        {/* Modal display of selected project */}
+        {selectedProject && (() => {
+          let imagesArr = [];
+          try {
+            imagesArr = JSON.parse(selectedProject.imageUrls || '[]');
+          } catch(_) {}
+          const image = imagesArr[0] || DEFAULT_IMAGES.service1;
+          
+          return (
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+                {/* Modal Banner */}
+                <div className="relative h-72 w-full">
+                  <img src={image} alt={selectedProject.titleAr} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/10 to-transparent"></div>
+                  <button 
+                    onClick={() => setSelectedProject(null)}
+                    className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-950/70 border border-white/10 text-white flex items-center justify-center hover:bg-slate-950 hover:border-white/20 transition-all cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                  <div className="absolute bottom-6 left-6 right-6 text-white">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 border border-sky-500/30 text-sky-400 uppercase tracking-wider mb-2">
+                      {t(`cat.${selectedProject.propertyCategory}`)}
+                    </span>
+                    <h3 className="text-2xl font-extrabold text-white">
+                      {language === 'ar' ? selectedProject.titleAr : selectedProject.titleEn}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Modal Body */}
+                <div className="p-6 md:p-8 overflow-y-auto space-y-6 text-sm leading-relaxed text-slate-300">
+                  <div>
+                    <h4 className="font-bold text-white text-base mb-2">{language === 'ar' ? 'حول المشروع' : 'About Project'}</h4>
+                    <p className="text-slate-400 text-justify">{selectedProject.description}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-6">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-400 mb-0.5">{language === 'ar' ? 'المساحة الإجمالية' : 'Total Area'}</span>
+                      <p className="text-sm font-semibold text-white font-mono">{selectedProject.area} {t('common.sqm')}</p>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-400 mb-0.5">{language === 'ar' ? 'عمر العقار' : 'Property Age'}</span>
+                      <p className="text-sm font-semibold text-white">{selectedProject.propertyAge} {language === 'ar' ? 'سنة' : 'years'}</p>
+                    </div>
+                    {selectedProject.locationText && (
+                      <div className="col-span-2 flex flex-col">
+                        <span className="text-xs font-bold text-slate-400 mb-0.5">{language === 'ar' ? 'الموقع الجغرافي' : 'Location'}</span>
+                        <p className="text-sm font-semibold text-white flex items-center gap-1">
+                          <MapPin className="w-4 h-4 text-sky-400" />
+                          <span>{selectedProject.locationText}</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Modal Actions */}
+                <div className="bg-slate-950 px-6 py-4 border-t border-slate-800 flex justify-end gap-3">
+                  <Link 
+                    to={`/projects`}
+                    onClick={() => setSelectedProject(null)}
+                    className="inline-flex items-center justify-center bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-9 px-4 rounded-md text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                  >
+                    {language === 'ar' ? 'عرض جميع المشاريع' : 'View All Projects'}
+                  </Link>
+                  <button 
+                    onClick={() => setSelectedProject(null)}
+                    className="inline-flex items-center justify-center border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 h-9 px-4 rounded-md text-xs font-semibold cursor-pointer"
+                  >
+                    {language === 'ar' ? 'إغلاق' : 'Close'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })() /* Close dialog conditional */}
+      </section>
+
 {/* Features Section */}
       <section className="py-20 bg-slate-50/50 border-t border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -219,6 +382,34 @@ export default function Home() {
                 {language === 'ar' ? 'إدارة أملاك احترافية تضمن لك راحة البال وتحقيق أعلى العوائد الاستثمارية.' : 'Professional property management for your peace of mind, ensuring maximum investment returns.'}
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* OpenStreetMap Section */}
+      <section className="py-24 bg-white border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-extrabold text-foreground tracking-tight">
+              {language === 'ar' ? 'خارطة مواقع عقاراتنا' : 'Properties Location Map'}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-3 max-w-xl mx-auto leading-relaxed">
+              {language === 'ar' ? 'خارطة تفاعلية توضح التوزع الجغرافي لعقاراتنا الفاخرة المتاحة للبيع أو الإيجار في أرقى أحياء الرياض.' : 'An interactive map demonstrating the spatial distribution of our premier properties available for sale or rent in Riyadh.'}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 p-2.5 border border-border rounded-xl shadow-xl overflow-hidden h-[450px]">
+            <iframe 
+              title="OpenStreetMap"
+              width="100%" 
+              height="100%" 
+              frameBorder="0" 
+              scrolling="no" 
+              marginHeight={0} 
+              marginWidth={0} 
+              src="https://www.openstreetmap.org/export/embed.html?bbox=46.5414%2C24.6224%2C46.8524%2C24.8934&amp;layer=mapnik"
+              style={{ border: 0, borderRadius: '8px' }}
+            ></iframe>
           </div>
         </div>
       </section>
@@ -298,29 +489,82 @@ export default function Home() {
         </section>
       )}
 
-      {/* Call to action */}
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-primary text-primary-foreground border border-border rounded-lg p-8 md:p-12 text-center shadow-xs relative overflow-hidden">
-            <Headphones className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-            <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight mb-2">
-              {language === 'ar' ? 'هل تحتاج إلى مساعدة أو استشارة؟' : 'Need Help or Consultation?'}
-            </h2>
-            <p className="text-slate-300 text-sm mb-6 max-w-xl mx-auto leading-relaxed">
-              {language === 'ar' 
-                ? 'فريقنا مستعد للإجابة على جميع استفساراتك وتقديم أفضل الحلول العقارية المناسبة لاحتياجاتك.' 
-                : 'Our team is ready to answer all your inquiries and provide the best real estate solutions tailored to your needs.'}
-            </p>
-            <a
-              href={`https://wa.me/${(social.whatsappNumber || '966500000000').replace(/\+/g,'')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary h-10 px-6 font-semibold text-xs flex items-center justify-center gap-1.5 mx-auto"
-            >
-              {language === 'ar' ? 'تواصل معنا الآن' : 'Contact Us Now'}
-              {language === 'ar' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-            </a>
+      {/* Premium Professional Newsletter / Call to Action Section */}
+      <section className="relative isolate overflow-hidden bg-slate-950 py-16 sm:py-24 lg:py-32 border-t border-slate-800">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
+          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-2">
+            
+            {/* Left Column: Form Info */}
+            <div className="max-w-xl lg:max-w-lg">
+              <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                {language === 'ar' ? 'هل تحتاج إلى مساعدة أو استشارة؟' : 'Need Help or Consultation?'}
+              </h2>
+              <p className="mt-4 text-sm sm:text-base text-slate-400 leading-relaxed text-justify">
+                {language === 'ar' 
+                  ? 'فريقنا المتخصص مستعد للإجابة على جميع استفساراتك وتقديم أفضل الاستشارات والحلول العقارية المبتكرة المناسبة لاحتياجاتك الاستثمارية والسكنية.' 
+                  : 'Our dedicated team is ready to answer all your inquiries and provide the best innovative real estate advice and solutions tailored to your residential and investment needs.'}
+              </p>
+              
+              {/* Form Input fields */}
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                alert(language === 'ar' ? 'شكراً لتواصلك معنا! سنرد عليك قريباً.' : 'Thank you for reaching out! We will contact you soon.');
+                (e.target as HTMLFormElement).reset();
+              }} className="mt-6 flex flex-col sm:flex-row max-w-md gap-3">
+                <input 
+                  type="email" 
+                  required 
+                  placeholder={language === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email'} 
+                  className="min-w-0 flex-auto rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-sans" 
+                />
+                <button 
+                  type="submit" 
+                  className="flex-none rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-5 py-2.5 text-xs font-semibold shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  {language === 'ar' ? 'أرسل الطلب' : 'Send Request'}
+                </button>
+              </form>
+            </div>
+
+            {/* Right Column: Key details / value highlights */}
+            <dl className="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:pt-2">
+              <div className="flex flex-col items-start bg-white/2 bg-opacity-5 p-5 rounded-lg border border-white/5 backdrop-blur-xs">
+                <div className="rounded-lg bg-white/5 p-2 border border-white/10 text-sky-400">
+                  <Headphones className="w-5 h-5" />
+                </div>
+                <dt className="mt-4 text-sm font-bold text-white">
+                  {language === 'ar' ? 'دعم متواصل' : 'Constant Support'}
+                </dt>
+                <dd className="mt-2 text-xs text-slate-400 leading-relaxed text-justify">
+                  {language === 'ar' 
+                    ? 'نوفر لك استجابة سريعة ودعماً متكاملاً طوال أيام الأسبوع للإجابة على استفساراتك.' 
+                    : 'We provide prompt response and full support throughout the week to address all inquiries.'}
+                </dd>
+              </div>
+
+              <div className="flex flex-col items-start bg-white/2 bg-opacity-5 p-5 rounded-lg border border-white/5 backdrop-blur-xs">
+                <div className="rounded-lg bg-white/5 p-2 border border-white/10 text-sky-400">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <dt className="mt-4 text-sm font-bold text-white">
+                  {language === 'ar' ? 'لا توجد رسائل عشوائية' : 'No Spamming'}
+                </dt>
+                <dd className="mt-2 text-xs text-slate-400 leading-relaxed text-justify">
+                  {language === 'ar' 
+                    ? 'نحن نحترم خصوصيتك وسنرسل لك فقط العروض العقارية الهامة والرد على استفسارك.' 
+                    : 'We respect your privacy and will only send you important real estate offers and answers.'}
+                </dd>
+              </div>
+            </dl>
           </div>
+        </div>
+
+        {/* Dynamic mesh glow effect */}
+        <div aria-hidden="true" className="absolute top-0 left-1/2 -z-10 -translate-x-1/2 blur-3xl xl:-top-6 opacity-30 select-none pointer-events-none">
+          <div 
+            style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
+            className="aspect-1155/678 w-[72rem] bg-gradient-to-tr from-sky-400 to-blue-600"
+          ></div>
         </div>
       </section>
     </div>
