@@ -55,6 +55,7 @@ function useSocialSettings(): SocialLinks {
         linkedinUrl: data.linkedinUrl,
         youtubeUrl: data.youtubeUrl,
         tiktokUrl: data.tiktokUrl,
+        snapchatUrl: data.snapchatUrl,
         email: data.email,
       }))
       .catch(() => {});
@@ -120,9 +121,7 @@ function Navbar() {
             </div>
           </div>
           
-          <div className="hidden sm:flex items-center gap-4">
-            <SocialIconsRow links={socialLinks} size="sm" />
-            <div className="h-4 w-px bg-border"></div>
+          <div className="hidden sm:flex items-center gap-3">
             <button
               onClick={toggleLanguage}
               className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground border border-border hover:text-foreground hover:border-foreground transition-all flex items-center gap-1.5"

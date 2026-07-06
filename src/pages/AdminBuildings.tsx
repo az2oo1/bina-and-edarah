@@ -294,15 +294,15 @@ export default function AdminBuildings() {
       transition={{ duration: 0.4 }}
       className="space-y-8"
     >
-      <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-200">
-        <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center">
-          <Building2 className="w-6 h-6 text-indigo-500" />
+      <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border">
+        <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
+          <Building2 className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h2 className="text-3xl font-extrabold text-gray-900 leading-none">
+          <h2 className="text-2xl font-bold text-foreground">
             {language === 'ar' ? 'إدارة المباني والمستأجرين' : 'Buildings & Renters Management'}
           </h2>
-          <p className="text-gray-500 font-medium mt-2 leading-none">
+          <p className="text-xs text-muted-foreground mt-1">
             {language === 'ar' ? 'إضافة المباني واستيراد بيانات المستأجرين (يدعم Excel, CSV, Apple Numbers)' : 'Add buildings and import renters data (Supports Excel, CSV, Apple Numbers)'}
           </p>
         </div>

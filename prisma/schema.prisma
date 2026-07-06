@@ -25,6 +25,8 @@ model Property {
   electricityCost  Float    @default(0) // 0 if included/not applicable
   electricityFrequency String? // YEARLY or MONTHLY
   vat              Float    @default(0) // VAT amount
+  vatExempt        Boolean  @default(false)
+  utilityBills     String   @default("NONE") // 'NONE', 'ELECTRICITY', 'WATER', 'BOTH'
   commission       Float    @default(0)
   price            Float
   imageUrls        String   @default("[]") // JSON stringified array of base64 images
@@ -94,6 +96,8 @@ model Settings {
   linkedinUrl        String?
   youtubeUrl         String?
   tiktokUrl          String?
+  snapchatUrl        String?
+  notificationEmail  String?
 }
 
 model PageView {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Search } from 'lucide-react';
+import { Search, FileText } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 export default function AdminReceipts() {
@@ -31,14 +31,19 @@ export default function AdminReceipts() {
       animate={{ opacity: 1, y: 0 }}
       className="py-6 max-w-7xl mx-auto"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3 pb-4 border-b border-border">
-        <div>
-          <h1 className="text-lg font-bold text-foreground">
-            {language === 'ar' ? 'إيصالات السداد' : 'Payment Receipts'}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            {language === 'ar' ? 'جميع إيصالات التحويل والمطالبات' : 'All transfer and claim receipts'}
-          </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-6 border-b border-border gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
+            <FileText className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">
+              {language === 'ar' ? 'إيصالات السداد' : 'Payment Receipts'}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              {language === 'ar' ? 'جميع إيصالات التحويل والمطالبات' : 'All transfer and claim receipts'}
+            </p>
+          </div>
         </div>
         <div className="relative w-full md:w-72">
           <Search className="absolute top-1/2 -translate-y-1/2 text-muted-foreground/60 w-4 h-4 ltr:left-3 rtl:right-3" />

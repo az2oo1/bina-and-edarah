@@ -262,7 +262,7 @@ export default function AdminProjects() {
           className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all shadow-md ${
             showAddForm 
               ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
-              : 'bg-black text-white hover:bg-gray-800'
+              : 'bg-primary text-white hover:opacity-90'
           }`}
         >
           {showAddForm ? (

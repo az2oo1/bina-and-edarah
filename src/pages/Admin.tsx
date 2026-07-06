@@ -3,7 +3,7 @@ import { useLanguage } from '../LanguageContext';
 import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
-import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon } from '../components/SocialIcons';
+import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon, SnapIcon } from '../components/SocialIcons';
 
 import AdminProjects from './AdminProjects';
 import AdminCallbacks from './AdminCallbacks';
@@ -133,6 +133,8 @@ export default function Admin() {
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [tiktokUrl, setTiktokUrl] = useState('');
+  const [snapchatUrl, setSnapchatUrl] = useState('');
+  const [notificationEmail, setNotificationEmail] = useState('');
 
   // Backup / Restore State
   const [backupLoading, setBackupLoading] = useState(false);
@@ -160,7 +162,9 @@ export default function Admin() {
     imageUrls: [] as string[],
     aqarLink: '',
     detailsList: [] as {id: string, key: string, value: string}[],
-    paymentsCount: ''
+    paymentsCount: '',
+    utilityBills: 'NONE',
+    vatExempt: false
   });
 
   const fetchProperties = async () => {
@@ -199,6 +203,8 @@ export default function Admin() {
       if (data.linkedinUrl !== undefined) setLinkedinUrl(data.linkedinUrl || '');
       if (data.youtubeUrl !== undefined) setYoutubeUrl(data.youtubeUrl || '');
       if (data.tiktokUrl !== undefined) setTiktokUrl(data.tiktokUrl || '');
+      if (data.snapchatUrl !== undefined) setSnapchatUrl(data.snapchatUrl || '');
+      if (data.notificationEmail !== undefined) setNotificationEmail(data.notificationEmail || '');
     } catch (err) {
       console.error(err);
     }
@@ -350,7 +356,9 @@ export default function Admin() {
       imageUrls: [],
       aqarLink: '',
       detailsList: [],
-      paymentsCount: ''
+      paymentsCount: '',
+      utilityBills: 'NONE',
+      vatExempt: false
     });
     setEditingId(null);
     setShowAddForm(false);
@@ -403,7 +411,9 @@ export default function Admin() {
         imageUrls: parsedImages,
         aqarLink: propData.aqarLink || '',
         detailsList: initialDetailsList,
-        paymentsCount: propData.paymentsCount?.toString() || ''
+        paymentsCount: propData.paymentsCount?.toString() || '',
+        utilityBills: propData.utilityBills || 'NONE',
+        vatExempt: propData.vatExempt || false
       });
       setEditingId(property.id);
       setShowAddForm(true);
@@ -441,7 +451,7 @@ export default function Admin() {
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages: JSON.stringify(homeImages), logoUrl, email: socialEmail, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl }),
+          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages: JSON.stringify(homeImages), logoUrl, email: socialEmail, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, notificationEmail }),
         });
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ معلومات التواصل الاجتماعي بنجاح!' : 'Social media info saved!');
@@ -457,7 +467,7 @@ export default function Admin() {
           body: JSON.stringify({ 
             whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload,
             homeImages: JSON.stringify(homeImages),
-            logoUrl
+            logoUrl, email: socialEmail, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, notificationEmail
           }),
         });
         if (res.ok) {
@@ -481,7 +491,7 @@ export default function Admin() {
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages: JSON.stringify(homeImages), logoUrl }),
+          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages: JSON.stringify(homeImages), logoUrl, email: socialEmail, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, notificationEmail }),
         });
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ الإعدادات!' : 'Settings saved!');
@@ -871,13 +881,33 @@ export default function Admin() {
                       </div>
                     )}
 
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.vat')}</label>
+                     <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-bold text-gray-700">{t('admin.placeholder.vat')}</label>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ 
+                            ...formData, 
+                            vatExempt: !formData.vatExempt,
+                            vat: !formData.vatExempt ? '0' : formData.vat 
+                          })}
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${formData.vatExempt ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}`}
+                        >
+                          {formData.vatExempt ? (language === 'ar' ? 'معفى من الضريبة ✓' : 'VAT Exempt ✓') : (language === 'ar' ? 'معفى؟' : 'Exempt?')}
+                        </button>
+                      </div>
                       <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                         <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
                           <span className="text-gray-500 font-bold">{t('common.currency')}</span>
                         </div>
-                        <input type="number" value={formData.vat} onChange={(e) => setFormData({ ...formData, vat: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0 bg-gray-50 hover:bg-white focus:bg-white" placeholder="0" />
+                        <input 
+                          type="number" 
+                          disabled={formData.vatExempt}
+                          value={formData.vatExempt ? '0' : formData.vat} 
+                          onChange={(e) => setFormData({ ...formData, vat: e.target.value })} 
+                          className="flex-1 w-full p-3 outline-none min-w-0 bg-gray-50 hover:bg-white focus:bg-white disabled:opacity-50" 
+                          placeholder="0" 
+                        />
                       </div>
                     </div>
 
@@ -888,6 +918,22 @@ export default function Admin() {
                           <span className="text-gray-500 font-bold">{t('common.currency')}</span>
                         </div>
                         <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0 bg-gray-50 hover:bg-white focus:bg-white" placeholder="0" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'الفواتير الخدمية المشمولة' : 'Utility Bills Included'}</label>
+                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                        <select 
+                          value={formData.utilityBills} 
+                          onChange={(e) => setFormData({ ...formData, utilityBills: e.target.value })} 
+                          className="flex-1 w-full p-3 outline-none bg-gray-50 hover:bg-white focus:bg-white font-medium"
+                        >
+                          <option value="NONE">{language === 'ar' ? 'لا يوجد فواتير مشمولة' : 'None Included'}</option>
+                          <option value="ELECTRICITY">{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</option>
+                          <option value="WATER">{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</option>
+                          <option value="BOTH">{language === 'ar' ? 'الكهرباء والمياه معاً' : 'Both (Electricity & Water)'}</option>
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -1207,6 +1253,22 @@ export default function Admin() {
                     </div>
 
                     <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        {language === 'ar' ? 'البريد الإلكتروني لإشعارات الرسائل والطلبات' : 'Callback & Messages Notification Email'}
+                      </label>
+                      <input
+                        type="email"
+                        value={notificationEmail}
+                        onChange={(e) => setNotificationEmail(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-medium text-gray-800"
+                        placeholder="admin-alerts@yourdomain.com"
+                      />
+                      <p className="mt-2 text-sm text-gray-500">
+                        {language === 'ar' ? 'يتم إرسال تنبيه بالبريد الإلكتروني فور استلام طلب اتصال جديد أو رسالة CRM جديدة.' : 'Sends email notifications instantly when a new callback request or CRM message is received.'}
+                      </p>
+                    </div>
+
+                    <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-4 pointer-events-none text-gray-400">
@@ -1491,6 +1553,7 @@ export default function Admin() {
                       { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
                       { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
                       { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'Snapchat', value: snapchatUrl, setter: setSnapchatUrl, placeholder: 'https://snapchat.com/add/benaandedara', type: 'url', icon: <SnapIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
                     ].map(field => (
                       <div key={field.label}>
                         <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center">

@@ -323,20 +323,20 @@ export default function AdminRenters() {
         </div>
       ) : (
         <>
-          <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-6 pb-4 border-b border-border">
+          <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-8 pb-6 border-b border-border">
             <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-accent text-primary border border-border rounded-lg flex items-center justify-center shadow-xs">
-            <Users className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-foreground leading-none">
-              {language === 'ar' ? 'المستأجرين' : 'Renters'}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1 leading-none">
-              {language === 'ar' ? 'عرض والبحث في جميع المستأجرين' : 'View and search all renters'}
-            </p>
-          </div>
-        </div>
+              <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {language === 'ar' ? 'المستأجرين' : 'Renters'}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {language === 'ar' ? 'عرض والبحث في جميع المستأجرين' : 'View and search all renters'}
+                </p>
+              </div>
+            </div>
 
         <div className="relative w-full md:w-72">
           <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-3 pointer-events-none text-gray-400">

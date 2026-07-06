@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import path from "path";
+import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
 import { prisma } from "./src/lib/db.js";
 import fs from "fs";
@@ -56,6 +57,46 @@ const logger = {
     }
   }
 };
+
+async function sendCallbackEmailNotification(subject: string, htmlContent: string) {
+  try {
+    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const toEmail = settings?.notificationEmail;
+    if (!toEmail) {
+      logger.info(`[EMAIL NOTIFICATION skipped] No notificationEmail configured in settings.`);
+      return;
+    }
+
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT) || 587;
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM || "no-reply@benaa-edara.com";
+
+    if (!host || !user || !pass) {
+      logger.warn(`[EMAIL PING WARNING] SMTP credentials not set in environment variables. Set SMTP_HOST, SMTP_USER, SMTP_PASS to send real emails.`);
+      logger.info(`[EMAIL PING MOCK] Email ping sent to: ${toEmail}\nSubject: ${subject}\nContent:\n${htmlContent}`);
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass }
+    });
+
+    await transporter.sendMail({
+      from,
+      to: toEmail,
+      subject,
+      html: htmlContent
+    });
+    logger.info(`[EMAIL PING SUCCESS] Callback email notification sent to ${toEmail}`);
+  } catch (error) {
+    logger.error(`[EMAIL PING ERROR] Failed to send callback email notification`, error);
+  }
+}
 
 async function logAction(req: any, action: string, details: string) {
   try {
@@ -850,6 +891,8 @@ async function startServer() {
           electricityCost: safeFloat(body.electricityCost),
           electricityFrequency: body.electricityFrequency || null,
           vat: safeFloat(body.vat),
+          vatExempt: body.vatExempt !== undefined ? Boolean(body.vatExempt) : false,
+          utilityBills: body.utilityBills || "NONE",
           commission: safeFloat(body.commission),
           price: safeFloat(body.price),
           imageUrls: processImageUrls(body.imageUrls),
@@ -889,6 +932,8 @@ async function startServer() {
           electricityCost: safeFloat(body.electricityCost),
           electricityFrequency: body.electricityFrequency || null,
           vat: safeFloat(body.vat),
+          vatExempt: body.vatExempt !== undefined ? Boolean(body.vatExempt) : false,
+          utilityBills: body.utilityBills || "NONE",
           commission: safeFloat(body.commission),
           price: safeFloat(body.price),
           imageUrls: processImageUrls(body.imageUrls),
@@ -1034,10 +1079,9 @@ async function startServer() {
       res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
-
   app.post("/api/settings", adminAuthMiddleware, async (req, res) => {
     try {
-      const { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl } = req.body;
+      const { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, notificationEmail } = req.body;
       
       // Ensure global settings row exists
       let settings = await prisma.settings.findUnique({ where: { id: "global" } });
@@ -1082,7 +1126,8 @@ async function startServer() {
       if (linkedinUrl !== undefined) updateData.linkedinUrl = linkedinUrl;
       if (youtubeUrl !== undefined) updateData.youtubeUrl = youtubeUrl;
       if (tiktokUrl !== undefined) updateData.tiktokUrl = tiktokUrl;
-
+      if (snapchatUrl !== undefined) updateData.snapchatUrl = snapchatUrl;
+      if (notificationEmail !== undefined) updateData.notificationEmail = notificationEmail;
       const updated = await prisma.settings.update({
         where: { id: "global" },
         data: updateData
@@ -1453,6 +1498,17 @@ async function startServer() {
       const newRequest = await prisma.callbackRequest.create({
         data: { name, email, phone, message }
       });
+
+      // Send Email notification ping
+      await sendCallbackEmailNotification(
+        `New Callback Request from ${name}`,
+        `<p><strong>Name:</strong> ${name}</p>
+         <p><strong>Phone:</strong> ${phone}</p>
+         <p><strong>Email:</strong> ${email || 'N/A'}</p>
+         <p><strong>Message:</strong> ${message || 'N/A'}</p>
+         <p><a href="${process.env.APP_URL || 'http://localhost:3000'}/admin">Click here to open Admin panel</a></p>`
+      );
+
       res.status(201).json(newRequest);
     } catch (error) {
       logger.error("Failed to create callback request", error);
@@ -1506,10 +1562,20 @@ async function startServer() {
       });
       
       // Update callback assignment
-      await prisma.callbackRequest.update({
+      const updatedRequest = await prisma.callbackRequest.update({
         where: { id },
         data: { handledBy: (req as any).user.name }
       });
+
+      // Send Email notification ping
+      await sendCallbackEmailNotification(
+        `New Message in thread: ${updatedRequest.name}`,
+        `<p><strong>Sender:</strong> ${(req as any).user.name}</p>
+         <p><strong>Message/Note:</strong></p>
+         <blockquote style="border-left: 4px solid #3b82f6; padding-left: 10px; margin-left: 0; color: #374151;">${text}</blockquote>
+         <p><strong>Client:</strong> ${updatedRequest.name} (${updatedRequest.phone})</p>
+         <p><a href="${process.env.APP_URL || 'http://localhost:3000'}/admin">Click here to open Admin panel</a></p>`
+      );
 
       await logAction(req, "REPLY_CALLBACK", `Added reply note to callback request ID ${id}`);
       res.status(201).json(note);
