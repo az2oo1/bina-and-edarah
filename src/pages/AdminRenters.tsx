@@ -141,7 +141,7 @@ export default function AdminRenters() {
              <h2 className="text-sm font-bold text-foreground">{language === 'ar' ? 'تفاصيل الحساب' : 'Account Details'}</h2>
           </div>
           
-          <div className="bg-white rounded-lg border border-border w-full overflow-hidden shadow-xs flex flex-col">
+          <div className="bg-card rounded-lg border border-border w-full overflow-hidden shadow-xs flex flex-col">
              <div className="bg-slate-50 border-b border-border p-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded border border-border flex items-center justify-center ${customerHasCourtOrder ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-100 text-primary'}`}>
@@ -182,7 +182,7 @@ export default function AdminRenters() {
                          <Building2 className="w-4 h-4 text-primary" />
                          {unit.building?.name || (language === 'ar' ? 'مبنى غير محدد' : 'Unknown Building')}
                        </h4>
-                       <p className="text-gray-500 text-sm mt-1 flex flex-wrap items-center gap-2 font-medium">
+                       <p className="text-muted-foreground text-sm mt-1 flex flex-wrap items-center gap-2 font-medium">
                          <span className="bg-slate-100 border border-border text-foreground px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1">
                            <Users className="w-3 h-3" />
                            {unit.renterName}
@@ -268,15 +268,15 @@ export default function AdminRenters() {
                            const isDue = !isPaid && !isLate && isUnpaidPassed;
 
                            return (
-                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-gray-50'}`}>
+                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-border bg-card'}`}>
                                <div className="flex items-start justify-between gap-2">
                                   <div className="flex items-center gap-2">
                                      <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
                                         {isPaid ? <CheckCircle2 className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
                                      </div>
                                      <div>
-                                        <p className="font-bold text-gray-900 text-sm whitespace-nowrap">{language === 'ar' ? `الدفعة (${i + 1})` : `Payment (${i + 1})`}</p>
-                                        <p className="text-sm text-gray-600" dir="ltr">{h.dueDate}</p>
+                                        <p className="font-bold text-foreground text-sm whitespace-nowrap">{language === 'ar' ? `الدفعة (${i + 1})` : `Payment (${i + 1})`}</p>
+                                        <p className="text-sm text-muted-foreground" dir="ltr">{h.dueDate}</p>
                                      </div>
                                   </div>
                                   {h.receiptUrl && (
@@ -286,23 +286,23 @@ export default function AdminRenters() {
                                      </a>
                                   )}
                                </div>
-                               <div className="pt-2 border-t border-gray-100/50 flex flex-col gap-1 text-xs font-medium">
+                               <div className="pt-2 border-t border-border/50 flex flex-col gap-1 text-xs font-medium">
                                  <div className="flex items-center gap-1">
-                                   <span className="text-gray-500">{language === 'ar' ? 'الحالة:' : 'Status:'}</span>
+                                   <span className="text-muted-foreground">{language === 'ar' ? 'الحالة:' : 'Status:'}</span>
                                    <span className={`font-bold ${isPaid ? 'text-green-600' : isScheduled ? 'text-blue-600' : 'text-orange-600'}`}>
                                      {statusText}
                                    </span>
                                  </div>
                                  {isPaid && actualPaidDate && actualPaidDate !== statusText && (
                                    <div className="flex items-center gap-1">
-                                     <span className="text-gray-500">{language === 'ar' ? 'تاريخ السداد / ملاحظات:' : 'Paid / Notes:'}</span>
-                                     <span className="text-gray-900 font-bold">{actualPaidDate}</span>
+                                     <span className="text-muted-foreground">{language === 'ar' ? 'تاريخ السداد / ملاحظات:' : 'Paid / Notes:'}</span>
+                                     <span className="text-foreground font-bold">{actualPaidDate}</span>
                                    </div>
                                  )}
                                  {amountStr.trim() !== '' && statusText !== amountStr && actualPaidDate !== amountStr && (
                                   <div className="flex items-center gap-1">
-                                    <span className="text-gray-500">{language === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
-                                    <span className="text-gray-900 font-bold">{amountStr} {language === 'ar' ? 'ريال' : 'SAR'}</span>
+                                    <span className="text-muted-foreground">{language === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
+                                    <span className="text-foreground font-bold">{amountStr} {language === 'ar' ? 'ريال' : 'SAR'}</span>
                                   </div>
                                  )}
                                </div>
@@ -421,7 +421,7 @@ export default function AdminRenters() {
                         ))}
                       </div>
                     </td>
-                    <td className="p-4 text-gray-900 font-bold">
+                    <td className="p-4 text-foreground font-bold">
                        {/* Calculate total rent by adding all units a renter owns, using real array not grouped ones for amount */}
                        {(() => {
                          const total = renters.filter(x => x.renterPhone === r.renterPhone).reduce((sum, u) => sum + (u.rentAmount || 0), 0);
@@ -464,7 +464,7 @@ export default function AdminRenters() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-lg border border-border shadow-md w-full max-w-md p-6"
+            className="bg-card rounded-lg border border-border shadow-md w-full max-w-md p-6"
           >
             <h3 className="text-sm font-bold text-foreground mb-3">{language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}</h3>
             <p className="text-xs text-muted-foreground mb-6">{language === 'ar' ? 'هل أنت متأكد من حذف هذه الوحدة؟ لن تتمكن من استعادة البيانات المرتبطة بها مثل الإيصالات.' : 'Are you sure you want to delete this unit? You will not be able to recover associated data like receipts.'}</p>

@@ -468,10 +468,10 @@ export default function AdminBuildings() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-8 max-w-sm w-full mx-auto shadow-2xl"
+            className="bg-card border border-border rounded-2xl p-8 max-w-sm w-full mx-auto shadow-2xl"
           >
-            <h3 className="text-xl font-bold text-gray-900 mb-4">{language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}</h3>
-            <p className="text-gray-600 mb-8">{language === 'ar' ? 'هل أنت متأكد من حذف هذا المبنى؟ ستحذف جميع بيانات المستأجرين المتعلقة به بشكل دائم.' : 'Are you sure you want to delete this building? All associated renter data will be permanently deleted.'}</p>
+            <h3 className="text-xl font-bold text-foreground mb-4">{language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}</h3>
+            <p className="text-muted-foreground mb-8">{language === 'ar' ? 'هل أنت متأكد من حذف هذا المبنى؟ ستحذف جميع بيانات المستأجرين المتعلقة به بشكل دائم.' : 'Are you sure you want to delete this building? All associated renter data will be permanently deleted.'}</p>
             <div className="flex gap-4">
               <button
                 onClick={() => executeDeleteBuilding(deleteConfirmId)}
@@ -481,7 +481,7 @@ export default function AdminBuildings() {
               </button>
               <button
                 onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-xl transition-colors"
+                className="flex-1 bg-muted hover:bg-gray-200 text-foreground font-bold py-3 px-4 rounded-xl transition-colors"
               >
                 {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>
@@ -585,7 +585,7 @@ export default function AdminBuildings() {
                                 hidden: { opacity: 0, y: 10 },
                                 visible: { opacity: 1, y: 0 }
                               }}
-                              className={`border-b border-border hover:bg-slate-50/40 transition-colors ${isEmpty ? 'bg-slate-50/20' : ''}`}
+                              className={`border-b border-border hover:bg-slate-50/40 transition-colors ${isEmpty ? 'bg-muted/10' : ''}`}
                             >
                               <td className="p-4">
                                 {isEmpty ? (
@@ -626,11 +626,11 @@ export default function AdminBuildings() {
                                       </span>
                                     ))
                                  ) : (
-                                   <span className="font-bold text-gray-900 line-clamp-1 max-w-[150px]">{r.unitNumber}</span>
+                                   <span className="font-bold text-foreground line-clamp-1 max-w-[150px]">{r.unitNumber}</span>
                                  )}
                                </div>
                              </td>
-                             <td className="p-4 text-gray-900 font-bold">
+                             <td className="p-4 text-foreground font-bold">
                                 {r.totalRent || r.rentAmount ? (
                                   <div className="flex items-center gap-1">
                                     {((r.totalRent || r.rentAmount) || 0).toLocaleString()} <SrIcon className="w-4 h-4 text-gray-400" />
@@ -728,15 +728,15 @@ export default function AdminBuildings() {
                            const isDue = !isPaid && !isCourt && !isLate && isUnpaidPassed;
 
                            return (
-                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-gray-50'}`}>
+                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-border bg-card'}`}>
                                <div className="flex items-start justify-between gap-2">
                                   <div className="flex items-center gap-2">
                                      <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isCourt ? 'bg-red-100 text-red-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
                                    {isPaid ? <CheckCircle2 className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
                                 </div>
                                 <div>
-                                   <p className="font-bold text-gray-900 text-sm whitespace-nowrap">{language === 'ar' ? `الدفعة (${i + 1})` : `Payment (${i + 1})`}</p>
-                                   <p className="text-sm text-gray-600" dir="ltr">{h.dueDate}</p>
+                                   <p className="font-bold text-foreground text-sm whitespace-nowrap">{language === 'ar' ? `الدفعة (${i + 1})` : `Payment (${i + 1})`}</p>
+                                   <p className="text-sm text-muted-foreground" dir="ltr">{h.dueDate}</p>
                                 </div>
                              </div>
                              {h.receiptUrl && (
@@ -746,23 +746,23 @@ export default function AdminBuildings() {
                              )}
                           </div>
                           
-                          <div className="pt-2 border-t border-gray-100/50 flex flex-col gap-1 text-xs font-medium">
+                          <div className="pt-2 border-t border-border/50 flex flex-col gap-1 text-xs font-medium">
                             <div className="flex items-center justify-between">
-                              <span className="text-gray-500">{language === 'ar' ? 'الحالة:' : 'Status:'}</span>
+                              <span className="text-muted-foreground">{language === 'ar' ? 'الحالة:' : 'Status:'}</span>
                               <span className={`font-bold ${isPaid ? 'text-green-600' : isCourt ? 'text-red-600' : isScheduled ? 'text-blue-600' : 'text-orange-600'}`}>
                                 {statusText}
                               </span>
                             </div>
                             {isPaid && actualPaidDate && !isCourt && actualPaidDate !== statusText && (
                               <div className="flex items-center justify-between">
-                                <span className="text-gray-500">{language === 'ar' ? 'تاريخ السداد:' : 'Paid Date:'}</span>
-                                <span className="text-gray-900 font-bold">{actualPaidDate}</span>
+                                <span className="text-muted-foreground">{language === 'ar' ? 'تاريخ السداد:' : 'Paid Date:'}</span>
+                                <span className="text-foreground font-bold">{actualPaidDate}</span>
                               </div>
                             )}
                             {amountStr.trim() !== '' && !isCourt && !isLate && statusText !== amountStr && actualPaidDate !== amountStr && (
                               <div className="flex items-center justify-between">
-                                <span className="text-gray-500">{language === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
-                                <span className="text-gray-900 font-bold">{amountStr}</span>
+                                <span className="text-muted-foreground">{language === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
+                                <span className="text-foreground font-bold">{amountStr}</span>
                               </div>
                             )}
                           </div>

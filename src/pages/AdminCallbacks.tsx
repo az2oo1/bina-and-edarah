@@ -182,7 +182,7 @@ export default function AdminCallbacks() {
       case 'CLOSED':
         return {
           label: language === 'ar' ? 'مغلق' : 'Closed',
-          class: 'bg-gray-100 text-gray-600 border-gray-200'
+          class: 'bg-muted text-muted-foreground border-border'
         };
       default:
         return { label: status, class: 'bg-slate-50 border-slate-200' };
@@ -237,7 +237,7 @@ export default function AdminCallbacks() {
           {/* LEFT COLUMN: List of Requests */}
           <div className="lg:col-span-4 bg-card border border-border rounded-2xl flex flex-col overflow-hidden shadow-xs">
             {/* Filters Tabs */}
-            <div className="flex border-b border-border bg-slate-50/50 p-1 gap-1 flex-wrap shrink-0">
+            <div className="flex border-b border-border bg-muted/10 p-1 gap-1 flex-wrap shrink-0">
               {['ALL', 'PENDING', 'REPLIED_WHATSAPP', 'STILL_GOING', 'CLOSED'].map((sf) => (
                 <button
                   key={sf}
@@ -283,7 +283,7 @@ export default function AdminCallbacks() {
                       </div>
                       <div className="text-[10px] text-muted-foreground dir-ltr font-mono">{req.phone}</div>
                       {req.message && (
-                        <p className="text-[11px] text-gray-500 line-clamp-1 leading-relaxed">
+                        <p className="text-[11px] text-muted-foreground line-clamp-1 leading-relaxed">
                           {req.message}
                         </p>
                       )}
@@ -308,7 +308,7 @@ export default function AdminCallbacks() {
               <div className="flex flex-col h-full min-h-[550px]">
                 
                 {/* 1. Header with Client Details & handledBy */}
-                <div className="p-5 border-b border-border bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+                <div className="p-5 border-b border-border bg-muted/10 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
                   <div>
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                       {selectedRequest.name}
@@ -348,7 +348,7 @@ export default function AdminCallbacks() {
                 </div>
 
                 {/* 2. Status Update Buttons */}
-                <div className="p-4 border-b border-border flex flex-wrap gap-2 items-center bg-slate-50/10 shrink-0 select-none">
+                <div className="p-4 border-b border-border flex flex-wrap gap-2 items-center bg-muted/5 shrink-0 select-none">
                   <span className="text-xs font-bold text-muted-foreground">
                     {language === 'ar' ? 'تحديث حالة المتابعة:' : 'Update follow-up status:'}
                   </span>
@@ -358,7 +358,7 @@ export default function AdminCallbacks() {
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                       selectedRequest.status === 'REPLIED_WHATSAPP'
                         ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold'
-                        : 'border-border text-gray-600 hover:bg-slate-50'
+                        : 'border-border text-muted-foreground hover:bg-slate-50'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -370,7 +370,7 @@ export default function AdminCallbacks() {
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                       selectedRequest.status === 'STILL_GOING'
                         ? 'bg-blue-50 border-blue-300 text-blue-700 font-bold'
-                        : 'border-border text-gray-600 hover:bg-slate-50'
+                        : 'border-border text-muted-foreground hover:bg-slate-50'
                     }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
@@ -381,8 +381,8 @@ export default function AdminCallbacks() {
                     onClick={() => handleUpdateStatus(selectedRequest.id, 'CLOSED')}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                       selectedRequest.status === 'CLOSED'
-                        ? 'bg-gray-100 border-gray-300 text-gray-700 font-bold'
-                        : 'border-border text-gray-600 hover:bg-slate-50'
+                        ? 'bg-muted border-border text-muted-foreground font-bold'
+                        : 'border-border text-muted-foreground hover:bg-slate-50'
                     }`}
                   >
                     <Archive className="w-3.5 h-3.5" />
@@ -391,18 +391,18 @@ export default function AdminCallbacks() {
                 </div>
 
                 {/* 3. Thread of Messages (Bubbles) */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-4 max-h-[300px] min-h-[220px] bg-slate-50/20">
+                <div className="flex-1 overflow-y-auto p-5 space-y-4 max-h-[300px] min-h-[220px] bg-muted/10">
                   {/* Bubble 1: Original inquiry message */}
                   <div className="flex items-start gap-2.5 max-w-[85%] select-text">
                     <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-bold text-xs shrink-0 text-slate-700">
                       C
                     </div>
-                    <div className="bg-white border border-border p-3.5 rounded-2xl rounded-tl-none shadow-xs text-xs space-y-1.5">
-                      <div className="font-bold text-gray-800 flex items-center gap-2">
+                    <div className="bg-card border border-border p-3.5 rounded-2xl rounded-tl-none shadow-xs text-xs space-y-1.5">
+                      <div className="font-bold text-foreground flex items-center gap-2">
                         <span>{selectedRequest.name}</span>
                         <span className="text-[9px] text-muted-foreground font-normal">({language === 'ar' ? 'الرسالة الأصلية' : 'Original message'})</span>
                       </div>
-                      <p className="text-gray-700 leading-relaxed text-justify">
+                      <p className="text-muted-foreground leading-relaxed text-justify">
                         {selectedRequest.message ? selectedRequest.message : (
                           <span className="italic text-muted-foreground/60">{language === 'ar' ? 'طلب معاودة اتصال مباشر' : 'Requested a direct callback'}</span>
                         )}
@@ -422,7 +422,7 @@ export default function AdminCallbacks() {
                           <span>{note.authorName}</span>
                           <span className="text-[8px] bg-primary/10 text-primary px-1 rounded-sm">{language === 'ar' ? 'مسؤول' : 'Staff'}</span>
                         </div>
-                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed text-justify">
+                        <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed text-justify">
                           {note.text}
                         </p>
                         <div className="text-[9px] text-muted-foreground text-right">{formatDate(note.createdAt)}</div>
@@ -432,9 +432,9 @@ export default function AdminCallbacks() {
                 </div>
 
                 {/* 4. Rich Text Note Editor Area */}
-                <form onSubmit={handleSendNote} className="p-4 border-t border-border bg-white flex flex-col gap-3 shrink-0">
+                <form onSubmit={handleSendNote} className="p-4 border-t border-border bg-card flex flex-col gap-3 shrink-0">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-700 flex items-center gap-1">
+                    <label className="cn-label text-xs flex items-center gap-1">
                       <CornerDownLeft className="w-3.5 h-3.5 text-gray-400" />
                       <span>{language === 'ar' ? 'إضافة رد أو ملاحظة داخلية للمحادثة:' : 'Add a reply or internal note to thread:'}</span>
                     </label>
@@ -443,7 +443,7 @@ export default function AdminCallbacks() {
                       value={noteText}
                       onChange={e => setNoteText(e.target.value)}
                       rows={3}
-                      className="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-xs leading-relaxed"
+                      className="cn-input text-xs leading-relaxed"
                       placeholder={language === 'ar' ? 'اكتب ردك أو ملخص تواصلك هنا...' : 'Write your response or internal notes...'}
                     />
                   </div>

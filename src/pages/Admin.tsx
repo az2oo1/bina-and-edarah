@@ -727,7 +727,7 @@ export default function Admin() {
                             </span>
                           </td>
                           <td className="px-4 py-3 font-semibold text-xs text-foreground font-mono flex items-center gap-1.5 justify-end">
-                            {property.price.toLocaleString()} <SrIcon className="w-4 h-4 text-gray-600" />
+                            {property.price.toLocaleString()} <SrIcon className="w-4 h-4 text-muted-foreground" />
                           </td>
                           <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-2">
@@ -765,28 +765,28 @@ export default function Admin() {
                 )}
                 {/* Basic Information Section */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Information'}</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Information'}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.titleAr')}</label>
-                      <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="مثال: فيلا فاخرة للبيع في الملقا" />
+                      <label className="cn-label mb-2">{t('admin.placeholder.titleAr')}</label>
+                      <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })} className="cn-input" placeholder="مثال: فيلا فاخرة للبيع في الملقا" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.titleEn')}</label>
-                      <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="e.g. Luxury Villa in Al Malqa" />
+                      <label className="cn-label mb-2">{t('admin.placeholder.titleEn')}</label>
+                      <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })} className="cn-input" placeholder="e.g. Luxury Villa in Al Malqa" />
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'نوع العرض' : 'Type'}</label>
-                      <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors">
+                      <label className="cn-label mb-2">{language === 'ar' ? 'نوع العرض' : 'Type'}</label>
+                      <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="cn-input">
                         <option value="SALE">{t('common.sale')}</option>
                         <option value="RENT">{t('common.rent')}</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.category')}</label>
-                      <select value={formData.propertyCategory} onChange={(e) => setFormData({ ...formData, propertyCategory: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors">
+                      <label className="cn-label mb-2">{t('admin.placeholder.category')}</label>
+                      <select value={formData.propertyCategory} onChange={(e) => setFormData({ ...formData, propertyCategory: e.target.value })} className="cn-input">
                         <option value="VILLA">{t('cat.VILLA')}</option>
                         <option value="APARTMENT">{t('cat.APARTMENT')}</option>
                         <option value="COMPOUND">{t('cat.COMPOUND')}</option>
@@ -805,54 +805,54 @@ export default function Admin() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.area')}</label>
-                      <input required type="number" value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="150" />
+                      <label className="cn-label mb-2">{t('admin.placeholder.area')}</label>
+                      <input required type="number" value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} className="cn-input" placeholder="150" />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.propertyAge')}</label>
-                      <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({ ...formData, propertyAge: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="0" />
+                      <label className="cn-label mb-2">{t('admin.placeholder.propertyAge')}</label>
+                      <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({ ...formData, propertyAge: e.target.value })} className="cn-input" placeholder="0" />
                     </div>
                   </div>
                 </div>
 
                 {/* Location Section */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'الموقع الجغرافي' : 'Location & Links'}</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الموقع الجغرافي' : 'Location & Links'}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationText')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="text" value={formData.locationText} onChange={(e) => setFormData({ ...formData, locationText: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="Al Malqa, Riyadh..." />
+                      <label className="cn-label mb-2">{t('admin.placeholder.locationText')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
+                      <input type="text" value={formData.locationText} onChange={(e) => setFormData({ ...formData, locationText: e.target.value })} className="cn-input" placeholder="Al Malqa, Riyadh..." />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="url" value={formData.locationLink} onChange={(e) => setFormData({ ...formData, locationLink: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="https://maps.google.com/..." />
+                      <label className="cn-label mb-2">{t('admin.placeholder.locationLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
+                      <input type="url" value={formData.locationLink} onChange={(e) => setFormData({ ...formData, locationLink: e.target.value })} className="cn-input" placeholder="https://maps.google.com/..." />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.aqarLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="url" value={formData.aqarLink} onChange={(e) => setFormData({ ...formData, aqarLink: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="https://sa.aqar.fm/..." />
+                      <label className="cn-label mb-2">{t('admin.placeholder.aqarLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
+                      <input type="url" value={formData.aqarLink} onChange={(e) => setFormData({ ...formData, aqarLink: e.target.value })} className="cn-input" placeholder="https://sa.aqar.fm/..." />
                     </div>
                   </div>
                 </div>
 
                 {/* Financial Costs Section */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'التكاليف المالية' : 'Financial Details'}</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'التكاليف المالية' : 'Financial Details'}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className={formData.type === 'RENT' ? "md:col-span-2" : ""}>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.price')}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                        <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
-                          <span className="text-gray-500 font-bold">{t('common.currency')}</span>
+                      <label className="cn-label mb-2">{t('admin.placeholder.price')}</label>
+                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                        <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
+                          <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                         </div>
                         <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0" placeholder="2500000" />
                         {formData.type === 'RENT' && (
-                          <div className="flex border-l border-gray-300 ltr:border-l rtl:border-r">
-                            <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-gray-50 px-3 py-3 outline-none focus:ring-0 font-medium">
+                          <div className="flex border-l border-border ltr:border-l rtl:border-r">
+                            <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card px-3 py-3 outline-none focus:ring-0 font-medium">
                               <option value="YEARLY">{t('common.yearly')}</option>
                               <option value="MONTHLY">{t('common.monthly')}</option>
                             </select>
-                            <select value={formData.paymentsCount} onChange={(e) => setFormData({ ...formData, paymentsCount: e.target.value })} className="bg-gray-50 border-l border-gray-300 ltr:border-l rtl:border-r px-3 py-3 outline-none focus:ring-0 font-medium text-gray-500">
+                            <select value={formData.paymentsCount} onChange={(e) => setFormData({ ...formData, paymentsCount: e.target.value })} className="bg-card border-l border-border ltr:border-l rtl:border-r px-3 py-3 outline-none focus:ring-0 font-medium text-muted-foreground">
                               <option value="">{language === 'ar' ? 'عدد الدفعات...' : 'Payments...'}</option>
                               <option value="1">{language === 'ar' ? 'دفعة واحدة' : '1 Payment'}</option>
                               <option value="2">{language === 'ar' ? 'دفعتين' : '2 Payments'}</option>
@@ -867,13 +867,13 @@ export default function Admin() {
 
                     {formData.type === 'RENT' && (
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.electricityCost')}</label>
-                        <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                          <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
-                            <span className="text-gray-500 font-bold">{t('common.currency')}</span>
+                        <label className="cn-label mb-2">{t('admin.placeholder.electricityCost')}</label>
+                        <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                          <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
+                            <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                           </div>
                           <input type="number" value={formData.electricityCost} onChange={(e) => setFormData({ ...formData, electricityCost: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0" placeholder="0" />
-                          <select value={formData.electricityFrequency} onChange={(e) => setFormData({ ...formData, electricityFrequency: e.target.value })} className="bg-gray-50 border-l border-gray-300 ltr:border-l rtl:border-r px-4 py-3 outline-none focus:ring-0 font-medium">
+                          <select value={formData.electricityFrequency} onChange={(e) => setFormData({ ...formData, electricityFrequency: e.target.value })} className="bg-card border-l border-border ltr:border-l rtl:border-r px-4 py-3 outline-none focus:ring-0 font-medium">
                             <option value="YEARLY">{t('common.yearly')}</option>
                             <option value="MONTHLY">{t('common.monthly')}</option>
                           </select>
@@ -883,7 +883,7 @@ export default function Admin() {
 
                      <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-bold text-gray-700">{t('admin.placeholder.vat')}</label>
+                        <label className="cn-label">{t('admin.placeholder.vat')}</label>
                         <button
                           type="button"
                           onClick={() => setFormData({ 
@@ -891,43 +891,43 @@ export default function Admin() {
                             vatExempt: !formData.vatExempt,
                             vat: !formData.vatExempt ? '0' : formData.vat 
                           })}
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${formData.vatExempt ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}`}
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${formData.vatExempt ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-muted text-muted-foreground border border-border hover:bg-gray-200'}`}
                         >
                           {formData.vatExempt ? (language === 'ar' ? 'معفى من الضريبة ✓' : 'VAT Exempt ✓') : (language === 'ar' ? 'معفى؟' : 'Exempt?')}
                         </button>
                       </div>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                        <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
-                          <span className="text-gray-500 font-bold">{t('common.currency')}</span>
+                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                        <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
+                          <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                         </div>
                         <input 
                           type="number" 
                           disabled={formData.vatExempt}
                           value={formData.vatExempt ? '0' : formData.vat} 
                           onChange={(e) => setFormData({ ...formData, vat: e.target.value })} 
-                          className="flex-1 w-full p-3 outline-none min-w-0 bg-gray-50 hover:bg-white focus:bg-white disabled:opacity-50" 
+                          className="cn-input disabled:opacity-50" 
                           placeholder="0" 
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.commission')}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                        <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
-                          <span className="text-gray-500 font-bold">{t('common.currency')}</span>
+                      <label className="cn-label mb-2">{t('admin.placeholder.commission')}</label>
+                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                        <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
+                          <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                         </div>
-                        <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0 bg-gray-50 hover:bg-white focus:bg-white" placeholder="0" />
+                        <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="cn-input" placeholder="0" />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'الفواتير الخدمية المشمولة' : 'Utility Bills Included'}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                      <label className="cn-label mb-2">{language === 'ar' ? 'الفواتير الخدمية المشمولة' : 'Utility Bills Included'}</label>
+                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                         <select 
                           value={formData.utilityBills} 
                           onChange={(e) => setFormData({ ...formData, utilityBills: e.target.value })} 
-                          className="flex-1 w-full p-3 outline-none bg-gray-50 hover:bg-white focus:bg-white font-medium"
+                          className="cn-input font-medium"
                         >
                           <option value="NONE">{language === 'ar' ? 'لا يوجد فواتير مشمولة' : 'None Included'}</option>
                           <option value="ELECTRICITY">{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</option>
@@ -940,7 +940,7 @@ export default function Admin() {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'التفاصيل' : 'Details'}</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'التفاصيل' : 'Details'}</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {PREDEFINED_DETAILS.map(pd => (
                       <button
@@ -952,7 +952,7 @@ export default function Admin() {
                             detailsList: [...formData.detailsList, { id: Math.random().toString(), key: language === 'ar' ? pd.keyAr : pd.keyEn, value: '' }] 
                           });
                         }}
-                        className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-sm font-bold hover:bg-gray-50 flex items-center gap-1 transition shadow-sm"
+                        className="bg-card border border-border text-foreground px-3 py-1.5 rounded-full text-sm font-bold hover:bg-card flex items-center gap-1 transition shadow-sm"
                         title={pd.example}
                       >
                         <PlusCircle className="w-4 h-4 text-gray-400" />
@@ -973,7 +973,7 @@ export default function Admin() {
                             setFormData({ ...formData, detailsList: newList });
                           }}
                           placeholder={language === 'ar' ? 'الميزة (مثال: الغرف)' : 'Key (e.g. Rooms)'}
-                          className="flex-1 border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+                          className="flex-1 border border-border rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                         />
                         <input
                           type="text"
@@ -984,7 +984,7 @@ export default function Admin() {
                             setFormData({ ...formData, detailsList: newList });
                           }}
                           placeholder={language === 'ar' ? 'القيمة (مثال: 5)' : 'Value (e.g. 5)'}
-                          className="flex-1 border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+                          className="flex-1 border border-border rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                         />
                         <button
                           type="button"
@@ -1011,7 +1011,7 @@ export default function Admin() {
 
                 {/* Additional Features Section */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'المميزات الإضافية' : 'Additional Features'}</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'المميزات الإضافية' : 'Additional Features'}</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {PREDEFINED_FEATURES.map(pf => (
                       <button
@@ -1023,7 +1023,7 @@ export default function Admin() {
                             featuresList: [...formData.featuresList, { id: Math.random().toString(), value: language === 'ar' ? pf.keyAr : pf.keyEn }] 
                           });
                         }}
-                        className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-sm font-bold hover:bg-gray-50 flex items-center gap-1 transition shadow-sm"
+                        className="bg-card border border-border text-foreground px-3 py-1.5 rounded-full text-sm font-bold hover:bg-card flex items-center gap-1 transition shadow-sm"
                       >
                         <PlusCircle className="w-4 h-4 text-gray-400" />
                         {language === 'ar' ? pf.keyAr : pf.keyEn}
@@ -1042,7 +1042,7 @@ export default function Admin() {
                             setFormData({ ...formData, featuresList: newList });
                           }}
                           placeholder={language === 'ar' ? 'ميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'}
-                          className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+                          className="w-full border border-border rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                         />
                         <button
                           type="button"
@@ -1068,13 +1068,13 @@ export default function Admin() {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'الوصف' : 'Description'}</h3>
-                  <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الوصف' : 'Description'}</h3>
+                  <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="cn-input resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
                 </div>
 
                 {/* Images Section */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'الصور' : 'Images'} (Max 50MB total)</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الصور' : 'Images'} (Max 50MB total)</h3>
                   
                   {imageUploadMessage && (
                     <div className="mb-4 p-4 rounded-xl font-bold border bg-red-50 text-red-700 border-red-200 flex items-center gap-3">
@@ -1083,7 +1083,7 @@ export default function Admin() {
                     </div>
                   )}
 
-                  <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isUploadingImages ? 'border-gray-200 bg-gray-100 cursor-not-allowed' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}>
+                  <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isUploadingImages ? 'border-border bg-muted cursor-not-allowed' : 'border-border bg-card hover:bg-muted'}`}>
                     <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" disabled={isUploadingImages} />
                     <label htmlFor="image-upload" className={`flex flex-col items-center ${isUploadingImages ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                       {isUploadingImages ? (
@@ -1092,7 +1092,7 @@ export default function Admin() {
                         <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
                       )}
                       
-                      <span className={`font-bold text-lg ${isUploadingImages ? 'text-gray-500' : 'text-gray-600'}`}>
+                      <span className={`font-bold text-lg ${isUploadingImages ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                         {isUploadingImages ? (language === 'ar' ? 'جاري معالجة الصور...' : 'Processing Images...') : t('admin.placeholder.imagesDesc')}
                       </span>
                     </label>
@@ -1101,7 +1101,7 @@ export default function Admin() {
                   {formData.imageUrls.length > 0 && (
                     <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
                       {formData.imageUrls.map((url, i) => (
-                        <div key={i} className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
+                        <div key={i} className="relative aspect-square bg-muted rounded-xl overflow-hidden border border-border">
                           <img src={url} alt="upload preview" className="w-full h-full object-cover" />
                           <button type="button" onClick={() => removeImage(i)} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md">
                             <X className="w-4 h-4" />
@@ -1116,7 +1116,7 @@ export default function Admin() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-black text-white font-bold py-4 px-4 rounded-xl hover:bg-gray-900 transition-all focus:ring-4 focus:ring-gray-300 flex justify-center items-center gap-2 text-lg shadow-lg"
+                  className="w-full btn-primary text-white font-bold py-4 px-4 rounded-xl transition-all flex justify-center items-center gap-2 text-base shadow-lg cursor-pointer"
                 >
                   {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : t('admin.submit')}
                 </button>
@@ -1128,26 +1128,26 @@ export default function Admin() {
 
         {activeTab === 'analytics' && analytics && (
           <div className="min-h-[500px]">
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-200">
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border">
               <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center">
                 <BarChart3 className="w-6 h-6 text-indigo-600" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-900">{language === 'ar' ? 'تحليلات الموقع' : 'Site Analytics'}</h2>
+              <h2 className="text-3xl font-bold text-foreground">{language === 'ar' ? 'تحليلات الموقع' : 'Site Analytics'}</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <div className="flex items-center gap-4 mb-4 text-gray-500">
+              <div className="bg-card p-6 rounded-2xl border border-border">
+                <div className="flex items-center gap-4 mb-4 text-muted-foreground">
                   <Eye className="w-6 h-6" />
                   <h3 className="text-lg font-bold">{language === 'ar' ? 'إجمالي المشاهدات' : 'Total Views'}</h3>
                 </div>
-                <p className="text-4xl font-black text-gray-900">{analytics.totalViews}</p>
+                <p className="text-4xl font-black text-foreground">{analytics.totalViews}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-6">{language === 'ar' ? 'أكثر الصفحات زيارة' : 'Top Pages'}</h3>
+                <h3 className="text-xl font-bold text-foreground mb-6">{language === 'ar' ? 'أكثر الصفحات زيارة' : 'Top Pages'}</h3>
                 <div className="space-y-4">
                   {analytics.pathsViews.map((item, idx) => {
                     let displayPath = item.path;
@@ -1161,30 +1161,30 @@ export default function Admin() {
                     }
 
                     return (
-                    <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all group">
-                      <span className="font-bold text-gray-800 text-sm truncate">{displayPath} <span className="text-gray-400 font-mono text-xs hidden sm:inline ml-2">({item.path})</span></span>
+                    <div key={idx} className="flex justify-between items-center p-4 bg-card rounded-xl border border-border hover:border-primary/20 hover:shadow-sm transition-all group">
+                      <span className="font-bold text-foreground text-sm truncate">{displayPath} <span className="text-gray-400 font-mono text-xs hidden sm:inline ml-2">({item.path})</span></span>
                       <span className="font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg text-sm flex-shrink-0 group-hover:bg-yellow-100 transition-colors">{item._count.path} {language === 'ar' ? 'م' : 'v'}</span>
                     </div>
                   )})}
-                  {analytics.pathsViews.length === 0 && <p className="text-gray-500">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>}
+                  {analytics.pathsViews.length === 0 && <p className="text-muted-foreground">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>}
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-6">{language === 'ar' ? 'أكثر العقارات زيارة' : 'Top Properties'}</h3>
+                <h3 className="text-xl font-bold text-foreground mb-6">{language === 'ar' ? 'أكثر العقارات زيارة' : 'Top Properties'}</h3>
                 <div className="space-y-4">
                   {analytics.propertiesViews.map((item, idx) => {
                     const prop = properties.find(p => p.id === item.propertyId);
                     const title = prop ? (language === 'ar' ? prop.titleAr : prop.titleEn) : (language === 'ar' ? 'عقار تم حذفه' : 'Deleted Property');
                     return (
-                    <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all group">
-                      <span className="font-bold text-gray-800 truncate pr-4">{title}</span>
+                    <div key={idx} className="flex justify-between items-center p-4 bg-card rounded-xl border border-border hover:border-primary/20 hover:shadow-sm transition-all group">
+                      <span className="font-bold text-foreground truncate pr-4">{title}</span>
                       <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-sm flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
                         {item._count.propertyId} {language === 'ar' ? 'مشاهدة' : 'Views'}
                       </span>
                     </div>
                   )})}
-                  {analytics.propertiesViews.length === 0 && <p className="text-gray-500">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>}
+                  {analytics.propertiesViews.length === 0 && <p className="text-muted-foreground">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>}
                 </div>
               </div>
             </div>
@@ -1193,33 +1193,33 @@ export default function Admin() {
 
         {activeTab === 'settings' && (
           <div className="min-h-[500px] max-w-2xl">
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                <SettingsIcon className="w-6 h-6 text-gray-700" />
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                <SettingsIcon className="w-6 h-6 text-muted-foreground" />
               </div>
               <div>
-                <h2 className="text-3xl font-extrabold text-gray-900 leading-none">{t('admin.settings')}</h2>
-                <p className="text-gray-500 font-medium mt-2 leading-none">{language === 'ar' ? 'إدارة إعدادات الموقع والتواصل' : 'Manage site and contact settings'}</p>
+                <h2 className="text-3xl font-extrabold text-foreground leading-none">{t('admin.settings')}</h2>
+                <p className="text-muted-foreground font-medium mt-2 leading-none">{language === 'ar' ? 'إدارة إعدادات الموقع والتواصل' : 'Manage site and contact settings'}</p>
               </div>
             </div>
             
-            <div className="flex bg-gray-100 p-1 rounded-xl mb-6 flex-wrap gap-1">
-              <button onClick={() => setActiveSettingsSection('whatsapp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'whatsapp' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+            <div className="flex bg-muted p-1 rounded-xl mb-6 flex-wrap gap-1">
+              <button onClick={() => setActiveSettingsSection('whatsapp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'whatsapp' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 {language === 'ar' ? 'الواتساب' : 'WhatsApp'}
               </button>
-              <button onClick={() => setActiveSettingsSection('otp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'otp' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+              <button onClick={() => setActiveSettingsSection('otp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'otp' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 {language === 'ar' ? 'رمز تحقق' : 'OTP'}
               </button>
-              <button onClick={() => setActiveSettingsSection('social')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'social' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+              <button onClick={() => setActiveSettingsSection('social')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'social' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 {language === 'ar' ? 'سوشيال' : 'Social'}
               </button>
-              <button onClick={() => setActiveSettingsSection('images')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'images' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+              <button onClick={() => setActiveSettingsSection('images')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'images' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 {language === 'ar' ? 'صور' : 'Images'}
               </button>
-              <button onClick={() => setActiveSettingsSection('backup')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'backup' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+              <button onClick={() => setActiveSettingsSection('backup')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'backup' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 {language === 'ar' ? 'نسخة احتياطية' : 'Backup'}
               </button>
-              <button onClick={() => setActiveSettingsSection('account')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'account' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+              <button onClick={() => setActiveSettingsSection('account')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'account' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 {language === 'ar' ? 'حساب' : 'Account'}
               </button>
             </div>
@@ -1231,7 +1231,7 @@ export default function Admin() {
                   <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">{language === 'ar' ? 'إعدادات الواتساب' : 'WhatsApp Settings'}</h3>
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.whatsapp')}</label>
+                      <label className="cn-label mb-2">{t('admin.placeholder.whatsapp')}</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-4 pointer-events-none text-gray-400">
                           <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
@@ -1241,35 +1241,35 @@ export default function Admin() {
                           type="text"
                           value={whatsappNumber}
                           onChange={(e) => setWhatsappNumber(e.target.value)}
-                          className="w-full border border-gray-300 rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
+                          className="w-full border border-border rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-foreground"
                           placeholder="966500000000"
                           dir="ltr"
                         />
                       </div>
-                      <p className="mt-2 text-sm text-gray-500 leading-relaxed max-w-sm">
+                      <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-sm">
                         {language === 'ar' ? 'أدخل الرقم مع رمز الدولة بدون (+) أو (00). مثال: ' : 'Include country code without + or 00. Example: '}
-                        <span className="font-mono text-xs bg-gray-100 px-1 rounded block mt-1 w-max">966500000000</span>
+                        <span className="font-mono text-xs bg-muted px-1 rounded block mt-1 w-max">966500000000</span>
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="cn-label mb-2">
                         {language === 'ar' ? 'البريد الإلكتروني لإشعارات الرسائل والطلبات' : 'Callback & Messages Notification Email'}
                       </label>
                       <input
                         type="email"
                         value={notificationEmail}
                         onChange={(e) => setNotificationEmail(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-medium text-gray-800"
+                        className="cn-input font-medium"
                         placeholder="admin-alerts@yourdomain.com"
                       />
-                      <p className="mt-2 text-sm text-gray-500">
+                      <p className="mt-2 text-sm text-muted-foreground">
                         {language === 'ar' ? 'يتم إرسال تنبيه بالبريد الإلكتروني فور استلام طلب اتصال جديد أو رسالة CRM جديدة.' : 'Sends email notifications instantly when a new callback request or CRM message is received.'}
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
+                      <label className="cn-label mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-4 pointer-events-none text-gray-400">
                           <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
@@ -1279,7 +1279,7 @@ export default function Admin() {
                           type="text"
                           value={callingNumber}
                           onChange={(e) => setCallingNumber(e.target.value)}
-                          className="w-full border border-gray-300 rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
+                          className="w-full border border-border rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-foreground"
                           placeholder="966500000000"
                           dir="ltr"
                         />
@@ -1287,17 +1287,17 @@ export default function Admin() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'نص رسالة الواتساب الافتراضي' : 'Default WhatsApp Message'}</label>
+                      <label className="cn-label mb-2">{language === 'ar' ? 'نص رسالة الواتساب الافتراضي' : 'Default WhatsApp Message'}</label>
                       <textarea
                         required
                         rows={3}
                         value={whatsappMessage}
                         onChange={(e) => setWhatsappMessage(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all resize-none font-medium text-gray-800"
+                        className="cn-input resize-none min-h-[100px] font-medium"
                         placeholder={language === 'ar' ? 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}' : 'Hello, I am interested in this property: {title} - {link}'}
                       />
-                      <div className="mt-3 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-gray-700">
+                      <div className="mt-3 text-sm text-muted-foreground bg-card p-3 rounded-lg border border-border">
+                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-muted-foreground">
                           <Info className="w-4 h-4" />
                           {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
                         </p>
@@ -1313,29 +1313,29 @@ export default function Admin() {
 
               {activeSettingsSection === 'otp' && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-5 inline-block">
+                  <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-5 inline-block">
                     {language === 'ar' ? 'إعدادات تسجيل المستأجرين (OTP Webhook)' : 'Renter Login Settings (OTP Webhook)'}
                   </h3>
                   
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="cn-label mb-2">
                          {language === 'ar' ? 'رابط الويب هوك (Whatomate URL)' : 'Webhook URL (Whatomate)'}
                       </label>
                       <input
                         type="url"
                         value={otpWebhookUrl}
                         onChange={(e) => setOtpWebhookUrl(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-medium text-gray-800 dir-ltr"
+                        className="cn-input font-medium dir-ltr"
                         placeholder="https://hook.us2.make.com/..."
                       />
-                      <p className="mt-2 text-sm text-gray-500">
+                      <p className="mt-2 text-sm text-muted-foreground">
                         {language === 'ar' ? 'اتركه فارغاً لتعطيل إرسال الرسائل عبر الويب هوك.' : 'Leave empty to disable sending webhooks.'}
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="cn-label mb-2">
                         {language === 'ar' ? 'قالب رسالة رمز التحقق' : 'OTP Message Template'}
                       </label>
                       <textarea
@@ -1343,11 +1343,11 @@ export default function Admin() {
                         rows={2}
                         value={otpMessageTemplate}
                         onChange={(e) => setOtpMessageTemplate(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all resize-none font-medium text-gray-800"
+                        className="cn-input resize-none min-h-[100px] font-medium"
                         placeholder={language === 'ar' ? 'رمز التحقق الخاص بك هو: {otp}' : 'Your verification code is: {otp}'}
                       />
-                      <div className="mt-3 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-gray-700">
+                      <div className="mt-3 text-sm text-muted-foreground bg-card p-3 rounded-lg border border-border">
+                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-muted-foreground">
                           <Info className="w-4 h-4" />
                           {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
                         </p>
@@ -1358,7 +1358,7 @@ export default function Admin() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="cn-label mb-2">
                          {language === 'ar' ? 'قالب JSON لإرسال الويب هوك (Whatomate JSON)' : 'Webhook JSON Payload Template'}
                       </label>
                       <textarea
@@ -1366,11 +1366,11 @@ export default function Admin() {
                         rows={6}
                         value={otpWebhookPayload}
                         onChange={(e) => setOtpWebhookPayload(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-xs dir-ltr bg-gray-50"
+                        className="w-full border border-border rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-xs dir-ltr bg-card"
                         placeholder={'{\n  "phone": "{phone}",\n  "type": "template"\n}'}
                       />
-                      <div className="mt-3 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-gray-700">
+                      <div className="mt-3 text-sm text-muted-foreground bg-card p-3 rounded-lg border border-border">
+                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-muted-foreground">
                           <Info className="w-4 h-4" />
                           {language === 'ar' ? 'المتغيرات المدعومة في قالب JSON:' : 'Supported Variables in JSON:'}
                         </p>
@@ -1540,30 +1540,30 @@ export default function Admin() {
 
               {activeSettingsSection === 'social' && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-6">
+                  <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-6">
                     {language === 'ar' ? 'وسائل التواصل الاجتماعي والبريد الإلكتروني' : 'Social Media & Email'}
                   </h3>
-                  <p className="text-sm text-gray-500 mb-6">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
+                  <p className="text-sm text-muted-foreground mb-6">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
                   <div className="space-y-4">
                     {[
-                      { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: <Mail className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: <IgIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: <XIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: <FbIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'Snapchat', value: snapchatUrl, setter: setSnapchatUrl, placeholder: 'https://snapchat.com/add/benaandedara', type: 'url', icon: <SnapIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: <Mail className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: <IgIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: <XIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: <FbIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'Snapchat', value: snapchatUrl, setter: setSnapchatUrl, placeholder: 'https://snapchat.com/add/benaandedara', type: 'url', icon: <SnapIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
                     ].map(field => (
                       <div key={field.label}>
-                        <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center">
+                        <label className="block text-sm font-bold text-muted-foreground mb-1 flex items-center">
                           {field.icon} <span>{field.label}</span>
                         </label>
                         <input
                           type={field.type}
                           value={field.value}
                           onChange={e => field.setter(e.target.value)}
-                          className="w-full border border-gray-300 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all text-gray-800 text-sm"
+                          className="w-full border border-border rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all text-foreground text-sm"
                           placeholder={field.placeholder}
                           dir="ltr"
                         />
@@ -1575,14 +1575,14 @@ export default function Admin() {
 
               {activeSettingsSection === 'backup' && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-6">
+                  <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-6">
                     {language === 'ar' ? 'نسخة احتياطية واستعادة' : 'Backup & Restore'}
                   </h3>
 
                   {/* Download Backup */}
-                  <div className="border border-gray-100 rounded-2xl p-6 bg-gray-50 mb-6">
-                    <h4 className="font-bold text-gray-900 mb-1">{language === 'ar' ? 'تنزيل نسخة احتياطية' : 'Download Backup'}</h4>
-                    <p className="text-sm text-gray-500 mb-4">
+                  <div className="border border-border rounded-2xl p-6 bg-card mb-6">
+                    <h4 className="font-bold text-foreground mb-1">{language === 'ar' ? 'تنزيل نسخة احتياطية' : 'Download Backup'}</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
                       {language === 'ar'
                         ? 'تحميل ملف ZIP يحتوي على قاعدة البيانات كاملة (مع جميع الصور) وملفات الصور كملفات حقيقية.'
                         : 'Downloads a ZIP containing the full database (with all images embedded) plus extracted image files for convenience.'}
@@ -1607,7 +1607,7 @@ export default function Admin() {
                           alert(language === 'ar' ? 'فشل تنزيل النسخة.' : 'Backup download failed.');
                         } finally { setBackupLoading(false); }
                       }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 btn-primary text-white font-bold rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50"
                     >
                       {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                       {language === 'ar' ? 'تنزيل ZIP' : 'Download ZIP'}
@@ -1669,32 +1669,32 @@ export default function Admin() {
 
               {activeSettingsSection === 'account' && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-5 inline-block">
+                  <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-5 inline-block">
                     {language === 'ar' ? 'إعدادات الحساب' : 'Account Settings'}
                   </h3>
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="cn-label mb-2">
                         {language === 'ar' ? 'اسم المستخدم الجديد للإدارة' : 'New Admin Username'}
                       </label>
                       <input
                         type="text"
                         value={adminUsername}
                         onChange={(e) => setAdminUsername(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
+                        className="w-full border border-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-foreground"
                         placeholder="admin"
                         dir="ltr"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                      <label className="cn-label mb-2">
                         {language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
                       </label>
                       <input
                         type="password"
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-gray-900"
+                        className="w-full border border-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-foreground"
                         placeholder="********"
                         dir="ltr"
                       />
@@ -1703,7 +1703,7 @@ export default function Admin() {
                 </div>
               )}
 
-              <div className="pt-4 border-t border-gray-100 pt-8">
+              <div className="pt-4 border-t border-border pt-8">
                 <button
                   type="submit"
                   disabled={savingSettings}

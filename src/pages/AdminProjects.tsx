@@ -357,7 +357,7 @@ export default function AdminProjects() {
             <div className="border border-dashed border-border rounded-lg p-6 text-center hover:bg-slate-50 transition-colors bg-slate-50/30">
               <label className="cursor-pointer flex flex-col items-center">
                 <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
-                <span className="text-gray-600 font-medium mb-2">{language === 'ar' ? 'اضغط لاختيار الصور' : 'Click to select images'}</span>
+                <span className="text-muted-foreground font-medium mb-2">{language === 'ar' ? 'اضغط لاختيار الصور' : 'Click to select images'}</span>
                 <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
               </label>
             </div>
