@@ -6,7 +6,11 @@ import { prisma } from "./src/lib/db.js";
 import fs from "fs";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
-import archiver from "archiver";
+import { createRequire } from "module";
+const cjsRequire = typeof module !== "undefined" && typeof require !== "undefined"
+  ? require
+  : createRequire(typeof import.meta !== "undefined" && (import.meta as any).url ? (import.meta as any).url : `file://${typeof __filename !== "undefined" ? __filename : ""}`);
+const archiver = cjsRequire("archiver");
 import multer from "multer";
 import AdmZip from "adm-zip";
 import crypto from "crypto";
@@ -52,6 +56,24 @@ const logger = {
     }
   }
 };
+
+async function logAction(req: any, action: string, details: string) {
+  try {
+    const user = req.user || { id: "unknown", name: "System/Unknown", role: "UNKNOWN" };
+    await prisma.actionLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        action,
+        details
+      }
+    });
+    logger.info(`Action logged: ${action} - ${details} by ${user.name} (${user.role})`);
+  } catch (err) {
+    logger.error("Failed to log action:", err);
+  }
+}
 
 interface CacheStore {
   properties: any | null;
@@ -190,6 +212,7 @@ async function startServer() {
       const building = await prisma.building.create({
         data: { name }
       });
+      await logAction(req, "ADD_BUILDING", `Added building: ${building.name} (${building.id})`);
       res.status(201).json(building);
     } catch (error) {
       res.status(500).json({ error: "Failed to create building" });
@@ -203,6 +226,7 @@ async function startServer() {
         where: { id: req.params.id },
         data: { transferDetails, photos: processImageUrls(photos) }
       });
+      await logAction(req, "UPDATE_BUILDING", `Updated details for building: ${building.name} (${req.params.id})`);
       res.json(building);
     } catch (error) {
       res.status(500).json({ error: "Failed to update building" });
@@ -525,6 +549,7 @@ async function startServer() {
         }
       }
 
+      await logAction(req, "UPLOAD_BUILDING_JSON", `Uploaded/synced JSON data for building ID: ${req.params.id} (${count} units handled)`);
       res.json({ success: true, count });
     } catch (error) {
       console.error(error);
@@ -534,12 +559,14 @@ async function startServer() {
 
   app.delete('/api/admin/buildings/:id', async (req, res) => {
     try {
+      const building = await prisma.building.findUnique({ where: { id: req.params.id } });
       await prisma.renterUnit.deleteMany({
         where: { buildingId: req.params.id }
       });
       await prisma.building.delete({
         where: { id: req.params.id }
       });
+      await logAction(req, "DELETE_BUILDING", `Deleted building: ${building?.name || 'Unknown'} (${req.params.id})`);
       res.json({ success: true });
     } catch (error) {
       console.error(error);
@@ -549,9 +576,11 @@ async function startServer() {
 
   app.delete('/api/admin/units/:id', async (req, res) => {
     try {
+      const unit = await prisma.renterUnit.findUnique({ where: { id: req.params.id } });
       await prisma.renterUnit.delete({
         where: { id: req.params.id }
       });
+      await logAction(req, "DELETE_UNIT", `Deleted unit number: ${unit?.unitNumber || 'Unknown'} for renter ${unit?.renterName || 'Unknown'} (${req.params.id})`);
       res.json({ success: true });
     } catch (error) {
       console.error(error);
@@ -829,6 +858,7 @@ async function startServer() {
         }
       });
       invalidateCache('properties');
+      await logAction(req, "ADD_PROPERTY", `Added property: ${newProperty.titleAr} (${newProperty.id})`);
       res.status(201).json(newProperty);
     } catch (error) {
       logger.error("Error creating property:", error);
@@ -867,6 +897,7 @@ async function startServer() {
         }
       });
       invalidateCache('properties');
+      await logAction(req, "UPDATE_PROPERTY", `Updated property: ${updatedProperty.titleAr} (${req.params.id})`);
       res.json(updatedProperty);
     } catch (error) {
       logger.error("Error updating property:", error);
@@ -880,6 +911,7 @@ async function startServer() {
         where: { id: req.params.id }
       });
       invalidateCache('properties');
+      await logAction(req, "DELETE_PROPERTY", `Deleted property ID: ${req.params.id}`);
       res.json({ success: true });
     } catch (error) {
       logger.error(`Error deleting property ${req.params.id}:`, error);
@@ -939,6 +971,7 @@ async function startServer() {
         }
       });
       invalidateCache('projects');
+      await logAction(req, "ADD_PROJECT", `Added project: ${newProject.titleAr} (${newProject.id})`);
       res.status(201).json(newProject);
     } catch (error) {
       logger.error("Error creating project:", error);
@@ -967,6 +1000,7 @@ async function startServer() {
         }
       });
       invalidateCache('projects');
+      await logAction(req, "UPDATE_PROJECT", `Updated project: ${updatedProject.titleAr} (${req.params.id})`);
       res.json(updatedProject);
     } catch (error) {
       logger.error("Error updating project:", error);
@@ -980,6 +1014,7 @@ async function startServer() {
         where: { id: req.params.id }
       });
       invalidateCache('projects');
+      await logAction(req, "DELETE_PROJECT", `Deleted project ID: ${req.params.id}`);
       res.json({ success: true });
     } catch (error) {
       logger.error(`Error deleting project ${req.params.id}:`, error);
@@ -1053,6 +1088,7 @@ async function startServer() {
         data: updateData
       });
       
+      await logAction(req, "UPDATE_SETTINGS", "Updated global site settings");
       res.json(updated);
     } catch (error) {
       logger.error("Failed to update settings:", error);
@@ -1063,8 +1099,8 @@ async function startServer() {
   // ---- Backup & Restore ----
 
   // GET /api/admin/backup  → streams a ZIP file containing:
-  //   - benaa-edara.db  (the raw SQLite database – contains everything including base64 images)
-  //   - images/         (extracted image files for convenience)
+  //   - db-data.json    (all database content serialized)
+  //   - uploads/         (uploaded files)
   //   - manifest.json   (metadata)
   app.get("/api/admin/backup", async (req, res) => {
     try {
@@ -1085,7 +1121,12 @@ async function startServer() {
         rentHistory: await prisma.rentHistory.findMany(),
         receipts: await prisma.receipt.findMany(),
         settings: await prisma.settings.findMany(),
-        users: await prisma.user.findMany()
+        users: await prisma.user.findMany(),
+        admins: await prisma.admin.findMany(),
+        services: await prisma.service.findMany(),
+        callbackRequests: await prisma.callbackRequest.findMany(),
+        callbackNotes: await prisma.callbackNote.findMany(),
+        actionLogs: await prisma.actionLog.findMany()
       };
 
       archive.append(JSON.stringify(dbData, null, 2), { name: 'db-data.json' });
@@ -1104,15 +1145,19 @@ async function startServer() {
       // Manifest
       const manifest = {
         createdAt: new Date().toISOString(),
-        version: '2.0',
+        version: '3.0',
         properties: dbData.properties.length,
         projects: dbData.projects.length,
         buildings: dbData.buildings.length,
         renterUnits: dbData.renterUnits.length,
-        receipts: dbData.receipts.length
+        receipts: dbData.receipts.length,
+        admins: dbData.admins.length,
+        callbackRequests: dbData.callbackRequests.length,
+        actionLogs: dbData.actionLogs.length
       };
       archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
 
+      await logAction(req, "DOWNLOAD_BACKUP", "Downloaded complete site backup ZIP");
       await archive.finalize();
     } catch (error) {
       console.error('Backup error:', error);
@@ -1159,6 +1204,9 @@ async function startServer() {
       // 2. Perform DB restore in a transaction
       await prisma.$transaction(async (tx) => {
         // Clear tables in reverse dependency order
+        await tx.actionLog.deleteMany();
+        await tx.callbackNote.deleteMany();
+        await tx.callbackRequest.deleteMany();
         await tx.pageView.deleteMany();
         await tx.otpSession.deleteMany();
         await tx.receipt.deleteMany();
@@ -1168,14 +1216,22 @@ async function startServer() {
         await tx.property.deleteMany();
         await tx.project.deleteMany();
         await tx.settings.deleteMany();
+        await tx.service.deleteMany();
         await tx.user.deleteMany();
+        await tx.admin.deleteMany();
 
         // Restore tables
+        if (dbData.admins && dbData.admins.length > 0) {
+          await tx.admin.createMany({ data: dbData.admins });
+        }
         if (dbData.users && dbData.users.length > 0) {
           await tx.user.createMany({ data: dbData.users });
         }
         if (dbData.settings && dbData.settings.length > 0) {
           await tx.settings.createMany({ data: dbData.settings });
+        }
+        if (dbData.services && dbData.services.length > 0) {
+          await tx.service.createMany({ data: dbData.services });
         }
         if (dbData.projects && dbData.projects.length > 0) {
           await tx.project.createMany({ data: dbData.projects });
@@ -1195,8 +1251,18 @@ async function startServer() {
         if (dbData.receipts && dbData.receipts.length > 0) {
           await tx.receipt.createMany({ data: dbData.receipts });
         }
+        if (dbData.callbackRequests && dbData.callbackRequests.length > 0) {
+          await tx.callbackRequest.createMany({ data: dbData.callbackRequests });
+        }
+        if (dbData.callbackNotes && dbData.callbackNotes.length > 0) {
+          await tx.callbackNote.createMany({ data: dbData.callbackNotes });
+        }
+        if (dbData.actionLogs && dbData.actionLogs.length > 0) {
+          await tx.actionLog.createMany({ data: dbData.actionLogs });
+        }
       });
 
+      await logAction(req, "RESTORE_BACKUP", `Restored site database from uploaded backup ZIP: ${req.file.originalname}`);
       res.json({ success: true, message: 'Database and uploads restored successfully. Please refresh the page.' });
     } catch (error) {
       console.error('Restore error:', error);
@@ -1397,6 +1463,7 @@ async function startServer() {
   app.get("/api/callback-requests", adminAuthMiddleware, async (req, res) => {
     try {
       const requests = await prisma.callbackRequest.findMany({
+        include: { notes: { orderBy: { createdAt: 'asc' } } },
         orderBy: { createdAt: 'desc' }
       });
       res.json(requests);
@@ -1406,16 +1473,166 @@ async function startServer() {
     }
   });
 
+  app.put("/api/callback-requests/:id/status", adminAuthMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      const updated = await prisma.callbackRequest.update({
+        where: { id },
+        data: {
+          status,
+          handledBy: (req as any).user.name
+        }
+      });
+      await logAction(req, "UPDATE_CALLBACK_STATUS", `Changed callback status of ${updated.name} to ${status}`);
+      res.json(updated);
+    } catch (error) {
+      logger.error("Failed to update callback status", error);
+      res.status(500).json({ error: "Failed to update status" });
+    }
+  });
+
+  app.post("/api/callback-requests/:id/notes", adminAuthMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { text } = req.body;
+      
+      const note = await prisma.callbackNote.create({
+        data: {
+          callbackRequestId: id,
+          text,
+          authorName: (req as any).user.name
+        }
+      });
+      
+      // Update callback assignment
+      await prisma.callbackRequest.update({
+        where: { id },
+        data: { handledBy: (req as any).user.name }
+      });
+
+      await logAction(req, "REPLY_CALLBACK", `Added reply note to callback request ID ${id}`);
+      res.status(201).json(note);
+    } catch (error) {
+      logger.error("Failed to create callback note", error);
+      res.status(500).json({ error: "Failed to add note" });
+    }
+  });
+
   app.delete("/api/callback-requests/:id", adminAuthMiddleware, async (req, res) => {
     try {
       const { id } = req.params;
+      const reqData = await prisma.callbackRequest.findUnique({ where: { id } });
       await prisma.callbackRequest.delete({
         where: { id }
       });
+      await logAction(req, "DELETE_CALLBACK", `Deleted callback request from ${reqData?.name || 'Unknown'} (${id})`);
       res.json({ success: true });
     } catch (error) {
       logger.error("Failed to delete callback request", error);
       res.status(500).json({ error: "Failed to delete request" });
+    }
+  });
+
+  // ---- System Logs API ----
+  app.get("/api/admin/logs", adminAuthMiddleware, async (req, res) => {
+    try {
+      const logs = await prisma.actionLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 500
+      });
+      res.json(logs);
+    } catch (error) {
+      logger.error("Failed to fetch system logs", error);
+      res.status(500).json({ error: "Failed to fetch logs" });
+    }
+  });
+
+  // ---- Platform Users Management API (Admin model CRUD) ----
+  app.get("/api/admin/users", adminAuthMiddleware, async (req, res) => {
+    try {
+      const users = await prisma.admin.findMany({
+        select: { id: true, username: true, name: true, role: true, createdAt: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(users);
+    } catch (error) {
+      logger.error("Failed to fetch platform users", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
+    try {
+      const { username, password, name, role } = req.body;
+      if (!username || !password || !name) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+      const existing = await prisma.admin.findUnique({ where: { username } });
+      if (existing) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      const newUser = await prisma.admin.create({
+        data: { username, password, name, role: role || "ADMIN" }
+      });
+      await logAction(req, "ADD_PLATFORM_USER", `Created platform user: ${username} (${role || "ADMIN"})`);
+      res.status(201).json({ id: newUser.id, username: newUser.username, name: newUser.name, role: newUser.role });
+    } catch (error) {
+      logger.error("Failed to create platform user", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id", adminAuthMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { username, password, name, role } = req.body;
+      
+      const existing = await prisma.admin.findUnique({ where: { id } });
+      if (!existing) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check username clash
+      if (username && username !== existing.username) {
+        const clash = await prisma.admin.findUnique({ where: { username } });
+        if (clash) return res.status(400).json({ error: "Username already taken" });
+      }
+
+      const updated = await prisma.admin.update({
+        where: { id },
+        data: {
+          username: username || undefined,
+          password: password || undefined,
+          name: name || undefined,
+          role: role || undefined
+        }
+      });
+
+      await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details: ${updated.username}`);
+      res.json({ id: updated.id, username: updated.username, name: updated.name, role: updated.role });
+    } catch (error) {
+      logger.error("Failed to update platform user", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", adminAuthMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (id === (req as any).user.id) {
+        return res.status(400).json({ error: "Cannot delete your own account" });
+      }
+      
+      const user = await prisma.admin.findUnique({ where: { id } });
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      await prisma.admin.delete({ where: { id } });
+      await logAction(req, "DELETE_PLATFORM_USER", `Deleted platform user: ${user.username}`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Failed to delete platform user", error);
+      res.status(500).json({ error: "Failed to delete user" });
     }
   });
 

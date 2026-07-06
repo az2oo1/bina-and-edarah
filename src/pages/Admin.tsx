@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
+import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon } from '../components/SocialIcons';
 
 import AdminProjects from './AdminProjects';
 import AdminCallbacks from './AdminCallbacks';
 import AdminBuildings from './AdminBuildings';
 import AdminRenters from './AdminRenters';
 import AdminReceipts from './AdminReceipts';
+import AdminUsers from './AdminUsers';
+import AdminLogs from './AdminLogs';
 import { compressImage } from '../lib/image';
 
 interface Property {
@@ -90,7 +93,7 @@ export default function Admin() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'analytics' | 'settings' | 'callbacks'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'analytics' | 'settings' | 'callbacks' | 'users' | 'logs'>('manage');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -616,6 +619,26 @@ export default function Admin() {
           >
             {language === 'ar' ? 'طلبات التواصل' : 'Callbacks'}
           </button>
+          <button 
+            onClick={() => setActiveTab('users')}
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'users' 
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            {language === 'ar' ? 'المستخدمين' : 'Users'}
+          </button>
+          <button 
+            onClick={() => setActiveTab('logs')}
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'logs' 
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            {language === 'ar' ? 'السجلات' : 'Audit Logs'}
+          </button>
         </div>
 
         <AnimatePresence mode="wait">
@@ -736,16 +759,16 @@ export default function Admin() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.titleAr')}</label>
-                      <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="مثال: فيلا فاخرة للبيع في الملقا" />
+                      <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="مثال: فيلا فاخرة للبيع في الملقا" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.titleEn')}</label>
-                      <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="e.g. Luxury Villa in Al Malqa" />
+                      <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="e.g. Luxury Villa in Al Malqa" />
                     </div>
                     
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{language === 'ar' ? 'نوع العرض' : 'Type'}</label>
-                      <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors">
+                      <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors">
                         <option value="SALE">{t('common.sale')}</option>
                         <option value="RENT">{t('common.rent')}</option>
                       </select>
@@ -753,7 +776,7 @@ export default function Admin() {
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.category')}</label>
-                      <select value={formData.propertyCategory} onChange={(e) => setFormData({ ...formData, propertyCategory: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors">
+                      <select value={formData.propertyCategory} onChange={(e) => setFormData({ ...formData, propertyCategory: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors">
                         <option value="VILLA">{t('cat.VILLA')}</option>
                         <option value="APARTMENT">{t('cat.APARTMENT')}</option>
                         <option value="COMPOUND">{t('cat.COMPOUND')}</option>
@@ -773,12 +796,12 @@ export default function Admin() {
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.area')}</label>
-                      <input required type="number" value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="150" />
+                      <input required type="number" value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="150" />
                     </div>
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.propertyAge')}</label>
-                      <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({ ...formData, propertyAge: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="0" />
+                      <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({ ...formData, propertyAge: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="0" />
                     </div>
                   </div>
                 </div>
@@ -789,15 +812,15 @@ export default function Admin() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationText')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="text" value={formData.locationText} onChange={(e) => setFormData({ ...formData, locationText: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="Al Malqa, Riyadh..." />
+                      <input type="text" value={formData.locationText} onChange={(e) => setFormData({ ...formData, locationText: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="Al Malqa, Riyadh..." />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.locationLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="url" value={formData.locationLink} onChange={(e) => setFormData({ ...formData, locationLink: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="https://maps.google.com/..." />
+                      <input type="url" value={formData.locationLink} onChange={(e) => setFormData({ ...formData, locationLink: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="https://maps.google.com/..." />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.aqarLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="url" value={formData.aqarLink} onChange={(e) => setFormData({ ...formData, aqarLink: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="https://sa.aqar.fm/..." />
+                      <input type="url" value={formData.aqarLink} onChange={(e) => setFormData({ ...formData, aqarLink: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors" placeholder="https://sa.aqar.fm/..." />
                     </div>
                   </div>
                 </div>
@@ -808,7 +831,7 @@ export default function Admin() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className={formData.type === 'RENT' ? "md:col-span-2" : ""}>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.price')}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-yellow-500 focus-within:border-yellow-500">
+                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                         <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
                           <span className="text-gray-500 font-bold">{t('common.currency')}</span>
                         </div>
@@ -835,7 +858,7 @@ export default function Admin() {
                     {formData.type === 'RENT' && (
                       <div className="md:col-span-2">
                         <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.electricityCost')}</label>
-                        <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-yellow-500 focus-within:border-yellow-500">
+                        <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                           <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
                             <span className="text-gray-500 font-bold">{t('common.currency')}</span>
                           </div>
@@ -850,7 +873,7 @@ export default function Admin() {
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.vat')}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-yellow-500 focus-within:border-yellow-500">
+                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                         <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
                           <span className="text-gray-500 font-bold">{t('common.currency')}</span>
                         </div>
@@ -860,7 +883,7 @@ export default function Admin() {
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">{t('admin.placeholder.commission')}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-yellow-500 focus-within:border-yellow-500">
+                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                         <div className="flex bg-gray-50 items-center justify-center px-4 border-r border-gray-300 ltr:border-r rtl:border-l">
                           <span className="text-gray-500 font-bold">{t('common.currency')}</span>
                         </div>
@@ -904,7 +927,7 @@ export default function Admin() {
                             setFormData({ ...formData, detailsList: newList });
                           }}
                           placeholder={language === 'ar' ? 'الميزة (مثال: الغرف)' : 'Key (e.g. Rooms)'}
-                          className="flex-1 border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                          className="flex-1 border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                         />
                         <input
                           type="text"
@@ -915,7 +938,7 @@ export default function Admin() {
                             setFormData({ ...formData, detailsList: newList });
                           }}
                           placeholder={language === 'ar' ? 'القيمة (مثال: 5)' : 'Value (e.g. 5)'}
-                          className="flex-1 border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                          className="flex-1 border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                         />
                         <button
                           type="button"
@@ -932,7 +955,7 @@ export default function Admin() {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, detailsList: [...formData.detailsList, { id: Math.random().toString(), key: '', value: '' }] })}
-                      className="text-yellow-600 font-bold flex items-center gap-2 hover:text-yellow-700 py-2"
+                      className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2"
                     >
                       <PlusCircle className="w-5 h-5" />
                       {language === 'ar' ? 'إضافة تفصيل جديد' : 'Add Detail'}
@@ -973,7 +996,7 @@ export default function Admin() {
                             setFormData({ ...formData, featuresList: newList });
                           }}
                           placeholder={language === 'ar' ? 'ميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'}
-                          className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors"
+                          className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                         />
                         <button
                           type="button"
@@ -990,7 +1013,7 @@ export default function Admin() {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, featuresList: [...formData.featuresList, { id: Math.random().toString(), value: '' }] })}
-                      className="text-yellow-600 font-bold flex items-center gap-2 hover:text-yellow-700 py-2"
+                      className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2"
                     >
                       <PlusCircle className="w-5 h-5" />
                       {language === 'ar' ? 'إضافة ميزة' : 'Add Feature'}
@@ -1000,7 +1023,7 @@ export default function Admin() {
 
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6">{language === 'ar' ? 'الوصف' : 'Description'}</h3>
-                  <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-gray-50 hover:bg-white focus:bg-white transition-colors resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
+                  <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 hover:bg-white focus:bg-white transition-colors resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
                 </div>
 
                 {/* Images Section */}
@@ -1094,7 +1117,7 @@ export default function Admin() {
                     return (
                     <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all group">
                       <span className="font-bold text-gray-800 text-sm truncate">{displayPath} <span className="text-gray-400 font-mono text-xs hidden sm:inline ml-2">({item.path})</span></span>
-                      <span className="font-bold text-yellow-700 bg-yellow-50 px-3 py-1 rounded-lg text-sm flex-shrink-0 group-hover:bg-yellow-100 transition-colors">{item._count.path} {language === 'ar' ? 'م' : 'v'}</span>
+                      <span className="font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg text-sm flex-shrink-0 group-hover:bg-yellow-100 transition-colors">{item._count.path} {language === 'ar' ? 'م' : 'v'}</span>
                     </div>
                   )})}
                   {analytics.pathsViews.length === 0 && <p className="text-gray-500">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>}
@@ -1401,7 +1424,7 @@ export default function Admin() {
                           )}
                           <div className="flex items-center gap-4 flex-wrap mt-3">
                             {slot.current ? (
-                              <div className="relative w-28 h-20 rounded-xl overflow-hidden border-2 border-yellow-300 bg-gray-200 flex-shrink-0">
+                              <div className="relative w-28 h-20 rounded-xl overflow-hidden border-2 border-primary bg-gray-200 flex-shrink-0">
                                 <img src={slot.current} alt="preview" className="w-full h-full object-cover" />
                                 <button
                                   type="button"
@@ -1461,17 +1484,17 @@ export default function Admin() {
                   <p className="text-sm text-gray-500 mb-6">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
                   <div className="space-y-4">
                     {[
-                      { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: '✉️' },
-                      { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: '📸' },
-                      { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: '🐦' },
-                      { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: '👤' },
-                      { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: '💼' },
-                      { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: '🎥' },
-                      { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: '🎵' },
+                      { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: <Mail className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: <IgIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: <XIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: <FbIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
+                      { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-gray-500 inline-block align-middle mr-1.5 ml-1.5" /> },
                     ].map(field => (
                       <div key={field.label}>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">
-                          <span className="mr-1">{field.icon}</span> {field.label}
+                        <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center">
+                          {field.icon} <span>{field.label}</span>
                         </label>
                         <input
                           type={field.type}
@@ -1630,8 +1653,12 @@ export default function Admin() {
             </form>
           </div>
         )}
-          </motion.div>
-        </AnimatePresence>
+
+        {activeTab === 'callbacks' && <AdminCallbacks />}
+        {activeTab === 'users' && <AdminUsers />}
+        {activeTab === 'logs' && <AdminLogs />}
+      </motion.div>
+    </AnimatePresence>
       </div>
     </div>
   );

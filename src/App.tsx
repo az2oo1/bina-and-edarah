@@ -68,6 +68,7 @@ function Navbar() {
   const [user, setUser] = useState<{username: string, role: string} | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const logoUrl = useLogoUrl();
+  const socialLinks = useSocialSettings();
 
   useEffect(() => {
     const checkUser = () => {
@@ -119,7 +120,9 @@ function Navbar() {
             </div>
           </div>
           
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-4">
+            <SocialIconsRow links={socialLinks} size="sm" />
+            <div className="h-4 w-px bg-border"></div>
             <button
               onClick={toggleLanguage}
               className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground border border-border hover:text-foreground hover:border-foreground transition-all flex items-center gap-1.5"
@@ -268,7 +271,7 @@ function Footer() {
 
           {/* Social Icons on Right */}
           <div className="flex items-center">
-            <SocialIconsRow links={socialLinks} size="xs" />
+            <SocialIconsRow links={socialLinks} size="sm" />
           </div>
         </div>
       </div>

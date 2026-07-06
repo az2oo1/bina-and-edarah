@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -43,9 +43,12 @@ model Service {
 }
 
 model Admin {
-  id       String @id @default(uuid())
-  username String @unique
-  password String // Hashed
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // Plain or Hashed
+  name      String   @default("Administrator")
+  role      String   @default("ADMIN") // ADMIN, MANAGER, AGENT
+  createdAt DateTime @default(now())
 }
 
 model User {
@@ -164,6 +167,28 @@ model CallbackRequest {
   email     String?
   phone     String
   message   String?
+  createdAt DateTime @default(now())
+  status    String   @default("PENDING") // PENDING, REPLIED_WHATSAPP, STILL_GOING, CLOSED
+  handledBy String?  // Name of the user who handled it
+  notes     CallbackNote[]
+}
+
+model CallbackNote {
+  id                String          @id @default(uuid())
+  callbackRequestId String
+  callbackRequest   CallbackRequest @relation(fields: [callbackRequestId], references: [id], onDelete: Cascade)
+  text              String          // HTML/Plain Text reply content
+  authorName        String          // Name of the user who replied
+  createdAt         DateTime        @default(now())
+}
+
+model ActionLog {
+  id        String   @id @default(uuid())
+  userId    String
+  userName  String
+  userRole  String
+  action    String   // ADD_PROPERTY, UPDATE_SETTINGS, etc.
+  details   String
   createdAt DateTime @default(now())
 }
 

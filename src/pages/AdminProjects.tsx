@@ -242,8 +242,8 @@ export default function AdminProjects() {
     <div className="min-h-[500px]">
       <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-yellow-50 rounded-full flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-yellow-600" />
+          <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
+            <Building2 className="w-6 h-6 text-primary" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
             {showAddForm ? (editingId ? (language === 'ar' ? 'تعديل مشروع' : 'Edit Project') : (language === 'ar' ? 'إضافة مشروع' : 'Add Project')) : (language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects')}
