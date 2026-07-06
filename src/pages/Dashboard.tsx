@@ -62,7 +62,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="bg-slate-50/50 min-h-screen py-10 text-foreground">
+    <div className="bg-background min-h-screen py-10 text-foreground">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight mb-1">
           {language === 'ar' ? `مرحباً بك، ${user.name}` : `Welcome back, ${user.name}`}
@@ -107,7 +107,7 @@ export default function Dashboard() {
         <h2 className="text-lg font-bold text-foreground mb-4">{t('nav.properties')}</h2>
         
         {properties.length === 0 ? (
-          <div className="text-center py-16 bg-white border border-border rounded-lg shadow-xs">
+          <div className="text-center py-16 bg-card border border-border rounded-lg shadow-xs">
             <PieChart className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
             <p className="text-sm font-medium text-muted-foreground">
               {language === 'ar' ? 'لا يوجد لديك عقارات حالياً.' : 'You have no properties at the moment.'}
@@ -127,10 +127,10 @@ export default function Dashboard() {
                     }}
                   />
                   <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4 flex flex-wrap gap-2">
-                    <span className="bg-white/90 backdrop-blur-xs text-foreground px-2 py-0.5 rounded text-[10px] font-semibold border border-border">
+                    <span className="bg-card/90 backdrop-blur-xs text-foreground px-2 py-0.5 rounded text-[10px] font-semibold border border-border">
                       {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                     </span>
-                    <span className="bg-white/90 backdrop-blur-xs text-foreground px-2 py-0.5 rounded text-[10px] font-semibold border border-border">
+                    <span className="bg-card/90 backdrop-blur-xs text-foreground px-2 py-0.5 rounded text-[10px] font-semibold border border-border">
                       {t(`cat.${property.propertyCategory || 'VILLA'}`)}
                     </span>
                   </div>
@@ -142,15 +142,15 @@ export default function Dashboard() {
                   </h3>
                   
                   <div className="grid grid-cols-3 gap-1.5 mt-2 mb-4">
-                    <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center">
+                    <div className="bg-background p-2 rounded border border-border flex flex-col items-center justify-center text-center">
                       <Maximize className="w-3.5 h-3.5 text-muted-foreground/60 mb-1" />
                       <span className="text-[10px] font-semibold text-foreground font-mono">{property.area || 0} {t('common.sqm')}</span>
                     </div>
-                    <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center">
+                    <div className="bg-background p-2 rounded border border-border flex flex-col items-center justify-center text-center">
                       <Building2 className="w-3.5 h-3.5 text-muted-foreground/60 mb-1" />
                       <span className="text-[10px] font-semibold text-foreground line-clamp-1">{t(`cat.${property.propertyCategory || 'VILLA'}`)}</span>
                     </div>
-                    <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center">
+                    <div className="bg-background p-2 rounded border border-border flex flex-col items-center justify-center text-center">
                       <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/60 mb-1" />
                       <span className="text-[10px] font-semibold text-foreground">{property.propertyAge ? property.propertyAge : (language === 'ar' ? 'جديد' : 'New')}</span>
                     </div>

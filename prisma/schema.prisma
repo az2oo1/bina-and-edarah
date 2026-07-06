@@ -158,3 +158,12 @@ model OtpSession {
   createdAt DateTime @default(now())
 }
 
+model CallbackRequest {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String
+  message   String?
+  createdAt DateTime @default(now())
+}
+

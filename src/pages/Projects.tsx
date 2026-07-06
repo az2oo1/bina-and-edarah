@@ -72,8 +72,8 @@ export default function Projects() {
   };
 
   return (
-    <div className="bg-slate-50/50 min-h-screen pb-16">
-      <div className="bg-primary text-white py-16 relative overflow-hidden">
+    <div className="bg-background min-h-screen pb-16">
+      <div className="bg-primary text-foreground py-16 relative overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop" 

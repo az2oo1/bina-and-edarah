@@ -1377,6 +1377,48 @@ async function startServer() {
     }
   });
 
+  // Callback Requests API
+  app.post("/api/callback-requests", async (req, res) => {
+    try {
+      const { name, email, phone, message } = req.body;
+      if (!name || !phone) {
+        return res.status(400).json({ error: "Name and phone number are required" });
+      }
+      const newRequest = await prisma.callbackRequest.create({
+        data: { name, email, phone, message }
+      });
+      res.status(201).json(newRequest);
+    } catch (error) {
+      logger.error("Failed to create callback request", error);
+      res.status(500).json({ error: "Failed to submit request" });
+    }
+  });
+
+  app.get("/api/callback-requests", adminAuthMiddleware, async (req, res) => {
+    try {
+      const requests = await prisma.callbackRequest.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(requests);
+    } catch (error) {
+      logger.error("Failed to fetch callback requests", error);
+      res.status(500).json({ error: "Failed to fetch requests" });
+    }
+  });
+
+  app.delete("/api/callback-requests/:id", adminAuthMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await prisma.callbackRequest.delete({
+        where: { id }
+      });
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Failed to delete callback request", error);
+      res.status(500).json({ error: "Failed to delete request" });
+    }
+  });
+
   app.get("/api/analytics", adminAuthMiddleware, async (req, res) => {
     try {
       const totalViews = await prisma.pageView.count();

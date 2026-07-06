@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 
 import AdminProjects from './AdminProjects';
+import AdminCallbacks from './AdminCallbacks';
 import AdminBuildings from './AdminBuildings';
 import AdminRenters from './AdminRenters';
 import AdminReceipts from './AdminReceipts';
@@ -81,7 +82,7 @@ export default function Admin() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'analytics' | 'settings'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'analytics' | 'settings' | 'callbacks'>('manage');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -414,7 +415,8 @@ export default function Admin() {
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ معلومات التواصل الاجتماعي بنجاح!' : 'Social media info saved!');
         } else {
-          alert(language === 'ar' ? 'فشل الحفظ.' : 'Save failed.');
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.error || (language === 'ar' ? 'فشل الحفظ.' : 'Save failed.'));
         }
       } else if (activeSettingsSection === 'images') {
         // Save images settings
@@ -430,7 +432,8 @@ export default function Admin() {
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ الصور بنجاح! أعد تحميل الصفحة الرئيسية لرؤية التغييرات.' : 'Images saved! Reload the home page to see changes.');
         } else {
-          alert(language === 'ar' ? 'فشل حفظ الصور.' : 'Failed to save images.');
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.error || (language === 'ar' ? 'فشل حفظ الصور.' : 'Failed to save images.'));
         }
       } else {
         // Validate JSON payload before sending
@@ -452,7 +455,8 @@ export default function Admin() {
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ الإعدادات!' : 'Settings saved!');
         } else {
-          alert(language === 'ar' ? 'فشل حفظ الإعدادات.' : 'Failed to save settings.');
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.error || (language === 'ar' ? 'فشل حفظ الإعدادات.' : 'Failed to save settings.'));
         }
       }
     } catch (err) {
@@ -556,6 +560,16 @@ export default function Admin() {
             }`}
           >
             {t('admin.settings')}
+          </button>
+          <button 
+            onClick={() => setActiveTab('callbacks')}
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'callbacks' 
+                ? 'bg-white text-foreground shadow-xs' 
+                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+            }`}
+          >
+            {language === 'ar' ? 'طلبات التواصل' : 'Callbacks'}
           </button>
         </div>
 

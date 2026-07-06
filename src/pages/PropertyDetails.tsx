@@ -29,16 +29,16 @@ interface Property {
 
 const getDetailIcon = (key: string) => {
   const lowerKey = key.toLowerCase();
-  if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) return <Compass className="w-5 h-5 text-gray-400" />;
-  if (lowerKey.includes('شارع') || lowerKey.includes('street')) return <Ruler className="w-5 h-5 text-gray-400" />;
-  if (lowerKey.includes('غرف النوم') || lowerKey.includes('bedroom')) return <BedDouble className="w-5 h-5 text-gray-400" />;
-  if (lowerKey.includes('غرف') || lowerKey.includes('room')) return <DoorOpen className="w-5 h-5 text-gray-400" />;
-  if (lowerKey.includes('صالة') || lowerKey.includes('صالات') || lowerKey.includes('hall')) return <Armchair className="w-5 h-5 text-gray-400" />;
-  if (lowerKey.includes('مياه') || lowerKey.includes('حمام') || lowerKey.includes('bathroom') || lowerKey.includes('دورات')) return <Bath className="w-5 h-5 text-gray-400" />;
-  if (lowerKey.includes('دور') || lowerKey.includes('floor')) return <Layers className="w-5 h-5 text-gray-400" />;
-  if (lowerKey.includes('عمر') || lowerKey.includes('age')) return <CalendarDays className="w-5 h-5 text-gray-400" />;
-  if (lowerKey.includes('فئة') || lowerKey.includes('category')) return <Users className="w-5 h-5 text-gray-400" />;
-  return <Info className="w-5 h-5 text-gray-400" />;
+  if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) return <Compass className="w-5 h-5 text-muted-foreground" />;
+  if (lowerKey.includes('شارع') || lowerKey.includes('street')) return <Ruler className="w-5 h-5 text-muted-foreground" />;
+  if (lowerKey.includes('غرف النوم') || lowerKey.includes('bedroom')) return <BedDouble className="w-5 h-5 text-muted-foreground" />;
+  if (lowerKey.includes('غرف') || lowerKey.includes('room')) return <DoorOpen className="w-5 h-5 text-muted-foreground" />;
+  if (lowerKey.includes('صالة') || lowerKey.includes('صالات') || lowerKey.includes('hall')) return <Armchair className="w-5 h-5 text-muted-foreground" />;
+  if (lowerKey.includes('مياه') || lowerKey.includes('حمام') || lowerKey.includes('bathroom') || lowerKey.includes('دورات')) return <Bath className="w-5 h-5 text-muted-foreground" />;
+  if (lowerKey.includes('دور') || lowerKey.includes('floor')) return <Layers className="w-5 h-5 text-muted-foreground" />;
+  if (lowerKey.includes('عمر') || lowerKey.includes('age')) return <CalendarDays className="w-5 h-5 text-muted-foreground" />;
+  if (lowerKey.includes('فئة') || lowerKey.includes('category')) return <Users className="w-5 h-5 text-muted-foreground" />;
+  return <Info className="w-5 h-5 text-muted-foreground" />;
 };
 
 export default function PropertyDetails() {
@@ -98,7 +98,7 @@ export default function PropertyDetails() {
 
   if (!property) {
     return (
-      <div className="text-center py-20 text-gray-500">
+      <div className="text-center py-20 text-muted-foreground">
         <p className="text-xl">Property not found.</p>
         <Link to="/properties" className="text-yellow-600 mt-4 inline-block hover:underline">
           Back to Properties
@@ -108,7 +108,7 @@ export default function PropertyDetails() {
   }
 
   return (
-    <div className="bg-slate-50/50 min-h-screen py-10" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="bg-background min-h-screen py-10" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Back Link */}
@@ -174,7 +174,7 @@ export default function PropertyDetails() {
                   <h2 className="text-lg font-bold text-foreground tracking-tight mb-4">{t('common.features')}</h2>
                   <div className="flex flex-wrap gap-2">
                     {property.features.split(',').map((feature, idx) => (
-                      <span key={idx} className="flex items-center gap-1.5 bg-slate-50 border border-border text-foreground px-2.5 py-1.5 rounded-md text-xs font-medium">
+                      <span key={idx} className="flex items-center gap-1.5 bg-background border border-border text-foreground px-2.5 py-1.5 rounded-md text-xs font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
                         {feature.trim()}
                       </span>
@@ -210,7 +210,7 @@ export default function PropertyDetails() {
                     )}
                   </div>
                 )}
-                <div className="space-y-2.5 p-4 bg-slate-50/50 rounded-lg border border-border">
+                <div className="space-y-2.5 p-4 bg-background rounded-lg border border-border">
                   <p className="text-xs font-bold text-muted-foreground mb-0.5">{language === 'ar' ? 'التفاصيل المالية' : 'Financial Breakdown'}</p>
                   
                   <div className="flex justify-between items-center text-xs font-medium">
@@ -261,7 +261,7 @@ export default function PropertyDetails() {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center rounded-md text-xs font-medium bg-[#25D366] text-white hover:bg-[#22bf5b] h-9 px-4 py-2 shadow-xs transition-colors cursor-pointer"
+                  className="w-full inline-flex items-center justify-center rounded-md text-xs font-medium bg-[#25D366] text-foreground hover:bg-[#22bf5b] h-9 px-4 py-2 shadow-xs transition-colors cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                   {t('common.whatsapp')}
@@ -275,7 +275,7 @@ export default function PropertyDetails() {
                       href={property.locationLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center justify-between border border-border rounded-md px-4 py-2 text-xs font-semibold hover:bg-slate-50 shadow-xs transition-colors"
+                      className="w-full flex items-center justify-between border border-border rounded-md px-4 py-2 text-xs font-semibold hover:bg-background shadow-xs transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-muted-foreground/80" />
@@ -290,7 +290,7 @@ export default function PropertyDetails() {
                       href={property.aqarLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center justify-between border border-border rounded-md px-4 py-2 text-xs font-semibold hover:bg-slate-50 shadow-xs transition-colors"
+                      className="w-full flex items-center justify-between border border-border rounded-md px-4 py-2 text-xs font-semibold hover:bg-background shadow-xs transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <img src="https://assets.aqar.fm/icons/v2/aqar-vertical-logo.svg" alt="Aqar" className="h-4 object-contain grayscale opacity-70" />
@@ -311,8 +311,8 @@ export default function PropertyDetails() {
               
               {/* Specs Grid (Device Specs Style) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="flex items-center gap-3.5 p-3 rounded-lg bg-slate-50/50 border border-border transition-colors">
-                  <div className="p-2 bg-white rounded border border-border text-primary shadow-xs">
+                <div className="flex items-center gap-3.5 p-3 rounded-lg bg-background border border-border transition-colors">
+                  <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
                     <Building2 className="w-4 h-4" />
                   </div>
                   <div>
@@ -322,8 +322,8 @@ export default function PropertyDetails() {
                 </div>
 
                 {property.area > 0 && (
-                  <div className="flex items-center gap-3.5 p-3 rounded-lg bg-slate-50/50 border border-border transition-colors">
-                    <div className="p-2 bg-white rounded border border-border text-primary shadow-xs">
+                  <div className="flex items-center gap-3.5 p-3 rounded-lg bg-background border border-border transition-colors">
+                    <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
                       <Maximize className="w-4 h-4" />
                     </div>
                     <div>
@@ -334,8 +334,8 @@ export default function PropertyDetails() {
                 )}
 
                 {property.propertyAge > 0 && (
-                  <div className="flex items-center gap-3.5 p-3 rounded-lg bg-slate-50/50 border border-border transition-colors">
-                    <div className="p-2 bg-white rounded border border-border text-primary shadow-xs">
+                  <div className="flex items-center gap-3.5 p-3 rounded-lg bg-background border border-border transition-colors">
+                    <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
                       <CalendarDays className="w-4 h-4" />
                     </div>
                     <div>
@@ -346,8 +346,8 @@ export default function PropertyDetails() {
                 )}
 
                 {property.locationText && (
-                  <div className="flex items-center gap-3.5 p-3 rounded-lg bg-slate-50/50 border border-border transition-colors">
-                    <div className="p-2 bg-white rounded border border-border text-primary shadow-xs">
+                  <div className="flex items-center gap-3.5 p-3 rounded-lg bg-background border border-border transition-colors">
+                    <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
                       <MapPin className="w-4 h-4" />
                     </div>
                     <div>
@@ -362,8 +362,8 @@ export default function PropertyDetails() {
                   try {
                     const parsed = JSON.parse(property.details);
                     return parsed.map((item: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-3.5 p-3 rounded-lg bg-slate-50/50 border border-border transition-colors">
-                        <div className="p-2 bg-white rounded border border-border text-primary shadow-xs">
+                      <div key={idx} className="flex items-center gap-3.5 p-3 rounded-lg bg-background border border-border transition-colors">
+                        <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
                           {getDetailIcon(item.key)}
                         </div>
                         <div>

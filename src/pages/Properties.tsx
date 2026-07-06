@@ -74,7 +74,7 @@ export default function Properties() {
   });
 
   return (
-    <div className="bg-slate-50/50 min-h-screen py-12">
+    <div className="bg-background min-h-screen py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-4">{t('nav.properties')}</h1>
@@ -90,7 +90,7 @@ export default function Properties() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : properties.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-lg shadow-xs border border-border">
+          <div className="text-center py-20 bg-card rounded-lg shadow-xs border border-border">
             <MapPin className="w-12 h-12 text-muted-foreground/60 mx-auto mb-4" />
             <p className="text-lg font-medium text-muted-foreground">
               {t('admin.propertiesEmpty')}
@@ -99,7 +99,7 @@ export default function Properties() {
         ) : (
           <>
             {/* Filters */}
-            <div className="bg-white p-5 rounded-lg shadow-xs border border-border mb-8">
+            <div className="bg-card p-5 rounded-lg shadow-xs border border-border mb-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
                 <input
                   type="text"
@@ -156,8 +156,8 @@ export default function Properties() {
             </div>
 
             {filteredProperties.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-lg shadow-xs border border-border flex flex-col items-center justify-center">
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+              <div className="text-center py-20 bg-card rounded-lg shadow-xs border border-border flex flex-col items-center justify-center">
+                <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mb-4">
                   <MapPin className="w-8 h-8 text-muted-foreground/60" />
                 </div>
                 <p className="text-xl font-bold text-foreground mb-1">
@@ -195,10 +195,10 @@ export default function Properties() {
                         }}
                       />
                       <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 flex flex-wrap gap-1.5">
-                        <span className="bg-white/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
+                        <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
                           {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                         </span>
-                        <span className="bg-white/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
+                        <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
                           {t(`cat.${property.propertyCategory || 'VILLA'}`)}
                         </span>
                       </div>
@@ -210,15 +210,15 @@ export default function Properties() {
                       </h3>
                       
                       <div className="grid grid-cols-3 gap-2 mt-3 mb-4">
-                        <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center transition-colors">
+                        <div className="bg-background p-2 rounded border border-border flex flex-col items-center justify-center text-center transition-colors">
                           <Maximize className="w-3.5 h-3.5 text-muted-foreground/80 mb-1" />
                           <span className="text-[10px] font-semibold text-foreground font-mono">{property.area || 0} {t('common.sqm')}</span>
                         </div>
-                        <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center transition-colors">
+                        <div className="bg-background p-2 rounded border border-border flex flex-col items-center justify-center text-center transition-colors">
                           <Building2 className="w-3.5 h-3.5 text-muted-foreground/80 mb-1" />
                           <span className="text-[10px] font-semibold text-foreground line-clamp-1">{t(`cat.${property.propertyCategory || 'VILLA'}`)}</span>
                         </div>
-                        <div className="bg-slate-50/50 p-2 rounded border border-border flex flex-col items-center justify-center text-center transition-colors">
+                        <div className="bg-background p-2 rounded border border-border flex flex-col items-center justify-center text-center transition-colors">
                           <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/80 mb-1" />
                           <span className="text-[10px] font-semibold text-foreground">{property.propertyAge ? property.propertyAge : (language === 'ar' ? 'جديد' : 'New')}</span>
                         </div>
@@ -246,6 +246,35 @@ export default function Properties() {
             )}
           </>
         )}
+
+        {/* OpenStreetMap Section */}
+        <div className="mt-16 border-t border-border pt-12">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">
+              {language === 'ar' ? 'خارطة مواقع العقارات' : 'Properties Location Map'}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-2 max-w-md mx-auto leading-relaxed">
+              {language === 'ar' 
+                ? 'خارطة تفاعلية توضح التوزع الجغرافي لعقاراتنا المتاحة للبيع أو الإيجار في أرقى أحياء الرياض.' 
+                : 'An interactive map demonstrating the spatial distribution of our premier properties available for sale or rent.'}
+            </p>
+          </div>
+
+          <div className="bg-card p-2.5 border border-border rounded-xl shadow-xs overflow-hidden h-[400px]">
+            <iframe 
+              title="OpenStreetMap"
+              width="100%" 
+              height="100%" 
+              frameBorder="0" 
+              scrolling="no" 
+              marginHeight={0} 
+              marginWidth={0} 
+              src="https://www.openstreetmap.org/export/embed.html?bbox=46.5414%2C24.6224%2C46.8524%2C24.8934&amp;layer=mapnik"
+              style={{ border: 0, borderRadius: '8px' }}
+            ></iframe>
+          </div>
+        </div>
+
       </div>
     </div>
   );

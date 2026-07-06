@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router';
-import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut } from 'lucide-react';
+import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
 import { Logo } from './components/Logo';
 import { SocialIconsRow, SocialLinks } from './components/SocialIcons';
@@ -12,6 +12,7 @@ import PropertyDetails from './pages/PropertyDetails';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Contact from './pages/Contact';
 
 function useLogoUrl() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -65,6 +66,7 @@ function Navbar() {
   const { language, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const [user, setUser] = useState<{username: string, role: string} | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const logoUrl = useLogoUrl();
 
   useEffect(() => {
@@ -87,69 +89,158 @@ function Navbar() {
     setUser(null);
     navigate('/');
     window.dispatchEvent(new Event('storage'));
+    setIsOpen(false);
   };
 
   return (
-    <nav style={{ backgroundColor: '#1e3448' }} className="shadow-lg sticky top-0 z-50">
+    <nav className="bg-card/95 border-b border-border shadow-md sticky top-0 z-50 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20">
+        <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center gap-3 mr-8 sm:rtl:ml-8 sm:rtl:mr-0 group">
-              {/* White pill behind logo so it pops on any bg */}
-              <div className="bg-white rounded-xl p-1.5 shadow-md flex-shrink-0">
-                <Logo className="h-11 w-11" logoUrl={logoUrl} />
+            <Link to="/" className="flex-shrink-0 flex items-center gap-2 mr-6 sm:rtl:ml-6 sm:rtl:mr-0 group">
+              <div className="bg-white rounded-lg p-1 shadow-md flex-shrink-0">
+                <Logo className="h-8 w-8" logoUrl={logoUrl} />
               </div>
-              <span className="font-bold text-xl text-white tracking-wide hidden sm:block">{t('hero.title')}</span>
+              <span className="font-bold text-base text-foreground tracking-wide hidden md:block">{t('hero.title')}</span>
             </Link>
-            <div className="hidden sm:flex items-center gap-8 lg:gap-14">
-              <Link to="/" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-yellow-400 text-sm font-medium text-blue-100 hover:text-white transition-colors">
+            <div className="hidden sm:flex items-center gap-6 lg:gap-10">
+              <Link to="/" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.home')}
               </Link>
-              <Link to="/projects" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-yellow-400 text-sm font-medium text-blue-100 hover:text-white transition-colors">
+              <Link to="/projects" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.projects')}
               </Link>
-              <Link to="/properties" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-yellow-400 text-sm font-medium text-blue-100 hover:text-white transition-colors">
+              <Link to="/properties" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.properties')}
+              </Link>
+              <Link to="/contact" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                {language === 'ar' ? 'اتصل بنا' : 'Contact Us'}
               </Link>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          
+          <div className="hidden sm:flex items-center gap-3">
             <button
               onClick={toggleLanguage}
-              className="px-4 py-2 rounded-full text-sm font-medium text-blue-200 border border-blue-600 hover:text-white hover:border-white transition-all flex items-center gap-2"
+              className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground border border-border hover:text-foreground hover:border-foreground transition-all flex items-center gap-1.5"
             >
-              <Globe className="h-4 w-4" />
-              <span className="hidden sm:inline">{language === 'ar' ? 'English' : 'العربية'}</span>
+              <Globe className="h-3.5 w-3.5" />
+              <span>{language === 'ar' ? 'English' : 'العربية'}</span>
             </button>
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Link 
                   to={user.role === 'ADMIN' ? '/admin' : user.role === 'RENTER' ? '/login' : '/dashboard'} 
-                  className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-full transition-colors flex items-center gap-2 shadow-md"
+                  className="px-3.5 py-1.5 bg-primary hover:opacity-90 text-primary-foreground font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-md"
                 >
-                  <UserCircle className="w-5 h-5" />
-                  <span className="hidden sm:inline">{user.role === 'ADMIN' ? t('nav.admin') : user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.dashboard')}</span>
+                  <UserCircle className="w-4 h-4" />
+                  <span>{user.role === 'ADMIN' ? t('nav.admin') : user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.dashboard')}</span>
                 </Link>
                 <button 
                   onClick={handleLogout}
-                  className="p-2 text-blue-300 hover:text-white transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                   title={language === 'ar' ? 'تسجيل خروج' : 'Logout'}
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4.5 h-4.5" />
                 </button>
               </div>
             ) : (
               <Link 
                 to="/login" 
-                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-full transition-colors flex items-center gap-2 shadow-md"
+                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-md"
               >
-                <UserCircle className="w-5 h-5" />
-                <span className="hidden sm:inline">{t('nav.login')}</span>
+                <UserCircle className="w-4 h-4" />
+                <span>{t('nav.login')}</span>
+              </Link>
+            )}
+          </div>
+
+          {/* Hamburger Menu Toggle (Mobile) */}
+          <div className="flex sm:hidden items-center">
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-slate-400 hover:text-white focus:outline-none p-1.5"
+            >
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Dropdown Panel */}
+      {isOpen && (
+        <div className="sm:hidden bg-card border-t border-border px-4 py-4 space-y-3">
+          <Link 
+            to="/" 
+            onClick={() => setIsOpen(false)}
+            className="block text-muted-foreground hover:text-foreground text-xs font-semibold py-1 border-b border-border/5"
+          >
+            {t('nav.home')}
+          </Link>
+          <Link 
+            to="/projects" 
+            onClick={() => setIsOpen(false)}
+            className="block text-muted-foreground hover:text-foreground text-xs font-semibold py-1 border-b border-border/5"
+          >
+            {t('nav.projects')}
+          </Link>
+          <Link 
+            to="/properties" 
+            onClick={() => setIsOpen(false)}
+            className="block text-muted-foreground hover:text-foreground text-xs font-semibold py-1 border-b border-border/5"
+          >
+            {t('nav.properties')}
+          </Link>
+          <Link 
+            to="/contact" 
+            onClick={() => setIsOpen(false)}
+            className="block text-muted-foreground hover:text-foreground text-xs font-semibold py-1 border-b border-border/5"
+          >
+            {language === 'ar' ? 'اتصل بنا' : 'Contact Us'}
+          </Link>
+          
+          <div className="pt-2 flex flex-col gap-3">
+            <button
+              onClick={() => {
+                toggleLanguage();
+                setIsOpen(false);
+              }}
+              className="w-full px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground border border-border hover:text-foreground hover:border-foreground transition-all flex items-center justify-center gap-1.5"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              <span>{language === 'ar' ? 'English' : 'العربية'}</span>
+            </button>
+            {user ? (
+              <div className="flex flex-col gap-2">
+                <Link 
+                  to={user.role === 'ADMIN' ? '/admin' : user.role === 'RENTER' ? '/login' : '/dashboard'} 
+                  onClick={() => setIsOpen(false)}
+                  className="w-full py-2 bg-primary hover:opacity-90 text-primary-foreground font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-md"
+                >
+                  <UserCircle className="w-4 h-4" />
+                  <span>{user.role === 'ADMIN' ? t('nav.admin') : user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.dashboard')}</span>
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="w-full py-2 bg-muted hover:bg-muted/80 text-muted-foreground rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>{language === 'ar' ? 'تسجيل الخروج' : 'Logout'}</span>
+                </button>
+              </div>
+            ) : (
+              <Link 
+                to="/login" 
+                onClick={() => setIsOpen(false)}
+                className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <UserCircle className="w-4 h-4" />
+                <span>{t('nav.login')}</span>
               </Link>
             )}
           </div>
         </div>
-      </div>
+      )}
     </nav>
   );
 }
@@ -159,13 +250,27 @@ function Footer() {
   const logoUrl = useLogoUrl();
   const socialLinks = useSocialSettings();
   return (
-    <footer style={{ backgroundColor: '#1e3448' }} className="border-t border-blue-900 py-10 text-center text-blue-200">
-      <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-5">
-        <div className="bg-white rounded-xl p-2 opacity-80">
-          <Logo className="h-8 w-8" logoUrl={logoUrl} />
+    <footer className="bg-card border-t border-border py-4 text-muted-foreground text-xs">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          {/* Logo & Name */}
+          <div className="flex items-center gap-2">
+            <div className="bg-white rounded-lg p-1 shadow-md">
+              <Logo className="h-6 w-6" logoUrl={logoUrl} />
+            </div>
+            <span className="font-bold text-foreground text-xs select-none">{language === 'ar' ? 'بناء وإدارة' : 'Benaa & Edara'}</span>
+          </div>
+
+          {/* Copyright in Center */}
+          <div className="text-center md:text-center text-[10px] sm:text-xs">
+            &copy; {new Date().getFullYear()} {language === 'ar' ? 'بناء وإدارة العقارية. جميع الحقوق محفوظة.' : 'Benaa and Edara Real Estate. All rights reserved.'}
+          </div>
+
+          {/* Social Icons on Right */}
+          <div className="flex items-center">
+            <SocialIconsRow links={socialLinks} size="xs" />
+          </div>
         </div>
-        <SocialIconsRow links={socialLinks} size="sm" />
-        <p className="text-xs opacity-70">&copy; {new Date().getFullYear()} {language === 'ar' ? 'بناء وإدارة العقارية. جميع الحقوق محفوظة.' : 'Benaa and Edara Real Estate. All rights reserved.'}</p>
       </div>
     </footer>
   );
@@ -199,7 +304,7 @@ export default function App() {
     <LanguageProvider>
       <BrowserRouter>
         <PageTracker />
-        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 flex flex-col">
+        <div className="dark min-h-screen bg-background font-sans text-foreground flex flex-col">
           <Navbar />
           <main className="flex-grow">
             <Routes>
@@ -211,6 +316,7 @@ export default function App() {
               <Route path="/admin" element={<Admin />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/contact" element={<Contact />} />
             </Routes>
           </main>
           <Footer />
