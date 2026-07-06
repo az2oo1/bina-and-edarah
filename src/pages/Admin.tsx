@@ -1204,22 +1204,22 @@ export default function Admin() {
             </div>
             
             <div className="flex bg-muted p-1 rounded-xl mb-6 flex-wrap gap-1">
-              <button onClick={() => setActiveSettingsSection('whatsapp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'whatsapp' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => setActiveSettingsSection('whatsapp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'whatsapp' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'الواتساب' : 'WhatsApp'}
               </button>
-              <button onClick={() => setActiveSettingsSection('otp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'otp' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => setActiveSettingsSection('otp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'otp' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'رمز تحقق' : 'OTP'}
               </button>
-              <button onClick={() => setActiveSettingsSection('social')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'social' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => setActiveSettingsSection('social')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'social' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'سوشيال' : 'Social'}
               </button>
-              <button onClick={() => setActiveSettingsSection('images')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'images' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => setActiveSettingsSection('images')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'images' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'صور' : 'Images'}
               </button>
-              <button onClick={() => setActiveSettingsSection('backup')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'backup' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => setActiveSettingsSection('backup')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'backup' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'نسخة احتياطية' : 'Backup'}
               </button>
-              <button onClick={() => setActiveSettingsSection('account')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'account' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => setActiveSettingsSection('account')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'account' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'حساب' : 'Account'}
               </button>
             </div>
@@ -1241,7 +1241,7 @@ export default function Admin() {
                           type="text"
                           value={whatsappNumber}
                           onChange={(e) => setWhatsappNumber(e.target.value)}
-                          className="w-full border border-border rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-foreground"
+                          className="cn-input font-mono pl-12 pr-12 h-12 bg-background"
                           placeholder="966500000000"
                           dir="ltr"
                         />
@@ -1279,7 +1279,7 @@ export default function Admin() {
                           type="text"
                           value={callingNumber}
                           onChange={(e) => setCallingNumber(e.target.value)}
-                          className="w-full border border-border rounded-xl py-3 px-12 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-foreground"
+                          className="cn-input font-mono pl-12 pr-12 h-12 bg-background"
                           placeholder="966500000000"
                           dir="ltr"
                         />
@@ -1563,7 +1563,7 @@ export default function Admin() {
                           type={field.type}
                           value={field.value}
                           onChange={e => field.setter(e.target.value)}
-                          className="w-full border border-border rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all text-foreground text-sm"
+                          className="cn-input text-sm h-11 bg-background"
                           placeholder={field.placeholder}
                           dir="ltr"
                         />
@@ -1681,7 +1681,7 @@ export default function Admin() {
                         type="text"
                         value={adminUsername}
                         onChange={(e) => setAdminUsername(e.target.value)}
-                        className="w-full border border-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-foreground"
+                        className="cn-input font-mono pl-4 pr-4 h-12 bg-background"
                         placeholder="admin"
                         dir="ltr"
                       />
@@ -1694,7 +1694,7 @@ export default function Admin() {
                         type="password"
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
-                        className="w-full border border-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-foreground"
+                        className="cn-input font-mono pl-4 pr-4 h-12 bg-background"
                         placeholder="********"
                         dir="ltr"
                       />

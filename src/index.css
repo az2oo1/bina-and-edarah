@@ -519,3 +519,12 @@
   font-size: 0.75rem;
   color: var(--muted-foreground);
 }
+
+/* Custom Global Overrides to force standard variable resolution in dark mode */
+.bg-card { background-color: var(--card) !important; }
+.bg-muted { background-color: var(--muted) !important; }
+.bg-background { background-color: var(--background) !important; }
+.border-border { border-color: var(--border) !important; }
+.text-foreground { color: var(--foreground) !important; }
+.text-muted-foreground { color: var(--muted-foreground) !important; }
+.shadcn-card { background-color: var(--card) !important; border-color: var(--border) !important; color: var(--foreground) !important; }
