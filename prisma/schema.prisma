@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -98,6 +98,15 @@ model Settings {
   tiktokUrl          String?
   snapchatUrl        String?
   notificationEmail  String?
+  // Custom SMTP settings
+  smtpHost           String?
+  smtpPort           Int?
+  smtpUser           String?
+  smtpPass           String?
+  smtpFrom           String?
+  // Custom Open-Source Analytics
+  analyticsScript    String?
+  analyticsDashboardUrl String?
 }
 
 model PageView {

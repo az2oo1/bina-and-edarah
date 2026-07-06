@@ -67,14 +67,14 @@ async function sendCallbackEmailNotification(subject: string, htmlContent: strin
       return;
     }
 
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT) || 587;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || "no-reply@benaa-edara.com";
+    const host = settings?.smtpHost || process.env.SMTP_HOST;
+    const port = settings?.smtpPort || Number(process.env.SMTP_PORT) || 587;
+    const user = settings?.smtpUser || process.env.SMTP_USER;
+    const pass = settings?.smtpPass || process.env.SMTP_PASS;
+    const from = settings?.smtpFrom || process.env.SMTP_FROM || "no-reply@benaa-edara.com";
 
     if (!host || !user || !pass) {
-      logger.warn(`[EMAIL PING WARNING] SMTP credentials not set in environment variables. Set SMTP_HOST, SMTP_USER, SMTP_PASS to send real emails.`);
+      logger.warn(`[EMAIL PING WARNING] SMTP credentials not set in settings or environment. Set in Settings tab or env variables SMTP_HOST, SMTP_USER, SMTP_PASS to send real emails.`);
       logger.info(`[EMAIL PING MOCK] Email ping sent to: ${toEmail}\nSubject: ${subject}\nContent:\n${htmlContent}`);
       return;
     }
@@ -213,6 +213,24 @@ function adminAuthMiddleware(req: any, res: any, next: any) {
 }
 
 async function startServer() {
+  // Seed default admin if none exists in DB
+  try {
+    const adminCount = await prisma.admin.count();
+    if (adminCount === 0) {
+      await prisma.admin.create({
+        data: {
+          username: "admin",
+          password: "admin",
+          name: "Administrator",
+          role: "ADMIN"
+        }
+      });
+      logger.info("[DB] Seeded default admin account (username: admin, password: admin)");
+    }
+  } catch (err) {
+    logger.error("Failed to seed default admin on startup", err);
+  }
+
   const app = express();
   const PORT = 3000;
 
@@ -1081,7 +1099,11 @@ async function startServer() {
   });
   app.post("/api/settings", adminAuthMiddleware, async (req, res) => {
     try {
-      const { whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, notificationEmail } = req.body;
+      const { 
+        whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, 
+        homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, 
+        notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, analyticsScript, analyticsDashboardUrl 
+      } = req.body;
       
       // Ensure global settings row exists
       let settings = await prisma.settings.findUnique({ where: { id: "global" } });
@@ -1128,6 +1150,18 @@ async function startServer() {
       if (tiktokUrl !== undefined) updateData.tiktokUrl = tiktokUrl;
       if (snapchatUrl !== undefined) updateData.snapchatUrl = snapchatUrl;
       if (notificationEmail !== undefined) updateData.notificationEmail = notificationEmail;
+
+      // Custom SMTP fields
+      if (smtpHost !== undefined) updateData.smtpHost = smtpHost;
+      if (smtpPort !== undefined) updateData.smtpPort = smtpPort ? Number(smtpPort) : null;
+      if (smtpUser !== undefined) updateData.smtpUser = smtpUser;
+      if (smtpPass !== undefined) updateData.smtpPass = smtpPass;
+      if (smtpFrom !== undefined) updateData.smtpFrom = smtpFrom;
+
+      // Custom Analytics fields
+      if (analyticsScript !== undefined) updateData.analyticsScript = analyticsScript;
+      if (analyticsDashboardUrl !== undefined) updateData.analyticsDashboardUrl = analyticsDashboardUrl;
+
       const updated = await prisma.settings.update({
         where: { id: "global" },
         data: updateData

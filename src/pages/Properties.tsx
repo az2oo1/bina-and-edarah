@@ -17,6 +17,8 @@ interface Property {
   area: number;
   propertyAge?: number;
   vat?: number;
+  vatExempt?: boolean;
+  locationText?: string;
 }
 
 export default function Properties() {
@@ -208,6 +210,12 @@ export default function Properties() {
                       <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
                         {language === 'ar' ? property.titleAr : property.titleEn}
                       </h3>
+                      {property.locationText && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2 font-medium">
+                          <MapPin className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
+                          <span className="truncate">{property.locationText}</span>
+                        </p>
+                      )}
                       
                       <div className="grid grid-cols-3 gap-2 mt-3 mb-4">
                         <div className="bg-background p-2 rounded border border-border flex flex-col items-center justify-center text-center transition-colors">
@@ -231,13 +239,19 @@ export default function Properties() {
                             {(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()} <SrIcon className="w-5 h-5 text-primary" />
                           </p>
                         </div>
-                        {property.vat && property.vat > 0 ? (
+                        {property.vatExempt ? (
+                          <div className="text-right">
+                             <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-semibold">
+                               <Coins className="w-3 h-3 text-amber-600" /> {language === 'ar' ? 'معفى من الضريبة' : 'VAT Exempt'}
+                             </span>
+                          </div>
+                        ) : (property.vat && property.vat > 0 ? (
                           <div className="text-right">
                              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded text-[9px] font-semibold border border-primary/20">
                                <Coins className="w-3 h-3" /> {language === 'ar' ? 'شامل الضريبة' : 'VAT Included'}
                              </span>
                           </div>
-                        ) : null}
+                        ) : null)}
                       </div>
                     </div>
                   </Link>

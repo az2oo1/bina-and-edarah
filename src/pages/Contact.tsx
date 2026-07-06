@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { Phone, Mail, MessageSquare, MapPin, Send, CheckCircle2 } from 'lucide-react';
 
@@ -10,6 +10,14 @@ export default function Contact() {
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setSettings(data))
+      .catch(console.error);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +84,8 @@ export default function Contact() {
                 <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
                   {language === 'ar' ? 'تواصل معنا هاتفياً للاستفسارات السريعة:' : 'Call us directly for instant inquiries:'}
                 </p>
-                <a href="tel:966500000000" dir="ltr" className="text-sm font-semibold text-foreground hover:text-primary transition-colors inline-block">
-                  +966 50 000 0000
+                <a href={`tel:${(settings?.callingNumber || '966500000000').replace(/\+/g, '').replace(/\s/g, '')}`} dir="ltr" className="text-sm font-semibold text-foreground hover:text-primary transition-colors inline-block">
+                  +{settings?.callingNumber || '966500000000'}
                 </a>
               </div>
             </div>
@@ -94,8 +102,8 @@ export default function Contact() {
                 <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
                   {language === 'ar' ? 'أرسل لنا متطلباتك العقارية:' : 'Email your requirements to us:'}
                 </p>
-                <a href="mailto:info@bina-edarah.com" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
-                  info@bina-edarah.com
+                <a href={`mailto:${settings?.email || 'info@bina-edarah.com'}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
+                  {settings?.email || 'info@bina-edarah.com'}
                 </a>
               </div>
             </div>
@@ -112,8 +120,8 @@ export default function Contact() {
                 <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
                   {language === 'ar' ? 'متاحون على مدار الساعة لخدمتكم:' : 'Available 24/7 to assist you:'}
                 </p>
-                <a href="https://wa.me/966500000000" target="_blank" rel="noopener noreferrer" dir="ltr" className="text-sm font-semibold text-foreground hover:text-primary transition-colors inline-block">
-                  +966 50 000 0000
+                <a href={`https://wa.me/${(settings?.whatsappNumber || '966500000000').replace(/\+/g, '').replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" dir="ltr" className="text-sm font-semibold text-foreground hover:text-primary transition-colors inline-block">
+                  +{settings?.whatsappNumber || '966500000000'}
                 </a>
               </div>
             </div>

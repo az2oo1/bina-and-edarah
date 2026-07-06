@@ -100,7 +100,7 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   // Settings Form State
-  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'account' | 'images' | 'social' | 'backup'>('whatsapp');
+  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'images' | 'social' | 'backup' | 'email' | 'analytics'>('whatsapp');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [callingNumber, setCallingNumber] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
@@ -108,8 +108,18 @@ export default function Admin() {
   const [otpMessageTemplate, setOtpMessageTemplate] = useState('رمز التحقق الخاص بك هو: {otp}');
   const [otpWebhookPayload, setOtpWebhookPayload] = useState('{\n  "phone": "{phone}",\n  "otp": "{otp}",\n  "type": "template",\n  "message": "رمز التحقق الخاص بك هو: {otp}"\n}');
   const [savingSettings, setSavingSettings] = useState(false);
-  const [adminUsername, setAdminUsername] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+
+  // SMTP Settings State
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState('');
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [smtpFrom, setSmtpFrom] = useState('');
+
+  // Analytics Settings State
+  const [analyticsScript, setAnalyticsScript] = useState('');
+  const [analyticsDashboardUrl, setAnalyticsDashboardUrl] = useState('');
+  const [analyticsSource, setAnalyticsSource] = useState<'external' | 'internal'>('external');
 
   // Home Images & Logo State
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -474,31 +484,38 @@ export default function Admin() {
     e.preventDefault();
     setSavingSettings(true);
     try {
-      if (activeSettingsSection === 'account') {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-          const u = JSON.parse(stored);
-          const res = await fetch('/api/admin/credentials', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminId: u.id, currentUsername: u.username, newUsername: adminUsername, newPassword: adminPassword }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            alert(language === 'ar' ? 'تم تحديث بيانات الحساب بنجاح! سيتم تسجيل خروجك للمتابعة بالبيانات الجديدة.' : 'Account credentials updated successfully! You will be logged out.');
-            await fetch('/api/logout', { method: 'POST' }).catch(() => {});
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-          } else {
-            const errData = await res.json();
-            alert(language === 'ar' ? 'فشل التحديث: ' + errData.error : 'Update failed: ' + errData.error);
-          }
-        }
-      } else if (activeSettingsSection === 'social') {
+      const payload = {
+        whatsappNumber,
+        callingNumber,
+        whatsappMessage,
+        otpWebhookUrl,
+        otpMessageTemplate,
+        otpWebhookPayload,
+        homeImages: JSON.stringify(homeImages),
+        logoUrl,
+        email: socialEmail,
+        instagramUrl,
+        twitterUrl,
+        facebookUrl,
+        linkedinUrl,
+        youtubeUrl,
+        tiktokUrl,
+        snapchatUrl,
+        notificationEmail,
+        smtpHost,
+        smtpPort: smtpPort ? Number(smtpPort) : null,
+        smtpUser,
+        smtpPass,
+        smtpFrom,
+        analyticsScript,
+        analyticsDashboardUrl
+      };
+
+      if (activeSettingsSection === 'social') {
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages: JSON.stringify(homeImages), logoUrl, email: socialEmail, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, notificationEmail }),
+          body: JSON.stringify(payload),
         });
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ معلومات التواصل الاجتماعي بنجاح!' : 'Social media info saved!');
@@ -507,15 +524,10 @@ export default function Admin() {
           alert(errData.error || (language === 'ar' ? 'فشل الحفظ.' : 'Save failed.'));
         }
       } else if (activeSettingsSection === 'images') {
-        // Save images settings
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload,
-            homeImages: JSON.stringify(homeImages),
-            logoUrl, email: socialEmail, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, notificationEmail
-          }),
+          body: JSON.stringify(payload),
         });
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ الصور بنجاح! أعد تحميل الصفحة الرئيسية لرؤية التغييرات.' : 'Images saved! Reload the home page to see changes.');
@@ -524,21 +536,23 @@ export default function Admin() {
           alert(errData.error || (language === 'ar' ? 'فشل حفظ الصور.' : 'Failed to save images.'));
         }
       } else {
-        // Validate JSON payload before sending
-        try {
-          if (otpWebhookPayload.trim()) {
-             JSON.parse(otpWebhookPayload);
+        // Validate JSON payload before sending if OTP
+        if (activeSettingsSection === 'otp') {
+          try {
+            if (otpWebhookPayload.trim()) {
+              JSON.parse(otpWebhookPayload);
+            }
+          } catch(parseErr) {
+            alert(language === 'ar' ? 'الرجاء إدخال قالب JSON صحيح' : 'Please provide a valid JSON template format.');
+            setSavingSettings(false);
+            return;
           }
-        } catch(parseErr) {
-          alert(language === 'ar' ? 'الرجاء إدخال قالب JSON صحيح' : 'Please provide a valid JSON template format.');
-          setSavingSettings(false);
-          return;
         }
         
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, homeImages: JSON.stringify(homeImages), logoUrl, email: socialEmail, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, notificationEmail }),
+          body: JSON.stringify(payload),
         });
         if (res.ok) {
           alert(language === 'ar' ? 'تم حفظ الإعدادات!' : 'Settings saved!');
@@ -1363,11 +1377,11 @@ export default function Admin() {
               <button onClick={() => setActiveSettingsSection('images')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'images' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'صور' : 'Images'}
               </button>
+              <button onClick={() => setActiveSettingsSection('analytics')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'analytics' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+                {language === 'ar' ? 'التحليلات' : 'Analytics'}
+              </button>
               <button onClick={() => setActiveSettingsSection('backup')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'backup' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'نسخة احتياطية' : 'Backup'}
-              </button>
-              <button onClick={() => setActiveSettingsSection('account')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'account' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'حساب' : 'Account'}
               </button>
             </div>
             
@@ -1462,6 +1476,72 @@ export default function Admin() {
                       <p className="mt-2 text-sm text-muted-foreground">
                         {language === 'ar' ? 'يتم إرسال تنبيه فوري بالبريد الإلكتروني إلى هذا العنوان فور استلام طلب اتصال جديد أو رسالة تواصل جديدة.' : 'Sends email notifications instantly to this email address when a new callback request or CRM message is received.'}
                       </p>
+                    </div>
+
+                    <div className="border-t border-border/60 pt-6 mt-6 space-y-4">
+                      <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم SMTP' : 'SMTP Server Settings'}</h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'خادم SMTP (Host)' : 'SMTP Host'}</label>
+                          <input
+                            type="text"
+                            value={smtpHost}
+                            onChange={(e) => setSmtpHost(e.target.value)}
+                            className="cn-input font-mono text-xs bg-background"
+                            placeholder="smtp.gmail.com"
+                            dir="ltr"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'منفذ SMTP (Port)' : 'SMTP Port'}</label>
+                          <input
+                            type="number"
+                            value={smtpPort}
+                            onChange={(e) => setSmtpPort(e.target.value)}
+                            className="cn-input font-mono text-xs bg-background"
+                            placeholder="587"
+                            dir="ltr"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'اسم المستخدم (User)' : 'SMTP Username'}</label>
+                          <input
+                            type="text"
+                            value={smtpUser}
+                            onChange={(e) => setSmtpUser(e.target.value)}
+                            className="cn-input font-mono text-xs bg-background"
+                            placeholder="user@example.com"
+                            dir="ltr"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'كلمة المرور (Password)' : 'SMTP Password'}</label>
+                          <input
+                            type="password"
+                            value={smtpPass}
+                            onChange={(e) => setSmtpPass(e.target.value)}
+                            className="cn-input font-mono text-xs bg-background"
+                            placeholder="••••••••"
+                            dir="ltr"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'بريد المرسل (From)' : 'Sender Email (From)'}</label>
+                        <input
+                          type="email"
+                          value={smtpFrom}
+                          onChange={(e) => setSmtpFrom(e.target.value)}
+                          className="cn-input font-mono text-xs bg-background"
+                          placeholder="no-reply@yourdomain.com"
+                          dir="ltr"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1608,12 +1688,19 @@ export default function Admin() {
                 const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, onUpload: (b: string) => void) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  if (file.size > 5 * 1024 * 1024) {
-                    alert(language === 'ar' ? 'حجم الصورة يتجاوز 5MB' : 'Image exceeds 5MB limit');
+                  if (file.size > 50 * 1024 * 1024) {
+                    alert(language === 'ar' ? 'حجم الصورة يتجاوز 50MB' : 'Image exceeds 50MB limit');
                     return;
                   }
                   setImageSlotUploading(slotKey);
-                  const base64 = await compressImage(file);
+                  let base64 = '';
+                  if (slotKey === 'hero') {
+                    base64 = await compressImage(file, 2560, 1440, 0.92);
+                  } else if (slotKey === 'logo') {
+                    base64 = await compressImage(file, 512, 512, 0.95);
+                  } else {
+                    base64 = await compressImage(file, 1280, 800, 0.85);
+                  }
                   onUpload(base64);
                   setImageSlotUploading(null);
                   e.target.value = '';
@@ -1823,37 +1910,43 @@ export default function Admin() {
                 </div>
               )}
 
-              {activeSettingsSection === 'account' && (
+               {activeSettingsSection === 'analytics' && (
                 <div>
                   <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-5 inline-block">
-                    {language === 'ar' ? 'إعدادات الحساب' : 'Account Settings'}
+                    {language === 'ar' ? 'تحليلات الموقع المفتوحة المصدر' : 'Open-Source Site Analytics Settings'}
                   </h3>
                   <div className="space-y-6">
-                    <div>
-                      <label className="cn-label mb-2">
-                        {language === 'ar' ? 'اسم المستخدم الجديد للإدارة' : 'New Admin Username'}
-                      </label>
+                    <div className="space-y-1.5">
+                      <label className="cn-label">{language === 'ar' ? 'رمز تتبع التحليلات (Plausible / Umami Script Code)' : 'Analytics Tracking Script HTML Code'}</label>
+                      <textarea
+                        rows={4}
+                        value={analyticsScript}
+                        onChange={(e) => setAnalyticsScript(e.target.value)}
+                        className="w-full border border-border rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-xs bg-background"
+                        placeholder={'<script defer src="https://cloud.umami.is/script.js" data-website-id="..."></script>'}
+                        dir="ltr"
+                      />
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {language === 'ar' 
+                          ? 'الصق رمز التتبع (HTML script tag) المقدم من أداة التحليلات (مثل Umami أو Plausible) ليتم إدراجه تلقائياً في جميع صفحات الموقع.' 
+                          : 'Paste the analytics tracking script tag (e.g. from Umami or Plausible) to automatically inject it on all website pages.'}
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="cn-label">{language === 'ar' ? 'رابط لوحة التحليلات المدمجة (Dashboard Share/Embed URL)' : 'Dashboard Embed / Share URL'}</label>
                       <input
                         type="text"
-                        value={adminUsername}
-                        onChange={(e) => setAdminUsername(e.target.value)}
+                        value={analyticsDashboardUrl}
+                        onChange={(e) => setAnalyticsDashboardUrl(e.target.value)}
                         className="cn-input font-mono pl-4 pr-4 h-12 bg-background"
-                        placeholder="admin"
+                        placeholder="https://cloud.umami.is/share/..."
                         dir="ltr"
                       />
-                    </div>
-                    <div>
-                      <label className="cn-label mb-2">
-                        {language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
-                      </label>
-                      <input
-                        type="password"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                        className="cn-input font-mono pl-4 pr-4 h-12 bg-background"
-                        placeholder="********"
-                        dir="ltr"
-                      />
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {language === 'ar' 
+                          ? 'رابط المشاركة العام للوحة التحكم لعرضه مباشرة داخل تبويب "تحليلات الموقع" في لوحة الإدارة.' 
+                          : 'The public shareable dashboard URL to display directly inside the "Site Analytics" tab in the Admin panel.'}
+                      </p>
                     </div>
                   </div>
                 </div>

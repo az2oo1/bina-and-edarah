@@ -341,7 +341,7 @@ export default function AdminProjects() {
 
               <div>
                 <label className="cn-label mb-2">{t('admin.placeholder.locationLink') || 'Location Link'}</label>
-                <input type="url" value={formData.locationLink} onChange={(e) => setFormData({...formData, locationLink: e.target.value})} className="cn-input" dir="ltr" />
+                <input type="text" value={formData.locationLink} onChange={(e) => setFormData({...formData, locationLink: e.target.value})} className="cn-input" dir="ltr" />
               </div>
               
               <div>
