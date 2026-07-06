@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   app:
-    image: ghcr.io/az2oo1/bina-and-edarah:latest
+    build: .
+    image: bina-and-edarah:local
     ports:
       - "3000:3000"
     environment:

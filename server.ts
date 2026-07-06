@@ -1217,8 +1217,8 @@ async function startServer() {
         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
         res.cookie('token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
+          secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+          sameSite: 'lax',
           maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
         logger.info(`Admin login successful for ${username}`);
@@ -1232,8 +1232,8 @@ async function startServer() {
         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
         res.cookie('token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
+          secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+          sameSite: 'lax',
           maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
         logger.info(`User login successful for ${username}`);
@@ -1246,8 +1246,8 @@ async function startServer() {
         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
         res.cookie('token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
+          secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+          sameSite: 'lax',
           maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
         logger.info(`Fallback admin login successful`);

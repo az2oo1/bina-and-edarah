@@ -604,22 +604,24 @@ export default function Home() {
               </p>
               
               {/* Form Input fields */}
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                alert(language === 'ar' ? 'شكراً لتواصلك معنا! سنرد عليك قريباً.' : 'Thank you for reaching out! We will contact you soon.');
-                (e.target as HTMLFormElement).reset();
-              }} className="mt-6 flex flex-col sm:flex-row max-w-md gap-3">
+              <form onSubmit={handleHomeContactSubmit} className="mt-6 flex flex-col sm:flex-row max-w-md gap-3">
                 <input 
                   type="text" 
                   required 
+                  value={contactInfo}
+                  onChange={(e) => setContactInfo(e.target.value)}
                   placeholder={language === 'ar' ? 'البريد الإلكتروني أو رقم الجوال' : 'Email or phone number'} 
                   className="min-w-0 flex-auto rounded-lg bg-background border border-input px-4 py-2.5 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring transition-all font-sans" 
+                  disabled={submittingContact}
                 />
                 <button 
                   type="submit" 
-                  className="flex-none rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-foreground px-5 py-2.5 text-xs font-semibold shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                  disabled={submittingContact}
+                  className="flex-none rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-5 py-2.5 text-xs font-semibold shadow-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer disabled:opacity-50"
                 >
-                  {language === 'ar' ? 'طلب تواصل' : 'Request Callback'}
+                  {submittingContact 
+                    ? (language === 'ar' ? 'جاري الإرسال...' : 'Submitting...')
+                    : (language === 'ar' ? 'طلب تواصل' : 'Request Callback')}
                 </button>
               </form>
             </div>

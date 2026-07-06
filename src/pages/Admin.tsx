@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 
@@ -78,6 +78,14 @@ const PREDEFINED_FEATURES = [
 
 export default function Admin() {
   const { t, language } = useLanguage();
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } catch (err) {}
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
   const [loading, setLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -204,10 +212,30 @@ export default function Admin() {
   };
 
   useEffect(() => {
+    // Intercept global fetch to catch 401 Unauthorized errors
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        localStorage.removeItem('user');
+        originalFetch('/api/logout', { method: 'POST' }).catch(() => {});
+        alert(language === 'ar' 
+          ? 'انتهت صلاحية الجلسة أو غير مصرح بالعملية. يرجى تسجيل الدخول مرة أخرى.' 
+          : 'Session expired or unauthorized. Please login again.'
+        );
+        window.location.href = '/login';
+      }
+      return response;
+    };
+
     fetchProperties();
     fetchSettings();
     fetchAnalytics();
-  }, []);
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [language]);
 
   // Handle File Upload -> Base64
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -486,17 +514,34 @@ export default function Admin() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-16">
+    <div className="bg-background text-foreground min-h-screen py-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* Header Title & Logout */}
+        <div className="flex items-center justify-between mb-8 pb-4 border-b border-border select-none">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h1 className="text-lg font-bold text-foreground">
+              {language === 'ar' ? 'لوحة إدارة النظام' : 'Admin Control Panel'}
+            </h1>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-red-500/30 text-red-500 hover:bg-red-500/10 cursor-pointer transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>{language === 'ar' ? 'تسجيل الخروج' : 'Logout'}</span>
+          </button>
+        </div>
+
         {/* Navigation Tabs */}
-        <div className="inline-flex w-full items-center justify-start rounded-lg bg-slate-100 p-1 text-slate-500 mb-6 overflow-x-auto select-none">
+        <div className="inline-flex w-full items-center justify-start rounded-xl bg-card border border-border p-1 text-muted-foreground mb-8 overflow-x-auto select-none scrollbar-none gap-1">
           <button 
             onClick={() => setActiveTab('manage')}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'manage' 
-                ? 'bg-white text-foreground shadow-xs' 
-                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {t('admin.manageProperties')}
@@ -505,8 +550,8 @@ export default function Admin() {
             onClick={() => setActiveTab('projects')}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'projects' 
-                ? 'bg-white text-foreground shadow-xs' 
-                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects'}
@@ -515,8 +560,8 @@ export default function Admin() {
             onClick={() => setActiveTab('buildings')}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'buildings' 
-                ? 'bg-white text-foreground shadow-xs' 
-                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'إدارة المباني' : 'Buildings'}
@@ -525,8 +570,8 @@ export default function Admin() {
             onClick={() => setActiveTab('renters')}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'renters' 
-                ? 'bg-white text-foreground shadow-xs' 
-                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'المستأجرين' : 'Renters'}
@@ -535,8 +580,8 @@ export default function Admin() {
             onClick={() => setActiveTab('receipts')}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'receipts' 
-                ? 'bg-white text-foreground shadow-xs' 
-                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'الإيصالات' : 'Receipts'}
@@ -545,8 +590,8 @@ export default function Admin() {
             onClick={() => setActiveTab('analytics')}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'analytics' 
-                ? 'bg-white text-foreground shadow-xs' 
-                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'الإحصائيات' : 'Analytics'}
@@ -555,8 +600,8 @@ export default function Admin() {
             onClick={() => setActiveTab('settings')}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'settings' 
-                ? 'bg-white text-foreground shadow-xs' 
-                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {t('admin.settings')}
@@ -565,8 +610,8 @@ export default function Admin() {
             onClick={() => setActiveTab('callbacks')}
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'callbacks' 
-                ? 'bg-white text-foreground shadow-xs' 
-                : 'text-muted-foreground hover:bg-slate-200/50 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {language === 'ar' ? 'طلبات التواصل' : 'Callbacks'}
@@ -588,12 +633,12 @@ export default function Admin() {
 
             {activeTab === 'manage' && (
           <div className="min-h-[500px]">
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-8 pb-6 border-b border-border">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-yellow-50 rounded-full flex items-center justify-center">
-                  <Home className="w-6 h-6 text-yellow-600" />
+                <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
+                  <Home className="w-6 h-6 text-primary" />
                 </div>
-                <h2 className="text-3xl font-bold text-gray-900">{showAddForm ? (editingId ? (language === 'ar' ? 'تعديل العقار' : 'Edit Property') : t('admin.addProperty')) : t('admin.propertiesList')}</h2>
+                <h2 className="text-2xl font-bold text-foreground">{showAddForm ? (editingId ? (language === 'ar' ? 'تعديل العقار' : 'Edit Property') : t('admin.addProperty')) : t('admin.propertiesList')}</h2>
               </div>
               <button 
                 onClick={() => {
@@ -604,7 +649,7 @@ export default function Admin() {
                     setShowAddForm(true);
                   }
                 }}
-                className="bg-black text-white font-bold px-4 py-2 rounded-xl hover:bg-gray-900 transition-colors flex items-center gap-2"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md shadow-xs bg-[#2563eb] text-white hover:bg-[#1d4ed8] cursor-pointer transition-colors"
               >
                 {showAddForm ? <X className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
                 {showAddForm ? (language === 'ar' ? 'إلغاء' : 'Cancel') : t('admin.addProperty')}
@@ -614,7 +659,7 @@ export default function Admin() {
             {!showAddForm ? (
               fetching ? (
                 <div className="flex justify-center items-center py-20">
-                  <Loader2 className="w-8 h-8 animate-spin text-yellow-600" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : properties.length === 0 ? (
                 <div className="text-center py-20 text-gray-400">
@@ -625,7 +670,7 @@ export default function Admin() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-right border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
+                      <tr className="bg-card text-muted-foreground text-xs border-b border-border">
                         <th className="p-4 font-bold rounded-tr-xl">#</th>
                         <th className="p-4 font-bold">{language === 'ar' ? 'اسم العقار' : 'Title (Ar/En)'}</th>
                         <th className="p-4 font-bold">{language === 'ar' ? 'النوع' : 'Type'}</th>
