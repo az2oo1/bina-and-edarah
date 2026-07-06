@@ -234,6 +234,47 @@ export default function PropertyDetails() {
                       </span>
                     </div>
                   )}
+                  {(() => {
+                    try {
+                      const parsed = JSON.parse(property.utilityBills);
+                      const elements = [];
+                      if (parsed.electricity) {
+                        elements.push(
+                          <div key="elec" className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
+                            <span className="text-muted-foreground">⚡ {language === 'ar' ? 'فاتورة الكهرباء المشمولة' : 'Included Electricity'}</span>
+                            <span className="text-foreground text-left font-semibold">
+                              {parsed.electricityLimit > 0 ? (language === 'ar' ? `حتى ${parsed.electricityLimit} ر.س` : `Up to ${parsed.electricityLimit} SAR`) : (language === 'ar' ? 'شاملة بالكامل' : 'Fully Included')}
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (parsed.water) {
+                        elements.push(
+                          <div key="water" className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
+                            <span className="text-muted-foreground">💧 {language === 'ar' ? 'فاتورة المياه المشمولة' : 'Included Water'}</span>
+                            <span className="text-foreground text-left font-semibold">
+                              {parsed.waterLimit > 0 ? (language === 'ar' ? `حتى ${parsed.waterLimit} ر.س` : `Up to ${parsed.waterLimit} SAR`) : (language === 'ar' ? 'شاملة بالكامل' : 'Fully Included')}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return elements;
+                    } catch (_) {
+                      if (property.utilityBills && property.utilityBills !== 'NONE') {
+                        let text = '';
+                        if (property.utilityBills === 'ELECTRICITY') text = language === 'ar' ? 'الكهرباء مشمولة' : 'Electricity Included';
+                        else if (property.utilityBills === 'WATER') text = language === 'ar' ? 'المياه مشمولة' : 'Water Included';
+                        else if (property.utilityBills === 'BOTH') text = language === 'ar' ? 'الكهرباء والمياه مشمولة' : 'Electricity & Water Included';
+                        return (
+                          <div className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
+                            <span className="text-muted-foreground">🔌 {language === 'ar' ? 'الفواتير المشمولة' : 'Included Utilities'}</span>
+                            <span className="text-foreground font-semibold">{text}</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }
+                  })()}
                   <div className="flex justify-between items-center text-xs font-medium">
                     <span className="text-muted-foreground">{t('common.commission')}</span>
                     <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">

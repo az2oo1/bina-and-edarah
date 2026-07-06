@@ -164,6 +164,10 @@ export default function Admin() {
     detailsList: [] as {id: string, key: string, value: string}[],
     paymentsCount: '',
     utilityBills: 'NONE',
+    includeElectricity: false,
+    electricityLimit: '',
+    includeWater: false,
+    waterLimit: '',
     vatExempt: false
   });
 
@@ -302,8 +306,16 @@ export default function Admin() {
     }
     setLoading(true);
 
+    const utilityPayload = JSON.stringify({
+      electricity: formData.includeElectricity,
+      electricityLimit: formData.includeElectricity ? (parseFloat(formData.electricityLimit) || 0) : 0,
+      water: formData.includeWater,
+      waterLimit: formData.includeWater ? (parseFloat(formData.waterLimit) || 0) : 0,
+    });
+
     const payload = {
       ...formData,
+      utilityBills: utilityPayload,
       features: formData.featuresList.map(f => f.value).filter(Boolean).join(','),
       imageUrls: JSON.stringify(formData.imageUrls),
       details: JSON.stringify(formData.detailsList.map(({key, value}) => ({key, value})))
@@ -358,6 +370,10 @@ export default function Admin() {
       detailsList: [],
       paymentsCount: '',
       utilityBills: 'NONE',
+    includeElectricity: false,
+    electricityLimit: '',
+    includeWater: false,
+    waterLimit: '',
       vatExempt: false
     });
     setEditingId(null);
@@ -413,6 +429,38 @@ export default function Admin() {
         detailsList: initialDetailsList,
         paymentsCount: propData.paymentsCount?.toString() || '',
         utilityBills: propData.utilityBills || 'NONE',
+        includeElectricity: (() => {
+          try {
+            const p = JSON.parse(propData.utilityBills);
+            return !!p.electricity;
+          } catch (_) {
+            return propData.utilityBills === 'ELECTRICITY' || propData.utilityBills === 'BOTH';
+          }
+        })(),
+        electricityLimit: (() => {
+          try {
+            const p = JSON.parse(propData.utilityBills);
+            return p.electricityLimit?.toString() || '';
+          } catch (_) {
+            return '';
+          }
+        })(),
+        includeWater: (() => {
+          try {
+            const p = JSON.parse(propData.utilityBills);
+            return !!p.water;
+          } catch (_) {
+            return propData.utilityBills === 'WATER' || propData.utilityBills === 'BOTH';
+          }
+        })(),
+        waterLimit: (() => {
+          try {
+            const p = JSON.parse(propData.utilityBills);
+            return p.waterLimit?.toString() || '';
+          } catch (_) {
+            return '';
+          }
+        })(),
         vatExempt: propData.vatExempt || false
       });
       setEditingId(property.id);
@@ -921,19 +969,76 @@ export default function Admin() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="cn-label mb-2">{language === 'ar' ? 'الفواتير الخدمية المشمولة' : 'Utility Bills Included'}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                        <select 
-                          value={formData.utilityBills} 
-                          onChange={(e) => setFormData({ ...formData, utilityBills: e.target.value })} 
-                          className="cn-input font-medium"
+                    <div className="md:col-span-2 space-y-4">
+                      <label className="cn-label">{language === 'ar' ? 'الفواتير الخدمية المشمولة' : 'Utility Bills Included'}</label>
+                      <div className="flex gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, includeElectricity: !formData.includeElectricity })}
+                          className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            formData.includeElectricity 
+                              ? 'bg-primary/10 border-primary text-primary shadow-xs' 
+                              : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
+                          }`}
                         >
-                          <option value="NONE">{language === 'ar' ? 'لا يوجد فواتير مشمولة' : 'None Included'}</option>
-                          <option value="ELECTRICITY">{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</option>
-                          <option value="WATER">{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</option>
-                          <option value="BOTH">{language === 'ar' ? 'الكهرباء والمياه معاً' : 'Both (Electricity & Water)'}</option>
-                        </select>
+                          <span>⚡</span>
+                          <span>{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, includeWater: !formData.includeWater })}
+                          className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            formData.includeWater 
+                              ? 'bg-primary/10 border-primary text-primary shadow-xs' 
+                              : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
+                          }`}
+                        >
+                          <span>💧</span>
+                          <span>{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {formData.includeElectricity && (
+                          <div className="space-y-1.5">
+                            <label className="cn-label text-xs">
+                              {language === 'ar' ? 'مبلغ الكهرباء المشمول (0 = شامل بالكامل):' : 'Electricity limit included (0 = fully included):'}
+                            </label>
+                            <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                              <div className="flex bg-muted items-center justify-center px-3 border-r border-border">
+                                <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
+                              </div>
+                              <input 
+                                type="number" 
+                                value={formData.electricityLimit} 
+                                onChange={(e) => setFormData({ ...formData, electricityLimit: e.target.value })} 
+                                className="cn-input bg-background font-medium" 
+                                placeholder="0" 
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {formData.includeWater && (
+                          <div className="space-y-1.5">
+                            <label className="cn-label text-xs">
+                              {language === 'ar' ? 'مبلغ المياه المشمول (0 = شامل بالكامل):' : 'Water limit included (0 = fully included):'}
+                            </label>
+                            <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                              <div className="flex bg-muted items-center justify-center px-3 border-r border-border">
+                                <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
+                              </div>
+                              <input 
+                                type="number" 
+                                value={formData.waterLimit} 
+                                onChange={(e) => setFormData({ ...formData, waterLimit: e.target.value })} 
+                                className="cn-input bg-background font-medium" 
+                                placeholder="0" 
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1207,6 +1312,9 @@ export default function Admin() {
               <button onClick={() => setActiveSettingsSection('whatsapp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'whatsapp' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'الواتساب' : 'WhatsApp'}
               </button>
+              <button onClick={() => setActiveSettingsSection('email')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'email' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+                {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+              </button>
               <button onClick={() => setActiveSettingsSection('otp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'otp' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'رمز تحقق' : 'OTP'}
               </button>
@@ -1252,21 +1360,7 @@ export default function Admin() {
                       </p>
                     </div>
 
-                    <div>
-                      <label className="cn-label mb-2">
-                        {language === 'ar' ? 'البريد الإلكتروني لإشعارات الرسائل والطلبات' : 'Callback & Messages Notification Email'}
-                      </label>
-                      <input
-                        type="email"
-                        value={notificationEmail}
-                        onChange={(e) => setNotificationEmail(e.target.value)}
-                        className="cn-input font-medium"
-                        placeholder="admin-alerts@yourdomain.com"
-                      />
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {language === 'ar' ? 'يتم إرسال تنبيه بالبريد الإلكتروني فور استلام طلب اتصال جديد أو رسالة CRM جديدة.' : 'Sends email notifications instantly when a new callback request or CRM message is received.'}
-                      </p>
-                    </div>
+
 
                     <div>
                       <label className="cn-label mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
@@ -1306,6 +1400,29 @@ export default function Admin() {
                           <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{link}'}</span> - {language === 'ar' ? 'رابط صفحة العقار' : 'Property Page Link'}</li>
                         </ul>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'email' && (
+                <div>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">{language === 'ar' ? 'إعدادات البريد الإلكتروني للطلبات' : 'Callback Notification Email Settings'}</h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="cn-label mb-2">
+                        {language === 'ar' ? 'البريد الإلكتروني للمستلم' : 'Receiver Notification Email'}
+                      </label>
+                      <input
+                        type="email"
+                        value={notificationEmail}
+                        onChange={(e) => setNotificationEmail(e.target.value)}
+                        className="cn-input font-medium bg-background"
+                        placeholder="admin-alerts@yourdomain.com"
+                      />
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {language === 'ar' ? 'يتم إرسال تنبيه فوري بالبريد الإلكتروني إلى هذا العنوان فور استلام طلب اتصال جديد أو رسالة تواصل جديدة.' : 'Sends email notifications instantly to this email address when a new callback request or CRM message is received.'}
+                      </p>
                     </div>
                   </div>
                 </div>
