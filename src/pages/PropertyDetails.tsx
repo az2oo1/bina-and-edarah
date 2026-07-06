@@ -200,13 +200,13 @@ export default function PropertyDetails() {
                 </div>
                 {property.type === 'RENT' && property.paymentFrequency && (
                   <div className="flex gap-1.5 mb-4">
-                    <p className="text-xs text-muted-foreground bg-muted border border-border/40 rounded px-2.5 py-1 font-semibold flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/60" />
+                    <p className="text-xs text-primary bg-primary/10 border border-primary/20 rounded px-2.5 py-1 font-semibold flex items-center gap-1.5">
+                      <CalendarDays className="w-3.5 h-3.5 text-primary" />
                       {property.paymentFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
                     </p>
                     {property.paymentsCount && (
-                      <p className="text-xs text-muted-foreground bg-muted border border-border/40 rounded px-2.5 py-1 font-semibold flex items-center gap-1.5">
-                        <Coins className="w-3.5 h-3.5 text-muted-foreground/60" />
+                      <p className="text-xs text-primary bg-primary/10 border border-primary/20 rounded px-2.5 py-1 font-semibold flex items-center gap-1.5">
+                        <Coins className="w-3.5 h-3.5 text-primary" />
                         {property.paymentsCount} {language === 'ar' ? (property.paymentsCount === 1 ? 'دفعة' : property.paymentsCount === 2 ? 'دفعتين' : 'دفعات') : 'Payments'}
                       </p>
                     )}
