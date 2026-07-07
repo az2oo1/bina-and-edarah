@@ -939,12 +939,12 @@ export default function Admin() {
                         </div>
                         <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0" placeholder="2500000" />
                         {formData.type === 'RENT' && (
-                          <div className="flex border-l border-border ltr:border-l rtl:border-r">
-                            <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card px-3 py-3 outline-none focus:ring-0 font-medium">
+                          <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
+                            <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card w-28 px-3 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer">
                               <option value="YEARLY">{t('common.yearly')}</option>
                               <option value="MONTHLY">{t('common.monthly')}</option>
                             </select>
-                            <select value={formData.paymentsCount} onChange={(e) => setFormData({ ...formData, paymentsCount: e.target.value })} className="bg-card border-l border-border ltr:border-l rtl:border-r px-3 py-3 outline-none focus:ring-0 font-medium text-muted-foreground">
+                            <select value={formData.paymentsCount} onChange={(e) => setFormData({ ...formData, paymentsCount: e.target.value })} className="bg-card border-l border-border ltr:border-l rtl:border-r w-32 px-3 py-1 outline-none focus:ring-0 font-medium text-muted-foreground border-none cursor-pointer">
                               <option value="">{language === 'ar' ? 'عدد الدفعات...' : 'Payments...'}</option>
                               <option value="1">{language === 'ar' ? 'دفعة واحدة' : '1 Payment'}</option>
                               <option value="2">{language === 'ar' ? 'دفعتين' : '2 Payments'}</option>
@@ -995,24 +995,26 @@ export default function Admin() {
                                 {language === 'ar' ? 'تكلفة الكهرباء:' : 'Electricity Cost:'}
                               </label>
                               <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                                <div className="flex bg-muted items-center justify-center px-3 border-r border-border">
+                                <div className="flex bg-muted items-center justify-center px-3 border-r border-border ltr:border-r rtl:border-l flex-shrink-0">
                                   <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
                                 </div>
                                 <input 
                                   type="number" 
                                   value={formData.electricityCostVal} 
                                   onChange={(e) => setFormData({ ...formData, electricityCostVal: e.target.value })} 
-                                  className="flex-1 w-full p-3 outline-none min-w-0" 
+                                  className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" 
                                   placeholder="0" 
                                 />
-                                <select 
-                                  value={formData.electricityFrequencyVal} 
-                                  onChange={(e) => setFormData({ ...formData, electricityFrequencyVal: e.target.value })} 
-                                  className="bg-card border-l border-border px-3 py-3 outline-none focus:ring-0 font-medium"
-                                >
-                                  <option value="YEARLY">{t('common.yearly')}</option>
-                                  <option value="MONTHLY">{t('common.monthly')}</option>
-                                </select>
+                                <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
+                                  <select 
+                                    value={formData.electricityFrequencyVal} 
+                                    onChange={(e) => setFormData({ ...formData, electricityFrequencyVal: e.target.value })} 
+                                    className="bg-card w-28 px-3 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer text-foreground"
+                                  >
+                                    <option value="YEARLY">{t('common.yearly')}</option>
+                                    <option value="MONTHLY">{t('common.monthly')}</option>
+                                  </select>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1023,24 +1025,26 @@ export default function Admin() {
                                 {language === 'ar' ? 'تكلفة المياه:' : 'Water Cost:'}
                               </label>
                               <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                                <div className="flex bg-muted items-center justify-center px-3 border-r border-border">
+                                <div className="flex bg-muted items-center justify-center px-3 border-r border-border ltr:border-r rtl:border-l flex-shrink-0">
                                   <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
                                 </div>
                                 <input 
                                   type="number" 
                                   value={formData.waterCostVal} 
                                   onChange={(e) => setFormData({ ...formData, waterCostVal: e.target.value })} 
-                                  className="flex-1 w-full p-3 outline-none min-w-0" 
+                                  className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" 
                                   placeholder="0" 
                                 />
-                                <select 
-                                  value={formData.waterFrequencyVal} 
-                                  onChange={(e) => setFormData({ ...formData, waterFrequencyVal: e.target.value })} 
-                                  className="bg-card border-l border-border px-3 py-3 outline-none focus:ring-0 font-medium"
-                                >
-                                  <option value="YEARLY">{t('common.yearly')}</option>
-                                  <option value="MONTHLY">{t('common.monthly')}</option>
-                                </select>
+                                <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
+                                  <select 
+                                    value={formData.waterFrequencyVal} 
+                                    onChange={(e) => setFormData({ ...formData, waterFrequencyVal: e.target.value })} 
+                                    className="bg-card w-28 px-3 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer text-foreground"
+                                  >
+                                    <option value="YEARLY">{t('common.yearly')}</option>
+                                    <option value="MONTHLY">{t('common.monthly')}</option>
+                                  </select>
+                                </div>
                               </div>
                             </div>
                           )}
