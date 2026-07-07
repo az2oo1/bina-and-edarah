@@ -339,7 +339,7 @@ export default function AdminRenters() {
             </div>
 
         <div className="relative w-full md:w-72">
-          <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center px-3 pointer-events-none text-gray-400">
+          <div className="absolute inset-y-0 ltr:left-0 ltr:right-auto rtl:right-0 rtl:left-auto flex items-center px-3 pointer-events-none text-gray-400">
             <Search className="w-5 h-5" />
           </div>
           <input

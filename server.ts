@@ -1824,6 +1824,16 @@ async function startServer() {
     });
   });
 
+  // Synchronize DB schema and generate client dynamically (especially in production PostgreSQL environments)
+  try {
+    console.log("Synchronizing database schema and generating client via Prisma...");
+    const { execSync } = require('child_process');
+    execSync("npx prisma db push && npx prisma generate", { stdio: 'inherit' });
+    console.log("Database schema synchronized and client regenerated successfully.");
+  } catch (dbError) {
+    console.error("Prisma schema sync or client generation skipped/failed:", dbError);
+  }
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`--------------------------------------------------`);
