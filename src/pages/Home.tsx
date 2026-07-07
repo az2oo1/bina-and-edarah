@@ -123,39 +123,56 @@ export default function Home() {
   return (
     <div className="flex flex-col w-full text-foreground bg-background font-sans animate-in fade-in duration-500">
       {/* Centered Premium Hero Section */}
-      <section className="relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden bg-slate-950">
-        {/* Sleek, Premium Dark Gradient Mesh with Animation */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-950 via-[#111d35] to-slate-950">
-          {/* Decorative glows */}
-          <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl opacity-30 animate-pulse pointer-events-none"></div>
-          <div className="absolute bottom-1/4 right-1/3 w-[450px] h-[450px] bg-sky-500/10 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
-        </div>
+      {(() => {
+        const isDefaultHero = !images.hero || images.hero === DEFAULT_IMAGES.hero;
+        return (
+          <section className={`relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden ${isDefaultHero ? 'bg-background border-b border-border' : 'bg-slate-950'}`}>
+            {isDefaultHero ? (
+              /* Sleek, Premium Light Gradient Mesh for White Theme */
+              <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-50 via-[#f8fafc] to-background">
+                {/* Decorative soft blue/slate glows */}
+                <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl opacity-60 animate-pulse pointer-events-none"></div>
+                <div className="absolute bottom-1/4 right-1/3 w-[450px] h-[450px] bg-indigo-500/5 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
+                {/* Grid line decoration */}
+                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+              </div>
+            ) : (
+              /* Custom background image uploaded by the user */
+              <div 
+                className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-10000 ease-out scale-[1.03]"
+                style={{ backgroundImage: `url("${images.hero}")` }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/30 to-slate-950"></div>
+              </div>
+            )}
 
-        {/* Content */}
-        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center py-20 animate-fade-in">
-          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-amber-500/25 border border-amber-500/50 text-amber-300 backdrop-blur-md mb-6 uppercase tracking-wider shadow-sm">
-            ✨ {language === 'ar' ? 'رؤية مستقبلية للمعيشة العقارية الفاخرة' : 'A Future Vision of Luxury Living'}
-          </span>
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 leading-tight select-none">
-            {t('hero.title')}
-          </h1>
-          <p className="max-w-2xl mx-auto text-slate-100 text-sm sm:text-lg font-medium leading-relaxed select-none mb-10 opacity-95">
-            {t('hero.subtitle')}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
-            <Link to="/projects" className="inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer">
-              <span>{language === 'ar' ? 'مشاريعنا' : 'Projects We Developed'}</span>
-              <Arrow className="w-5 h-5 text-foreground" />
-            </Link>
-            <Link to="/properties" className="inline-flex items-center justify-center gap-2 border border-white/20 text-foreground hover:bg-white/5 hover:border-white/40 h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer">
-              <span>{language === 'ar' ? 'عقارات للبيع أو الإيجار' : 'Properties to Buy or Rent'}</span>
-            </Link>
-          </div>
-        </div>
-        
-        {/* Subtle bottom fade to transition into the giant skyscraper */}
-        <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>
-      </section>
+            {/* Content */}
+            <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center py-20 animate-fade-in">
+              <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold ${isDefaultHero ? 'bg-primary/10 border border-primary/20 text-primary' : 'bg-amber-500/25 border border-amber-500/50 text-amber-300'} backdrop-blur-md mb-6 uppercase tracking-wider shadow-sm`}>
+                ✨ {language === 'ar' ? 'رؤية مستقبلية للمعيشة العقارية الفاخرة' : 'A Future Vision of Luxury Living'}
+              </span>
+              <h1 className={`text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight select-none ${isDefaultHero ? 'text-foreground' : 'text-white'}`}>
+                {t('hero.title')}
+              </h1>
+              <p className={`max-w-2xl mx-auto text-sm sm:text-lg font-medium leading-relaxed select-none mb-10 opacity-95 ${isDefaultHero ? 'text-muted-foreground' : 'text-slate-100'}`}>
+                {t('hero.subtitle')}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
+                <Link to="/projects" className="inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer">
+                  <span>{language === 'ar' ? 'مشاريعنا' : 'Projects We Developed'}</span>
+                  <Arrow className="w-5 h-5 text-white" />
+                </Link>
+                <Link to="/properties" className={`inline-flex items-center justify-center gap-2 border h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer ${isDefaultHero ? 'border-border text-foreground hover:bg-muted/50' : 'border-white/20 text-white hover:bg-white/5 hover:border-white/40'}`}>
+                  <span>{language === 'ar' ? 'عقارات للبيع أو الإيجار' : 'Properties to Buy or Rent'}</span>
+                </Link>
+              </div>
+            </div>
+            
+            {/* Subtle bottom fade */}
+            <div className={`absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t ${isDefaultHero ? 'from-background' : 'from-slate-950'} to-transparent pointer-events-none`}></div>
+          </section>
+        );
+      })()}
 
       {/* Giant Skyscraper Section (Immediately under the Hero) */}
       <section className="relative w-full bg-background pb-32 pt-12 overflow-hidden border-b border-border flex flex-col items-center justify-center">
@@ -250,7 +267,7 @@ export default function Home() {
         <div aria-hidden="true" className="absolute top-0 right-0 -z-10 blur-3xl opacity-20 select-none pointer-events-none translate-x-1/3">
           <div 
             style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
-            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-sky-400 to-emerald-500"
+            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-sky-50 to-slate-100/50"
           ></div>
         </div>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -338,7 +355,7 @@ export default function Home() {
         <div aria-hidden="true" className="absolute top-0 left-0 -z-10 blur-3xl opacity-20 select-none pointer-events-none -translate-x-1/3">
           <div 
             style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
-            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-amber-400 to-rose-600"
+            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-slate-100 to-sky-100/50"
           ></div>
         </div>
         {/* Aesthetics lines */}
@@ -558,7 +575,7 @@ export default function Home() {
         <div aria-hidden="true" className="absolute top-1/2 left-1/2 -z-10 -translate-x-1/2 -translate-y-1/2 blur-3xl opacity-20 select-none pointer-events-none">
           <div 
             style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
-            className="aspect-1155/678 w-[48rem] bg-gradient-to-tr from-sky-500 to-indigo-600"
+            className="aspect-1155/678 w-[48rem] bg-gradient-to-tr from-slate-100 to-indigo-50/50"
           ></div>
         </div>
       </section>
