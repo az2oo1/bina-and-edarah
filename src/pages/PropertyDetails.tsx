@@ -228,19 +228,59 @@ export default function PropertyDetails() {
                       {property.vatExempt ? (language === 'ar' ? 'معفى' : 'Exempt') : (property.vat > 0 ? <>{property.vat.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" /></> : (language === 'ar' ? 'شامل' : 'Included'))}
                     </span>
                   </div>
-                  {property.type === 'RENT' && property.electricityCost > 0 && (
-                    <div className="flex justify-between items-center text-xs font-medium">
-                      <span className="text-muted-foreground">{language === 'ar' ? 'الفواتير الخدمية' : 'Utility Bills'}</span>
-                      <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
-                        {property.electricityCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
-                        {property.electricityFrequency && (
-                          <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
-                            / {property.electricityFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
+                   {property.type === 'RENT' && (() => {
+                    try {
+                      if (!property.utilityBills || property.utilityBills === 'NONE') {
+                        throw new Error('No utility bills');
+                      }
+                      const parsed = JSON.parse(property.utilityBills);
+                      const rows = [];
+                      if (parsed.electricity && parsed.electricityCost > 0) {
+                        rows.push(
+                          <div key="elec" className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
+                            <span className="text-muted-foreground">{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</span>
+                            <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                              {parsed.electricityCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
+                              <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
+                                / {parsed.electricityFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (parsed.water && parsed.waterCost > 0) {
+                        rows.push(
+                          <div key="water" className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
+                            <span className="text-muted-foreground">{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</span>
+                            <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                              {parsed.waterCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
+                              <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
+                                / {parsed.waterFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      }
+                      return rows;
+                    } catch (_) {
+                      if (property.electricityCost > 0) {
+                        return (
+                          <div className="flex justify-between items-center text-xs font-medium">
+                            <span className="text-muted-foreground">{language === 'ar' ? 'الفواتير الخدمية' : 'Utility Bills'}</span>
+                            <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                              {property.electricityCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
+                              {property.electricityFrequency && (
+                                <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
+                                  / {property.electricityFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }
+                  })()}
                   <div className="flex justify-between items-center text-xs font-medium">
                     <span className="text-muted-foreground">{t('common.commission')}</span>
                     <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
