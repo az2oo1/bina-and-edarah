@@ -1108,17 +1108,109 @@ async function startServer() {
   });
 
   // Settings
+  // ---- Settings SQL Fallbacks & Database Auto-Correction ----
+  async function ensureDbColumnsExist() {
+    const alterCommands = [
+      `ALTER TABLE "Settings" ADD COLUMN "analyticsDashboardUrl" text`,
+      `ALTER TABLE Settings ADD COLUMN analyticsDashboardUrl text`,
+      `ALTER TABLE "Settings" ADD COLUMN "addressAr" text`,
+      `ALTER TABLE Settings ADD COLUMN addressAr text`,
+      `ALTER TABLE "Settings" ADD COLUMN "addressEn" text`,
+      `ALTER TABLE Settings ADD COLUMN addressEn text`,
+      `ALTER TABLE "Settings" ADD COLUMN "addressMapLink" text`,
+      `ALTER TABLE Settings ADD COLUMN addressMapLink text`,
+      `ALTER TABLE "Admin" ADD COLUMN "email" text`,
+      `ALTER TABLE Admin ADD COLUMN email text`
+    ];
+    for (const cmd of alterCommands) {
+      try {
+        await prisma.$executeRawUnsafe(cmd);
+      } catch (_) {
+        // Ignore errors (column already exists, or wrong provider casing)
+      }
+    }
+  }
+
+  async function getGlobalSettings() {
+    try {
+      const s = await prisma.settings.findUnique({ where: { id: "global" } });
+      if (s) return s;
+    } catch (err) {
+      logger.warn("Prisma Settings query failed, using raw SQL query:", err);
+    }
+    
+    // Raw fallback queries
+    try {
+      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "Settings" WHERE id = 'global' LIMIT 1`);
+      if (rows && rows.length > 0) return rows[0];
+    } catch (_) {}
+    try {
+      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM Settings WHERE id = 'global' LIMIT 1`);
+      if (rows && rows.length > 0) return rows[0];
+    } catch (_) {}
+    
+    return null;
+  }
+
+  async function updateGlobalSettings(data: any) {
+    const fields = Object.keys(data).filter(k => data[k] !== undefined);
+    if (fields.length === 0) return getGlobalSettings();
+
+    try {
+      const updated = await prisma.settings.update({
+        where: { id: "global" },
+        data
+      });
+      return updated;
+    } catch (err) {
+      logger.warn("Prisma client settings update failed, falling back to raw SQL updates:", err);
+    }
+
+    // Fallback: update fields one-by-one using raw SQL
+    for (const field of fields) {
+      const val = data[field];
+      try {
+        if (typeof val === 'string') {
+          const escaped = val.replace(/'/g, "''");
+          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = '${escaped}' WHERE id = 'global'`);
+          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = '${escaped}' WHERE id = 'global'`);
+        } else if (typeof val === 'number') {
+          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = ${val} WHERE id = 'global'`);
+          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = ${val} WHERE id = 'global'`);
+        } else if (val === null) {
+          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = NULL WHERE id = 'global'`);
+          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = NULL WHERE id = 'global'`);
+        }
+      } catch (e) {
+        logger.error(`Raw SQL update failed for Settings.${field}:`, e);
+      }
+    }
+
+    return getGlobalSettings();
+  }
+
+  // Settings
   app.get("/api/settings", async (req, res) => {
     try {
-      let settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      let settings = await getGlobalSettings();
       if (!settings) {
-        settings = await prisma.settings.create({ data: { id: "global", whatsappNumber: "966500000000", callingNumber: "966500000000", whatsappMessage: "مرحباً، أنا مهتم بهذا العقار: {title} - {link}" } });
+        try {
+          settings = await prisma.settings.create({ data: { id: "global", whatsappNumber: "966500000000", callingNumber: "966500000000", whatsappMessage: "مرحباً، أنا مهتم بهذا العقار: {title} - {link}" } });
+        } catch (_) {
+          try {
+            await prisma.$executeRawUnsafe(`INSERT INTO "Settings" (id, "whatsappNumber", "callingNumber", "whatsappMessage") VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}')`);
+          } catch (_) {
+            await prisma.$executeRawUnsafe(`INSERT INTO Settings (id, whatsappNumber, callingNumber, whatsappMessage) VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}')`);
+          }
+          settings = await getGlobalSettings();
+        }
       }
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
+
   app.post("/api/settings", adminAuthMiddleware, async (req, res) => {
     try {
       const { 
@@ -1128,12 +1220,6 @@ async function startServer() {
         addressAr, addressEn, addressMapLink
       } = req.body;
       
-      // Ensure global settings row exists
-      let settings = await prisma.settings.findUnique({ where: { id: "global" } });
-      if (!settings) {
-        settings = await prisma.settings.create({ data: { id: "global" } });
-      }
-
       const updateData: any = {};
       
       if (whatsappNumber !== undefined) updateData.whatsappNumber = whatsappNumber;
@@ -1190,10 +1276,7 @@ async function startServer() {
       if (addressEn !== undefined) updateData.addressEn = addressEn;
       if (addressMapLink !== undefined) updateData.addressMapLink = addressMapLink;
 
-      const updated = await prisma.settings.update({
-        where: { id: "global" },
-        data: updateData
-      });
+      const updated = await updateGlobalSettings(updateData);
       
       await logAction(req, "UPDATE_SETTINGS", "Updated global site settings");
       res.json(updated);
@@ -1665,10 +1748,26 @@ async function startServer() {
   // ---- Platform Users Management API (Admin model CRUD) ----
   app.get("/api/admin/users", adminAuthMiddleware, async (req, res) => {
     try {
-      const users = await prisma.admin.findMany({
-        select: { id: true, username: true, name: true, role: true, email: true, createdAt: true },
-        orderBy: { createdAt: 'desc' }
-      });
+      // Try Prisma client first
+      try {
+        const users = await prisma.admin.findMany({
+          select: { id: true, username: true, name: true, role: true, email: true, createdAt: true },
+          orderBy: { createdAt: 'desc' }
+        });
+        return res.json(users);
+      } catch (err) {
+        logger.warn("Prisma fetch platform users failed, falling back to raw SQL:", err);
+      }
+
+      // Fallback: Fetch using raw SQL
+      let users: any[] = [];
+      try {
+        users = await prisma.$queryRawUnsafe<any[]>(`SELECT id, username, name, role, email, "createdAt" FROM "Admin" ORDER BY "createdAt" DESC`);
+      } catch (_) {
+        try {
+          users = await prisma.$queryRawUnsafe<any[]>(`SELECT id, username, name, role, email, createdAt FROM Admin ORDER BY createdAt DESC`);
+        } catch (_) {}
+      }
       res.json(users);
     } catch (error) {
       logger.error("Failed to fetch platform users", error);
@@ -1686,11 +1785,40 @@ async function startServer() {
       if (existing) {
         return res.status(400).json({ error: "Username already exists" });
       }
-      const newUser = await prisma.admin.create({
-        data: { username, password, name, role: role || "ADMIN", email }
-      });
-      await logAction(req, "ADD_PLATFORM_USER", `Created platform user: ${username} (${role || "ADMIN"})`);
-      res.status(201).json({ id: newUser.id, username: newUser.username, name: newUser.name, role: newUser.role, email: newUser.email });
+
+      // Try Prisma client first
+      try {
+        const newUser = await prisma.admin.create({
+          data: { username, password, name, role: role || "ADMIN", email }
+        });
+        await logAction(req, "ADD_PLATFORM_USER", `Created platform user: ${username} (${role || "ADMIN"})`);
+        return res.status(201).json({ id: newUser.id, username: newUser.username, name: newUser.name, role: newUser.role, email: newUser.email });
+      } catch (err) {
+        logger.warn("Prisma user creation failed, falling back to raw SQL:", err);
+      }
+
+      // Fallback: Create using raw SQL
+      const uuid = require('crypto').randomUUID();
+      const escapedUser = username.replace(/'/g, "''");
+      const escapedPass = password.replace(/'/g, "''");
+      const escapedName = name.replace(/'/g, "''");
+      const escapedRole = (role || "ADMIN").replace(/'/g, "''");
+      const escapedEmail = email ? email.replace(/'/g, "''") : null;
+
+      try {
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO "Admin" (id, username, password, name, role, email, "createdAt")
+          VALUES ('${uuid}', '${escapedUser}', '${escapedPass}', '${escapedName}', '${escapedRole}', ${escapedEmail ? `'${escapedEmail}'` : 'NULL'}, NOW())
+        `);
+      } catch (_) {
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO Admin (id, username, password, name, role, email, createdAt)
+          VALUES ('${uuid}', '${escapedUser}', '${escapedPass}', '${escapedName}', '${escapedRole}', ${escapedEmail ? `'${escapedEmail}'` : 'NULL'}, datetime('now'))
+        `);
+      }
+
+      await logAction(req, "ADD_PLATFORM_USER", `Created platform user (raw SQL): ${username} (${role || "ADMIN"})`);
+      res.status(201).json({ id: uuid, username, name, role: role || "ADMIN", email });
     } catch (error) {
       logger.error("Failed to create platform user", error);
       res.status(500).json({ error: "Failed to create user" });
@@ -1713,19 +1841,53 @@ async function startServer() {
         if (clash) return res.status(400).json({ error: "Username already taken" });
       }
 
-      const updated = await prisma.admin.update({
-        where: { id },
-        data: {
-          username: username || undefined,
-          password: password || undefined,
-          name: name || undefined,
-          role: role || undefined,
-          email: email !== undefined ? email : undefined
-        }
-      });
+      // Try Prisma client first
+      try {
+        const updated = await prisma.admin.update({
+          where: { id },
+          data: {
+            username: username || undefined,
+            password: password || undefined,
+            name: name || undefined,
+            role: role || undefined,
+            email: email !== undefined ? email : undefined
+          }
+        });
+        await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details: ${updated.username}`);
+        return res.json({ id: updated.id, username: updated.username, name: updated.name, role: updated.role, email: updated.email });
+      } catch (err) {
+        logger.warn("Prisma user update failed, falling back to raw SQL:", err);
+      }
 
-      await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details: ${updated.username}`);
-      res.json({ id: updated.id, username: updated.username, name: updated.name, role: updated.role, email: updated.email });
+      // Fallback: update using raw SQL
+      if (username) {
+        const escaped = username.replace(/'/g, "''");
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET username = '${escaped}' WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET username = '${escaped}' WHERE id = '${id}'`);
+      }
+      if (password) {
+        const escaped = password.replace(/'/g, "''");
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET password = '${escaped}' WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET password = '${escaped}' WHERE id = '${id}'`);
+      }
+      if (name) {
+        const escaped = name.replace(/'/g, "''");
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET name = '${escaped}' WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET name = '${escaped}' WHERE id = '${id}'`);
+      }
+      if (role) {
+        const escaped = role.replace(/'/g, "''");
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET role = '${escaped}' WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET role = '${escaped}' WHERE id = '${id}'`);
+      }
+      if (email !== undefined) {
+        const escaped = email ? `'${email.replace(/'/g, "''")}'` : 'NULL';
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET email = ${escaped} WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET email = ${escaped} WHERE id = '${id}'`);
+      }
+
+      await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details (raw SQL): ${username || existing.username}`);
+      res.json({ id, username: username || existing.username, name: name || existing.name, role: role || existing.role, email: email !== undefined ? email : (existing as any).email });
     } catch (error) {
       logger.error("Failed to update platform user", error);
       res.status(500).json({ error: "Failed to update user" });
@@ -1832,6 +1994,15 @@ async function startServer() {
     console.log("Database schema synchronized and client regenerated successfully.");
   } catch (dbError) {
     console.error("Prisma schema sync or client generation skipped/failed:", dbError);
+  }
+
+  // Dynamically check and add missing columns directly in the SQL database (failsafe)
+  try {
+    console.log("Checking and correcting SQL database tables for missing columns...");
+    await ensureDbColumnsExist();
+    console.log("Database table checks complete.");
+  } catch (err) {
+    console.error("SQL database table checking failed:", err);
   }
 
   app.listen(PORT, "0.0.0.0", () => {
