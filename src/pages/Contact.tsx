@@ -135,11 +135,29 @@ export default function Contact() {
                 <h3 className="text-sm font-semibold text-foreground mb-1">
                   {language === 'ar' ? 'المقر الرئيسي' : 'Headquarters'}
                 </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed text-justify">
-                  {language === 'ar' 
-                    ? 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز، الياسمين.' 
-                    : 'King Abdul Aziz Road, Al Yasmin district, Riyadh, Kingdom of Saudi Arabia.'}
-                </p>
+                {settings?.addressMapLink ? (
+                  <a 
+                    href={settings.addressMapLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="group/addr block"
+                  >
+                    <p className="text-xs text-muted-foreground leading-relaxed text-justify group-hover/addr:text-primary transition-colors cursor-pointer">
+                      {language === 'ar' 
+                        ? (settings.addressAr || 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز، الياسمين.') 
+                        : (settings.addressEn || 'King Abdul Aziz Road, Al Yasmin district, Riyadh, Kingdom of Saudi Arabia.')}
+                      <span className="text-[10px] text-primary/80 block mt-1 hover:underline">
+                        {language === 'ar' ? 'عرض على الخريطة ↗' : 'View on map ↗'}
+                      </span>
+                    </p>
+                  </a>
+                ) : (
+                  <p className="text-xs text-muted-foreground leading-relaxed text-justify">
+                    {language === 'ar' 
+                      ? (settings?.addressAr || 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز، الياسمين.') 
+                      : (settings?.addressEn || 'King Abdul Aziz Road, Al Yasmin district, Riyadh, Kingdom of Saudi Arabia.')}
+                  </p>
+                )}
               </div>
             </div>
 

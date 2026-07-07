@@ -146,6 +146,11 @@ export default function Admin() {
   const [snapchatUrl, setSnapchatUrl] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
 
+  // Address & Map State
+  const [addressAr, setAddressAr] = useState('');
+  const [addressEn, setAddressEn] = useState('');
+  const [addressMapLink, setAddressMapLink] = useState('');
+
   // Backup / Restore State
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
@@ -221,6 +226,22 @@ export default function Admin() {
       if (data.tiktokUrl !== undefined) setTiktokUrl(data.tiktokUrl || '');
       if (data.snapchatUrl !== undefined) setSnapchatUrl(data.snapchatUrl || '');
       if (data.notificationEmail !== undefined) setNotificationEmail(data.notificationEmail || '');
+      
+      // Load SMTP Settings
+      if (data.smtpHost !== undefined) setSmtpHost(data.smtpHost || '');
+      if (data.smtpPort !== undefined) setSmtpPort(data.smtpPort?.toString() || '');
+      if (data.smtpUser !== undefined) setSmtpUser(data.smtpUser || '');
+      if (data.smtpPass !== undefined) setSmtpPass(data.smtpPass || '');
+      if (data.smtpFrom !== undefined) setSmtpFrom(data.smtpFrom || '');
+      
+      // Load Analytics Settings
+      if (data.analyticsScript !== undefined) setAnalyticsScript(data.analyticsScript || '');
+      if (data.analyticsDashboardUrl !== undefined) setAnalyticsDashboardUrl(data.analyticsDashboardUrl || '');
+
+      // Load Address Settings
+      if (data.addressAr !== undefined) setAddressAr(data.addressAr || '');
+      if (data.addressEn !== undefined) setAddressEn(data.addressEn || '');
+      if (data.addressMapLink !== undefined) setAddressMapLink(data.addressMapLink || '');
     } catch (err) {
       console.error(err);
     }
@@ -539,7 +560,10 @@ export default function Admin() {
         smtpPass,
         smtpFrom,
         analyticsScript,
-        analyticsDashboardUrl
+        analyticsDashboardUrl,
+        addressAr,
+        addressEn,
+        addressMapLink
       };
 
       if (activeSettingsSection === 'social') {
@@ -1436,16 +1460,13 @@ export default function Admin() {
             
             <div className="flex bg-muted p-1 rounded-xl mb-6 flex-wrap gap-1">
               <button onClick={() => setActiveSettingsSection('whatsapp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'whatsapp' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'الواتساب' : 'WhatsApp'}
+                {language === 'ar' ? 'التواصل الاجتماعي والواتساب' : 'WhatsApp & Social'}
               </button>
               <button onClick={() => setActiveSettingsSection('email')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'email' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
               </button>
               <button onClick={() => setActiveSettingsSection('otp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'otp' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'رمز تحقق' : 'OTP'}
-              </button>
-              <button onClick={() => setActiveSettingsSection('social')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'social' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'سوشيال' : 'Social'}
               </button>
               <button onClick={() => setActiveSettingsSection('images')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'images' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'صور' : 'Images'}
@@ -1462,7 +1483,9 @@ export default function Admin() {
               
               {activeSettingsSection === 'whatsapp' && (
                 <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">{language === 'ar' ? 'إعدادات الواتساب' : 'WhatsApp Settings'}</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">{language === 'ar' ? 'إعدادات الواتساب والتواصل والموقع' : 'WhatsApp, Social & Location Settings'}</h3>
+                  
+                  {/* WhatsApp Fields */}
                   <div className="space-y-6">
                     <div>
                       <label className="cn-label mb-2">{t('admin.placeholder.whatsapp')}</label>
@@ -1485,8 +1508,6 @@ export default function Admin() {
                         <span className="font-mono text-xs bg-muted px-1 rounded block mt-1 w-max">966500000000</span>
                       </p>
                     </div>
-
-
 
                     <div>
                       <label className="cn-label mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
@@ -1526,6 +1547,88 @@ export default function Admin() {
                           <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{link}'}</span> - {language === 'ar' ? 'رابط صفحة العقار' : 'Property Page Link'}</li>
                         </ul>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Social Media & Contact Section */}
+                  <div className="border-t border-border pt-6 mt-6">
+                    <h4 className="text-sm font-bold text-foreground mb-4">
+                      {language === 'ar' ? 'وسائل التواصل الاجتماعي والبريد الإلكتروني' : 'Social Media & Email'}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-4">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
+                    <div className="space-y-4">
+                      {[
+                        { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: <Mail className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                        { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: <IgIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                        { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: <XIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                        { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: <FbIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                        { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                        { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                        { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                        { label: 'Snapchat', value: snapchatUrl, setter: setSnapchatUrl, placeholder: 'https://snapchat.com/add/benaandedara', type: 'url', icon: <SnapIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                      ].map(field => (
+                        <div key={field.label}>
+                          <label className="block text-sm font-bold text-muted-foreground mb-1 flex items-center">
+                            {field.icon} <span>{field.label}</span>
+                          </label>
+                          <input
+                            type={field.type}
+                            value={field.value}
+                            onChange={e => field.setter(e.target.value)}
+                            className="cn-input text-sm h-11 bg-background"
+                            placeholder={field.placeholder}
+                            dir="ltr"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Headquarters Location Section */}
+                  <div className="border-t border-border pt-6 mt-6 space-y-4">
+                    <h4 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <span>{language === 'ar' ? 'موقع المقر الرئيسي للمنشأة' : 'Headquarters Physical Location'}</span>
+                    </h4>
+                    
+                    <div>
+                      <label className="block text-sm font-bold text-muted-foreground mb-1">
+                        {language === 'ar' ? 'العنوان (بالعربية)' : 'Address (Arabic)'}
+                      </label>
+                      <input
+                        type="text"
+                        value={addressAr}
+                        onChange={e => setAddressAr(e.target.value)}
+                        className="cn-input text-sm h-11 bg-background"
+                        placeholder={language === 'ar' ? 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز...' : 'Saudi Arabia, Riyadh, King Abdul Aziz Road...'}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-muted-foreground mb-1">
+                        {language === 'ar' ? 'العنوان (بالإنجليزي)' : 'Address (English)'}
+                      </label>
+                      <input
+                        type="text"
+                        value={addressEn}
+                        onChange={e => setAddressEn(e.target.value)}
+                        className="cn-input text-sm h-11 bg-background"
+                        placeholder="King Abdul Aziz Road, Al Yasmin district, Riyadh..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-muted-foreground mb-1">
+                        {language === 'ar' ? 'رابط خريطة جوجل' : 'Google Maps Location Link'}
+                      </label>
+                      <input
+                        type="text"
+                        value={addressMapLink}
+                        onChange={e => setAddressMapLink(e.target.value)}
+                        className="cn-input text-sm h-11 bg-background"
+                        placeholder="https://maps.google.com/?q=..."
+                        dir="ltr"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1854,40 +1957,7 @@ export default function Admin() {
                 );
               })()}
 
-              {activeSettingsSection === 'social' && (
-                <div>
-                  <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-6">
-                    {language === 'ar' ? 'وسائل التواصل الاجتماعي والبريد الإلكتروني' : 'Social Media & Email'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-6">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
-                  <div className="space-y-4">
-                    {[
-                      { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: <Mail className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: <IgIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: <XIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: <FbIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                      { label: 'Snapchat', value: snapchatUrl, setter: setSnapchatUrl, placeholder: 'https://snapchat.com/add/benaandedara', type: 'url', icon: <SnapIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                    ].map(field => (
-                      <div key={field.label}>
-                        <label className="block text-sm font-bold text-muted-foreground mb-1 flex items-center">
-                          {field.icon} <span>{field.label}</span>
-                        </label>
-                        <input
-                          type={field.type}
-                          value={field.value}
-                          onChange={e => field.setter(e.target.value)}
-                          className="cn-input text-sm h-11 bg-background"
-                          placeholder={field.placeholder}
-                          dir="ltr"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+
 
               {activeSettingsSection === 'backup' && (
                 <div>

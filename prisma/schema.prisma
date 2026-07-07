@@ -106,7 +106,10 @@ model Settings {
   smtpFrom           String?
   // Custom Open-Source Analytics
   analyticsScript    String?
-  analyticsDashboardUrl String?
+  // Address & Map Links
+  addressAr          String?
+  addressEn          String?
+  addressMapLink     String?
 }
 
 model PageView {

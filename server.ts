@@ -1103,7 +1103,8 @@ async function startServer() {
       const { 
         whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, 
         homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, 
-        notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, analyticsScript, analyticsDashboardUrl 
+        notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, analyticsScript, analyticsDashboardUrl,
+        addressAr, addressEn, addressMapLink
       } = req.body;
       
       // Ensure global settings row exists
@@ -1162,6 +1163,11 @@ async function startServer() {
       // Custom Analytics fields
       if (analyticsScript !== undefined) updateData.analyticsScript = analyticsScript;
       if (analyticsDashboardUrl !== undefined) updateData.analyticsDashboardUrl = analyticsDashboardUrl;
+
+      // Address & Map Links
+      if (addressAr !== undefined) updateData.addressAr = addressAr;
+      if (addressEn !== undefined) updateData.addressEn = addressEn;
+      if (addressMapLink !== undefined) updateData.addressMapLink = addressMapLink;
 
       const updated = await prisma.settings.update({
         where: { id: "global" },
