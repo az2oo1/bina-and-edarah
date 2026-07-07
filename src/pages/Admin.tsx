@@ -79,6 +79,32 @@ const PREDEFINED_FEATURES = [
   { keyAr: 'موقع هادئ وراقٍ ومناسب جداً للعائلات', keyEn: 'Quiet, premium residential area - very family-friendly' },
 ];
 
+const TAB_TO_PERMISSION: Record<string, string> = {
+  manage: 'properties',
+  projects: 'projects',
+  buildings: 'buildings',
+  renters: 'renters',
+  receipts: 'receipts',
+  analytics: 'analytics',
+  settings: 'settings',
+  callbacks: 'callbacks',
+  users: 'users',
+  logs: 'logs'
+};
+
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'analytics', 'settings', 'callbacks', 'users', 'logs'],
+  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'callbacks', 'analytics'],
+  AGENT: ['properties', 'projects', 'callbacks']
+};
+
+function hasTabPermission(tab: string, role: string) {
+  const perm = TAB_TO_PERMISSION[tab];
+  if (!perm) return false;
+  const userPerms = ROLE_PERMISSIONS[role] || [];
+  return role === 'ADMIN' || userPerms.includes(perm);
+}
+
 export default function Admin() {
   const { t, language } = useLanguage();
 
@@ -94,6 +120,27 @@ export default function Admin() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [fetching, setFetching] = useState(true);
   const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'analytics' | 'settings' | 'callbacks' | 'users' | 'logs'>('manage');
+  const [userRole, setUserRole] = useState<string>('ADMIN');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      const u = JSON.parse(stored);
+      const roleVal = u.role || 'ADMIN';
+      setUserRole(roleVal);
+      
+      const tabKeys: ('manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'analytics' | 'settings' | 'callbacks' | 'users' | 'logs')[] = [
+        'manage', 'projects', 'buildings', 'renters', 'receipts', 'analytics', 'settings', 'callbacks', 'users', 'logs'
+      ];
+      if (!hasTabPermission(activeTab, roleVal)) {
+        const firstPermitted = tabKeys.find(tk => hasTabPermission(tk, roleVal));
+        if (firstPermitted) {
+          setActiveTab(firstPermitted);
+        }
+      }
+    }
+  }, [activeTab]);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -185,7 +232,8 @@ export default function Admin() {
     includeWater: false,
     waterCostVal: '',
     waterFrequencyVal: 'YEARLY',
-    vatExempt: false
+    vatExempt: false,
+    allowedPaymentPlans: ["1", "2", "4"] as string[]
   });
 
   const fetchProperties = async () => {
@@ -433,7 +481,8 @@ export default function Admin() {
       includeWater: false,
       waterCostVal: '',
       waterFrequencyVal: 'YEARLY',
-      vatExempt: false
+      vatExempt: false,
+      allowedPaymentPlans: ["1", "2", "4"]
     });
     setEditingId(null);
     setShowAddForm(false);
@@ -493,6 +542,24 @@ export default function Admin() {
           parsedUtility.electricityFrequency = propData.electricityFrequency || 'YEARLY';
         }
       }
+      
+      let parsedPaymentPlans = ["1", "2", "4"];
+      if (propData.allowedPaymentPlans) {
+        try {
+          parsedPaymentPlans = typeof propData.allowedPaymentPlans === 'string' 
+            ? JSON.parse(propData.allowedPaymentPlans) 
+            : propData.allowedPaymentPlans;
+          if (!Array.isArray(parsedPaymentPlans)) {
+            parsedPaymentPlans = [String(parsedPaymentPlans)];
+          }
+        } catch (_) {
+          if (typeof propData.allowedPaymentPlans === 'string') {
+            parsedPaymentPlans = propData.allowedPaymentPlans.split(',').map((s: string) => s.trim());
+          }
+        }
+      } else if (propData.paymentsCount) {
+        parsedPaymentPlans = [String(propData.paymentsCount)];
+      }
 
       setFormData({
         titleAr: propData.titleAr || '',
@@ -522,7 +589,8 @@ export default function Admin() {
         includeWater: parsedUtility.water,
         waterCostVal: parsedUtility.waterCost ? parsedUtility.waterCost.toString() : '',
         waterFrequencyVal: parsedUtility.waterFrequency,
-        vatExempt: propData.vatExempt || false
+        vatExempt: propData.vatExempt || false,
+        allowedPaymentPlans: parsedPaymentPlans
       });
       setEditingId(property.id);
       setShowAddForm(true);
@@ -665,106 +733,126 @@ export default function Admin() {
 
         {/* Navigation Tabs */}
         <div className="inline-flex w-full items-center justify-start rounded-xl bg-card border border-border p-1 text-muted-foreground mb-8 overflow-x-auto select-none scrollbar-none gap-1">
-          <button 
-            onClick={() => setActiveTab('manage')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'manage' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {t('admin.manageProperties')}
-          </button>
-          <button 
-            onClick={() => setActiveTab('projects')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'projects' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects'}
-          </button>
-          <button 
-            onClick={() => setActiveTab('buildings')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'buildings' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {language === 'ar' ? 'إدارة المباني' : 'Buildings'}
-          </button>
-          <button 
-            onClick={() => setActiveTab('renters')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'renters' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {language === 'ar' ? 'المستأجرين' : 'Renters'}
-          </button>
-          <button 
-            onClick={() => setActiveTab('receipts')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'receipts' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {language === 'ar' ? 'الإيصالات' : 'Receipts'}
-          </button>
-          <button 
-            onClick={() => setActiveTab('analytics')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'analytics' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {language === 'ar' ? 'الإحصائيات' : 'Analytics'}
-          </button>
-          <button 
-            onClick={() => setActiveTab('settings')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'settings' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {t('admin.settings')}
-          </button>
-          <button 
-            onClick={() => setActiveTab('callbacks')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'callbacks' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {language === 'ar' ? 'طلبات التواصل' : 'Callbacks'}
-          </button>
-          <button 
-            onClick={() => setActiveTab('users')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'users' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {language === 'ar' ? 'المستخدمين' : 'Users'}
-          </button>
-          <button 
-            onClick={() => setActiveTab('logs')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'logs' 
-                ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {language === 'ar' ? 'السجلات' : 'Audit Logs'}
-          </button>
+          {hasTabPermission('manage', userRole) && (
+            <button 
+              onClick={() => setActiveTab('manage')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'manage' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {t('admin.manageProperties')}
+            </button>
+          )}
+          {hasTabPermission('projects', userRole) && (
+            <button 
+              onClick={() => setActiveTab('projects')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'projects' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects'}
+            </button>
+          )}
+          {hasTabPermission('buildings', userRole) && (
+            <button 
+              onClick={() => setActiveTab('buildings')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'buildings' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'إدارة المباني' : 'Buildings'}
+            </button>
+          )}
+          {hasTabPermission('renters', userRole) && (
+            <button 
+              onClick={() => setActiveTab('renters')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'renters' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'المستأجرين' : 'Renters'}
+            </button>
+          )}
+          {hasTabPermission('receipts', userRole) && (
+            <button 
+              onClick={() => setActiveTab('receipts')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'receipts' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'الإيصالات' : 'Receipts'}
+            </button>
+          )}
+          {hasTabPermission('analytics', userRole) && (
+            <button 
+              onClick={() => setActiveTab('analytics')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'analytics' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'الإحصائيات' : 'Analytics'}
+            </button>
+          )}
+          {hasTabPermission('settings', userRole) && (
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'settings' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {t('admin.settings')}
+            </button>
+          )}
+          {hasTabPermission('callbacks', userRole) && (
+            <button 
+              onClick={() => setActiveTab('callbacks')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'callbacks' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'طلبات التواصل' : 'Callbacks'}
+            </button>
+          )}
+          {hasTabPermission('users', userRole) && (
+            <button 
+              onClick={() => setActiveTab('users')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'users' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'المستخدمين' : 'Users'}
+            </button>
+          )}
+          {hasTabPermission('logs', userRole) && (
+            <button 
+              onClick={() => setActiveTab('logs')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'logs' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'السجلات' : 'Audit Logs'}
+            </button>
+          )}
         </div>
 
         <AnimatePresence mode="wait">
@@ -917,6 +1005,7 @@ export default function Admin() {
                         <option value="WAREHOUSE">{t('cat.WAREHOUSE')}</option>
                         <option value="FARM">{t('cat.FARM')}</option>
                         <option value="LAND">{t('cat.LAND')}</option>
+                        <option value="ROOM">{t('cat.ROOM')}</option>
                       </select>
                     </div>
 
@@ -964,22 +1053,61 @@ export default function Admin() {
                         <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0" placeholder="2500000" />
                         {formData.type === 'RENT' && (
                           <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
-                            <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card w-28 px-3 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer">
+                            <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card w-36 px-4 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer">
                               <option value="YEARLY">{t('common.yearly')}</option>
                               <option value="MONTHLY">{t('common.monthly')}</option>
-                            </select>
-                            <select value={formData.paymentsCount} onChange={(e) => setFormData({ ...formData, paymentsCount: e.target.value })} className="bg-card border-l border-border ltr:border-l rtl:border-r w-32 px-3 py-1 outline-none focus:ring-0 font-medium text-muted-foreground border-none cursor-pointer">
-                              <option value="">{language === 'ar' ? 'عدد الدفعات...' : 'Payments...'}</option>
-                              <option value="1">{language === 'ar' ? 'دفعة واحدة' : '1 Payment'}</option>
-                              <option value="2">{language === 'ar' ? 'دفعتين' : '2 Payments'}</option>
-                              <option value="3">{language === 'ar' ? '3 دفعات' : '3 Payments'}</option>
-                              <option value="4">{language === 'ar' ? '4 دفعات' : '4 Payments'}</option>
-                              <option value="12">{language === 'ar' ? 'شهري (12)' : 'Monthly (12)'}</option>
                             </select>
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {formData.type === 'RENT' && (
+                      <div className="md:col-span-2 space-y-2.5">
+                        <label className="cn-label text-xs">
+                          {language === 'ar' ? 'أقساط الدفع المقبولة' : 'Allowed Payment Installments'}
+                        </label>
+                        <div className="flex flex-wrap gap-2.5">
+                          {[
+                            { value: "1", labelAr: "دفعة واحدة سنوية", labelEn: "1 Payment (Annual)" },
+                            { value: "2", labelAr: "دفعتين (نصف سنوي)", labelEn: "2 Installments" },
+                            { value: "3", labelAr: "3 دفعات", labelEn: "3 Installments" },
+                            { value: "4", labelAr: "4 دفعات (ربع سنوي)", labelEn: "4 Installments" },
+                            { value: "6", labelAr: "6 دفعات", labelEn: "6 Installments" },
+                            { value: "12", labelAr: "12 دفعة شهري", labelEn: "12 Installments (Monthly)" }
+                          ].map((opt) => {
+                            const isSelected = formData.allowedPaymentPlans?.includes(opt.value);
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => {
+                                  let updated = formData.allowedPaymentPlans || [];
+                                  if (updated.includes(opt.value)) {
+                                    updated = updated.filter(v => v !== opt.value);
+                                  } else {
+                                    updated = [...updated, opt.value];
+                                  }
+                                  updated.sort((a, b) => Number(a) - Number(b));
+                                  setFormData({ 
+                                    ...formData, 
+                                    allowedPaymentPlans: updated,
+                                    paymentsCount: updated[0] || '1'
+                                  });
+                                }}
+                                className={`py-2 px-4 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-primary/10 border-primary text-primary shadow-xs'
+                                    : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
+                                }`}
+                              >
+                                {language === 'ar' ? opt.labelAr : opt.labelEn}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {formData.type === 'RENT' && (
                       <div className="md:col-span-2 space-y-4">
@@ -1115,6 +1243,8 @@ export default function Admin() {
                         <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="cn-input" placeholder="0" />
                       </div>
                     </div>
+
+                    {/* Allowed Payment Plans checkboxes removed */}
 
                   </div>
                 </div>

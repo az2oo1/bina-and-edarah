@@ -25,6 +25,7 @@ interface Property {
   price: number;
   imageUrls: string; // JSON string
   aqarLink?: string;
+  allowedPaymentPlans?: string;
   createdAt: string;
 }
 
@@ -55,6 +56,7 @@ export default function PropertyDetails() {
   const [callingNumber, setCallingNumber] = useState('966500000000');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
   const [activeImage, setActiveImage] = useState(0);
+  const [selectedPlan, setSelectedPlan] = useState<string>("1");
 
   useEffect(() => {
     // Fetch Settings
@@ -72,6 +74,16 @@ export default function PropertyDetails() {
       .then(res => res.json())
       .then((data: Property) => {
         setProperty(data);
+        if (data.allowedPaymentPlans) {
+          try {
+            const parsed = JSON.parse(data.allowedPaymentPlans);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setSelectedPlan(parsed[0]);
+            }
+          } catch (_) {}
+        } else if (data.paymentsCount) {
+          setSelectedPlan(String(data.paymentsCount));
+        }
         try {
           const parsed = JSON.parse(data.imageUrls);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -287,11 +299,75 @@ export default function PropertyDetails() {
                       {property.commission > 0 ? <>{property.commission.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" /></> : (language === 'ar' ? 'غير محدد' : 'N/A')}
                     </span>
                   </div>
+                  {property.type === 'RENT' && selectedPlan && Number(selectedPlan) > 1 && (
+                    <div className="flex justify-between items-center text-xs font-bold border-t border-dashed border-border/80 pt-2.5 mt-2.5">
+                      <span className="text-muted-foreground">
+                        {language === 'ar' 
+                          ? `قيمة الدفعة الواحدة (${selectedPlan} دفعات):` 
+                          : `Per Payment (${selectedPlan} Payments):`}
+                      </span>
+                      <span className="text-primary text-left flex items-center gap-0.5 font-extrabold" dir="ltr">
+                        {Math.round((property.price + (property.vat || 0)) / Number(selectedPlan)).toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-primary" />
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Payment Plans Selector */}
+              {(() => {
+                const allowedPlans = (() => {
+                  if (!property.allowedPaymentPlans) return [];
+                  try {
+                    const parsed = JSON.parse(property.allowedPaymentPlans);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                  } catch (_) {}
+                  return [];
+                })();
+
+                if (allowedPlans.length <= 1) return null;
+
+                return (
+                  <div className="bg-card/50 border border-border/85 rounded-xl p-4 shadow-sm space-y-3 mt-2">
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                      {language === 'ar' ? 'خيارات الدفع والأقساط' : 'Payment Plans & Installments'}
+                    </span>
+                    
+                    {/* Buttons group */}
+                    <div className="flex flex-wrap gap-1.5 p-1 bg-muted rounded-lg border border-border">
+                      {allowedPlans.map((plan) => {
+                        const label = plan === "1"
+                          ? (language === 'ar' ? 'دفعة واحدة' : '1 Payment')
+                          : plan === "2"
+                          ? (language === 'ar' ? 'دفعتين' : '2 Payments')
+                          : plan === "3"
+                          ? (language === 'ar' ? '٣ دفعات' : '3 Payments')
+                          : plan === "4"
+                          ? (language === 'ar' ? '٤ دفعات' : '4 Payments')
+                          : plan === "6"
+                          ? (language === 'ar' ? '٦ دفعات' : '6 Payments')
+                          : (language === 'ar' ? '١٢ دفعة' : '12 Payments');
+                        return (
+                          <button
+                            key={plan}
+                            onClick={() => setSelectedPlan(plan)}
+                            className={`flex-1 py-1.5 px-3 rounded text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                              selectedPlan === plan 
+                                ? 'bg-primary text-primary-foreground shadow-xs' 
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Actions */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2 pt-2">
                 <a
                   href={`tel:${callingNumber.replace(/\+/g, '')}`}
                   className="btn-primary w-full text-xs h-9 justify-center gap-1.5"
@@ -301,11 +377,26 @@ export default function PropertyDetails() {
                 </a>
 
                 <a
-                  href={`https://wa.me/${whatsappNumber.replace(/\+/g, '')}?text=${encodeURIComponent(
-                    whatsappMessage
-                      .replace('{title}', language === 'ar' ? property.titleAr : property.titleEn)
-                      .replace('{link}', window.location.href)
-                  )}`}
+                  href={`https://wa.me/${whatsappNumber.replace(/\+/g, '')}?text=${(() => {
+                    const payCount = selectedPlan ? Number(selectedPlan) : 1;
+                    const planText = payCount > 1 ? (
+                      payCount === 2 
+                        ? (language === 'ar' ? ' (دفعتين نصف سنوية)' : ' (2 Semi-Annual Installments)')
+                        : payCount === 3
+                        ? (language === 'ar' ? ' (٣ دفعات)' : ' (3 Installments)')
+                        : payCount === 4
+                        ? (language === 'ar' ? ' (٤ دفعات ربع سنوية)' : ' (4 Quarterly Installments)')
+                        : payCount === 6
+                        ? (language === 'ar' ? ' (٦ دفعات)' : ' (6 Installments)')
+                        : (language === 'ar' ? ` (${payCount} دفعات شهري)` : ` (${payCount} Monthly Installments)`)
+                    ) : '';
+                    
+                    return encodeURIComponent(
+                      whatsappMessage
+                        .replace('{title}', (language === 'ar' ? property.titleAr : property.titleEn) + planText)
+                        .replace('{link}', window.location.href)
+                    );
+                  })()}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center rounded-md text-xs font-medium bg-[#25D366] text-foreground hover:bg-[#22bf5b] h-9 px-4 py-2 shadow-xs transition-colors cursor-pointer gap-1.5"

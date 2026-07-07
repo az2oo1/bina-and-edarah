@@ -12,7 +12,7 @@ model Property {
   titleAr          String   // Arabic Title
   titleEn          String   // English Title
   type             String   // 'SALE' or 'RENT'
-  propertyCategory String   @default("VILLA") // 'VILLA', 'APARTMENT', 'LAND', 'OFFICE', 'SHOP', 'BUILDING'
+  propertyCategory String   @default("VILLA") // 'VILLA', 'APARTMENT', 'LAND', 'OFFICE', 'SHOP', 'BUILDING', 'ROOM'
   paymentFrequency String?  // 'YEARLY' or 'MONTHLY'
   paymentsCount    Int?     // e.g. 1, 2, 4 payments
   area             Float    @default(0)
@@ -31,6 +31,7 @@ model Property {
   price            Float
   imageUrls        String   @default("[]") // JSON stringified array of base64 images
   aqarLink         String?  // Direct link to the Aqar landing page
+  allowedPaymentPlans String @default("[\"1\",\"2\",\"4\"]")
   createdAt        DateTime @default(now())
 
   userId           String?
@@ -50,6 +51,7 @@ model Admin {
   password  String   // Plain or Hashed
   name      String   @default("Administrator")
   role      String   @default("ADMIN") // ADMIN, MANAGER, AGENT
+  email     String?
   createdAt DateTime @default(now())
 }
 

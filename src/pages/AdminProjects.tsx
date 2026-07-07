@@ -315,6 +315,7 @@ export default function AdminProjects() {
                     <option value="WAREHOUSE" className="bg-card text-foreground">{t('cat.WAREHOUSE') || 'Warehouse'}</option>
                     <option value="FARM" className="bg-card text-foreground">{t('cat.FARM') || 'Farm'}</option>
                     <option value="LAND" className="bg-card text-foreground">{t('cat.LAND') || 'Land'}</option>
+                    <option value="ROOM" className="bg-card text-foreground">{t('cat.ROOM') || 'Room'}</option>
                   </select>
                 </div>
               </div>

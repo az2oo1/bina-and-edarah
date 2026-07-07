@@ -88,7 +88,7 @@ export default function Login() {
         const user = await res.json();
         localStorage.setItem('user', JSON.stringify(user));
         window.dispatchEvent(new Event('storage'));
-        navigate(user.role === 'ADMIN' ? '/admin' : '/dashboard');
+        navigate(['ADMIN', 'MANAGER', 'AGENT'].includes(user.role) ? '/admin' : '/dashboard');
       } else {
         setError(language === 'ar' ? 'بيانات الدخول غير صحيحة' : 'Invalid credentials');
       }
@@ -424,7 +424,7 @@ export default function Login() {
                                 ) : null}
                               </div>
                             </div>
-                           );         <Loader2 className="w-4 h-4 animate-spin" />
+                           );
                         })}
                       </div>
                     ) : (

@@ -139,6 +139,7 @@ export default function Properties() {
                   <option value="WAREHOUSE">{t('cat.WAREHOUSE')}</option>
                   <option value="FARM">{t('cat.FARM')}</option>
                   <option value="LAND">{t('cat.LAND')}</option>
+                  <option value="ROOM">{t('cat.ROOM')}</option>
                 </select>
                 <input
                   type="number"

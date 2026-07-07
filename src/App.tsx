@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router';
+import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router';
 import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
 import { Logo } from './components/Logo';
@@ -301,6 +301,22 @@ function PageTracker() {
   return null;
 }
 
+function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
+  const stored = localStorage.getItem('user');
+  if (!stored) {
+    return <Navigate to="/login" replace />;
+  }
+  try {
+    const user = JSON.parse(stored);
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+      return <Navigate to="/" replace />;
+    }
+  } catch (_) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+
 function AppContent() {
   const { language } = useLanguage();
   return (
@@ -313,9 +329,17 @@ function AppContent() {
           <Route path="/projects/:id" element={<ProjectDetails />} />
           <Route path="/properties" element={<Properties />} />
           <Route path="/properties/:id" element={<PropertyDetails />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT']}>
+              <Admin />
+            </ProtectedRoute>
+          } />
           <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT', 'USER']}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
           <Route path="/contact" element={<Contact />} />
         </Routes>
       </main>

@@ -318,6 +318,47 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Promotional Video Section */}
+      <section className="py-24 bg-card border-t border-b border-border relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Text description */}
+            <div className="space-y-6 text-right rtl:text-right ltr:text-left">
+              <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-sky-400 bg-sky-400/10 border border-sky-400/25 uppercase">
+                {language === 'ar' ? 'عرض مرئي' : 'Video Tour'}
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
+                {language === 'ar' ? 'رحلتك نحو مسكنك المثالي تبدأ من هنا' : 'Your Journey to the Perfect Home Starts Here'}
+              </h2>
+              <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed text-justify">
+                {language === 'ar'
+                  ? 'شاهد العرض المرئي التعريفي لشركة بناء وإدارة العقارية، وتعرف على مشاريعنا الحديثة وتطويراتنا السكنية الفاخرة. نسعى دائماً لتقديم أعلى معايير الفخامة والتميز العقاري لعملائنا في مختلف أنحاء المملكة.'
+                  : 'Watch the promotional video tour of Benaa & Edara Real Estate and explore our latest projects and premium residential developments. We always strive to deliver the highest standards of luxury and real estate excellence to our clients across the Kingdom.'}
+              </p>
+              <div className="pt-2">
+                <Link to="/properties" className="inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-11 px-6 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer">
+                  <span>{language === 'ar' ? 'تصفح العقارات المتاحة' : 'Browse Available Properties'}</span>
+                  <Arrow className="w-4 h-4 text-white" />
+                </Link>
+              </div>
+            </div>
+            {/* Video Player */}
+            <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl bg-slate-900 group">
+              <video
+                className="w-full h-full object-cover"
+                controls
+                preload="metadata"
+                poster="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80"
+              >
+                <source src="https://assets.mixkit.co/videos/preview/mixkit-modern-apartment-buildings-in-a-city-43183-large.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Featured Projects Album Section */}
       <section className="py-24 bg-background border-t border-b border-border relative overflow-hidden">
         {/* Aesthetics lines */}

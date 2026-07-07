@@ -120,6 +120,65 @@ async function sendCallbackEmailNotification() {
   }
 }
 
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'analytics', 'settings', 'callbacks', 'users', 'logs'],
+  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'callbacks', 'analytics'],
+  AGENT: ['properties', 'projects', 'callbacks']
+};
+
+async function sendReplyEmailNotification(callbackRequest: any, replyText: string) {
+  try {
+    if (!callbackRequest.email) {
+      logger.info(`[REPLY EMAIL skipped] No customer email provided for callback request ID ${callbackRequest.id}`);
+      return;
+    }
+
+    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const host = settings?.smtpHost || process.env.SMTP_HOST;
+    const port = settings?.smtpPort || Number(process.env.SMTP_PORT) || 587;
+    const user = settings?.smtpUser || process.env.SMTP_USER;
+    const pass = settings?.smtpPass || process.env.SMTP_PASS;
+    const from = settings?.smtpFrom || process.env.SMTP_FROM || "no-reply@benaa-edara.com";
+
+    const emailSubject = "رد على طلبك / Reply to your request - بناء وإدارة";
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; margin: auto;">
+        <h2 style="color: #3b82f6; margin-bottom: 20px;">مرحباً ${callbackRequest.name}،</h2>
+        <p style="font-size: 14px; line-height: 1.6; color: #334155;">تم الرد على طلب الاتصال أو رسالة التواصل الخاصة بك من قبل فريق بناء وإدارة:</p>
+        <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border-right: 4px solid #3b82f6; margin: 20px 0; font-size: 14px; line-height: 1.6; color: #1e293b;">
+          ${replyText}
+        </div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #64748b;">هذا البريد الإلكتروني مرسل تلقائياً، يرجى عدم الرد عليه مباشرة.</p>
+      </div>
+    `;
+
+    if (!host || !user || !pass) {
+      logger.warn(`[REPLY EMAIL WARNING] SMTP credentials not set. Cannot send real email to customer.`);
+      logger.info(`[REPLY EMAIL MOCK] Email reply sent to: ${callbackRequest.email}\nSubject: ${emailSubject}\nContent:\n${htmlContent}`);
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass }
+    });
+
+    await transporter.sendMail({
+      from,
+      to: callbackRequest.email,
+      subject: emailSubject,
+      html: htmlContent
+    });
+    logger.info(`[REPLY EMAIL SUCCESS] Reply email sent to customer: ${callbackRequest.email}`);
+  } catch (error) {
+    logger.error(`[REPLY EMAIL ERROR] Failed to send reply email to customer`, error);
+  }
+}
+
+
 async function logAction(req: any, action: string, details: string) {
   try {
     const user = req.user || { id: "unknown", name: "System/Unknown", role: "UNKNOWN" };
@@ -224,14 +283,35 @@ function adminAuthMiddleware(req: any, res: any, next: any) {
   }
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    if (decoded.role !== 'ADMIN') {
-      return res.status(403).json({ error: "Forbidden: Admin privileges required" });
+    const validRoles = ['ADMIN', 'MANAGER', 'AGENT'];
+    if (!validRoles.includes(decoded.role)) {
+      return res.status(403).json({ error: "Forbidden: Staff privileges required" });
     }
     req.user = decoded;
     next();
   } catch (err) {
     return res.status(401).json({ error: "Unauthorized: Invalid or expired session token" });
   }
+}
+
+function requirePermission(permission: string) {
+  return (req: any, res: any, next: any) => {
+    const token = req.cookies?.token;
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized: Missing session token" });
+    }
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      const userPermissions = ROLE_PERMISSIONS[decoded.role] || [];
+      if (decoded.role !== 'ADMIN' && !userPermissions.includes(permission)) {
+        return res.status(403).json({ error: `Forbidden: Lacks required permission '${permission}'` });
+      }
+      req.user = decoded;
+      next();
+    } catch (err) {
+      return res.status(401).json({ error: "Unauthorized: Invalid or expired session token" });
+    }
+  };
 }
 
 async function startServer() {
@@ -265,13 +345,135 @@ async function startServer() {
   // Serve static uploaded files
   app.use('/uploads', express.static(UPLOADS_DIR));
 
+  // Dynamic SEO Open Graph Meta Injection for WhatsApp / Facebook / Twitter crawlers
+  const injectOGTags = async (req: any, res: any, next: any) => {
+    const urlPath = req.path;
+    
+    // Skip static assets or API calls
+    if (urlPath.startsWith('/api') || urlPath.startsWith('/uploads') || urlPath.includes('.')) {
+      return next();
+    }
+    
+    try {
+      let title = "بناء وإدارة العقارية | Benaa & Edara Real Estate";
+      let description = "شركة بناء وإدارة العقارية - تطوير، تأجير، مبيعات، وإدارة أملاك في المملكة العربية السعودية";
+      let imageUrl = ""; // We can use the site logo as fallback
+      
+      // Get global settings for logo
+      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      if (settings?.logoUrl) {
+        imageUrl = settings.logoUrl;
+      }
+      
+      // If it's a property page
+      if (urlPath.startsWith('/properties/')) {
+        const id = urlPath.split('/')[2];
+        if (id && id !== 'new') {
+          const property = await prisma.property.findUnique({ where: { id } });
+          if (property) {
+            title = `${property.titleAr} | ${property.titleEn} - بناء وإدارة`;
+            description = property.description || description;
+            
+            // Extract the first image from JSON array
+            try {
+              const images = JSON.parse(property.imageUrls);
+              if (Array.isArray(images) && images.length > 0) {
+                imageUrl = images[0];
+              }
+            } catch (_) {}
+          }
+        }
+      }
+      // If it's a project page
+      else if (urlPath.startsWith('/projects/')) {
+        const id = urlPath.split('/')[2];
+        if (id) {
+          const project = await prisma.project.findUnique({ where: { id } });
+          if (project) {
+            title = `${project.titleAr} | ${project.titleEn} - - بناء وإدارة`;
+            description = project.description || description;
+            
+            // Extract the first image
+            try {
+              const images = JSON.parse(project.imageUrls);
+              if (Array.isArray(images) && images.length > 0) {
+                imageUrl = images[0];
+              }
+            } catch (_) {}
+          }
+        }
+      }
+
+      // Read index.html
+      const isProd = process.env.NODE_ENV === "production";
+      const indexPath = isProd 
+        ? path.join(process.cwd(), 'dist', 'index.html')
+        : path.join(process.cwd(), 'index.html');
+        
+      if (!fs.existsSync(indexPath)) {
+        return next();
+      }
+      
+      let html = fs.readFileSync(indexPath, 'utf8');
+      
+      // Ensure imageUrl is an absolute URL
+      const host = req.get('host');
+      const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+      const siteUrl = `${protocol}://${host}`;
+      
+      if (imageUrl) {
+        if (imageUrl.startsWith('/')) {
+          imageUrl = `${siteUrl}${imageUrl}`;
+        } else if (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
+          imageUrl = `${siteUrl}/${imageUrl}`;
+        }
+      } else {
+        // Default fallback if logo not set
+        imageUrl = `${siteUrl}/favicon.ico`;
+      }
+      
+      // Build OG tags
+      const ogTags = `
+        <title>${title}</title>
+        <meta name="description" content="${description}" />
+        <meta property="og:title" content="${title}" />
+        <meta property="og:description" content="${description}" />
+        <meta property="og:image" content="${imageUrl}" />
+        <meta property="og:url" content="${siteUrl}${urlPath}" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="${title}" />
+        <meta name="twitter:description" content="${description}" />
+        <meta name="twitter:image" content="${imageUrl}" />
+      `;
+
+      // Replace existing title and description tags if they exist
+      html = html.replace(/<title>.*?<\/title>/gi, '');
+      html = html.replace(/<meta\s+name="description"\s+content=".*?"\s*\/?>/gi, '');
+      html = html.replace(/<meta\s+property="og:.*?"\s+content=".*?"\s*\/?>/gi, '');
+      
+      // Insert new tags right before </head>
+      html = html.replace('</head>', `${ogTags}\n</head>`);
+      
+      res.send(html);
+    } catch (err) {
+      logger.error("SEO Injection Error:", err);
+      next();
+    }
+  };
+
+  app.get('/properties/:id', injectOGTags);
+  app.get('/projects/:id', injectOGTags);
+  app.get('/', injectOGTags);
+
+
   // Protect all admin endpoints
   app.use('/api/admin', adminAuthMiddleware);
 
   // API Routes
 
   // --- Admin Buildings (Renter Portal Setup) ---
-  app.get('/api/admin/buildings', async (req, res) => {
+  app.get('/api/admin/buildings', requirePermission('buildings'), async (req, res) => {
     try {
       const buildings = await prisma.building.findMany({
         include: {
@@ -287,7 +489,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/admin/buildings', async (req, res) => {
+  app.post('/api/admin/buildings', requirePermission('buildings'), async (req, res) => {
     try {
       const { name } = req.body;
       const building = await prisma.building.create({
@@ -300,7 +502,7 @@ async function startServer() {
     }
   });
 
-  app.put('/api/admin/buildings/:id', async (req, res) => {
+  app.put('/api/admin/buildings/:id', requirePermission('buildings'), async (req, res) => {
     try {
       const { transferDetails, photos } = req.body;
       const building = await prisma.building.update({
@@ -314,7 +516,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/admin/buildings/:id/upload-json', async (req, res) => {
+  app.post('/api/admin/buildings/:id/upload-json', requirePermission('buildings'), async (req, res) => {
     try {
       const { id } = req.params;
       const { rows } = req.body;
@@ -638,7 +840,7 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/admin/buildings/:id', async (req, res) => {
+  app.delete('/api/admin/buildings/:id', requirePermission('buildings'), async (req, res) => {
     try {
       const building = await prisma.building.findUnique({ where: { id: req.params.id } });
       await prisma.renterUnit.deleteMany({
@@ -655,7 +857,7 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/admin/units/:id', async (req, res) => {
+  app.delete('/api/admin/units/:id', requirePermission('buildings'), async (req, res) => {
     try {
       const unit = await prisma.renterUnit.findUnique({ where: { id: req.params.id } });
       await prisma.renterUnit.delete({
@@ -669,7 +871,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/admin/renters', async (req, res) => {
+  app.get('/api/admin/renters', requirePermission('renters'), async (req, res) => {
     try {
       const renters = await prisma.renterUnit.findMany({
         include: { building: true, rentHistory: { orderBy: { dueDate: 'asc' } } },
@@ -815,7 +1017,7 @@ async function startServer() {
   });
 
   // Receipts API
-  app.get('/api/admin/receipts', async (req, res) => {
+  app.get('/api/admin/receipts', requirePermission('receipts'), async (req, res) => {
     try {
       const receipts = await prisma.receipt.findMany({
         orderBy: { createdAt: 'desc' }
@@ -909,7 +1111,7 @@ async function startServer() {
     return Number.isNaN(parsed) ? null : parsed;
   };
 
-  app.post("/api/properties", adminAuthMiddleware, async (req, res) => {
+  app.post("/api/properties", requirePermission('properties'), async (req, res) => {
     try {
       const body = req.body;
       const type = body.type || "SALE";
@@ -937,6 +1139,7 @@ async function startServer() {
           price: safeFloat(body.price),
           imageUrls: processImageUrls(body.imageUrls),
           aqarLink: body.aqarLink || null,
+          allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
           userId: body.userId || null,
         }
       });
@@ -949,7 +1152,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/properties/:id", adminAuthMiddleware, async (req, res) => {
+  app.put("/api/properties/:id", requirePermission('properties'), async (req, res) => {
     try {
       const body = req.body;
       const type = body.type || "SALE";
@@ -978,6 +1181,7 @@ async function startServer() {
           price: safeFloat(body.price),
           imageUrls: processImageUrls(body.imageUrls),
           aqarLink: body.aqarLink || null,
+          allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
           userId: body.userId || null,
         }
       });
@@ -990,7 +1194,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/properties/:id", adminAuthMiddleware, async (req, res) => {
+  app.delete("/api/properties/:id", requirePermission('properties'), async (req, res) => {
     try {
       await prisma.property.delete({
         where: { id: req.params.id }
@@ -1036,7 +1240,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/projects", adminAuthMiddleware, async (req, res) => {
+  app.post("/api/projects", requirePermission('projects'), async (req, res) => {
     try {
       const body = req.body;
       const newProject = await prisma.project.create({
@@ -1064,7 +1268,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/projects/:id", adminAuthMiddleware, async (req, res) => {
+  app.put("/api/projects/:id", requirePermission('projects'), async (req, res) => {
     try {
       const body = req.body;
       const updatedProject = await prisma.project.update({
@@ -1093,7 +1297,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/projects/:id", adminAuthMiddleware, async (req, res) => {
+  app.delete("/api/projects/:id", requirePermission('projects'), async (req, res) => {
     try {
       await prisma.project.delete({
         where: { id: req.params.id }
@@ -1211,7 +1415,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/settings", adminAuthMiddleware, async (req, res) => {
+  app.post("/api/settings", requirePermission('settings'), async (req, res) => {
     try {
       const { 
         whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, 
@@ -1292,7 +1496,7 @@ async function startServer() {
   //   - db-data.json    (all database content serialized)
   //   - uploads/         (uploaded files)
   //   - manifest.json   (metadata)
-  app.get("/api/admin/backup", async (req, res) => {
+  app.get("/api/admin/backup", requirePermission('settings'), async (req, res) => {
     try {
       const archive = archiver('zip', { zlib: { level: 6 } });
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -1357,7 +1561,7 @@ async function startServer() {
 
   // POST /api/admin/restore  → accepts multipart upload of a .zip containing a db-data.json file and uploads/ folder
   const restoreUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
-  app.post("/api/admin/restore", restoreUpload.single('file'), async (req, res) => {
+  app.post("/api/admin/restore", requirePermission('settings'), restoreUpload.single('file'), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
@@ -1466,49 +1670,67 @@ async function startServer() {
       const { username, password } = req.body;
       logger.info(`Login attempt for username: ${username}`);
       
-      // Check Admin
-      const admin = await prisma.admin.findUnique({ where: { username } });
-      if (admin && admin.password === password) {
-        const userPayload = { id: admin.id, username: admin.username, role: 'ADMIN', name: 'Administrator' };
-        const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-          sameSite: 'lax',
-          maxAge: 24 * 60 * 60 * 1000 // 24 hours
-        });
-        logger.info(`Admin login successful for ${username}`);
-        return res.json(userPayload);
-      }
-
-      // Check User
-      const user = await prisma.user.findUnique({ where: { username } });
-      if (user && user.password === password) {
-        const userPayload = { id: user.id, username: user.username, role: 'USER', name: user.name };
-        const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-          sameSite: 'lax',
-          maxAge: 24 * 60 * 60 * 1000 // 24 hours
-        });
-        logger.info(`User login successful for ${username}`);
-        return res.json(userPayload);
-      }
-
-      // Hardcoded admin fallback for preview if DB is empty
-      if (username === 'admin' && password === 'admin') {
-        const userPayload = { id: 'admin-fallback', username: 'admin', role: 'ADMIN', name: 'Administrator' };
-        const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-          sameSite: 'lax',
-          maxAge: 24 * 60 * 60 * 1000 // 24 hours
-        });
-        logger.info(`Fallback admin login successful`);
-        return res.json(userPayload);
-      }
+       // Check Admin
+       const admin = await prisma.admin.findUnique({ where: { username } });
+       if (admin && admin.password === password) {
+         const userPayload = { 
+           id: admin.id, 
+           username: admin.username, 
+           role: admin.role || 'ADMIN', 
+           name: admin.name || 'Administrator',
+           permissions: ROLE_PERMISSIONS[admin.role || 'ADMIN'] || []
+         };
+         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
+         res.cookie('token', token, {
+           httpOnly: true,
+           secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+           sameSite: 'lax',
+           maxAge: 24 * 60 * 60 * 1000 // 24 hours
+         });
+         logger.info(`Admin login successful for ${username} (${admin.role})`);
+         return res.json(userPayload);
+       }
+ 
+       // Check User
+       const user = await prisma.user.findUnique({ where: { username } });
+       if (user && user.password === password) {
+         const userPayload = { 
+           id: user.id, 
+           username: user.username, 
+           role: 'USER', 
+           name: user.name,
+           permissions: []
+         };
+         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
+         res.cookie('token', token, {
+           httpOnly: true,
+           secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+           sameSite: 'lax',
+           maxAge: 24 * 60 * 60 * 1000 // 24 hours
+         });
+         logger.info(`User login successful for ${username}`);
+         return res.json(userPayload);
+       }
+ 
+       // Hardcoded admin fallback for preview if DB is empty
+       if (username === 'admin' && password === 'admin') {
+         const userPayload = { 
+           id: 'admin-fallback', 
+           username: 'admin', 
+           role: 'ADMIN', 
+           name: 'Administrator',
+           permissions: ROLE_PERMISSIONS['ADMIN']
+         };
+         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
+         res.cookie('token', token, {
+           httpOnly: true,
+           secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+           sameSite: 'lax',
+           maxAge: 24 * 60 * 60 * 1000 // 24 hours
+         });
+         logger.info(`Fallback admin login successful`);
+         return res.json(userPayload);
+       }
 
       logger.warn(`Failed login attempt for username: ${username}`);
       res.status(401).json({ error: "Invalid credentials" });
@@ -1553,7 +1775,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/users", adminAuthMiddleware, async (req, res) => {
+  app.get("/api/users", requirePermission('renters'), async (req, res) => {
     try {
       const users = await prisma.user.findMany({
         select: { id: true, username: true, name: true }
@@ -1565,7 +1787,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/users", adminAuthMiddleware, async (req, res) => {
+  app.post("/api/users", requirePermission('renters'), async (req, res) => {
     try {
       const { username, password, name } = req.body;
       const user = await prisma.user.create({
@@ -1588,7 +1810,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/services", adminAuthMiddleware, async (req, res) => {
+  app.post("/api/services", requirePermission('settings'), async (req, res) => {
     try {
       const body = req.body;
       const newService = await prisma.service.create({
@@ -1654,7 +1876,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/callback-requests", adminAuthMiddleware, async (req, res) => {
+  app.get("/api/callback-requests", requirePermission('callbacks'), async (req, res) => {
     try {
       const requests = await prisma.callbackRequest.findMany({
         include: { notes: { orderBy: { createdAt: 'asc' } } },
@@ -1667,7 +1889,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/callback-requests/:id/status", adminAuthMiddleware, async (req, res) => {
+  app.put("/api/callback-requests/:id/status", requirePermission('callbacks'), async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -1686,7 +1908,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/callback-requests/:id/notes", adminAuthMiddleware, async (req, res) => {
+  app.post("/api/callback-requests/:id/notes", requirePermission('callbacks'), async (req, res) => {
     try {
       const { id } = req.params;
       const { text } = req.body;
@@ -1705,7 +1927,10 @@ async function startServer() {
         data: { handledBy: (req as any).user.name }
       });
 
-      // Send Email notification ping
+      // Send Email notification ping to customer
+      await sendReplyEmailNotification(updatedRequest, text);
+
+      // Send Email notification ping to staff
       await sendCallbackEmailNotification();
 
       await logAction(req, "REPLY_CALLBACK", `Added reply note to callback request ID ${id}`);
@@ -1716,7 +1941,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/callback-requests/:id", adminAuthMiddleware, async (req, res) => {
+  app.delete("/api/callback-requests/:id", requirePermission('callbacks'), async (req, res) => {
     try {
       const { id } = req.params;
       const reqData = await prisma.callbackRequest.findUnique({ where: { id } });
@@ -1732,7 +1957,7 @@ async function startServer() {
   });
 
   // ---- System Logs API ----
-  app.get("/api/admin/logs", adminAuthMiddleware, async (req, res) => {
+  app.get("/api/admin/logs", requirePermission('logs'), async (req, res) => {
     try {
       const logs = await prisma.actionLog.findMany({
         orderBy: { createdAt: 'desc' },
@@ -1746,7 +1971,7 @@ async function startServer() {
   });
 
   // ---- Platform Users Management API (Admin model CRUD) ----
-  app.get("/api/admin/users", adminAuthMiddleware, async (req, res) => {
+  app.get("/api/admin/users", requirePermission('users'), async (req, res) => {
     try {
       // Try Prisma client first
       try {
@@ -1775,7 +2000,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
+  app.post("/api/admin/users", requirePermission('users'), async (req, res) => {
     try {
       const { username, password, name, role, email } = req.body;
       if (!username || !password || !name) {
@@ -1825,7 +2050,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/admin/users/:id", adminAuthMiddleware, async (req, res) => {
+  app.put("/api/admin/users/:id", requirePermission('users'), async (req, res) => {
     try {
       const { id } = req.params;
       const { username, password, name, role, email } = req.body;
@@ -1894,7 +2119,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/admin/users/:id", adminAuthMiddleware, async (req, res) => {
+  app.delete("/api/admin/users/:id", requirePermission('users'), async (req, res) => {
     try {
       const { id } = req.params;
       if (id === (req as any).user.id) {
@@ -1913,7 +2138,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/analytics", adminAuthMiddleware, async (req, res) => {
+  app.get("/api/analytics", requirePermission('analytics'), async (req, res) => {
     try {
       const totalViews = await prisma.pageView.count();
       
