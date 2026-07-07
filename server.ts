@@ -58,7 +58,7 @@ const logger = {
   }
 };
 
-async function sendCallbackEmailNotification(subject: string, htmlContent: string) {
+async function sendCallbackEmailNotification(subject: string, htmlContent: string, replyTo?: string) {
   try {
     const settings = await prisma.settings.findUnique({ where: { id: "global" } });
     const toEmail = settings?.notificationEmail;
@@ -75,7 +75,7 @@ async function sendCallbackEmailNotification(subject: string, htmlContent: strin
 
     if (!host || !user || !pass) {
       logger.warn(`[EMAIL PING WARNING] SMTP credentials not set in settings or environment. Set in Settings tab or env variables SMTP_HOST, SMTP_USER, SMTP_PASS to send real emails.`);
-      logger.info(`[EMAIL PING MOCK] Email ping sent to: ${toEmail}\nSubject: ${subject}\nContent:\n${htmlContent}`);
+      logger.info(`[EMAIL PING MOCK] Email ping sent to: ${toEmail}\nSubject: ${subject}\nReply-To: ${replyTo || 'N/A'}\nContent:\n${htmlContent}`);
       return;
     }
 
@@ -90,7 +90,8 @@ async function sendCallbackEmailNotification(subject: string, htmlContent: strin
       from,
       to: toEmail,
       subject,
-      html: htmlContent
+      html: htmlContent,
+      ...(replyTo ? { replyTo } : {})
     });
     logger.info(`[EMAIL PING SUCCESS] Callback email notification sent to ${toEmail}`);
   } catch (error) {
@@ -1540,7 +1541,8 @@ async function startServer() {
          <p><strong>Phone:</strong> ${phone}</p>
          <p><strong>Email:</strong> ${email || 'N/A'}</p>
          <p><strong>Message:</strong> ${message || 'N/A'}</p>
-         <p><a href="${process.env.APP_URL || 'http://localhost:3000'}/admin">Click here to open Admin panel</a></p>`
+         <p><a href="${process.env.APP_URL || 'http://localhost:3000'}/admin">Click here to open Admin panel</a></p>`,
+        email
       );
 
       res.status(201).json(newRequest);
@@ -1608,7 +1610,8 @@ async function startServer() {
          <p><strong>Message/Note:</strong></p>
          <blockquote style="border-left: 4px solid #3b82f6; padding-left: 10px; margin-left: 0; color: #374151;">${text}</blockquote>
          <p><strong>Client:</strong> ${updatedRequest.name} (${updatedRequest.phone})</p>
-         <p><a href="${process.env.APP_URL || 'http://localhost:3000'}/admin">Click here to open Admin panel</a></p>`
+         <p><a href="${process.env.APP_URL || 'http://localhost:3000'}/admin">Click here to open Admin panel</a></p>`,
+        updatedRequest.email || undefined
       );
 
       await logAction(req, "REPLY_CALLBACK", `Added reply note to callback request ID ${id}`);

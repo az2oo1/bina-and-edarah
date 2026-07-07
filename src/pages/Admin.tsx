@@ -42,6 +42,7 @@ const PREDEFINED_DETAILS = [
   { keyAr: 'غرف النوم', keyEn: 'Bedrooms', example: '4' },
   { keyAr: 'الصالات', keyEn: 'Halls', example: '2' },
   { keyAr: 'دورات المياه', keyEn: 'Bathrooms', example: '3' },
+  { keyAr: 'المطبخ', keyEn: 'Kitchen', example: 'مفتوح / مغلق / راكب' },
   { keyAr: 'الدور', keyEn: 'Floor', example: '2' },
   { keyAr: 'الفئة', keyEn: 'Category', example: 'عوائل / عزاب' },
   { keyAr: 'مواقف سيارات', keyEn: 'Parking Spaces', example: '2' },
@@ -174,9 +175,11 @@ export default function Admin() {
     paymentsCount: '',
     utilityBills: 'NONE',
     includeElectricity: false,
-    electricityLimit: '',
+    electricityCostVal: '',
+    electricityFrequencyVal: 'YEARLY',
     includeWater: false,
-    waterLimit: '',
+    waterCostVal: '',
+    waterFrequencyVal: 'YEARLY',
     vatExempt: false
   });
 
@@ -270,16 +273,25 @@ export default function Admin() {
     setImageUploadMessage(null);
     setIsUploadingImages(true);
 
+    let totalSize = 0;
+    for (const file of Array.from(files) as File[]) {
+      totalSize += file.size;
+    }
+
+    if (totalSize > 50 * 1024 * 1024) {
+      setImageUploadMessage({ 
+        type: 'error', 
+        text: language === 'ar' ? 'إجمالي حجم الصور المرفوعة يتجاوز الحد الأقصى (50MB)' : 'Total upload size of images exceeds limit (50MB)' 
+      });
+      setIsUploadingImages(false);
+      e.target.value = '';
+      return;
+    }
+
     let base64Images: string[] = [...formData.imageUrls];
-    let hasError = false;
 
     // Process sequentially to avoid blocking UI too much
     for (const file of Array.from(files) as File[]) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB per image limit
-        setImageUploadMessage({ type: 'error', text: language === 'ar' ? `الصورة ${file.name} تتجاوز الحجم المسموح (5MB)` : `Image ${file.name} exceeds 5MB limit`});
-        hasError = true;
-        continue;
-      }
       try {
         const base64 = await compressImage(file);
         base64Images.push(base64);
@@ -301,6 +313,17 @@ export default function Admin() {
     setFormData(prev => ({ ...prev, imageUrls: newImages }));
   };
 
+  const moveImage = (index: number, direction: 'prev' | 'next') => {
+    const newUrls = [...formData.imageUrls];
+    const targetIndex = direction === 'prev' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < newUrls.length) {
+      const temp = newUrls[index];
+      newUrls[index] = newUrls[targetIndex];
+      newUrls[targetIndex] = temp;
+      setFormData({ ...formData, imageUrls: newUrls });
+    }
+  };
+
   const showSubmitMessage = (type: 'success' | 'error', text: string) => {
     setSubmitMessage({ type, text });
     setTimeout(() => setSubmitMessage(null), 5000);
@@ -317,14 +340,18 @@ export default function Admin() {
 
     const utilityPayload = JSON.stringify({
       electricity: formData.includeElectricity,
-      electricityLimit: formData.includeElectricity ? (parseFloat(formData.electricityLimit) || 0) : 0,
+      electricityCost: formData.includeElectricity ? (parseFloat(formData.electricityCostVal) || 0) : 0,
+      electricityFrequency: formData.includeElectricity ? formData.electricityFrequencyVal : 'YEARLY',
       water: formData.includeWater,
-      waterLimit: formData.includeWater ? (parseFloat(formData.waterLimit) || 0) : 0,
+      waterCost: formData.includeWater ? (parseFloat(formData.waterCostVal) || 0) : 0,
+      waterFrequency: formData.includeWater ? formData.waterFrequencyVal : 'YEARLY'
     });
 
     const payload = {
       ...formData,
       utilityBills: utilityPayload,
+      electricityCost: (formData.includeElectricity ? (parseFloat(formData.electricityCostVal) || 0) : 0) + (formData.includeWater ? (parseFloat(formData.waterCostVal) || 0) : 0),
+      electricityFrequency: formData.includeElectricity ? formData.electricityFrequencyVal : (formData.includeWater ? formData.waterFrequencyVal : null),
       features: formData.featuresList.map(f => f.value).filter(Boolean).join(','),
       imageUrls: JSON.stringify(formData.imageUrls),
       details: JSON.stringify(formData.detailsList.map(({key, value}) => ({key, value})))
@@ -379,10 +406,12 @@ export default function Admin() {
       detailsList: [],
       paymentsCount: '',
       utilityBills: 'NONE',
-    includeElectricity: false,
-    electricityLimit: '',
-    includeWater: false,
-    waterLimit: '',
+      includeElectricity: false,
+      electricityCostVal: '',
+      electricityFrequencyVal: 'YEARLY',
+      includeWater: false,
+      waterCostVal: '',
+      waterFrequencyVal: 'YEARLY',
       vatExempt: false
     });
     setEditingId(null);
@@ -416,6 +445,34 @@ export default function Admin() {
         .filter(Boolean)
         .map((f: string) => ({ id: Math.random().toString(), value: f }));
 
+      let parsedUtility = {
+        electricity: false,
+        electricityCost: 0,
+        electricityFrequency: 'YEARLY',
+        water: false,
+        waterCost: 0,
+        waterFrequency: 'YEARLY'
+      };
+      try {
+        if (propData.utilityBills) {
+          const parsed = JSON.parse(propData.utilityBills);
+          parsedUtility = {
+            electricity: !!parsed.electricity,
+            electricityCost: parsed.electricityCost || 0,
+            electricityFrequency: parsed.electricityFrequency || 'YEARLY',
+            water: !!parsed.water,
+            waterCost: parsed.waterCost || 0,
+            waterFrequency: parsed.waterFrequency || 'YEARLY'
+          };
+        }
+      } catch (e) {
+        if (propData.electricityCost > 0) {
+          parsedUtility.electricity = true;
+          parsedUtility.electricityCost = propData.electricityCost;
+          parsedUtility.electricityFrequency = propData.electricityFrequency || 'YEARLY';
+        }
+      }
+
       setFormData({
         titleAr: propData.titleAr || '',
         titleEn: propData.titleEn || '',
@@ -438,38 +495,12 @@ export default function Admin() {
         detailsList: initialDetailsList,
         paymentsCount: propData.paymentsCount?.toString() || '',
         utilityBills: propData.utilityBills || 'NONE',
-        includeElectricity: (() => {
-          try {
-            const p = JSON.parse(propData.utilityBills);
-            return !!p.electricity;
-          } catch (_) {
-            return propData.utilityBills === 'ELECTRICITY' || propData.utilityBills === 'BOTH';
-          }
-        })(),
-        electricityLimit: (() => {
-          try {
-            const p = JSON.parse(propData.utilityBills);
-            return p.electricityLimit?.toString() || '';
-          } catch (_) {
-            return '';
-          }
-        })(),
-        includeWater: (() => {
-          try {
-            const p = JSON.parse(propData.utilityBills);
-            return !!p.water;
-          } catch (_) {
-            return propData.utilityBills === 'WATER' || propData.utilityBills === 'BOTH';
-          }
-        })(),
-        waterLimit: (() => {
-          try {
-            const p = JSON.parse(propData.utilityBills);
-            return p.waterLimit?.toString() || '';
-          } catch (_) {
-            return '';
-          }
-        })(),
+        includeElectricity: parsedUtility.electricity,
+        electricityCostVal: parsedUtility.electricityCost ? parsedUtility.electricityCost.toString() : '',
+        electricityFrequencyVal: parsedUtility.electricityFrequency,
+        includeWater: parsedUtility.water,
+        waterCostVal: parsedUtility.waterCost ? parsedUtility.waterCost.toString() : '',
+        waterFrequencyVal: parsedUtility.waterFrequency,
         vatExempt: propData.vatExempt || false
       });
       setEditingId(property.id);
@@ -927,17 +958,92 @@ export default function Admin() {
                     </div>
 
                     {formData.type === 'RENT' && (
-                      <div className="md:col-span-2">
-                        <label className="cn-label mb-2">{t('admin.placeholder.electricityCost')}</label>
-                        <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                          <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
-                            <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
-                          </div>
-                          <input type="number" value={formData.electricityCost} onChange={(e) => setFormData({ ...formData, electricityCost: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0" placeholder="0" />
-                          <select value={formData.electricityFrequency} onChange={(e) => setFormData({ ...formData, electricityFrequency: e.target.value })} className="bg-card border-l border-border ltr:border-l rtl:border-r px-4 py-3 outline-none focus:ring-0 font-medium">
-                            <option value="YEARLY">{t('common.yearly')}</option>
-                            <option value="MONTHLY">{t('common.monthly')}</option>
-                          </select>
+                      <div className="md:col-span-2 space-y-4">
+                        <label className="cn-label">{language === 'ar' ? 'الفواتير الخدمية' : 'Utility Bills'}</label>
+                        <div className="flex gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, includeElectricity: !formData.includeElectricity })}
+                            className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                              formData.includeElectricity 
+                                ? 'bg-primary/10 border-primary text-primary shadow-xs' 
+                                : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
+                            }`}
+                          >
+                            <span>⚡</span>
+                            <span>{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, includeWater: !formData.includeWater })}
+                            className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                              formData.includeWater 
+                                ? 'bg-primary/10 border-primary text-primary shadow-xs' 
+                                : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
+                            }`}
+                          >
+                            <span>💧</span>
+                            <span>{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {formData.includeElectricity && (
+                            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                              <label className="cn-label text-xs">
+                                {language === 'ar' ? 'تكلفة الكهرباء:' : 'Electricity Cost:'}
+                              </label>
+                              <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                                <div className="flex bg-muted items-center justify-center px-3 border-r border-border">
+                                  <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
+                                </div>
+                                <input 
+                                  type="number" 
+                                  value={formData.electricityCostVal} 
+                                  onChange={(e) => setFormData({ ...formData, electricityCostVal: e.target.value })} 
+                                  className="flex-1 w-full p-3 outline-none min-w-0" 
+                                  placeholder="0" 
+                                />
+                                <select 
+                                  value={formData.electricityFrequencyVal} 
+                                  onChange={(e) => setFormData({ ...formData, electricityFrequencyVal: e.target.value })} 
+                                  className="bg-card border-l border-border px-3 py-3 outline-none focus:ring-0 font-medium"
+                                >
+                                  <option value="YEARLY">{t('common.yearly')}</option>
+                                  <option value="MONTHLY">{t('common.monthly')}</option>
+                                </select>
+                              </div>
+                            </div>
+                          )}
+
+                          {formData.includeWater && (
+                            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                              <label className="cn-label text-xs">
+                                {language === 'ar' ? 'تكلفة المياه:' : 'Water Cost:'}
+                              </label>
+                              <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                                <div className="flex bg-muted items-center justify-center px-3 border-r border-border">
+                                  <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
+                                </div>
+                                <input 
+                                  type="number" 
+                                  value={formData.waterCostVal} 
+                                  onChange={(e) => setFormData({ ...formData, waterCostVal: e.target.value })} 
+                                  className="flex-1 w-full p-3 outline-none min-w-0" 
+                                  placeholder="0" 
+                                />
+                                <select 
+                                  value={formData.waterFrequencyVal} 
+                                  onChange={(e) => setFormData({ ...formData, waterFrequencyVal: e.target.value })} 
+                                  className="bg-card border-l border-border px-3 py-3 outline-none focus:ring-0 font-medium"
+                                >
+                                  <option value="YEARLY">{t('common.yearly')}</option>
+                                  <option value="MONTHLY">{t('common.monthly')}</option>
+                                </select>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -982,78 +1088,6 @@ export default function Admin() {
                       </div>
                     </div>
 
-                    <div className="md:col-span-2 space-y-4">
-                      <label className="cn-label">{language === 'ar' ? 'الفواتير الخدمية المشمولة' : 'Utility Bills Included'}</label>
-                      <div className="flex gap-4">
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, includeElectricity: !formData.includeElectricity })}
-                          className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                            formData.includeElectricity 
-                              ? 'bg-primary/10 border-primary text-primary shadow-xs' 
-                              : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
-                          }`}
-                        >
-                          <span>⚡</span>
-                          <span>{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, includeWater: !formData.includeWater })}
-                          className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                            formData.includeWater 
-                              ? 'bg-primary/10 border-primary text-primary shadow-xs' 
-                              : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
-                          }`}
-                        >
-                          <span>💧</span>
-                          <span>{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</span>
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {formData.includeElectricity && (
-                          <div className="space-y-1.5">
-                            <label className="cn-label text-xs">
-                              {language === 'ar' ? 'مبلغ الكهرباء المشمول (0 = شامل بالكامل):' : 'Electricity limit included (0 = fully included):'}
-                            </label>
-                            <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                              <div className="flex bg-muted items-center justify-center px-3 border-r border-border">
-                                <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
-                              </div>
-                              <input 
-                                type="number" 
-                                value={formData.electricityLimit} 
-                                onChange={(e) => setFormData({ ...formData, electricityLimit: e.target.value })} 
-                                className="cn-input bg-background font-medium" 
-                                placeholder="0" 
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {formData.includeWater && (
-                          <div className="space-y-1.5">
-                            <label className="cn-label text-xs">
-                              {language === 'ar' ? 'مبلغ المياه المشمول (0 = شامل بالكامل):' : 'Water limit included (0 = fully included):'}
-                            </label>
-                            <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                              <div className="flex bg-muted items-center justify-center px-3 border-r border-border">
-                                <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
-                              </div>
-                              <input 
-                                type="number" 
-                                value={formData.waterLimit} 
-                                onChange={(e) => setFormData({ ...formData, waterLimit: e.target.value })} 
-                                className="cn-input bg-background font-medium" 
-                                placeholder="0" 
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -1259,11 +1293,46 @@ export default function Admin() {
                   {formData.imageUrls.length > 0 && (
                     <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
                       {formData.imageUrls.map((url, i) => (
-                        <div key={i} className="relative aspect-square bg-muted rounded-xl overflow-hidden border border-border">
+                        <div key={i} className="relative aspect-square bg-muted rounded-xl overflow-hidden border border-border group/img">
                           <img src={url} alt="upload preview" className="w-full h-full object-cover" />
-                          <button type="button" onClick={() => removeImage(i)} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md">
-                            <X className="w-4 h-4" />
+                          
+                          {/* Main Image Badge */}
+                          {i === 0 && (
+                            <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm z-10">
+                              {language === 'ar' ? 'الرئيسية' : 'Main'}
+                            </div>
+                          )}
+
+                          <button 
+                            type="button" 
+                            onClick={() => removeImage(i)} 
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md z-10 transition-colors cursor-pointer"
+                            title={language === 'ar' ? 'حذف' : 'Delete'}
+                          >
+                            <X className="w-3.5 h-3.5" />
                           </button>
+
+                          {/* Rearrange Arrows Overlay Bar */}
+                          <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1.5 z-10 opacity-85 hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              disabled={i === 0}
+                              onClick={() => moveImage(i, 'prev')}
+                              className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                              title={language === 'ar' ? 'تحريك للخلف' : 'Move Left'}
+                            >
+                              <ArrowLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={i === formData.imageUrls.length - 1}
+                              onClick={() => moveImage(i, 'next')}
+                              className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                              title={language === 'ar' ? 'تحريك للأمام' : 'Move Right'}
+                            >
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1771,7 +1840,7 @@ export default function Admin() {
                                   : (language === 'ar' ? 'رفع صورة' : 'Upload Image')
                                 }
                               </label>
-                              <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? 'الحد الأقصى 5MB' : 'Max 5MB'}</p>
+                              <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? 'الحد الأقصى 50MB' : 'Max 50MB'}</p>
                             </div>
                           </div>
                         </div>
