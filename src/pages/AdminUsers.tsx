@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { Users, Plus, Loader2, Trash2, Edit2, Shield, X, Lock, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useDialog } from '../context/DialogContext';
 
 interface PlatformUser {
   id: string;
@@ -14,6 +15,7 @@ interface PlatformUser {
 
 export default function AdminUsers() {
   const { language } = useLanguage();
+  const { showAlert, showConfirm } = useDialog();
   const [users, setUsers] = useState<PlatformUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -84,10 +86,11 @@ export default function AdminUsers() {
 
   const handleDelete = async (id: string, name: string) => {
     if (id === currentUserId) {
-      alert(language === 'ar' ? 'لا يمكنك حذف حسابك الشخصي الذي تستخدمه حالياً!' : 'You cannot delete your own active account!');
+      await showAlert(language === 'ar' ? 'لا يمكنك حذف حسابك الشخصي الذي تستخدمه حالياً!' : 'You cannot delete your own active account!');
       return;
     }
-    if (!window.confirm(language === 'ar' ? `هل أنت متأكد من حذف المستخدم "${name}"؟` : `Are you sure you want to delete user "${name}"?`)) {
+    const confirmed = await showConfirm(language === 'ar' ? `هل أنت متأكد من حذف المستخدم "${name}"؟` : `Are you sure you want to delete user "${name}"?`);
+    if (!confirmed) {
       return;
     }
 
@@ -98,10 +101,10 @@ export default function AdminUsers() {
         showSuccess(language === 'ar' ? 'تم حذف المستخدم بنجاح' : 'User deleted successfully');
       } else {
         const errData = await res.json();
-        alert(errData.error || (language === 'ar' ? 'فشل حذف المستخدم' : 'Failed to delete user'));
+        await showAlert(errData.error || (language === 'ar' ? 'فشل حذف المستخدم' : 'Failed to delete user'));
       }
     } catch (err) {
-      alert(language === 'ar' ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
+      await showAlert(language === 'ar' ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
     }
   };
 

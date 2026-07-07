@@ -559,7 +559,7 @@ export default function AdminBuildings() {
                  }
                  return (
                    <div className="overflow-x-auto bg-card rounded-lg border border-border">
-                     <table className="w-full text-right border-collapse">
+                     <table className="w-full ltr:text-left rtl:text-right border-collapse">
                        <thead>
                          <tr className="bg-muted/40 text-muted-foreground text-xs border-b border-border">
                            <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>

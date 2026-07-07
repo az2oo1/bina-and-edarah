@@ -1324,7 +1324,9 @@ async function startServer() {
       `ALTER TABLE "Settings" ADD COLUMN "addressMapLink" text`,
       `ALTER TABLE Settings ADD COLUMN addressMapLink text`,
       `ALTER TABLE "Admin" ADD COLUMN "email" text`,
-      `ALTER TABLE Admin ADD COLUMN email text`
+      `ALTER TABLE Admin ADD COLUMN email text`,
+      `ALTER TABLE "Property" ADD COLUMN "allowedPaymentPlans" text DEFAULT '["1","2","4"]'`,
+      `ALTER TABLE Property ADD COLUMN allowedPaymentPlans text DEFAULT '["1","2","4"]'`
     ];
     for (const cmd of alterCommands) {
       try {

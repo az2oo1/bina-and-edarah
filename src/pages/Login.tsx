@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import { Lock, User, Phone, AlertTriangle, Building2, Calendar, FileText, ChevronLeft, CreditCard, History, Banknote, Landmark, CheckCircle2, UploadCloud, Loader2, Eye } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
+import { useDialog } from '../context/DialogContext';
 
 interface RentHistory {
   id: string;
@@ -27,6 +28,7 @@ interface RenterUnit {
 
 export default function Login() {
   const { language, t } = useLanguage();
+  const { showAlert } = useDialog();
   const navigate = useNavigate();
   
   // Modes
@@ -118,7 +120,7 @@ export default function Login() {
       setHasOtpSent(true);
       // In development show the fake delivery
       if (data.fakeOtpDelivery) {
-        alert(language === 'ar' ? `لغرض التجربة، الرمز هو: ${data.fakeOtpDelivery}` : `For testing, OTP is: ${data.fakeOtpDelivery}`);
+        await showAlert(language === 'ar' ? `لغرض التجربة، الرمز هو: ${data.fakeOtpDelivery}` : `For testing, OTP is: ${data.fakeOtpDelivery}`);
       }
     } catch (err: any) {
       setError(err.message);
@@ -196,13 +198,13 @@ export default function Login() {
           const data = await loginRes.json();
           setUnits(data);
         }
-        alert(language === 'ar' ? 'تم رفع الإيصال بنجاح. سيتم مراجعته.' : 'Receipt uploaded successfully. It will be reviewed.');
+        await showAlert(language === 'ar' ? 'تم رفع الإيصال بنجاح. سيتم مراجعته.' : 'Receipt uploaded successfully. It will be reviewed.');
       } else {
-        alert(language === 'ar' ? 'حدث خطأ أثناء الرفع.' : 'Error uploading receipt.');
+        await showAlert(language === 'ar' ? 'حدث خطأ أثناء الرفع.' : 'Error uploading receipt.');
       }
     } catch (err) {
       console.error(err);
-      alert(language === 'ar' ? 'فشل الرفع' : 'Upload failed');
+      await showAlert(language === 'ar' ? 'فشل الرفع' : 'Upload failed');
     } finally {
       setUploadingReceiptFor(null);
     }

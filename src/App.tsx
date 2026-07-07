@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router';
 import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
+import { DialogProvider } from './context/DialogContext';
 import { Logo } from './components/Logo';
 import { SocialIconsRow, SocialLinks } from './components/SocialIcons';
 import Home from './pages/Home';
@@ -351,10 +352,12 @@ function AppContent() {
 export default function App() {
   return (
     <LanguageProvider>
-      <BrowserRouter>
-        <PageTracker />
-        <AppContent />
-      </BrowserRouter>
+      <DialogProvider>
+        <BrowserRouter>
+          <PageTracker />
+          <AppContent />
+        </BrowserRouter>
+      </DialogProvider>
     </LanguageProvider>
   );
 }

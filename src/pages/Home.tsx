@@ -26,46 +26,13 @@ interface SocialSettings {
 }
 
 export default function Home() {
-  const [contactInfo, setContactInfo] = useState('');
-  const [submittingContact, setSubmittingContact] = useState(false);
   const { t, language } = useLanguage();
   const Arrow = language === 'ar' ? ArrowLeft : ArrowRight;
   const [images, setImages] = useState<HomeImages>(DEFAULT_IMAGES);
   const [social, setSocial] = useState<SocialSettings>({});
 
-    const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
+  const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
-
-  const handleHomeContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!contactInfo) return;
-    setSubmittingContact(true);
-    try {
-      const isEmail = contactInfo.includes('@');
-      const payload = {
-        name: language === 'ar' ? 'طلب استشارة' : 'Consultation Request',
-        phone: isEmail ? '0000' : contactInfo,
-        email: isEmail ? contactInfo : '',
-        message: language === 'ar' ? 'طلب استشارة سريعة من الصفحة الرئيسية' : 'Quick consultation request from homepage'
-      };
-      
-      const res = await fetch('/api/callback-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        alert(language === 'ar' ? 'شكراً لتواصلك معنا! سنرد عليك قريباً.' : 'Thank you for reaching out! We will contact you soon.');
-        setContactInfo('');
-      } else {
-        alert(language === 'ar' ? 'فشل إرسال الطلب، يرجى المحاولة لاحقاً.' : 'Failed to submit request, please try again later.');
-      }
-    } catch (err) {
-      alert(language === 'ar' ? 'حدث خطأ أثناء الإرسال.' : 'Error submitting request.');
-    } finally {
-      setSubmittingContact(false);
-    }
-  };
 
   useEffect(() => {
     fetch('/api/projects')
@@ -278,8 +245,15 @@ export default function Home() {
 
         </div>
       </section>
-            {/* Services Section */}
-      <section className="py-24 bg-background relative z-20 border-b border-border">
+      {/* Services Section */}
+      <section className="py-24 bg-background relative z-20 border-b border-border relative isolate overflow-hidden">
+        {/* Dynamic mesh glow effect for services */}
+        <div aria-hidden="true" className="absolute top-0 right-0 -z-10 blur-3xl opacity-20 select-none pointer-events-none translate-x-1/3">
+          <div 
+            style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
+            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-sky-400 to-emerald-500"
+          ></div>
+        </div>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
              <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-sky-400 bg-sky-400/10 border border-sky-400/25 uppercase">
@@ -360,7 +334,14 @@ export default function Home() {
       </section>
 
       {/* Featured Projects Album Section */}
-      <section className="py-24 bg-background border-t border-b border-border relative overflow-hidden">
+      <section className="py-24 bg-background border-t border-b border-border relative overflow-hidden relative isolate">
+        {/* Dynamic mesh glow effect for projects */}
+        <div aria-hidden="true" className="absolute top-0 left-0 -z-10 blur-3xl opacity-20 select-none pointer-events-none -translate-x-1/3">
+          <div 
+            style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
+            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-amber-400 to-rose-600"
+          ></div>
+        </div>
         {/* Aesthetics lines */}
         <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
         
@@ -553,86 +534,32 @@ export default function Home() {
           </div>
         </div>
       </section>
-      {/* Call to action */}
 
-
-      {/* Premium Professional Newsletter / Call to Action Section */}
-      <section className="relative isolate overflow-hidden bg-background py-16 sm:py-24 lg:py-32 border-t border-border">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
-          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-2">
-            
-            {/* Left Column: Form Info */}
-            <div className="max-w-xl lg:max-w-lg">
-              <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-                {language === 'ar' ? 'هل تحتاج إلى مساعدة أو استشارة؟' : 'Need Help or Consultation?'}
-              </h2>
-              <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed text-justify">
-                {language === 'ar' 
-                  ? 'فريقنا المتخصص مستعد للإجابة على جميع استفساراتك وتقديم أفضل الاستشارات والحلول العقارية المبتكرة المناسبة لاحتياجاتك الاستثمارية والسكنية.' 
-                  : 'Our dedicated team is ready to answer all your inquiries and provide the best innovative real estate advice and solutions tailored to your residential and investment needs.'}
-              </p>
-              
-              {/* Form Input fields */}
-              <form onSubmit={handleHomeContactSubmit} className="mt-6 flex flex-col sm:flex-row max-w-md gap-3">
-                <input 
-                  type="text" 
-                  required 
-                  value={contactInfo}
-                  onChange={(e) => setContactInfo(e.target.value)}
-                  placeholder={language === 'ar' ? 'البريد الإلكتروني أو رقم الجوال' : 'Email or phone number'} 
-                  className="min-w-0 flex-auto rounded-lg bg-background border border-input px-4 py-2.5 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring transition-all font-sans" 
-                  disabled={submittingContact}
-                />
-                <button 
-                  type="submit" 
-                  disabled={submittingContact}
-                  className="flex-none rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-5 py-2.5 text-xs font-semibold shadow-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer disabled:opacity-50"
-                >
-                  {submittingContact 
-                    ? (language === 'ar' ? 'جاري الإرسال...' : 'Submitting...')
-                    : (language === 'ar' ? 'طلب تواصل' : 'Request Callback')}
-                </button>
-              </form>
-            </div>
-
-            {/* Right Column: Key details / value highlights */}
-            <dl className="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:pt-2">
-              <div className="flex flex-col items-start bg-card p-5 rounded-lg border border-border shadow-xs">
-                <div className="rounded-lg bg-background p-2 border border-border text-sky-400">
-                  <Headphones className="w-5 h-5" />
-                </div>
-                <dt className="mt-4 text-sm font-bold text-foreground">
-                  {language === 'ar' ? 'دعم متواصل' : 'Constant Support'}
-                </dt>
-                <dd className="mt-2 text-xs text-muted-foreground leading-relaxed text-justify">
-                  {language === 'ar' 
-                    ? 'نوفر لك استجابة سريعة ودعماً متكاملاً طوال أيام الأسبوع للإجابة على استفساراتك.' 
-                    : 'We provide prompt response and full support throughout the week to address all inquiries.'}
-                </dd>
-              </div>
-
-              <div className="flex flex-col items-start bg-card p-5 rounded-lg border border-border shadow-xs">
-                <div className="rounded-lg bg-background p-2 border border-border text-sky-400">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <dt className="mt-4 text-sm font-bold text-foreground">
-                  {language === 'ar' ? 'لا توجد رسائل عشوائية' : 'No Spamming'}
-                </dt>
-                <dd className="mt-2 text-xs text-muted-foreground leading-relaxed text-justify">
-                  {language === 'ar' 
-                    ? 'نحن نحترم خصوصيتك وسنرسل لك فقط العروض العقارية الهامة والرد على استفسارك.' 
-                    : 'We respect your privacy and will only send you important real estate offers and answers.'}
-                </dd>
-              </div>
-            </dl>
-          </div>
+      {/* Premium CTA to Contact Form */}
+      <section className="relative isolate overflow-hidden bg-background py-20 border-t border-border flex flex-col items-center justify-center text-center gap-6">
+        <h2 className="text-3xl font-extrabold text-foreground tracking-tight sm:text-4xl">
+          {language === 'ar' ? 'هل تحتاج إلى مساعدة أو استشارة؟' : 'Need Help or Consultation?'}
+        </h2>
+        <p className="max-w-2xl text-xs sm:text-sm text-muted-foreground leading-relaxed px-6 text-center">
+          {language === 'ar' 
+            ? 'فريقنا المتخصص مستعد للإجابة على جميع استفساراتك وتقديم أفضل الاستشارات والحلول العقارية المبتكرة المناسبة لاحتياجاتك الاستثمارية والسكنية.'
+            : 'Our dedicated team is ready to answer all your inquiries and provide the best innovative real estate advice and solutions tailored to your residential and investment needs.'}
+        </p>
+        <div className="pt-2">
+          <Link
+            to="/contact"
+            className="rounded-lg bg-primary hover:opacity-90 text-primary-foreground px-6 py-3 text-xs font-bold shadow-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2"
+          >
+            <span>{language === 'ar' ? 'تواصل معنا الآن' : 'Contact Us Now'}</span>
+            <Arrow className="w-4 h-4" />
+          </Link>
         </div>
-
-        {/* Dynamic mesh glow effect */}
-        <div aria-hidden="true" className="absolute top-0 left-1/2 -z-10 -translate-x-1/2 blur-3xl xl:-top-6 opacity-30 select-none pointer-events-none">
+        
+        {/* Played-with mesh glow under the CTA button */}
+        <div aria-hidden="true" className="absolute top-1/2 left-1/2 -z-10 -translate-x-1/2 -translate-y-1/2 blur-3xl opacity-20 select-none pointer-events-none">
           <div 
             style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
-            className="aspect-1155/678 w-[72rem] bg-gradient-to-tr from-sky-400 to-blue-600"
+            className="aspect-1155/678 w-[48rem] bg-gradient-to-tr from-sky-500 to-indigo-600"
           ></div>
         </div>
       </section>

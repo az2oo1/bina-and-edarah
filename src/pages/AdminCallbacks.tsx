@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { Phone, Mail, MessageSquare, Trash2, Calendar, Search, Loader2, User, Send, CheckCircle, HelpCircle, Archive, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useDialog } from '../context/DialogContext';
 
 interface CallbackNote {
   id: string;
@@ -24,6 +25,7 @@ interface CallbackRequest {
 
 export default function AdminCallbacks() {
   const { language } = useLanguage();
+  const { showAlert, showConfirm } = useDialog();
   const [requests, setRequests] = useState<CallbackRequest[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,10 +83,10 @@ export default function AdminCallbacks() {
         const updated = await res.json();
         setRequests(prev => prev.map(r => r.id === id ? { ...r, status: updated.status, handledBy: updated.handledBy } : r));
       } else {
-        alert(language === 'ar' ? 'فشل تحديث الحالة' : 'Failed to update status');
+        await showAlert(language === 'ar' ? 'فشل تحديث الحالة' : 'Failed to update status');
       }
     } catch (err) {
-      alert(language === 'ar' ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
+      await showAlert(language === 'ar' ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
     }
   };
 
@@ -118,17 +120,18 @@ export default function AdminCallbacks() {
           editorRef.current.innerHTML = '';
         }
       } else {
-        alert(language === 'ar' ? 'فشل إرسال الرد' : 'Failed to send note');
+        await showAlert(language === 'ar' ? 'فشل إرسال الرد' : 'Failed to send note');
       }
     } catch (err) {
-      alert(language === 'ar' ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
+      await showAlert(language === 'ar' ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
     } finally {
       setSendingNote(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا الطلب؟' : 'Are you sure you want to delete this request?')) {
+    const confirmed = await showConfirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا الطلب؟' : 'Are you sure you want to delete this request?');
+    if (!confirmed) {
       return;
     }
     try {
@@ -137,10 +140,10 @@ export default function AdminCallbacks() {
         setRequests(prev => prev.filter(req => req.id !== id));
         if (selectedId === id) setSelectedId(null);
       } else {
-        alert(language === 'ar' ? 'فشل حذف الطلب' : 'Failed to delete request');
+        await showAlert(language === 'ar' ? 'فشل حذف الطلب' : 'Failed to delete request');
       }
     } catch (err) {
-      alert(language === 'ar' ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
+      await showAlert(language === 'ar' ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
     }
   };
 

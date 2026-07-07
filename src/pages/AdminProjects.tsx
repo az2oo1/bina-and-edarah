@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { PlusCircle, Loader2, Trash2, MapPin, ImagePlus, X, Building2 } from 'lucide-react';
 import { compressImage } from '../lib/image';
+import { useDialog } from '../context/DialogContext';
 
 interface Project {
   id: string;
@@ -50,6 +51,7 @@ const PREDEFINED_FEATURES = [
 
 export default function AdminProjects() {
   const { t, language } = useLanguage();
+  const { showAlert, showConfirm } = useDialog();
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -139,18 +141,19 @@ export default function AdminProjects() {
         resetForm();
         fetchProjects();
       } else {
-        alert('Error saving project');
+        await showAlert(language === 'ar' ? 'فشل حفظ المشروع' : 'Error saving project');
       }
     } catch (error) {
       console.error(error);
-      alert('Error saving project');
+      await showAlert(language === 'ar' ? 'فشل حفظ المشروع' : 'Error saving project');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(t('admin.deleteConfirm') || 'Are you sure?')) return;
+    const confirmed = await showConfirm(t('admin.deleteConfirm') || 'Are you sure?');
+    if (!confirmed) return;
     try {
       const res = await fetch(`/api/projects/${id}`, {
         method: 'DELETE',

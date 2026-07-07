@@ -3,6 +3,7 @@ import { useLanguage } from '../LanguageContext';
 import { motion } from 'motion/react';
 import { Users, Search, Building2, Phone, Calendar, Wallet, X, CheckCircle2, ArrowRight, Trash2, Eye } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
+import { useDialog } from '../context/DialogContext';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -39,6 +40,7 @@ interface Renter {
 
 export default function AdminRenters() {
   const { language } = useLanguage();
+  const { showAlert } = useDialog();
   const [renters, setRenters] = useState<Renter[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -68,7 +70,7 @@ export default function AdminRenters() {
         fetchRenters();
         // If they just deleted the only unit for this customer, close the modal later or just let the empty state show.
       } else {
-        alert('Failed to delete unit.');
+        await showAlert(language === 'ar' ? 'فشل حذف الوحدة' : 'Failed to delete unit.');
       }
     } catch (e) {
       console.error(e);
@@ -361,7 +363,7 @@ export default function AdminRenters() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse">
+            <table className="w-full ltr:text-left rtl:text-right border-collapse">
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground text-xs border-b border-border">
                   <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>

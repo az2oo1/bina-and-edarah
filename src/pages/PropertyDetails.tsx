@@ -299,72 +299,52 @@ export default function PropertyDetails() {
                       {property.commission > 0 ? <>{property.commission.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" /></> : (language === 'ar' ? 'غير محدد' : 'N/A')}
                     </span>
                   </div>
-                  {property.type === 'RENT' && selectedPlan && Number(selectedPlan) > 1 && (
-                    <div className="flex justify-between items-center text-xs font-bold border-t border-dashed border-border/80 pt-2.5 mt-2.5">
-                      <span className="text-muted-foreground">
-                        {language === 'ar' 
-                          ? `قيمة الدفعة الواحدة (${selectedPlan} دفعات):` 
-                          : `Per Payment (${selectedPlan} Payments):`}
-                      </span>
-                      <span className="text-primary text-left flex items-center gap-0.5 font-extrabold" dir="ltr">
-                        {Math.round((property.price + (property.vat || 0)) / Number(selectedPlan)).toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-primary" />
-                      </span>
-                    </div>
-                  )}
+                  {property.type === 'RENT' && (() => {
+                    const allowedPlans = (() => {
+                      if (!property.allowedPaymentPlans) return [];
+                      try {
+                        const parsed = JSON.parse(property.allowedPaymentPlans);
+                        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                      } catch (_) {}
+                      return [];
+                    })();
+
+                    if (allowedPlans.length === 0 && property.paymentsCount) {
+                      allowedPlans.push(String(property.paymentsCount));
+                    }
+
+                    return allowedPlans.map((plan) => {
+                      const planNum = Number(plan);
+                      if (isNaN(planNum)) return null;
+
+                      const label = plan === "1"
+                        ? (language === 'ar' ? 'دفعة سنوية' : '1 Payment / Annual')
+                        : plan === "2"
+                        ? (language === 'ar' ? 'دفعتين' : '2 Payments')
+                        : plan === "3"
+                        ? (language === 'ar' ? '3 دفعات' : '3 Payments')
+                        : plan === "4"
+                        ? (language === 'ar' ? '4 دفعات' : '4 Payments')
+                        : plan === "6"
+                        ? (language === 'ar' ? '6 دفعات' : '6 Payments')
+                        : (language === 'ar' ? '12 دفعة شهري' : '12 Payments / Monthly');
+
+                      return (
+                        <div key={plan} className="flex justify-between items-center text-xs font-bold border-t border-dashed border-border/80 pt-2.5 mt-2.5">
+                          <span className="text-muted-foreground">
+                            {language === 'ar' 
+                              ? `قيمة الدفعة الواحدة (${label}):` 
+                              : `Per Payment (${label}):`}
+                          </span>
+                          <span className="text-primary text-left flex items-center gap-0.5 font-extrabold" dir="ltr">
+                            {Math.round((property.price + (property.vat || 0)) / planNum).toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-primary" />
+                          </span>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
-
-              {/* Payment Plans Selector */}
-              {(() => {
-                const allowedPlans = (() => {
-                  if (!property.allowedPaymentPlans) return [];
-                  try {
-                    const parsed = JSON.parse(property.allowedPaymentPlans);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                  } catch (_) {}
-                  return [];
-                })();
-
-                if (allowedPlans.length <= 1) return null;
-
-                return (
-                  <div className="bg-card/50 border border-border/85 rounded-xl p-4 shadow-sm space-y-3 mt-2">
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                      {language === 'ar' ? 'خيارات الدفع والأقساط' : 'Payment Plans & Installments'}
-                    </span>
-                    
-                    {/* Buttons group */}
-                    <div className="flex flex-wrap gap-1.5 p-1 bg-muted rounded-lg border border-border">
-                      {allowedPlans.map((plan) => {
-                        const label = plan === "1"
-                          ? (language === 'ar' ? 'دفعة واحدة' : '1 Payment')
-                          : plan === "2"
-                          ? (language === 'ar' ? 'دفعتين' : '2 Payments')
-                          : plan === "3"
-                          ? (language === 'ar' ? '٣ دفعات' : '3 Payments')
-                          : plan === "4"
-                          ? (language === 'ar' ? '٤ دفعات' : '4 Payments')
-                          : plan === "6"
-                          ? (language === 'ar' ? '٦ دفعات' : '6 Payments')
-                          : (language === 'ar' ? '١٢ دفعة' : '12 Payments');
-                        return (
-                          <button
-                            key={plan}
-                            onClick={() => setSelectedPlan(plan)}
-                            className={`flex-1 py-1.5 px-3 rounded text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                              selectedPlan === plan 
-                                ? 'bg-primary text-primary-foreground shadow-xs' 
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Actions */}
               <div className="grid grid-cols-2 gap-2 pt-2">
@@ -378,22 +358,23 @@ export default function PropertyDetails() {
 
                 <a
                   href={`https://wa.me/${whatsappNumber.replace(/\+/g, '')}?text=${(() => {
-                    const payCount = selectedPlan ? Number(selectedPlan) : 1;
-                    const planText = payCount > 1 ? (
-                      payCount === 2 
-                        ? (language === 'ar' ? ' (دفعتين نصف سنوية)' : ' (2 Semi-Annual Installments)')
-                        : payCount === 3
-                        ? (language === 'ar' ? ' (٣ دفعات)' : ' (3 Installments)')
-                        : payCount === 4
-                        ? (language === 'ar' ? ' (٤ دفعات ربع سنوية)' : ' (4 Quarterly Installments)')
-                        : payCount === 6
-                        ? (language === 'ar' ? ' (٦ دفعات)' : ' (6 Installments)')
-                        : (language === 'ar' ? ` (${payCount} دفعات شهري)` : ` (${payCount} Monthly Installments)`)
-                    ) : '';
+                    const allowedPlans = (() => {
+                      if (!property.allowedPaymentPlans) return [];
+                      try {
+                        const parsed = JSON.parse(property.allowedPaymentPlans);
+                        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                      } catch (_) {}
+                      return [];
+                    })();
+                    const plansJoined = allowedPlans.length > 0 
+                      ? (language === 'ar' 
+                          ? ` (${allowedPlans.join(' أو ')} دفعات)` 
+                          : ` (${allowedPlans.join('/')} payments)`)
+                      : '';
                     
                     return encodeURIComponent(
                       whatsappMessage
-                        .replace('{title}', (language === 'ar' ? property.titleAr : property.titleEn) + planText)
+                        .replace('{title}', (language === 'ar' ? property.titleAr : property.titleEn) + plansJoined)
                         .replace('{link}', window.location.href)
                     );
                   })()}`}

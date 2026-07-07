@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { Phone, Mail, MessageSquare, MapPin, Send, CheckCircle2 } from 'lucide-react';
+import { useDialog } from '../context/DialogContext';
 
 export default function Contact() {
   const { t, language } = useLanguage();
+  const { showAlert } = useDialog();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -35,10 +37,10 @@ export default function Contact() {
         setPhone('');
         setMessage('');
       } else {
-        alert(language === 'ar' ? 'فشل إرسال الرسالة، يرجى المحاولة لاحقاً.' : 'Failed to send message, please try again.');
+        await showAlert(language === 'ar' ? 'فشل إرسال الرسالة، يرجى المحاولة لاحقاً.' : 'Failed to send message, please try again.');
       }
     } catch(err) {
-      alert(language === 'ar' ? 'خطأ في الاتصال بالسيرفر.' : 'Connection error.');
+      await showAlert(language === 'ar' ? 'خطأ في الاتصال بالسيرفر.' : 'Connection error.');
     } finally {
       setSubmitting(false);
     }
