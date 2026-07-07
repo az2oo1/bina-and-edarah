@@ -8,6 +8,7 @@ interface PlatformUser {
   username: string;
   name: string;
   role: string;
+  email?: string;
   createdAt: string;
 }
 
@@ -27,6 +28,7 @@ export default function AdminUsers() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('ADMIN');
+  const [email, setEmail] = useState('');
 
   // Get current logged in user from localStorage
   const currentUserId = (() => {
@@ -65,6 +67,7 @@ export default function AdminUsers() {
     setPassword('');
     setName('');
     setRole('ADMIN');
+    setEmail('');
     setEditingId(null);
     setShowAddForm(false);
   };
@@ -74,6 +77,7 @@ export default function AdminUsers() {
     setUsername(user.username);
     setName(user.name);
     setRole(user.role);
+    setEmail(user.email || '');
     setPassword(''); // leave blank if no password change
     setShowAddForm(true);
   };
@@ -115,6 +119,7 @@ export default function AdminUsers() {
       username,
       name,
       role,
+      email,
       ...(password ? { password } : {})
     };
 
@@ -269,6 +274,18 @@ export default function AdminUsers() {
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'البريد الإلكتروني للتنبيهات' : 'Notification Email Address'}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="input-field"
+                placeholder="employee@yourdomain.com"
+                dir="ltr"
+              />
+            </div>
+
             <div className="pt-2 border-t border-border flex justify-end gap-3">
               <button
                 type="button"
@@ -314,6 +331,7 @@ export default function AdminUsers() {
                       <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold">
                         <th className="px-6 py-4">{language === 'ar' ? 'الاسم الكامل' : 'Full Name'}</th>
                         <th className="px-6 py-4">{language === 'ar' ? 'اسم المستخدم' : 'Username'}</th>
+                        <th className="px-6 py-4">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</th>
                         <th className="px-6 py-4">{language === 'ar' ? 'الدور / الصلاحية' : 'Role'}</th>
                         <th className="px-6 py-4 text-center">{language === 'ar' ? 'التحكم' : 'Actions'}</th>
                       </tr>
@@ -334,6 +352,9 @@ export default function AdminUsers() {
                           </td>
                           <td className="px-6 py-4 font-medium text-foreground text-justify" dir="ltr">
                             {u.username}
+                          </td>
+                          <td className="px-6 py-4 text-muted-foreground" dir="ltr">
+                            {u.email || '—'}
                           </td>
                           <td className="px-6 py-4 text-muted-foreground">
                             <span className="inline-flex items-center gap-1 bg-slate-100 border border-border px-2.5 py-1 rounded-md text-[11px] font-semibold text-gray-800">

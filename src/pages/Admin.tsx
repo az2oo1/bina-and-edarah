@@ -1638,21 +1638,7 @@ export default function Admin() {
                 <div>
                   <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">{language === 'ar' ? 'إعدادات البريد الإلكتروني للطلبات' : 'Callback Notification Email Settings'}</h3>
                   <div className="space-y-6">
-                    <div>
-                      <label className="cn-label mb-2">
-                        {language === 'ar' ? 'البريد الإلكتروني للمستلم' : 'Receiver Notification Email'}
-                      </label>
-                      <input
-                        type="email"
-                        value={notificationEmail}
-                        onChange={(e) => setNotificationEmail(e.target.value)}
-                        className="cn-input font-medium bg-background"
-                        placeholder="admin-alerts@yourdomain.com"
-                      />
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {language === 'ar' ? 'يتم إرسال تنبيه فوري بالبريد الإلكتروني إلى هذا العنوان فور استلام طلب اتصال جديد أو رسالة تواصل جديدة.' : 'Sends email notifications instantly to this email address when a new callback request or CRM message is received.'}
-                      </p>
-                    </div>
+
 
                     <div className="border-t border-border/60 pt-6 mt-6 space-y-4">
                       <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم SMTP' : 'SMTP Server Settings'}</h4>

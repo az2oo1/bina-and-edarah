@@ -58,12 +58,22 @@ const logger = {
   }
 };
 
-async function sendCallbackEmailNotification(subject: string, htmlContent: string, replyTo?: string) {
+async function sendCallbackEmailNotification() {
   try {
     const settings = await prisma.settings.findUnique({ where: { id: "global" } });
-    const toEmail = settings?.notificationEmail;
-    if (!toEmail) {
-      logger.info(`[EMAIL NOTIFICATION skipped] No notificationEmail configured in settings.`);
+    
+    // Fetch all admin/staff users with configured emails
+    const admins = await prisma.admin.findMany({
+      where: {
+        email: {
+          notIn: [null, ""]
+        }
+      }
+    });
+
+    const toEmails = admins.map(a => a.email).filter(Boolean).join(',');
+    if (!toEmails) {
+      logger.info(`[EMAIL NOTIFICATION skipped] No employee emails configured in platform users.`);
       return;
     }
 
@@ -73,9 +83,21 @@ async function sendCallbackEmailNotification(subject: string, htmlContent: strin
     const pass = settings?.smtpPass || process.env.SMTP_PASS;
     const from = settings?.smtpFrom || process.env.SMTP_FROM || "no-reply@benaa-edara.com";
 
+    const emailSubject = "طلب جديد على المنصة / New Request on Platform";
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; margin: auto;">
+        <h2 style="color: #3b82f6; margin-bottom: 20px;">طلب اتصال جديد / New Contact Request</h2>
+        <p style="font-size: 14px; line-height: 1.6; color: #334155;">يوجد طلب اتصال أو رسالة تواصل جديدة على المنصة. يرجى تسجيل الدخول إلى لوحة التحكم لمعاينة التفاصيل ومعالجتها.</p>
+        <p style="font-size: 14px; line-height: 1.6; color: #334155; direction: ltr; text-align: left; margin-top: 15px;">There is a new contact or callback request on the platform. Please log in to the admin panel to view the details and handle it.</p>
+        <div style="margin-top: 30px; text-align: center;">
+          <a href="${process.env.APP_URL || 'http://localhost:3000'}/admin" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">الانتقال إلى لوحة التحكم / Go to Admin Panel</a>
+        </div>
+      </div>
+    `;
+
     if (!host || !user || !pass) {
       logger.warn(`[EMAIL PING WARNING] SMTP credentials not set in settings or environment. Set in Settings tab or env variables SMTP_HOST, SMTP_USER, SMTP_PASS to send real emails.`);
-      logger.info(`[EMAIL PING MOCK] Email ping sent to: ${toEmail}\nSubject: ${subject}\nReply-To: ${replyTo || 'N/A'}\nContent:\n${htmlContent}`);
+      logger.info(`[EMAIL PING MOCK] Email ping sent to: ${toEmails}\nSubject: ${emailSubject}\nContent:\n${htmlContent}`);
       return;
     }
 
@@ -88,12 +110,11 @@ async function sendCallbackEmailNotification(subject: string, htmlContent: strin
 
     await transporter.sendMail({
       from,
-      to: toEmail,
-      subject,
-      html: htmlContent,
-      ...(replyTo ? { replyTo } : {})
+      to: toEmails,
+      subject: emailSubject,
+      html: htmlContent
     });
-    logger.info(`[EMAIL PING SUCCESS] Callback email notification sent to ${toEmail}`);
+    logger.info(`[EMAIL PING SUCCESS] Callback email notification sent to employees: ${toEmails}`);
   } catch (error) {
     logger.error(`[EMAIL PING ERROR] Failed to send callback email notification`, error);
   }
@@ -1541,15 +1562,7 @@ async function startServer() {
       });
 
       // Send Email notification ping
-      await sendCallbackEmailNotification(
-        `New Callback Request from ${name}`,
-        `<p><strong>Name:</strong> ${name}</p>
-         <p><strong>Phone:</strong> ${phone}</p>
-         <p><strong>Email:</strong> ${email || 'N/A'}</p>
-         <p><strong>Message:</strong> ${message || 'N/A'}</p>
-         <p><a href="${process.env.APP_URL || 'http://localhost:3000'}/admin">Click here to open Admin panel</a></p>`,
-        email
-      );
+      await sendCallbackEmailNotification();
 
       res.status(201).json(newRequest);
     } catch (error) {
@@ -1610,15 +1623,7 @@ async function startServer() {
       });
 
       // Send Email notification ping
-      await sendCallbackEmailNotification(
-        `New Message in thread: ${updatedRequest.name}`,
-        `<p><strong>Sender:</strong> ${(req as any).user.name}</p>
-         <p><strong>Message/Note:</strong></p>
-         <blockquote style="border-left: 4px solid #3b82f6; padding-left: 10px; margin-left: 0; color: #374151;">${text}</blockquote>
-         <p><strong>Client:</strong> ${updatedRequest.name} (${updatedRequest.phone})</p>
-         <p><a href="${process.env.APP_URL || 'http://localhost:3000'}/admin">Click here to open Admin panel</a></p>`,
-        updatedRequest.email || undefined
-      );
+      await sendCallbackEmailNotification();
 
       await logAction(req, "REPLY_CALLBACK", `Added reply note to callback request ID ${id}`);
       res.status(201).json(note);
@@ -1661,7 +1666,7 @@ async function startServer() {
   app.get("/api/admin/users", adminAuthMiddleware, async (req, res) => {
     try {
       const users = await prisma.admin.findMany({
-        select: { id: true, username: true, name: true, role: true, createdAt: true },
+        select: { id: true, username: true, name: true, role: true, email: true, createdAt: true },
         orderBy: { createdAt: 'desc' }
       });
       res.json(users);
@@ -1673,7 +1678,7 @@ async function startServer() {
 
   app.post("/api/admin/users", adminAuthMiddleware, async (req, res) => {
     try {
-      const { username, password, name, role } = req.body;
+      const { username, password, name, role, email } = req.body;
       if (!username || !password || !name) {
         return res.status(400).json({ error: "All fields are required" });
       }
@@ -1682,10 +1687,10 @@ async function startServer() {
         return res.status(400).json({ error: "Username already exists" });
       }
       const newUser = await prisma.admin.create({
-        data: { username, password, name, role: role || "ADMIN" }
+        data: { username, password, name, role: role || "ADMIN", email }
       });
       await logAction(req, "ADD_PLATFORM_USER", `Created platform user: ${username} (${role || "ADMIN"})`);
-      res.status(201).json({ id: newUser.id, username: newUser.username, name: newUser.name, role: newUser.role });
+      res.status(201).json({ id: newUser.id, username: newUser.username, name: newUser.name, role: newUser.role, email: newUser.email });
     } catch (error) {
       logger.error("Failed to create platform user", error);
       res.status(500).json({ error: "Failed to create user" });
@@ -1695,7 +1700,7 @@ async function startServer() {
   app.put("/api/admin/users/:id", adminAuthMiddleware, async (req, res) => {
     try {
       const { id } = req.params;
-      const { username, password, name, role } = req.body;
+      const { username, password, name, role, email } = req.body;
       
       const existing = await prisma.admin.findUnique({ where: { id } });
       if (!existing) {
@@ -1714,12 +1719,13 @@ async function startServer() {
           username: username || undefined,
           password: password || undefined,
           name: name || undefined,
-          role: role || undefined
+          role: role || undefined,
+          email: email !== undefined ? email : undefined
         }
       });
 
       await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details: ${updated.username}`);
-      res.json({ id: updated.id, username: updated.username, name: updated.name, role: updated.role });
+      res.json({ id: updated.id, username: updated.username, name: updated.name, role: updated.role, email: updated.email });
     } catch (error) {
       logger.error("Failed to update platform user", error);
       res.status(500).json({ error: "Failed to update user" });
