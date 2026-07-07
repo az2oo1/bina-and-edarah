@@ -26,6 +26,7 @@ interface Property {
   imageUrls: string; // JSON string
   aqarLink?: string;
   allowedPaymentPlans?: string;
+  videoUrl?: string;
   createdAt: string;
 }
 
@@ -151,15 +152,19 @@ export default function PropertyDetails() {
           {/* Main Content & Gallery */}
           <div className="lg:col-span-2 space-y-6">
             {/* Gallery */}
-            <div className="shadcn-card overflow-hidden">
+             <div className="shadcn-card overflow-hidden">
               <div className="relative h-80 sm:h-[450px] w-full bg-slate-100">
-                <img 
-                  src={images[activeImage]} 
-                  alt={language === 'ar' ? property.titleAr : property.titleEn}
-                  className="w-full h-full object-cover transition-opacity duration-300"
-                />
+                {property.videoUrl && activeImage === images.length ? (
+                  <video src={property.videoUrl} controls className="w-full h-full object-cover" />
+                ) : (
+                  <img 
+                    src={images[activeImage]} 
+                    alt={language === 'ar' ? property.titleAr : property.titleEn}
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                  />
+                )}
               </div>
-              {images.length > 1 && (
+              {(images.length > 1 || property.videoUrl) && (
                 <div className="flex gap-2 p-3 overflow-x-auto border-t border-border">
                   {images.map((img, i) => (
                     <button 
@@ -170,6 +175,16 @@ export default function PropertyDetails() {
                       <img src={img} alt={`Thumbnail ${i}`} className="w-full h-full object-cover rounded-[2px]" />
                     </button>
                   ))}
+                  {property.videoUrl && (
+                    <button 
+                      onClick={() => setActiveImage(images.length)}
+                      className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all cursor-pointer bg-slate-950 text-white flex flex-col items-center justify-center gap-1 ${activeImage === images.length ? 'border-primary opacity-100' : 'border-transparent opacity-65 hover:opacity-100'}`}
+                      title={language === 'ar' ? 'مشاهدة الفيديو' : 'Watch Video'}
+                    >
+                      <svg className="w-6 h-6 text-primary animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'فيديو' : 'Video'}</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>

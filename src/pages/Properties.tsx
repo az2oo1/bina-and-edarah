@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { MapPin, Building2, Maximize, CalendarDays, Coins } from 'lucide-react';
 import { Link } from 'react-router';
@@ -19,6 +19,7 @@ interface Property {
   vat?: number;
   vatExempt?: boolean;
   locationText?: string;
+  locationLink?: string;
 }
 
 export default function Properties() {
@@ -45,6 +46,68 @@ export default function Properties() {
         setLoading(false);
       });
   }, []);
+
+  const mapRef = useRef<any>(null);
+
+  useEffect(() => {
+    const L = (window as any).L;
+    if (!L || properties.length === 0) return;
+
+    if (mapRef.current) {
+      // Remove all previous markers to redraw dynamically
+      mapRef.current.eachLayer((layer: any) => {
+        if (layer instanceof L.Marker) {
+          mapRef.current.removeLayer(layer);
+        }
+      });
+    } else {
+      // Center at Riyadh
+      mapRef.current = L.map('properties-map', {
+        center: [24.7136, 46.6753],
+        zoom: 11,
+        zoomControl: true
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(mapRef.current);
+    }
+
+    const markers: any[] = [];
+    properties.forEach((p) => {
+      let lat = (p as any).latitude;
+      let lon = (p as any).longitude;
+
+      if (lat && lon) {
+        let firstImg = '';
+        try {
+          const imgs = JSON.parse(p.imageUrls);
+          if (Array.isArray(imgs) && imgs.length > 0) firstImg = imgs[0];
+        } catch (_) {}
+
+        const popupHtml = `
+          <div style="text-align: ${language === 'ar' ? 'right' : 'left'}; font-family: sans-serif; direction: ${language === 'ar' ? 'rtl' : 'ltr'}; padding: 4px; width: 180px;">
+            ${firstImg ? `<img src="${firstImg}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;" />` : ''}
+            <h4 style="margin: 0 0 4px 0; font-size: 12px; font-weight: bold; color: #111;">${language === 'ar' ? p.titleAr : p.titleEn}</h4>
+            <p style="margin: 0 0 6px 0; font-size: 10px; color: #666;">${p.locationText || ''}</p>
+            <div style="font-weight: bold; font-size: 11px; color: #2C4A5E; margin-bottom: 6px;">${p.price.toLocaleString()} SAR</div>
+            <a href="/properties/${p.id}" style="display: inline-block; background-color: #2C4A5E; color: white; padding: 4px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-decoration: none; text-align: center; width: 100%;">
+              ${language === 'ar' ? 'عرض التفاصيل ↗' : 'View Details ↗'}
+            </a>
+          </div>
+        `;
+
+        const marker = L.marker([lat, lon]).addTo(mapRef.current)
+          .bindPopup(popupHtml);
+        markers.push(marker);
+      }
+    });
+
+    if (markers.length > 0) {
+      const group = L.featureGroup(markers);
+      mapRef.current.fitBounds(group.getBounds().pad(0.15));
+    }
+  }, [properties, language]);
 
   const getThumbnail = (imageUrlsStr: string) => {
     try {
@@ -276,17 +339,10 @@ export default function Properties() {
           </div>
 
           <div className="bg-card p-2.5 border border-border rounded-xl shadow-xs overflow-hidden h-[400px]">
-            <iframe 
-              title="OpenStreetMap"
-              width="100%" 
-              height="100%" 
-              frameBorder="0" 
-              scrolling="no" 
-              marginHeight={0} 
-              marginWidth={0} 
-              src="https://www.openstreetmap.org/export/embed.html?bbox=46.5414%2C24.6224%2C46.8524%2C24.8934&amp;layer=mapnik"
-              style={{ border: 0, borderRadius: '8px' }}
-            ></iframe>
+            <div 
+              id="properties-map"
+              style={{ border: 0, borderRadius: '8px', height: '100%', width: '100%', zIndex: 1 }}
+            ></div>
           </div>
         </div>
 

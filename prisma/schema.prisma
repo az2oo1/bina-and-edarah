@@ -32,6 +32,7 @@ model Property {
   imageUrls        String   @default("[]") // JSON stringified array of base64 images
   aqarLink         String?  // Direct link to the Aqar landing page
   allowedPaymentPlans String @default("[\"1\",\"2\",\"4\"]")
+  videoUrl         String?  // base64 video string or direct video URL
   createdAt        DateTime @default(now())
 
   userId           String?
@@ -113,6 +114,12 @@ model Settings {
   addressAr          String?
   addressEn          String?
   addressMapLink     String?
+  // TechHub Integration Settings
+  techhubEnabled     Boolean @default(false)
+  techhubClientId    String?
+  techhubClientSecret String?
+  techhubApiKey      String?
+  techhubSandboxMode Boolean @default(true)
 }
 
 model PageView {

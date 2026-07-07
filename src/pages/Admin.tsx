@@ -150,7 +150,7 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   // Settings Form State
-  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'images' | 'social' | 'backup' | 'email' | 'analytics'>('whatsapp');
+  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'images' | 'social' | 'backup' | 'email' | 'analytics' | 'techhub'>('whatsapp');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [callingNumber, setCallingNumber] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
@@ -158,6 +158,14 @@ export default function Admin() {
   const [otpMessageTemplate, setOtpMessageTemplate] = useState('رمز التحقق الخاص بك هو: {otp}');
   const [otpWebhookPayload, setOtpWebhookPayload] = useState('{\n  "phone": "{phone}",\n  "otp": "{otp}",\n  "type": "template",\n  "message": "رمز التحقق الخاص بك هو: {otp}"\n}');
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // TechHub Settings State
+  const [techhubEnabled, setTechhubEnabled] = useState(false);
+  const [techhubClientId, setTechhubClientId] = useState('');
+  const [techhubClientSecret, setTechhubClientSecret] = useState('');
+  const [techhubApiKey, setTechhubApiKey] = useState('');
+  const [techhubSandboxMode, setTechhubSandboxMode] = useState(true);
+  const [syncingTechHub, setSyncingTechHub] = useState(false);
 
   // SMTP Settings State
   const [smtpHost, setSmtpHost] = useState('');
@@ -235,7 +243,8 @@ export default function Admin() {
     waterCostVal: '',
     waterFrequencyVal: 'YEARLY',
     vatExempt: false,
-    allowedPaymentPlans: ["1", "2", "4"] as string[]
+    allowedPaymentPlans: ["1", "2", "4"] as string[],
+    videoUrl: ''
   });
 
   const fetchProperties = async () => {
@@ -292,6 +301,13 @@ export default function Admin() {
       if (data.addressAr !== undefined) setAddressAr(data.addressAr || '');
       if (data.addressEn !== undefined) setAddressEn(data.addressEn || '');
       if (data.addressMapLink !== undefined) setAddressMapLink(data.addressMapLink || '');
+
+      // Load TechHub Settings
+      if (data.techhubEnabled !== undefined) setTechhubEnabled(data.techhubEnabled);
+      if (data.techhubClientId !== undefined) setTechhubClientId(data.techhubClientId || '');
+      if (data.techhubClientSecret !== undefined) setTechhubClientSecret(data.techhubClientSecret || '');
+      if (data.techhubApiKey !== undefined) setTechhubApiKey(data.techhubApiKey || '');
+      if (data.techhubSandboxMode !== undefined) setTechhubSandboxMode(data.techhubSandboxMode);
     } catch (err) {
       console.error(err);
     }
@@ -454,6 +470,41 @@ export default function Admin() {
     }
   };
 
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 45 * 1024 * 1024) {
+      await showAlert(language === 'ar' ? 'حجم الفيديو يتجاوز الحد المسموح به (45 ميغابايت)' : 'Video size exceeds 45MB limit');
+      return;
+    }
+
+    setIsUploadingVideo(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (typeof event.target?.result === 'string') {
+            resolve(event.target.result);
+          } else {
+            reject(new Error('Failed to read video file'));
+          }
+        };
+        reader.onerror = () => reject(new Error('Video read error'));
+        reader.readAsDataURL(file);
+      });
+      setFormData(prev => ({ ...prev, videoUrl: base64 }));
+    } catch (err) {
+      console.error(err);
+      await showAlert(language === 'ar' ? 'فشل معالجة ملف الفيديو' : 'Failed to process video file');
+    } finally {
+      setIsUploadingVideo(false);
+      e.target.value = '';
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       titleAr: '',
@@ -484,7 +535,8 @@ export default function Admin() {
       waterCostVal: '',
       waterFrequencyVal: 'YEARLY',
       vatExempt: false,
-      allowedPaymentPlans: ["1", "2", "4"]
+      allowedPaymentPlans: ["1", "2", "4"],
+      videoUrl: ''
     });
     setEditingId(null);
     setShowAddForm(false);
@@ -592,7 +644,8 @@ export default function Admin() {
         waterCostVal: parsedUtility.waterCost ? parsedUtility.waterCost.toString() : '',
         waterFrequencyVal: parsedUtility.waterFrequency,
         vatExempt: propData.vatExempt || false,
-        allowedPaymentPlans: parsedPaymentPlans
+        allowedPaymentPlans: parsedPaymentPlans,
+        videoUrl: propData.videoUrl || ''
       });
       setEditingId(property.id);
       setShowAddForm(true);
@@ -633,7 +686,12 @@ export default function Admin() {
         analyticsDashboardUrl,
         addressAr,
         addressEn,
-        addressMapLink
+        addressMapLink,
+        techhubEnabled,
+        techhubClientId,
+        techhubClientSecret,
+        techhubApiKey,
+        techhubSandboxMode
       };
 
       if (activeSettingsSection === 'social') {
@@ -691,6 +749,30 @@ export default function Admin() {
       await showAlert(language === 'ar' ? 'خطأ في النظام.' : 'System error.');
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleTechHubSync = async () => {
+    setSyncingTechHub(true);
+    try {
+      const res = await fetch('/api/admin/techhub/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await showAlert(language === 'ar' 
+          ? `تم المزامنة بنجاح! تم استيراد/مزامنة ${data.buildingsSynced} مبنى، ${data.unitsSynced} وحدة، ${data.rentersSynced} مستأجر.`
+          : `Sync completed successfully! Processed ${data.buildingsSynced} buildings, ${data.unitsSynced} units, and ${data.rentersSynced} renters.`
+        );
+      } else {
+        await showAlert(data.error || (language === 'ar' ? 'فشلت المزامنة.' : 'Sync failed.'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlert(language === 'ar' ? 'حدث خطأ في النظام أثناء المزامنة.' : 'System error during synchronization.');
+    } finally {
+      setSyncingTechHub(false);
     }
   };
 
@@ -1499,6 +1581,65 @@ export default function Admin() {
                     </div>
                   )}
                 </div>
+                
+                {/* Video Tour Section */}
+                <div className="border-t border-border pt-6 mt-6">
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">
+                    {language === 'ar' ? 'العرض المرئي للعقار (فيديو)' : 'Property Video Tour'}
+                  </h3>
+                  <div className="grid grid-cols-1 gap-6">
+                    <div>
+                      <label className="cn-label mb-2">{language === 'ar' ? 'رابط فيديو مباشر (URL)' : 'Direct Video URL'}</label>
+                      <input 
+                        type="text" 
+                        value={formData.videoUrl && !formData.videoUrl.startsWith('data:video') ? formData.videoUrl : ''} 
+                        onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })} 
+                        className="cn-input text-xs" 
+                        placeholder={language === 'ar' ? 'أو أدخل رابط فيديو مباشر (مثال: https://assets...mp4)' : 'Or enter a direct mp4 video URL (e.g. https://...mp4)'} 
+                        dir="ltr"
+                      />
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <span className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        {language === 'ar' ? 'أو رفع ملف فيديو (الحد الأقصى 45 ميغابايت):' : 'Or Upload a Video File (Max 45MB):'}
+                      </span>
+                      
+                      <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isUploadingVideo ? 'border-border bg-muted cursor-not-allowed' : 'border-border bg-card hover:bg-muted'}`}>
+                        <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" id="video-upload" disabled={isUploadingVideo} />
+                        <label htmlFor="video-upload" className={`flex flex-col items-center ${isUploadingVideo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                          {isUploadingVideo ? (
+                            <Loader2 className="w-12 h-12 text-indigo-500 mb-4 animate-spin" />
+                          ) : (
+                            <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                          )}
+                          
+                          <span className="font-bold text-sm text-muted-foreground">
+                            {isUploadingVideo ? (language === 'ar' ? 'جاري معالجة الفيديو...' : 'Processing Video Tour...') : (language === 'ar' ? 'اختر ملف فيديو لرفعه' : 'Choose a video file to upload')}
+                          </span>
+                        </label>
+                      </div>
+                      
+                      {formData.videoUrl && (
+                        <div className="relative border border-border bg-muted rounded-xl p-4 flex flex-col gap-3">
+                          <span className="text-[11px] font-bold text-emerald-600 block uppercase tracking-wider">
+                            {language === 'ar' ? 'تم تجهيز عرض الفيديو بنجاح!' : 'Video tour ready!'}
+                          </span>
+                          <div className="relative w-full max-w-sm aspect-video rounded-lg overflow-hidden border border-border bg-black">
+                            <video src={formData.videoUrl} controls className="w-full h-full object-cover" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, videoUrl: '' })}
+                            className="w-max px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer"
+                          >
+                            {language === 'ar' ? 'إزالة الفيديو' : 'Remove Video'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               
               <div className="pt-6">
                 <button
@@ -1609,6 +1750,9 @@ export default function Admin() {
               </button>
               <button onClick={() => setActiveSettingsSection('backup')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'backup' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                 {language === 'ar' ? 'نسخة احتياطية' : 'Backup'}
+              </button>
+              <button onClick={() => setActiveSettingsSection('techhub')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'techhub' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+                {language === 'ar' ? 'الربط الإلكتروني (TechHub)' : 'TechHub Sync'}
               </button>
             </div>
             
@@ -2211,6 +2355,103 @@ export default function Admin() {
                           : 'The public shareable dashboard URL to display directly inside the "Site Analytics" tab in the Admin panel.'}
                       </p>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'techhub' && (
+                <div>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">
+                    {language === 'ar' ? 'إعدادات الربط الإلكتروني (TechHub)' : 'TechHub Integration Settings'}
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="techhubEnabled"
+                        checked={techhubEnabled}
+                        onChange={(e) => setTechhubEnabled(e.target.checked)}
+                        className="rounded border-gray-300 text-black focus:ring-black h-4 w-4"
+                      />
+                      <label htmlFor="techhubEnabled" className="text-xs font-bold text-foreground cursor-pointer select-none">
+                        {language === 'ar' ? 'تفعيل الربط مع TechHub' : 'Enable TechHub Integration'}
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="techhubSandboxMode"
+                        checked={techhubSandboxMode}
+                        onChange={(e) => setTechhubSandboxMode(e.target.checked)}
+                        className="rounded border-gray-300 text-black focus:ring-black h-4 w-4"
+                      />
+                      <label htmlFor="techhubSandboxMode" className="text-xs font-bold text-foreground cursor-pointer select-none">
+                        {language === 'ar' ? 'تفعيل وضع التجربة (Sandbox Mode)' : 'Enable Sandbox / Test Mode'}
+                      </label>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="cn-label">{language === 'ar' ? 'معرف العميل (Client ID)' : 'Client ID'}</label>
+                      <input
+                        type="text"
+                        value={techhubClientId}
+                        onChange={(e) => setTechhubClientId(e.target.value)}
+                        className="cn-input bg-background font-mono h-12"
+                        placeholder="e.g. client_abc123"
+                        disabled={techhubSandboxMode}
+                        required={techhubEnabled && !techhubSandboxMode}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="cn-label">{language === 'ar' ? 'الرمز السري للعميل (Client Secret)' : 'Client Secret'}</label>
+                      <input
+                        type="password"
+                        value={techhubClientSecret}
+                        onChange={(e) => setTechhubClientSecret(e.target.value)}
+                        className="cn-input bg-background font-mono h-12"
+                        placeholder="••••••••••••••••"
+                        disabled={techhubSandboxMode}
+                        required={techhubEnabled && !techhubSandboxMode}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="cn-label">{language === 'ar' ? 'مفتاح واجهة التطبيق (API Key)' : 'API Key'}</label>
+                      <input
+                        type="password"
+                        value={techhubApiKey}
+                        onChange={(e) => setTechhubApiKey(e.target.value)}
+                        className="cn-input bg-background font-mono h-12"
+                        placeholder="••••••••••••••••"
+                        disabled={techhubSandboxMode}
+                        required={techhubEnabled && !techhubSandboxMode}
+                      />
+                    </div>
+
+                    {techhubEnabled && (
+                      <div className="pt-4 border-t border-border mt-6 font-sans">
+                        <h4 className="text-xs font-bold text-foreground mb-2">
+                          {language === 'ar' ? 'مزامنة البيانات الفورية' : 'Instant Data Synchronization'}
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground mb-4">
+                          {language === 'ar' 
+                            ? 'جلب العقارات والمستأجرين (عقود إيجار) من TechHub ومزامنتهم مباشرة مع قاعدة بيانات التطبيق.' 
+                            : 'Fetch properties and contract renters from TechHub and sync them with your database.'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleTechHubSync}
+                          disabled={syncingTechHub}
+                          className="btn-primary inline-flex items-center gap-1.5 h-10 px-4 text-xs font-semibold rounded-md shadow-xs bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 cursor-pointer"
+                        >
+                          {syncingTechHub ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                          {language === 'ar' ? 'ابدأ المزامنة الآن' : 'Start Sync Now'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

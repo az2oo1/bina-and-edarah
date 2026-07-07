@@ -86,8 +86,8 @@ export default function Contact() {
                 <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
                   {language === 'ar' ? 'تواصل معنا هاتفياً للاستفسارات السريعة:' : 'Call us directly for instant inquiries:'}
                 </p>
-                <a href={`tel:${(settings?.callingNumber || '966500000000').replace(/\+/g, '').replace(/\s/g, '')}`} dir="ltr" className="text-sm font-semibold text-foreground hover:text-primary transition-colors inline-block">
-                  +{settings?.callingNumber || '966500000000'}
+                <a href={`tel:${(settings?.callingNumber || '920015314').replace(/\+/g, '').replace(/\s/g, '')}`} dir="ltr" className="text-sm font-semibold text-foreground hover:text-primary transition-colors inline-block">
+                  {settings?.callingNumber ? (settings.callingNumber.startsWith('92') || settings.callingNumber.startsWith('+') ? settings.callingNumber : `+${settings.callingNumber}`) : '920015314'}
                 </a>
               </div>
             </div>
@@ -104,8 +104,8 @@ export default function Contact() {
                 <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
                   {language === 'ar' ? 'أرسل لنا متطلباتك العقارية:' : 'Email your requirements to us:'}
                 </p>
-                <a href={`mailto:${settings?.email || 'info@bina-edarah.com'}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
-                  {settings?.email || 'info@bina-edarah.com'}
+                <a href={`mailto:${settings?.email || 'rbmc@rbmc.sa'}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
+                  {settings?.email || 'rbmc@rbmc.sa'}
                 </a>
               </div>
             </div>
@@ -122,8 +122,8 @@ export default function Contact() {
                 <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
                   {language === 'ar' ? 'متاحون على مدار الساعة لخدمتكم:' : 'Available 24/7 to assist you:'}
                 </p>
-                <a href={`https://wa.me/${(settings?.whatsappNumber || '966500000000').replace(/\+/g, '').replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" dir="ltr" className="text-sm font-semibold text-foreground hover:text-primary transition-colors inline-block">
-                  +{settings?.whatsappNumber || '966500000000'}
+                <a href={`https://wa.me/${(settings?.whatsappNumber || '966556467063').replace(/\+/g, '').replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" dir="ltr" className="text-sm font-semibold text-foreground hover:text-primary transition-colors inline-block">
+                  +{settings?.whatsappNumber || '966556467063'}
                 </a>
               </div>
             </div>
@@ -137,29 +137,21 @@ export default function Contact() {
                 <h3 className="text-sm font-semibold text-foreground mb-1">
                   {language === 'ar' ? 'المقر الرئيسي' : 'Headquarters'}
                 </h3>
-                {settings?.addressMapLink ? (
-                  <a 
-                    href={settings.addressMapLink} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="group/addr block"
-                  >
-                    <p className="text-xs text-muted-foreground leading-relaxed text-justify group-hover/addr:text-primary transition-colors cursor-pointer">
-                      {language === 'ar' 
-                        ? (settings.addressAr || 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز، الياسمين.') 
-                        : (settings.addressEn || 'King Abdul Aziz Road, Al Yasmin district, Riyadh, Kingdom of Saudi Arabia.')}
-                      <span className="text-[10px] text-primary/80 block mt-1 hover:underline">
-                        {language === 'ar' ? 'عرض على الخريطة ↗' : 'View on map ↗'}
-                      </span>
-                    </p>
-                  </a>
-                ) : (
-                  <p className="text-xs text-muted-foreground leading-relaxed text-justify">
+                <a 
+                  href={settings?.addressMapLink || 'https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D'} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="group/addr block"
+                >
+                  <p className="text-xs text-muted-foreground leading-relaxed text-justify group-hover/addr:text-primary transition-colors cursor-pointer">
                     {language === 'ar' 
-                      ? (settings?.addressAr || 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز، الياسمين.') 
-                      : (settings?.addressEn || 'King Abdul Aziz Road, Al Yasmin district, Riyadh, Kingdom of Saudi Arabia.')}
+                      ? (settings?.addressAr || 'السعودية, الرياض, النرجس, عثمان بن عفان 13336') 
+                      : (settings?.addressEn || 'Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia')}
+                    <span className="text-[10px] text-primary/80 block mt-1 hover:underline">
+                      {language === 'ar' ? 'عرض على الخريطة ↗' : 'View on map ↗'}
+                    </span>
                   </p>
-                )}
+                </a>
               </div>
             </div>
 

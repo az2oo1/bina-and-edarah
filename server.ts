@@ -4,6 +4,7 @@ import path from "path";
 import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
 import { prisma } from "./src/lib/db.js";
+import { fetchTechHubProperties, fetchTechHubContracts } from "./src/lib/techhub.js";
 import fs from "fs";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
@@ -346,6 +347,99 @@ async function startServer() {
   app.use('/uploads', express.static(UPLOADS_DIR));
 
   // Dynamic SEO Open Graph Meta Injection for WhatsApp / Facebook / Twitter crawlers
+  // Serves property base64 image as binary JPEG/PNG
+  app.get('/property-image/:id/:index.jpg', async (req, res) => {
+    try {
+      const { id, index } = req.params;
+      const property = await prisma.property.findUnique({ where: { id } });
+      if (!property) return res.status(404).send('Not Found');
+
+      const images = JSON.parse(property.imageUrls);
+      const imgIndex = parseInt(index, 10) || 0;
+      if (!Array.isArray(images) || imgIndex >= images.length) {
+        return res.status(404).send('Image Index Out of Bounds');
+      }
+
+      const base64Data = images[imgIndex];
+      if (!base64Data || !base64Data.startsWith('data:image')) {
+        return res.status(400).send('Invalid Image Data');
+      }
+
+      const matches = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).send('Invalid Base64 format');
+      }
+
+      const contentType = matches[1];
+      const imageBuffer = Buffer.from(matches[2], 'base64');
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      return res.send(imageBuffer);
+    } catch (err) {
+      return res.status(500).send('Internal Error');
+    }
+  });
+
+  // Serves project base64 image as binary JPEG/PNG
+  app.get('/project-image/:id/:index.jpg', async (req, res) => {
+    try {
+      const { id, index } = req.params;
+      const project = await prisma.project.findUnique({ where: { id } });
+      if (!project) return res.status(404).send('Not Found');
+
+      const images = JSON.parse(project.imageUrls);
+      const imgIndex = parseInt(index, 10) || 0;
+      if (!Array.isArray(images) || imgIndex >= images.length) {
+        return res.status(404).send('Image Index Out of Bounds');
+      }
+
+      const base64Data = images[imgIndex];
+      if (!base64Data || !base64Data.startsWith('data:image')) {
+        return res.status(400).send('Invalid Image Data');
+      }
+
+      const matches = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).send('Invalid Base64 format');
+      }
+
+      const contentType = matches[1];
+      const imageBuffer = Buffer.from(matches[2], 'base64');
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(imageBuffer);
+    } catch (err) {
+      return res.status(500).send('Internal Error');
+    }
+  });
+
+  // Serves settings logo as binary image
+  app.get('/settings-logo.png', async (req, res) => {
+    try {
+      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      if (!settings || !settings.logoUrl) {
+        return res.sendFile(path.join(process.cwd(), 'public', 'favicon.ico'));
+      }
+
+      const base64Data = settings.logoUrl;
+      if (base64Data.startsWith('data:image')) {
+        const matches = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const contentType = matches[1];
+          const imageBuffer = Buffer.from(matches[2], 'base64');
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.send(imageBuffer);
+        }
+      }
+      return res.redirect(base64Data);
+    } catch (err) {
+      return res.status(500).send('Internal Error');
+    }
+  });
+
   const injectOGTags = async (req: any, res: any, next: any) => {
     const urlPath = req.path;
     
@@ -357,13 +451,12 @@ async function startServer() {
     try {
       let title = "بناء وإدارة العقارية | Benaa & Edara Real Estate";
       let description = "شركة بناء وإدارة العقارية - تطوير، تأجير، مبيعات، وإدارة أملاك في المملكة العربية السعودية";
-      let imageUrl = ""; // We can use the site logo as fallback
       
-      // Get global settings for logo
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
-      if (settings?.logoUrl) {
-        imageUrl = settings.logoUrl;
-      }
+      const host = req.get('host');
+      const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+      const siteUrl = `${protocol}://${host}`;
+      
+      let imageUrl = `${siteUrl}/settings-logo.png`;
       
       // If it's a property page
       if (urlPath.startsWith('/properties/')) {
@@ -373,14 +466,7 @@ async function startServer() {
           if (property) {
             title = `${property.titleAr} | ${property.titleEn} - بناء وإدارة`;
             description = property.description || description;
-            
-            // Extract the first image from JSON array
-            try {
-              const images = JSON.parse(property.imageUrls);
-              if (Array.isArray(images) && images.length > 0) {
-                imageUrl = images[0];
-              }
-            } catch (_) {}
+            imageUrl = `${siteUrl}/property-image/${property.id}/0.jpg`;
           }
         }
       }
@@ -390,16 +476,9 @@ async function startServer() {
         if (id) {
           const project = await prisma.project.findUnique({ where: { id } });
           if (project) {
-            title = `${project.titleAr} | ${project.titleEn} - - بناء وإدارة`;
+            title = `${project.titleAr} | ${project.titleEn} - بناء وإدارة`;
             description = project.description || description;
-            
-            // Extract the first image
-            try {
-              const images = JSON.parse(project.imageUrls);
-              if (Array.isArray(images) && images.length > 0) {
-                imageUrl = images[0];
-              }
-            } catch (_) {}
+            imageUrl = `${siteUrl}/project-image/${project.id}/0.jpg`;
           }
         }
       }
@@ -415,22 +494,6 @@ async function startServer() {
       }
       
       let html = fs.readFileSync(indexPath, 'utf8');
-      
-      // Ensure imageUrl is an absolute URL
-      const host = req.get('host');
-      const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-      const siteUrl = `${protocol}://${host}`;
-      
-      if (imageUrl) {
-        if (imageUrl.startsWith('/')) {
-          imageUrl = `${siteUrl}${imageUrl}`;
-        } else if (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
-          imageUrl = `${siteUrl}/${imageUrl}`;
-        }
-      } else {
-        // Default fallback if logo not set
-        imageUrl = `${siteUrl}/favicon.ico`;
-      }
       
       // Build OG tags
       const ogTags = `
@@ -464,6 +527,10 @@ async function startServer() {
 
   app.get('/properties/:id', injectOGTags);
   app.get('/projects/:id', injectOGTags);
+  app.get('/properties', injectOGTags);
+  app.get('/projects', injectOGTags);
+  app.get('/contact', injectOGTags);
+  app.get('/login', injectOGTags);
   app.get('/', injectOGTags);
 
 
@@ -1058,6 +1125,40 @@ async function startServer() {
   });
 
 
+  function extractCoords(link: string | null | undefined): { lat: number; lon: number } | null {
+    if (!link) return null;
+    try {
+      const decoded = decodeURIComponent(link);
+      const matchAt = decoded.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (matchAt) {
+        const lat = parseFloat(matchAt[1]);
+        const lon = parseFloat(matchAt[2]);
+        if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+      }
+      const matchQ = decoded.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (matchQ) {
+        const lat = parseFloat(matchQ[1]);
+        const lon = parseFloat(matchQ[2]);
+        if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+      }
+      const matchPlace = decoded.match(/(?:place|search)\/(?:[^\/]+\/)?(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (matchPlace) {
+        const lat = parseFloat(matchPlace[1]);
+        const lon = parseFloat(matchPlace[2]);
+        if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+      }
+      const matchCoords = decoded.match(/(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (matchCoords) {
+        const lat = parseFloat(matchCoords[1]);
+        const lon = parseFloat(matchCoords[2]);
+        if (!isNaN(lat) && !isNaN(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+          return { lat, lon };
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   // Properties
   app.get("/api/properties", async (req, res) => {
     try {
@@ -1068,9 +1169,17 @@ async function startServer() {
       const properties = await prisma.property.findMany({
         orderBy: { createdAt: 'desc' }
       });
-      dbCache.properties = properties;
-      logger.info("Serving properties from database & saving to cache");
-      res.json(properties);
+      const enrichedProperties = properties.map(property => {
+        const coords = extractCoords(property.locationLink);
+        return {
+          ...property,
+          latitude: coords?.lat ?? null,
+          longitude: coords?.lon ?? null
+        };
+      });
+      dbCache.properties = enrichedProperties;
+      logger.info("Serving enriched properties from database & saving to cache");
+      res.json(enrichedProperties);
     } catch (error) {
       logger.error("Failed to fetch properties", error);
       res.status(500).json({ error: "Failed to fetch properties" });
@@ -1083,7 +1192,12 @@ async function startServer() {
         where: { id: req.params.id }
       });
       if (!property) return res.status(404).json({ error: "Property not found" });
-      res.json(property);
+      const coords = extractCoords(property.locationLink);
+      res.json({
+        ...property,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lon ?? null
+      });
     } catch (error) {
       logger.error(`Failed to fetch property by id: ${req.params.id}`, error);
       res.status(500).json({ error: "Failed to fetch property" });
@@ -1140,6 +1254,7 @@ async function startServer() {
           imageUrls: processImageUrls(body.imageUrls),
           aqarLink: body.aqarLink || null,
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
+          videoUrl: body.videoUrl || null,
           userId: body.userId || null,
         }
       });
@@ -1182,6 +1297,7 @@ async function startServer() {
           imageUrls: processImageUrls(body.imageUrls),
           aqarLink: body.aqarLink || null,
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
+          videoUrl: body.videoUrl || null,
           userId: body.userId || null,
         }
       });
@@ -1326,13 +1442,46 @@ async function startServer() {
       `ALTER TABLE "Admin" ADD COLUMN "email" text`,
       `ALTER TABLE Admin ADD COLUMN email text`,
       `ALTER TABLE "Property" ADD COLUMN "allowedPaymentPlans" text DEFAULT '["1","2","4"]'`,
-      `ALTER TABLE Property ADD COLUMN allowedPaymentPlans text DEFAULT '["1","2","4"]'`
+      `ALTER TABLE Property ADD COLUMN allowedPaymentPlans text DEFAULT '["1","2","4"]'`,
+      `ALTER TABLE "Property" ADD COLUMN "videoUrl" text`,
+      `ALTER TABLE Property ADD COLUMN videoUrl text`
     ];
     for (const cmd of alterCommands) {
       try {
         await prisma.$executeRawUnsafe(cmd);
       } catch (_) {
         // Ignore errors (column already exists, or wrong provider casing)
+      }
+    }
+
+    try {
+      await prisma.settings.upsert({
+        where: { id: "global" },
+        update: {
+          whatsappNumber: "966556467063",
+          callingNumber: "920015314",
+          email: "rbmc@rbmc.sa",
+          addressAr: "السعودية, الرياض, النرجس, عثمان بن عفان 13336",
+          addressEn: "Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia",
+          addressMapLink: "https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D"
+        },
+        create: {
+          id: "global",
+          whatsappNumber: "966556467063",
+          callingNumber: "920015314",
+          email: "rbmc@rbmc.sa",
+          addressAr: "السعودية, الرياض, النرجس, عثمان بن عفان 13336",
+          addressEn: "Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia",
+          addressMapLink: "https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D"
+        }
+      });
+    } catch (_) {
+      try {
+        await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "whatsappNumber" = '966556467063', "callingNumber" = '920015314', "email" = 'rbmc@rbmc.sa', "addressAr" = 'السعودية, الرياض, النرجس, عثمان بن عفان 13336', "addressEn" = 'Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia', "addressMapLink" = 'https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D' WHERE id = 'global'`);
+      } catch(_) {
+        try {
+          await prisma.$executeRawUnsafe(`UPDATE Settings SET whatsappNumber = '966556467063', callingNumber = '920015314', email = 'rbmc@rbmc.sa', addressAr = 'السعودية, الرياض, النرجس, عثمان بن عفان 13336', addressEn = 'Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia', addressMapLink = 'https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D' WHERE id = 'global'`);
+        } catch (_) {}
       }
     }
   }
@@ -1423,7 +1572,8 @@ async function startServer() {
         whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, 
         homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, 
         notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, analyticsScript, analyticsDashboardUrl,
-        addressAr, addressEn, addressMapLink
+        addressAr, addressEn, addressMapLink,
+        techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode
       } = req.body;
       
       const updateData: any = {};
@@ -1482,6 +1632,13 @@ async function startServer() {
       if (addressEn !== undefined) updateData.addressEn = addressEn;
       if (addressMapLink !== undefined) updateData.addressMapLink = addressMapLink;
 
+      // TechHub Settings
+      if (techhubEnabled !== undefined) updateData.techhubEnabled = techhubEnabled;
+      if (techhubClientId !== undefined) updateData.techhubClientId = techhubClientId;
+      if (techhubClientSecret !== undefined) updateData.techhubClientSecret = techhubClientSecret;
+      if (techhubApiKey !== undefined) updateData.techhubApiKey = techhubApiKey;
+      if (techhubSandboxMode !== undefined) updateData.techhubSandboxMode = techhubSandboxMode;
+
       const updated = await updateGlobalSettings(updateData);
       
       await logAction(req, "UPDATE_SETTINGS", "Updated global site settings");
@@ -1489,6 +1646,249 @@ async function startServer() {
     } catch (error) {
       logger.error("Failed to update settings:", error);
       res.status(500).json({ error: "Failed to update settings: " + (error as any)?.message });
+    }
+  });
+
+  // --- TechHub Integration Endpoints ---
+  app.get("/api/admin/techhub/status", requirePermission('settings'), async (req, res) => {
+    try {
+      const settings = await getGlobalSettings();
+      res.json({
+        techhubEnabled: settings?.techhubEnabled ?? false,
+        techhubClientId: settings?.techhubClientId ?? "",
+        techhubClientSecret: settings?.techhubClientSecret ? "••••••••" : "",
+        techhubApiKey: settings?.techhubApiKey ? "••••••••" : "",
+        techhubSandboxMode: settings?.techhubSandboxMode ?? true,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch TechHub status" });
+    }
+  });
+
+  app.post("/api/admin/techhub/sync", requirePermission('buildings'), async (req, res) => {
+    try {
+      const settings = await getGlobalSettings();
+      if (!settings || !settings.techhubEnabled) {
+        return res.status(400).json({ error: "TechHub integration is disabled. Please enable it in Settings first." });
+      }
+
+      logger.info("[TECHHUB SYNC] Fetching properties and contracts...");
+      const thProperties = await fetchTechHubProperties(settings);
+      const thContracts = await fetchTechHubContracts(settings);
+
+      let buildingsSynced = 0;
+      let unitsSynced = 0;
+      let rentersSynced = 0;
+
+      // 1. Sync Properties (Buildings & Units)
+      for (const thProj of thProperties) {
+        let building = await prisma.building.findFirst({
+          where: { name: thProj.nameAr }
+        });
+
+        if (!building) {
+          building = await prisma.building.create({
+            data: { name: thProj.nameAr }
+          });
+          buildingsSynced++;
+        }
+
+        for (const thUnit of thProj.units) {
+          const existingUnit = await prisma.renterUnit.findFirst({
+            where: { buildingId: building.id, unitNumber: thUnit.unitNumber }
+          });
+
+          if (!existingUnit) {
+            await prisma.renterUnit.create({
+              data: {
+                buildingId: building.id,
+                unitNumber: thUnit.unitNumber,
+                renterName: "متاح للتأجير",
+                renterPhone: "",
+                rentAmount: thUnit.price,
+                contractEndDate: "",
+                isTanfeeth: false
+              }
+            });
+            unitsSynced++;
+          } else {
+            await prisma.renterUnit.update({
+              where: { id: existingUnit.id },
+              data: {
+                rentAmount: thUnit.price
+              }
+            });
+          }
+        }
+      }
+
+      // 2. Sync Contracts (Renter details & RentHistory installments)
+      for (const thContract of thContracts) {
+        let building = await prisma.building.findFirst({
+          where: { name: thContract.buildingName }
+        });
+
+        if (!building) {
+          building = await prisma.building.create({
+            data: { name: thContract.buildingName }
+          });
+          buildingsSynced++;
+        }
+
+        let normalizedPhone = "";
+        if (thContract.renterPhone) {
+          let phoneStr = thContract.renterPhone.replace(/\D/g, '');
+          if (phoneStr.startsWith('966')) phoneStr = phoneStr.substring(3);
+          normalizedPhone = phoneStr.replace(/^0+/, '');
+        }
+
+        if (!normalizedPhone) {
+          // Auto-generate placeholder phone
+          normalizedPhone = `temp_${thContract.contractNumber}`;
+        }
+
+        let renterUnit = await prisma.renterUnit.findFirst({
+          where: { buildingId: building.id, unitNumber: thContract.unitNumber }
+        });
+
+        let nextRentDue: string | null = null;
+        for (const inst of thContract.installments) {
+          const pd = inst.paidDate || "";
+          if (pd === "") {
+            nextRentDue = inst.dueDate;
+            break;
+          }
+        }
+
+        if (renterUnit) {
+          renterUnit = await prisma.renterUnit.update({
+            where: { id: renterUnit.id },
+            data: {
+              renterName: thContract.renterName,
+              renterPhone: normalizedPhone,
+              contractEndDate: thContract.contractEndDate,
+              rentAmount: thContract.rentAmount,
+              nextRentDue: nextRentDue
+            }
+          });
+        } else {
+          renterUnit = await prisma.renterUnit.create({
+            data: {
+              buildingId: building.id,
+              unitNumber: thContract.unitNumber,
+              renterName: thContract.renterName,
+              renterPhone: normalizedPhone,
+              contractEndDate: thContract.contractEndDate,
+              rentAmount: thContract.rentAmount,
+              nextRentDue: nextRentDue,
+              isTanfeeth: false
+            }
+          });
+          unitsSynced++;
+        }
+
+        const currentDueDates = thContract.installments.map(inst => inst.dueDate).filter(Boolean);
+        if (currentDueDates.length > 0) {
+          await prisma.rentHistory.deleteMany({
+            where: {
+              renterUnitId: renterUnit.id,
+              dueDate: { notIn: currentDueDates as string[] }
+            }
+          });
+        } else {
+          await prisma.rentHistory.deleteMany({
+            where: { renterUnitId: renterUnit.id }
+          });
+        }
+
+        for (const inst of thContract.installments) {
+          const existingHistory = await prisma.rentHistory.findFirst({
+            where: { renterUnitId: renterUnit.id, dueDate: inst.dueDate }
+          });
+
+          if (existingHistory) {
+            await prisma.rentHistory.update({
+              where: { id: existingHistory.id },
+              data: {
+                paidDate: inst.paidDate || existingHistory.paidDate,
+                amount: inst.amount || existingHistory.amount
+              }
+            });
+          } else {
+            await prisma.rentHistory.create({
+              data: {
+                renterUnitId: renterUnit.id,
+                dueDate: inst.dueDate,
+                paidDate: inst.paidDate || "",
+                amount: inst.amount
+              }
+            });
+          }
+        }
+
+        rentersSynced++;
+      }
+
+      await logAction(req, "TECHHUB_SYNC", `Synced with TechHub: ${buildingsSynced} buildings, ${unitsSynced} units, ${rentersSynced} renters`);
+      res.json({
+        success: true,
+        buildingsSynced,
+        unitsSynced,
+        rentersSynced
+      });
+    } catch (error) {
+      logger.error("[TECHHUB SYNC ERROR]", error);
+      res.status(500).json({ error: "Failed to synchronize with TechHub: " + (error as any)?.message });
+    }
+  });
+
+  // Edit renter details (Name and Phone)
+  app.put("/api/admin/renters/:id", requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { renterName, renterPhone, propagateToAll } = req.body;
+
+      if (!renterName || renterPhone === undefined) {
+        return res.status(400).json({ error: "Renter name and phone number are required." });
+      }
+
+      let normalizedNewPhone = renterPhone.trim().replace(/\D/g, '');
+      if (normalizedNewPhone.startsWith('966')) normalizedNewPhone = normalizedNewPhone.substring(3);
+      normalizedNewPhone = normalizedNewPhone.replace(/^0+/, '');
+
+      const targetUnit = await prisma.renterUnit.findUnique({
+        where: { id }
+      });
+
+      if (!targetUnit) {
+        return res.status(404).json({ error: "Renter unit not found." });
+      }
+
+      const oldPhone = targetUnit.renterPhone;
+
+      if (propagateToAll && oldPhone) {
+        await prisma.renterUnit.updateMany({
+          where: { renterPhone: oldPhone },
+          data: {
+            renterName,
+            renterPhone: normalizedNewPhone
+          }
+        });
+      } else {
+        await prisma.renterUnit.update({
+          where: { id },
+          data: {
+            renterName,
+            renterPhone: normalizedNewPhone
+          }
+        });
+      }
+
+      await logAction(req, "UPDATE_RENDER", `Updated renter details for unit: ${targetUnit.unitNumber} (${renterName}, ${normalizedNewPhone})`);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("[UPDATE RENTER ERROR]", error);
+      res.status(500).json({ error: "Failed to update renter details." });
     }
   });
 

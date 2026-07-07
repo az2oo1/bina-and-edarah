@@ -123,13 +123,12 @@ export default function Home() {
   return (
     <div className="flex flex-col w-full text-foreground bg-background font-sans animate-in fade-in duration-500">
       {/* Centered Premium Hero Section */}
-      <section className="relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden bg-background">
-        {/* Background Image with Overlay */}
-        <div 
-          className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-10000 ease-out scale-[1.03]"
-          style={{ backgroundImage: `url("${images.hero}")` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/40 to-slate-950"></div>
+      <section className="relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden bg-slate-950">
+        {/* Sleek, Premium Dark Gradient Mesh with Animation */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-950 via-[#111d35] to-slate-950">
+          {/* Decorative glows */}
+          <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl opacity-30 animate-pulse pointer-events-none"></div>
+          <div className="absolute bottom-1/4 right-1/3 w-[450px] h-[450px] bg-sky-500/10 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
         </div>
 
         {/* Content */}

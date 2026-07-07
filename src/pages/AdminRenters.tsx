@@ -48,6 +48,48 @@ export default function AdminRenters() {
   
   const [selectedRenterPhone, setSelectedRenterPhone] = useState<string | null>(null);
 
+  // Edit Renter State
+  const [editingRenter, setEditingRenter] = useState<Renter | null>(null);
+  const [editRenterName, setEditRenterName] = useState('');
+  const [editRenterPhone, setEditRenterPhone] = useState('');
+  const [propagateToAll, setPropagateToAll] = useState(true);
+  const [savingRenter, setSavingRenter] = useState(false);
+
+  const handleSaveRenter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRenter) return;
+    setSavingRenter(true);
+    try {
+      const res = await fetch(`/api/admin/renters/${editingRenter.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          renterName: editRenterName,
+          renterPhone: editRenterPhone,
+          propagateToAll
+        })
+      });
+      if (res.ok) {
+        setEditingRenter(null);
+        fetchRenters();
+        if (selectedRenterPhone === editingRenter.renterPhone) {
+          let normalizedNewPhone = editRenterPhone.trim().replace(/\D/g, '');
+          if (normalizedNewPhone.startsWith('966')) normalizedNewPhone = normalizedNewPhone.substring(3);
+          normalizedNewPhone = normalizedNewPhone.replace(/^0+/, '');
+          setSelectedRenterPhone(normalizedNewPhone);
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        await showAlert(data.error || (language === 'ar' ? 'فشل تحديث بيانات المستأجر.' : 'Failed to update renter details.'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlert(language === 'ar' ? 'حدث خطأ في النظام.' : 'System error.');
+    } finally {
+      setSavingRenter(false);
+    }
+  };
+
   const fetchRenters = () => {
     setLoading(true);
     fetch('/api/admin/renters')
@@ -82,8 +124,8 @@ export default function AdminRenters() {
     const acc = new Map<string, typeof renters[0] & { totalUnits: number, allBuildings: string[], allNames: string[], allUnitNumbers: string[], totalRentAmount: number }>();
     for (const r of renters) {
       const isAvailable = r.renterName.includes('متاح') || r.renterName.includes('فاضي') || r.renterName.includes('شاغر') || r.renterName.includes('غيرمؤجر') || r.renterName.includes('غير مؤجر');
-      if (!r.renterPhone || isAvailable) continue;
-      const key = r.renterPhone;
+      if (isAvailable) continue;
+      const key = r.renterPhone && r.renterPhone.trim() !== '' ? r.renterPhone : `temp_unit_${r.id}`;
       if (!acc.has(key)) {
         acc.set(key, { ...r, totalUnits: 1, allBuildings: r.building?.name ? [r.building.name] : [], allNames: [r.renterName], allUnitNumbers: [r.unitNumber], totalRentAmount: r.rentAmount || 0 });
       } else {
@@ -108,7 +150,7 @@ export default function AdminRenters() {
 
   const filtered = groupedRenters.filter(r => 
     r.allNames.some(n => n.includes(search)) || 
-    r.renterPhone.includes(search) || 
+    (r.renterPhone && r.renterPhone.includes(search)) || 
     r.unitNumber.includes(search) ||
     r.allBuildings.some(b => b.includes(search))
   );
@@ -159,18 +201,42 @@ export default function AdminRenters() {
                         </span>
                       )}
                     </h3>
-                    <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
-                      <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> <span dir="ltr">{selectedRenterPhone}</span></span>
+                    <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-4 h-4" /> 
+                        <span dir="ltr">
+                          {selectedRenterPhone?.startsWith('temp_') 
+                            ? (language === 'ar' ? 'رقم هاتف مؤقت / غير مسجل' : 'Temporary / Unregistered Phone') 
+                            : selectedRenterPhone}
+                        </span>
+                      </span>
                       <span className="flex items-center gap-1"><Building2 className="w-4 h-4" /> {customerUnits.length} {language === 'ar' ? 'وحدات' : 'Units'}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  {selectedRenterPhone && !selectedRenterPhone.startsWith('temp_') && (
+                    <button 
+                      onClick={() => openWhatsApp(selectedRenterPhone!, customerNames)}
+                      className="w-7 h-7 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded flex items-center justify-center hover:bg-emerald-100/5 transition-colors cursor-pointer"
+                      title="WhatsApp"
+                    >
+                      <WhatsAppIcon className="w-5 h-5" />
+                    </button>
+                  )}
                   <button 
-                    onClick={() => openWhatsApp(selectedRenterPhone!, customerNames)}
-                    className="w-7 h-7 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded flex items-center justify-center hover:bg-emerald-100/5 transition-colors cursor-pointer"
+                    onClick={() => {
+                      const firstUnit = customerUnits[0];
+                      if (firstUnit) {
+                        setEditingRenter(firstUnit);
+                        setEditRenterName(firstUnit.renterName);
+                        setEditRenterPhone(firstUnit.renterPhone);
+                        setPropagateToAll(true);
+                      }
+                    }}
+                    className="btn-outline px-3 h-8 text-[11px] rounded-md shadow-xs bg-black text-white hover:bg-gray-800 cursor-pointer font-bold flex items-center justify-center"
                   >
-                    <WhatsAppIcon className="w-5 h-5" />
+                    {language === 'ar' ? 'تعديل البيانات' : 'Edit Renter'}
                   </button>
                 </div>
              </div>
@@ -390,33 +456,57 @@ export default function AdminRenters() {
                     className="border-b border-border hover:bg-muted/30 transition-colors"
                   >
                     <td className="p-4">
-                      <p className="font-semibold text-xs text-foreground">{r.allNames.join(' | ')}</p>
-                      <p className="text-[10px] text-muted-foreground dir-ltr font-mono mt-0.5">{r.renterPhone}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-xs text-foreground">{r.allNames.join(' | ')}</p>
+                        {r.renterPhone && r.renterPhone.startsWith('temp_') && (
+                          <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">
+                            {language === 'ar' ? 'رقم مؤقت' : 'Temp Phone'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground dir-ltr font-mono mt-0.5">
+                        {r.renterPhone && r.renterPhone.startsWith('temp_') ? (language === 'ar' ? 'غير مسجل' : 'Not Registered') : r.renterPhone}
+                      </p>
                     </td>
                     <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <a 
-                          href={`tel:${r.renterPhone}`}
-                          className="w-7 h-7 rounded bg-slate-100 border border-border text-foreground hover:bg-slate-200/50 flex flex-col items-center justify-center transition-colors"
-                          title={language === 'ar' ? 'اتصال' : 'Call'}
-                        >
-                          <Phone className="w-4 h-4" />
-                        </a>
+                      {r.renterPhone && r.renterPhone.startsWith('temp_') ? (
                         <button 
-                          onClick={() => openWhatsApp(r.renterPhone, r.allNames)}
-                          className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 flex flex-col items-center justify-center hover:bg-emerald-100/50 transition-colors cursor-pointer"
-                          title="WhatsApp"
+                          onClick={() => {
+                            setEditingRenter(r);
+                            setEditRenterName(r.allNames[0] || r.renterName);
+                            setEditRenterPhone(r.renterPhone);
+                            setPropagateToAll(true);
+                          }}
+                          className="btn-outline h-7 px-2 text-[10px] border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center gap-1 cursor-pointer font-bold rounded"
+                          title={language === 'ar' ? 'إضافة رقم جوال' : 'Set Phone Number'}
                         >
-                          <WhatsAppIcon className="w-4 h-4" />
+                          {language === 'ar' ? 'إضافة رقم جوال' : 'Set Phone'}
                         </button>
-                      </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <a 
+                            href={`tel:${r.renterPhone}`}
+                            className="w-7 h-7 rounded bg-slate-100 border border-border text-foreground hover:bg-slate-200/50 flex flex-col items-center justify-center transition-colors"
+                            title={language === 'ar' ? 'اتصال' : 'Call'}
+                          >
+                            <Phone className="w-4 h-4" />
+                          </a>
+                          <button 
+                            onClick={() => openWhatsApp(r.renterPhone, r.allNames)}
+                            className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 flex flex-col items-center justify-center hover:bg-emerald-100/50 transition-colors cursor-pointer"
+                            title="WhatsApp"
+                          >
+                            <WhatsAppIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="p-4">
                       <p className="font-semibold text-xs text-foreground line-clamp-1 max-w-[200px]">
                         {r.allBuildings.length > 1 ? r.allBuildings.join('، ') : (r.allBuildings[0] || (language === 'ar' ? 'غير محدد' : 'Unknown'))}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1 max-w-[200px]">
-                        {renters.filter(u => u.renterPhone === r.renterPhone).map((u, i) => (
+                        {renters.filter(u => r.renterPhone && r.renterPhone.startsWith('temp_') ? u.id === r.id : u.renterPhone === r.renterPhone).map((u, i) => (
                            <span key={i} className="inline-flex items-center justify-center bg-slate-100 border border-border text-foreground text-[10px] px-1.5 py-0.5 rounded">
                              {u.unitNumber}
                            </span>
@@ -426,7 +516,7 @@ export default function AdminRenters() {
                     <td className="p-4 text-foreground font-bold">
                        {/* Calculate total rent by adding all units a renter owns, using real array not grouped ones for amount */}
                        {(() => {
-                         const total = renters.filter(x => x.renterPhone === r.renterPhone).reduce((sum, u) => sum + (u.rentAmount || 0), 0);
+                         const total = renters.filter(x => r.renterPhone && r.renterPhone.startsWith('temp_') ? x.id === r.id : x.renterPhone === r.renterPhone).reduce((sum, u) => sum + (u.rentAmount || 0), 0);
                          return total > 0 ? (
                            <div className="flex items-center gap-1">
                              {total.toLocaleString()} <SrIcon className="w-4 h-4 text-gray-400" />
@@ -486,6 +576,76 @@ export default function AdminRenters() {
             </div>
           </motion.div>
         </motion.div>
+      )}
+
+      {editingRenter && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+          <form onSubmit={handleSaveRenter} className="bg-card rounded-lg border border-border w-full max-w-md overflow-hidden shadow-md flex flex-col">
+            <div className="bg-muted/40 p-4 border-b border-border flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">
+                {language === 'ar' ? 'تعديل بيانات المستأجر' : 'Edit Renter Details'}
+              </h3>
+              <button type="button" onClick={() => setEditingRenter(null)} className="w-7 h-7 bg-card border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                 <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 bg-muted/10 space-y-4">
+              <div>
+                <label className="cn-label mb-2">{language === 'ar' ? 'اسم المستأجر' : 'Renter Name'}</label>
+                <input
+                  type="text"
+                  required
+                  value={editRenterName}
+                  onChange={(e) => setEditRenterName(e.target.value)}
+                  className="cn-input bg-background"
+                />
+              </div>
+
+              <div>
+                <label className="cn-label mb-2">{language === 'ar' ? 'رقم الجوال' : 'Phone Number'}</label>
+                <input
+                  type="text"
+                  value={editRenterPhone.startsWith('temp_') ? '' : editRenterPhone}
+                  onChange={(e) => setEditRenterPhone(e.target.value)}
+                  className="cn-input bg-background"
+                  placeholder="05xxxxxxx"
+                  required
+                />
+                {editRenterPhone.startsWith('temp_') && (
+                  <p className="text-[10px] text-red-500 font-bold mt-1">
+                    {language === 'ar' ? '⚠️ هذا الرقم مؤقت. يرجى إدخال رقم هاتف حقيقي.' : '⚠️ This is a temporary number. Please provide a real phone number.'}
+                  </p>
+                )}
+              </div>
+
+              {editingRenter.renterPhone && !editingRenter.renterPhone.startsWith('temp_') && (
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="propagateToAll"
+                    checked={propagateToAll}
+                    onChange={(e) => setPropagateToAll(e.target.checked)}
+                    className="rounded border-gray-300 text-black focus:ring-black h-4 w-4"
+                  />
+                  <label htmlFor="propagateToAll" className="text-[11px] font-bold text-muted-foreground cursor-pointer select-none">
+                    {language === 'ar' ? 'تحديث الاسم والرقم في جميع الوحدات التابعة لهذا المستأجر' : 'Apply changes to all units owned by this renter'}
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-card border-t border-border flex justify-end gap-2">
+               <button type="button" onClick={() => setEditingRenter(null)} className="btn-outline px-4 h-9 text-xs font-semibold rounded-md shadow-xs cursor-pointer">
+                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+               </button>
+               <button type="submit" disabled={savingRenter} className="btn-primary px-4 h-9 text-xs font-semibold rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer bg-black text-white hover:bg-gray-800">
+                  {savingRenter ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                  {language === 'ar' ? 'حفظ' : 'Save'}
+               </button>
+            </div>
+          </form>
+        </div>
       )}
     </motion.div>
   );
