@@ -85,6 +85,9 @@ async function sendCallbackEmailNotification() {
     const from = settings?.smtpFrom || process.env.SMTP_FROM || "no-reply@benaa-edara.com";
     const siteUrl = process.env.APP_URL || 'http://localhost:3000';
 
+    const formattedFrom = from.includes("<") ? from : `"بناء وإدارة العقارية | Benaa & Edara" <${from}>`;
+    const fromDomain = from.includes('@') ? from.split('@')[1].trim().replace('>', '') : 'benaa-edara.com';
+
     const logoHtml = settings?.logoUrl 
       ? `<img src="${siteUrl}/settings-logo.png" style="max-height: 50px; display: inline-block; vertical-align: middle;" alt="Benaa & Edara Logo" />`
       : `<span style="font-size: 20px; font-weight: bold; color: #2C4A5E; font-family: Arial, sans-serif; vertical-align: middle;">بناء وإدارة | Benaa & Edara</span>`;
@@ -111,6 +114,17 @@ async function sendCallbackEmailNotification() {
       </div>
     `;
 
+    const textContent = `
+طلب اتصال جديد / New Contact Request
+
+يوجد طلب اتصال أو رسالة تواصل جديدة على المنصة. يرجى تسجيل الدخول إلى لوحة التحكم لمعاينة التفاصيل ومعالجتها.
+There is a new contact or callback request on the platform. Please log in to the admin panel to view the details and handle it.
+
+الانتقال إلى لوحة التحكم / Go to Admin Panel: ${siteUrl}/admin
+
+بناء وإدارة العقارية / Benaa & Edara Real Estate
+    `.trim();
+
     if (!host || !user || !pass) {
       logger.warn(`[EMAIL PING WARNING] SMTP credentials not set in settings or environment. Set in Settings tab or env variables SMTP_HOST, SMTP_USER, SMTP_PASS to send real emails.`);
       logger.info(`[EMAIL PING MOCK] Email ping sent to: ${toEmails}\nSubject: ${emailSubject}\nContent:\n${htmlContent}`);
@@ -125,10 +139,12 @@ async function sendCallbackEmailNotification() {
     });
 
     await transporter.sendMail({
-      from,
+      from: formattedFrom,
       to: toEmails,
       subject: emailSubject,
-      html: htmlContent
+      html: htmlContent,
+      text: textContent,
+      messageId: `<new-callback-alert-${Date.now()}@${fromDomain}>`
     });
     logger.info(`[EMAIL PING SUCCESS] Callback email notification sent to employees: ${toEmails}`);
   } catch (error) {
@@ -158,11 +174,35 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
     const replyTo = settings?.email || from;
     const siteUrl = process.env.APP_URL || 'http://localhost:3000';
 
+    const formattedFrom = from.includes("<") ? from : `"بناء وإدارة العقارية | Benaa & Edara" <${from}>`;
+    const fromDomain = from.includes('@') ? from.split('@')[1].trim().replace('>', '') : 'benaa-edara.com';
+
+    // Fetch all notes of this request to calculate threading headers
+    const notes = await prisma.callbackNote.findMany({
+      where: { callbackRequestId: callbackRequest.id },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    const currentNote = notes[notes.length - 1];
+    const messageId = currentNote 
+      ? `<note-${currentNote.id}@${fromDomain}>` 
+      : `<request-reply-${callbackRequest.id}@${fromDomain}>`;
+
+    const mailHeaders: Record<string, string> = {};
+    if (notes.length > 1) {
+      const previousNote = notes[notes.length - 2];
+      mailHeaders['In-Reply-To'] = `<note-${previousNote.id}@${fromDomain}>`;
+      mailHeaders['References'] = notes.slice(0, notes.length - 1).map(n => `<note-${n.id}@${fromDomain}>`).join(' ');
+    }
+
+    const emailSubject = notes.length > 1
+      ? `Re: رد على طلبك / Reply to your request - بناء وإدارة`
+      : `رد على طلبك / Reply to your request - بناء وإدارة`;
+
     const logoHtml = settings?.logoUrl 
       ? `<img src="${siteUrl}/settings-logo.png" style="max-height: 50px; display: inline-block; vertical-align: middle;" alt="Benaa & Edara Logo" />`
       : `<span style="font-size: 20px; font-weight: bold; color: #2C4A5E; font-family: Arial, sans-serif; vertical-align: middle;">بناء وإدارة | Benaa & Edara</span>`;
 
-    const emailSubject = "رد على طلبك / Reply to your request - بناء وإدارة";
     const htmlContent = `
       <div style="background-color: #f8fafc; padding: 40px 20px; font-family: Arial, sans-serif; min-height: 100%; direction: rtl;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border-top: 6px solid #2C4A5E; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
@@ -225,6 +265,31 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
       </div>
     `;
 
+    const plainReplyText = replyText.replace(/<[^>]*>/g, '').trim();
+    const textContent = `
+مرحباً ${callbackRequest.name}،
+
+تم الرد على طلب الاتصال أو رسالة التواصل الخاصة بك من قبل فريق بناء وإدارة:
+
+${plainReplyText}
+
+${callbackRequest.message ? `----------------------------------------
+الرسالة الأصلية / Original Message:
+"${callbackRequest.message}"` : ''}
+
+مع أطيب التحيات، / Best regards,
+${senderName || 'فريق بناء وإدارة / Benaa & Edara Team'}
+شركة بناء وإدارة العقارية / Benaa & Edara Real Estate
+
+💬 يمكنك الرد مباشرة على هذا البريد الإلكتروني للتواصل معنا.
+You can reply directly to this email to get in touch with us.
+
+البريد / Email: ${replyTo}
+${settings?.callingNumber ? `الهاتف / Phone: ${settings.callingNumber}` : ''}
+${settings?.whatsappNumber ? `واتساب / WhatsApp: +${settings.whatsappNumber}` : ''}
+${settings?.addressAr ? `الموقع / Location: ${settings.addressAr}` : ''}
+    `.trim();
+
     if (!host || !user || !pass) {
       logger.warn(`[REPLY EMAIL WARNING] SMTP credentials not set. Cannot send real email to customer.`);
       logger.info(`[REPLY EMAIL MOCK] Email reply sent to: ${callbackRequest.email}\nSubject: ${emailSubject}\nContent:\n${htmlContent}`);
@@ -239,11 +304,14 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
     });
 
     await transporter.sendMail({
-      from,
+      from: formattedFrom,
       to: callbackRequest.email,
       replyTo,
       subject: emailSubject,
-      html: htmlContent
+      html: htmlContent,
+      text: textContent,
+      messageId: messageId,
+      headers: mailHeaders
     });
     logger.info(`[REPLY EMAIL SUCCESS] Reply email sent to customer: ${callbackRequest.email}`);
   } catch (error) {
