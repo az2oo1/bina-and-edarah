@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, Building, KeySquare, Hammer, Headphones, Mail, Layers, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router';
@@ -33,9 +33,27 @@ export default function Home() {
   const [social, setSocial] = useState<SocialSettings>({});
 
   const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
-  const [selectedProject, setSelectedProject] = useState<any | null>(null);
   
   const [activeSection, setActiveSection] = useState('hero');
+  const [projectsVisible, setProjectsVisible] = useState(false);
+  const projectsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setProjectsVisible(true);
+        }
+      },
+      { threshold: 0.05, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    if (projectsRef.current) {
+      observer.observe(projectsRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const sections = ['hero', 'solutions', 'video-tour', 'featured-projects', 'features', 'contact-cta'];
@@ -72,7 +90,7 @@ export default function Home() {
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setFeaturedProjects(data.slice(0, 6));
+          setFeaturedProjects(data.slice(0, 3));
         }
       })
       .catch(() => {});
@@ -159,35 +177,26 @@ export default function Home() {
       {(() => {
         const isDefaultHero = !images.hero || images.hero === DEFAULT_IMAGES.hero;
         return (
-          <section id="hero" className="relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden bg-slate-950">
-            {isDefaultHero ? (
-              /* Sleek, Premium Dark Gradient Mesh with Animation */
-              <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-950 via-[#111d35] to-slate-950">
-                {/* Decorative glows */}
-                <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl opacity-30 animate-pulse pointer-events-none"></div>
-                <div className="absolute bottom-1/4 right-1/3 w-[450px] h-[450px] bg-sky-500/10 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
-                {/* Grid line decoration */}
-                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-              </div>
-            ) : (
-              /* Custom background image uploaded by the user */
-              <div 
-                className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-10000 ease-out scale-[1.03]"
-                style={{ backgroundImage: `url("${images.hero}")` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/30 to-slate-950"></div>
-              </div>
-            )}
+          <section id="hero" className="relative w-full flex flex-col items-center justify-between bg-background text-foreground transition-colors duration-300 pt-16 sm:pt-24 pb-0">
+            {/* Premium Theme-Adaptive Background with Decorative Dots & Glows */}
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              {/* Soft blurred background color glows */}
+              <div className="absolute -top-10 left-1/4 w-[500px] h-[500px] bg-sky-400/10 dark:bg-sky-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+              <div className="absolute top-1/3 right-1/4 w-[450px] h-[450px] bg-indigo-400/8 dark:bg-indigo-500/8 rounded-full blur-[100px] pointer-events-none"></div>
+              
+              {/* Dots Grid Pattern (Subtle & Elegant) */}
+              <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+            </div>
 
             {/* Content */}
-            <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center py-20 animate-fade-in">
-              <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold ${isDefaultHero ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-amber-500/25 border border-amber-500/50 text-amber-300'} backdrop-blur-md mb-6 uppercase tracking-wider shadow-sm`}>
-                ✨ {language === 'ar' ? 'رؤية مستقبلية للمعيشة العقارية الفاخرة' : 'A Future Vision of Luxury Living'}
-              </span>
-              <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white mb-6 leading-tight select-none">
+            <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-8 pb-12 sm:pb-16 w-full animate-fade-in">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-5 select-none">
+                {language === 'ar' ? 'تطوير • تسويق • إدارة أملاك' : 'DEVELOPMENT • LEASING • PROPERTY MANAGEMENT'}
+              </p>
+              <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 leading-tight select-none">
                 {t('hero.title')}
               </h1>
-              <p className="max-w-2xl mx-auto text-sm sm:text-lg font-medium leading-relaxed select-none mb-10 opacity-95 text-slate-100">
+              <p className="max-w-2xl mx-auto text-sm sm:text-lg font-medium leading-relaxed select-none mb-10 opacity-95 text-muted-foreground">
                 {t('hero.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
@@ -198,33 +207,38 @@ export default function Home() {
                   <span>{language === 'ar' ? 'مشاريعنا المتميزة' : 'Featured Projects'}</span>
                   <Arrow className="w-5 h-5 text-white" />
                 </button>
-                <Link to="/properties" className="inline-flex items-center justify-center gap-2 border border-white/20 text-white hover:bg-white/5 hover:border-white/40 h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer">
+                <Link to="/properties" className="inline-flex items-center justify-center gap-2 border border-border text-foreground hover:bg-muted h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer">
                   <span>{language === 'ar' ? 'عقارات للبيع أو الإيجار' : 'Properties to Buy or Rent'}</span>
                 </Link>
               </div>
             </div>
-            
-            {/* Smooth Scroll Down Button */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 select-none animate-in fade-in slide-in-from-bottom duration-1000 delay-500">
-              <button 
-                onClick={() => document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth' })}
-                className="flex flex-col items-center gap-1.5 text-white/50 hover:text-white/95 transition-colors cursor-pointer group"
-              >
-                <span className="text-[10px] font-extrabold tracking-widest uppercase">{language === 'ar' ? 'حلول عقارية' : 'Real Estate Solutions'}</span>
-                <ChevronDown className="w-5 h-5 animate-bounce" />
-              </button>
+
+            {/* Skyscrapers transparent divider image serving as a bottom frame */}
+            <div className="w-full mt-auto relative z-30 select-none pointer-events-none">
+              <img 
+                src="/skyscrapers.png?v=2" 
+                alt="Skyscrapers divider" 
+                className="w-full h-auto object-contain object-bottom opacity-100 dark:opacity-85"
+              />
             </div>
             
-            {/* Subtle bottom fade */}
-            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>
+            {/* Smooth Scroll Down Button */}
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-40 select-none animate-in fade-in slide-in-from-bottom duration-1000 delay-500">
+              <button 
+                onClick={() => document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex flex-col items-center text-slate-500 hover:text-slate-955 dark:text-white/60 dark:hover:text-white transition-colors cursor-pointer group"
+              >
+                <ChevronDown className="w-6 h-6 animate-bounce" />
+              </button>
+            </div>
           </section>
         );
       })()}
 
       {/* Combined "Who We Are" & "Real Estate Solutions" Section */}
       <section id="solutions" className="py-24 bg-background relative z-20 border-b border-border relative isolate overflow-hidden">
-        {/* Decorative Grid Lines & Glows */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #38bdf8 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }}></div>
+        {/* Decorative Grid Lines (Subtle & Elegant) */}
+        <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
         <div aria-hidden="true" className="absolute top-0 right-0 -z-10 blur-3xl opacity-20 select-none pointer-events-none translate-x-1/3">
           <div 
@@ -236,16 +250,16 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10 w-full">
           {/* Header Info */}
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/25 uppercase">
-              {language === 'ar' ? 'من نحن & حلولنا العقارية' : 'Who We Are & Our Solutions'}
-            </span>
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-2 select-none">
+              {language === 'ar' ? 'خدمات الشركة' : 'COMPANY SERVICES'}
+            </p>
             <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
-              {language === 'ar' ? 'حلول عقارية تلبي تطلعاتكم' : 'Real Estate Solutions Fitting Your Aspirations'}
+              {language === 'ar' ? 'خدماتنا العقارية المتكاملة' : 'Our Integrated Real Estate Services'}
             </h2>
             <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
               {language === 'ar' 
-                ? 'في بناء وإدارة، نجمع بين التخطيط الاستراتيجي، والتصميم المبتكر، والجودة المطلقة لتقديم حلول سكنية واستثمارية فريدة ترتقي بجودة الحياة.'
-                : 'At Benaa & Edara, we merge strategic planning, innovative design, and absolute quality to deliver exceptional residential and investment spaces.'}
+                ? 'نقدم في بناء وإدارة خدمات عقارية متكاملة تغطي التطوير والتسويق وإدارة الأملاك وفق أحدث الأساليب المهنية لضمان أفضل قيمة لأصحاب العقارات والمستأجرين.'
+                : 'Benaa & Edara provides comprehensive real estate services covering development, marketing, and asset management under modern professional standards to ensure high value.'}
             </p>
             
             {/* The Two Page Navigation Buttons/Links Side-by-Side */}
@@ -254,14 +268,14 @@ export default function Home() {
                 to="/about" 
                 className="inline-flex items-center justify-center gap-1.5 bg-[#2563eb] text-white hover:bg-[#1d4ed8] px-5 py-2.5 rounded-lg text-xs font-bold shadow-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer select-none"
               >
-                <span>{language === 'ar' ? 'تعرّف علينا أكثر (من نحن)' : 'Learn More About Us (About)'}</span>
+                <span>{language === 'ar' ? 'المزيد عن الشركة' : 'More About Us'}</span>
                 <Arrow className="w-4 h-4 text-white" />
               </Link>
               <Link 
                 to="/services" 
-                className="inline-flex items-center justify-center gap-1.5 border border-white/20 text-white hover:bg-white/5 hover:border-white/45 px-5 py-2.5 rounded-lg text-xs font-bold shadow-md backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer select-none"
+                className="inline-flex items-center justify-center gap-1.5 border border-border text-foreground hover:bg-muted/80 hover:border-foreground/30 px-5 py-2.5 rounded-lg text-xs font-bold shadow-md backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer select-none"
               >
-                <span>{language === 'ar' ? 'تصفح كافة حلولنا العقارية' : 'Browse All Our Solutions (Services)'}</span>
+                <span>{language === 'ar' ? 'تصفح خدماتنا العقارية' : 'Browse Our Services'}</span>
                 <Arrow className="w-4 h-4 text-white" />
               </Link>
             </div>
@@ -276,17 +290,17 @@ export default function Home() {
                   key={service.id} 
                   className={`flex flex-col bg-card border border-border rounded-xl p-6 hover:${isEven ? 'border-sky-500/20' : 'border-amber-500/20'} backdrop-blur-lg hover:bg-card/[0.04] transition-all duration-300 group`}
                 >
-                  <div className={`w-12 h-12 rounded-lg ${isEven ? 'bg-sky-500/10 border border-sky-500/20 text-sky-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'} flex items-center justify-center mb-4 shadow-md`}>
+                  <div className={`w-12 h-12 rounded-lg ${isEven ? 'bg-sky-500/10 border border-sky-500/20 text-sky-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400'} flex items-center justify-center mb-4 shadow-md`}>
                     {service.icon}
                   </div>
-                  <h3 className={`text-base font-bold text-foreground mb-2 group-hover:${isEven ? 'text-sky-400' : 'text-amber-400'} transition-colors`}>
+                  <h3 className={`text-base font-bold text-foreground mb-2 group-hover:${isEven ? 'text-sky-400' : 'text-amber-600 dark:group-hover:text-amber-400'} transition-colors`}>
                     {language === 'ar' ? service.titleAr : service.titleEn}
                   </h3>
                   <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed text-justify mb-6">
                     {language === 'ar' ? service.descAr : service.descEn}
                   </p>
                   {/* Clean hover link */}
-                  <Link to="/services" className={`mt-auto inline-flex items-center gap-1.5 text-xs font-bold ${isEven ? 'text-[#2563eb] group-hover:text-sky-400' : 'text-[#f59e0b] group-hover:text-amber-400'} transition-colors cursor-pointer select-none`}>
+                  <Link to="/services" className={`mt-auto inline-flex items-center gap-1.5 text-xs font-bold ${isEven ? 'text-[#2563eb] group-hover:text-sky-400' : 'text-amber-700 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-400'} transition-colors cursor-pointer select-none`}>
                     <span>{language === 'ar' ? 'اقرأ المزيد' : 'Learn More'}</span>
                     <Arrow className="w-3.5 h-3.5" />
                   </Link>
@@ -304,16 +318,16 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Text description */}
             <div className="space-y-6 text-right rtl:text-right ltr:text-left">
-              <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-sky-400 bg-sky-400/10 border border-sky-400/25 uppercase">
-                {language === 'ar' ? 'عرض مرئي' : 'Video Tour'}
-              </span>
+              <p className="text-xs font-bold text-sky-500 dark:text-sky-400 uppercase tracking-widest mb-2 select-none">
+                {language === 'ar' ? 'عرض مرئي' : 'VIDEO PRESENTATION'}
+              </p>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
-                {language === 'ar' ? 'رحلتك نحو مسكنك المثالي تبدأ من هنا' : 'Your Journey to the Perfect Home Starts Here'}
+                {language === 'ar' ? 'نبذة عن مشاريعنا العقارية' : 'A Closer Look at Our Properties'}
               </h2>
               <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed text-justify">
                 {language === 'ar'
-                  ? 'شاهد العرض المرئي التعريفي لشركة بناء وإدارة العقارية، وتعرف على مشاريعنا الحديثة وتطويراتنا السكنية الفاخرة. نسعى دائماً لتقديم أعلى معايير الفخامة والتميز العقاري لعملائنا في مختلف أنحاء المملكة.'
-                  : 'Watch the promotional video tour of Benaa & Edara Real Estate and explore our latest projects and premium residential developments. We always strive to deliver the highest standards of luxury and real estate excellence to our clients across the Kingdom.'}
+                  ? 'تعرف من خلال هذا العرض المرئي على مشاريع شركة بناء وإدارة العقارية، والتي تشمل مجمعات سكنية ومبانٍ تجارية مصممة ومدارة وفق أعلى المعايير الفنية والتشغيلية في مختلف مناطق الرياض.'
+                  : 'Get an overview of Benaa & Edara Real Estate projects, featuring residential complexes and commercial buildings developed and managed to the highest technical and operational standards in Riyadh.'}
               </p>
               <div className="pt-2">
                 <Link to="/properties" className="inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-11 px-6 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer">
@@ -339,68 +353,110 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Projects Album Section */}
-      <section id="featured-projects" className="py-24 bg-background border-t border-b border-border relative overflow-hidden relative isolate">
-        {/* Dynamic mesh glow effect for projects */}
-        <div aria-hidden="true" className="absolute top-0 left-0 -z-10 blur-3xl opacity-20 select-none pointer-events-none -translate-x-1/3">
+      {/* Featured Projects Section - Creative Apple Editorial Layout */}
+      <section id="featured-projects" className="py-28 bg-background border-t border-b border-border relative overflow-hidden isolate">
+        {/* Decorative Grid (Subtle & Elegant) */}
+        <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
+        <div className="absolute top-1/3 left-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
+        <div className="absolute bottom-1/3 right-10 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
           <div 
-            style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
-            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-sky-500/10 to-indigo-500/10"
-          ></div>
-        </div>
-        {/* Aesthetics lines */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-extrabold text-foreground tracking-tight">
-              {language === 'ar' ? 'مشاريعنا المتميزة' : 'Featured Projects'}
+            className={`text-center mb-24 transition-all duration-1000 ease-out transform ${
+              projectsVisible 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}
+          >
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-2 select-none">
+              {language === 'ar' ? 'مشاريع متميزة' : 'FEATURED PORTFOLIO'}
+            </p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
+              {language === 'ar' ? 'نصنع فضاءات معمارية متميزة' : 'Architectural Landmarks'}
             </h2>
             <p className="text-sm text-muted-foreground mt-3 max-w-xl mx-auto leading-relaxed">
-              {language === 'ar' ? 'تصفح صور المشاريع التي قمنا بتطويرها مؤخراً، انقر على أي مشروع للمزيد من التفاصيل.' : 'Browse the photos of our recently developed projects, click on any project to view details.'}
+              {language === 'ar' ? 'نستعرض هنا ثلاثة من أرقى مشاريعنا التطويرية التي تمثل نموذجاً للمعيشة والاستقرار الاستثماري.' : 'Showcasing three of our finest properties that represent our standards of architectural design and quality.'}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredProjects.map((project) => {
+          {/* Staggered Alternating Rows Container */}
+          <div ref={projectsRef} className="space-y-32">
+            {featuredProjects.map((project, index) => {
               let imagesArr = [];
               try {
                 imagesArr = JSON.parse(project.imageUrls || '[]');
               } catch(_) {}
               const image = imagesArr[0] || DEFAULT_IMAGES.service1;
+              const isEven = index % 2 === 1;
 
               return (
-                <div
+                <div 
                   key={project.id}
-                  onClick={() => setSelectedProject(project)}
-                  className="relative group h-80 rounded-xl overflow-hidden cursor-pointer shadow-md border border-border bg-card transition-all duration-500 hover:scale-[1.01] hover:border-sky-500/20"
+                  className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-20 transition-all duration-1000 ease-out transform ${
+                    projectsVisible 
+                      ? 'opacity-100 translate-y-0 scale-100' 
+                      : 'opacity-0 translate-y-20 scale-[0.98]'
+                  }`}
+                  style={{ transitionDelay: `${index * 150}ms` }}
                 >
-                  <img 
-                    src={image} 
-                    alt={language === 'ar' ? project.titleAr : project.titleEn} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-85 group-hover:opacity-95 transition-opacity duration-300"></div>
-                  
-                  {/* Info inside album item */}
-                  <div className="absolute inset-x-0 bottom-0 p-6 text-foreground flex flex-col justify-end">
-                    <div className="transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 border border-sky-500/30 text-sky-400 uppercase tracking-wider mb-2">
-                        {t(`cat.${project.propertyCategory}`)}
-                      </span>
-                      <h3 className="text-lg font-bold text-foreground leading-tight">
-                        {language === 'ar' ? project.titleAr : project.titleEn}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-sky-400" />
-                        <span>{project.locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')} • {project.area} {t('common.sqm')}</span>
-                      </p>
-                    </div>
-                  </div>
+                  {/* Column A: Large Premium Parallax Image */}
+                  <Link 
+                    to={`/projects/${project.id}`}
+                    className={`w-full lg:w-3/5 aspect-[16/10] rounded-2xl overflow-hidden cursor-pointer border border-border/80 bg-muted shadow-lg hover:shadow-2xl hover:border-primary/25 transition-all duration-500 group relative block ${
+                      isEven ? 'lg:order-2' : ''
+                    }`}
+                  >
+                    <img 
+                      src={image} 
+                      alt={language === 'ar' ? project.titleAr : project.titleEn} 
+                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-black/10 dark:bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                  </Link>
 
-                  {/* Absolute Top-Right Arrow button */}
-                  <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-card/10 border border-white/10 flex items-center justify-center text-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-y-2 group-hover:translate-y-0">
-                    <Arrow className="w-4 h-4 text-sky-400" />
+                  {/* Column B: Spacious Editorial Content */}
+                  <div className={`w-full lg:w-2/5 flex flex-col items-start text-right rtl:text-right ltr:text-left ${
+                    isEven ? 'lg:order-1' : ''
+                  }`}>
+                    {/* Category */}
+                    <span className="text-[10px] font-extrabold text-sky-500 dark:text-sky-400 uppercase tracking-widest mb-3">
+                      {t(`cat.${project.propertyCategory}`)}
+                    </span>
+                    
+                    {/* Title */}
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-4 leading-tight select-none">
+                      {language === 'ar' ? project.titleAr : project.titleEn}
+                    </h3>
+                    
+                    {/* Description */}
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-justify mb-6 max-w-lg">
+                      {language === 'ar' ? project.descriptionAr : project.descriptionEn}
+                    </p>
+
+                    {/* Quick Stats Grid */}
+                    <div className="grid grid-cols-3 gap-6 w-full border-t border-b border-border/60 py-4 mb-6">
+                      <div className="flex flex-col items-start justify-center">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'المساحة' : 'Area'}</span>
+                        <span className="text-xs font-bold text-foreground font-mono">{project.area} {t('common.sqm')}</span>
+                      </div>
+                      <div className="flex flex-col items-start justify-center">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'عمر العقار' : 'Property Age'}</span>
+                        <span className="text-xs font-bold text-foreground">{project.propertyAge > 0 ? `${project.propertyAge} ${language === 'ar' ? 'سنة' : 'years'}` : (language === 'ar' ? 'جديد' : 'New')}</span>
+                      </div>
+                      <div className="flex flex-col items-start justify-center">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'الموقع' : 'Location'}</span>
+                        <span className="text-xs font-bold text-foreground truncate max-w-[100px]">{project.locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}</span>
+                      </div>
+                    </div>
+
+                    {/* View Details Link */}
+                    <Link 
+                      to={`/projects/${project.id}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563eb] hover:text-[#1d4ed8] dark:text-sky-400 dark:hover:text-sky-300 transition-colors cursor-pointer select-none group/link"
+                    >
+                      <span>{language === 'ar' ? 'تفاصيل المشروع كاملة' : 'View Full Details'}</span>
+                      <Arrow className="w-4 h-4 transform group-hover/link:translate-x-1 sm:rtl:group-hover/link:-translate-x-1 transition-transform" />
+                    </Link>
                   </div>
                 </div>
               );
@@ -408,112 +464,32 @@ export default function Home() {
           </div>
 
           {featuredProjects.length > 0 && (
-            <div className="mt-16 text-center">
+            <div className="mt-28 text-center">
               <Link 
                 to="/projects" 
-                className="btn-outline px-6 h-11 text-xs font-bold rounded-lg shadow-xs hover:bg-muted/30 transition-all cursor-pointer inline-flex items-center gap-2"
+                className="btn-outline px-7 h-12 text-xs font-bold rounded-lg shadow-sm hover:bg-muted/40 transition-all cursor-pointer inline-flex items-center gap-2"
               >
-                <span>{language === 'ar' ? 'تصفح جميع المشاريع' : 'Browse All Projects'}</span>
+                <span>{language === 'ar' ? 'استكشف كافة مشاريعنا' : 'Explore Entire Portfolio'}</span>
                 <Arrow className="w-4 h-4" />
               </Link>
             </div>
           )}
 
           {featuredProjects.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-sm">
-              {language === 'ar' ? 'سيتم إضافة ألبوم المشاريع قريباً.' : 'Featured projects album will be added soon.'}
+            <div className="text-center py-16 text-muted-foreground text-sm font-medium border border-dashed border-border rounded-2xl">
+              {language === 'ar' ? 'سيتم إضافة ألبوم المشاريع قريباً.' : 'Featured projects portfolio will be added soon.'}
             </div>
           )}
         </div>
-
-        {/* Modal display of selected project */}
-        {selectedProject && (() => {
-          let imagesArr = [];
-          try {
-            imagesArr = JSON.parse(selectedProject.imageUrls || '[]');
-          } catch(_) {}
-          const image = imagesArr[0] || DEFAULT_IMAGES.service1;
-          
-          return (
-            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs">
-              <div className="bg-card border border-border rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-                {/* Modal Banner */}
-                <div className="relative h-72 w-full">
-                  <img src={image} alt={selectedProject.titleAr} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/10 to-transparent"></div>
-                  <button 
-                    onClick={() => setSelectedProject(null)}
-                    className="absolute top-4 right-4 w-9 h-9 rounded-full bg-background/70 border border-white/10 text-foreground flex items-center justify-center hover:bg-background hover:border-white/20 transition-all cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                  <div className="absolute bottom-6 left-6 right-6 text-foreground">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 border border-sky-500/30 text-sky-400 uppercase tracking-wider mb-2">
-                      {t(`cat.${selectedProject.propertyCategory}`)}
-                    </span>
-                    <h3 className="text-2xl font-extrabold text-foreground">
-                      {language === 'ar' ? selectedProject.titleAr : selectedProject.titleEn}
-                    </h3>
-                  </div>
-                </div>
-
-                {/* Modal Body */}
-                <div className="p-6 md:p-8 overflow-y-auto space-y-6 text-sm leading-relaxed text-muted-foreground">
-                  <div>
-                    <h4 className="font-bold text-foreground text-base mb-2">{language === 'ar' ? 'حول المشروع' : 'About Project'}</h4>
-                    <p className="text-muted-foreground text-justify">{selectedProject.description}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 border-t border-border pt-6">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-muted-foreground mb-0.5">{language === 'ar' ? 'المساحة الإجمالية' : 'Total Area'}</span>
-                      <p className="text-sm font-semibold text-foreground font-mono">{selectedProject.area} {t('common.sqm')}</p>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-muted-foreground mb-0.5">{language === 'ar' ? 'عمر العقار' : 'Property Age'}</span>
-                      <p className="text-sm font-semibold text-foreground">{selectedProject.propertyAge} {language === 'ar' ? 'سنة' : 'years'}</p>
-                    </div>
-                    {selectedProject.locationText && (
-                      <div className="col-span-2 flex flex-col">
-                        <span className="text-xs font-bold text-muted-foreground mb-0.5">{language === 'ar' ? 'الموقع الجغرافي' : 'Location'}</span>
-                        <p className="text-sm font-semibold text-foreground flex items-center gap-1">
-                          <MapPin className="w-4 h-4 text-sky-400" />
-                          <span>{selectedProject.locationText}</span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Modal Actions */}
-                <div className="bg-background px-6 py-4 border-t border-border flex justify-end gap-3">
-                  <Link 
-                    to={`/projects`}
-                    onClick={() => setSelectedProject(null)}
-                    className="inline-flex items-center justify-center bg-[#2563eb] text-foreground hover:bg-[#1d4ed8] h-9 px-4 rounded-md text-xs font-semibold shadow-xs transition-all cursor-pointer"
-                  >
-                    {language === 'ar' ? 'عرض جميع المشاريع' : 'View All Projects'}
-                  </Link>
-                  <button 
-                    onClick={() => setSelectedProject(null)}
-                    className="inline-flex items-center justify-center border border-border bg-card text-muted-foreground hover:bg-slate-800 h-9 px-4 rounded-md text-xs font-semibold cursor-pointer"
-                  >
-                    {language === 'ar' ? 'إغلاق' : 'Close'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })() /* Close dialog conditional */}
       </section>
 
 {/* Features Section */}
       <section id="features" className="py-24 bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
-            <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-sky-400 bg-sky-400/10 border border-sky-400/25 uppercase">
-              {language === 'ar' ? 'ميزاتنا' : 'Why Choose Us'}
-            </span>
+            <p className="text-xs font-bold text-sky-500 dark:text-sky-400 uppercase tracking-widest mb-2 select-none">
+              {language === 'ar' ? 'المزايا التنافسية' : 'COMPETITIVE ADVANTAGES'}
+            </p>
             <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight mt-4 leading-tight">
               {language === 'ar' ? 'لماذا تختار بناء وإدارة؟' : 'Why Choose Benaa & Edara?'}
             </h2>

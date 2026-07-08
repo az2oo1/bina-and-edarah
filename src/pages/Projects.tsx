@@ -73,21 +73,22 @@ export default function Projects() {
 
   return (
     <div className="bg-background min-h-screen pb-16">
-      <div className="bg-primary text-foreground py-16 relative overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop" 
-            alt="Cityscape Background"
-            className="w-full h-full object-cover opacity-10"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/90 to-transparent"></div>
+      {/* Premium Header Banner with Decorative Dots & Glows */}
+      <div className="border-b border-border py-16 relative overflow-hidden bg-background text-foreground">
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          {/* Soft blurred background color glows */}
+          <div className="absolute -top-10 left-1/4 w-[400px] h-[400px] bg-sky-400/10 dark:bg-sky-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-[350px] h-[350px] bg-indigo-400/8 dark:bg-indigo-500/8 rounded-full blur-[90px] pointer-events-none"></div>
+          
+          {/* Dots Grid Pattern (Subtle & Elegant 1px) */}
+          <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-3xl font-extrabold mb-4 tracking-tight">
+          <h1 className="text-3xl font-extrabold mb-4 tracking-tight text-foreground">
             {t('nav.projects')}
           </h1>
-          <p className="text-sm text-slate-200 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             {language === 'ar' 
               ? 'مجموعة من أبرز المشاريع التي قمنا بتطويرها وإدارتها لتشكل علامة فارقة في السوق العقاري.' 
               : 'A collection of the most prominent projects we have developed and managed to set a benchmark in the real estate market.'}

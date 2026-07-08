@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone, Compass, Ruler, DoorOpen, Armchair, Bath } from 'lucide-react';
+import { ImageViewer } from '../components/ImageViewer';
 
 
 export default function ProjectDetails() {
@@ -10,6 +11,7 @@ export default function ProjectDetails() {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [settings, setSettings] = useState<any>({});
 
   const Arrow = language === 'ar' ? ChevronLeft : ChevronRight;
@@ -91,21 +93,49 @@ export default function ProjectDetails() {
 
         {/* Gallery */}
         <div className="bg-card rounded-lg p-2 border border-border shadow-xs mb-8">
-          <div className="relative h-80 sm:h-[500px] rounded overflow-hidden group bg-slate-100">
+          <div 
+            onClick={() => setIsViewerOpen(true)}
+            className="relative h-80 sm:h-[500px] rounded overflow-hidden group bg-slate-100 cursor-pointer"
+          >
             <img 
               src={images[currentImageIndex]} 
               alt="Project" 
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.01]"
             />
+            {/* Hover expand overlay */}
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-250 flex items-center justify-center pointer-events-none">
+              <div className="bg-black/75 backdrop-blur-xs text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transform translate-y-2 group-hover:translate-y-0 transition-all duration-250 shadow-xl border border-white/10">
+                <Maximize2 className="w-4 h-4 text-primary" />
+                <span>{language === 'ar' ? 'عرض الصورة كاملة' : 'View Full Image'}</span>
+              </div>
+            </div>
+
             {images.length > 1 && (
               <>
-                <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-10 cursor-pointer border border-border">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    prevImage();
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  title={language === 'ar' ? 'السابق' : 'Previous'}
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-10 cursor-pointer border border-border">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nextImage();
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  title={language === 'ar' ? 'التالي' : 'Next'}
+                >
                   <ChevronRight className="w-4 h-4" />
                 </button>
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-xs">
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-xs"
+                >
                   {images.map((_, idx) => (
                     <button 
                       key={idx}
@@ -268,6 +298,13 @@ export default function ProjectDetails() {
 
         </div>
       </div>
+      <ImageViewer
+        isOpen={isViewerOpen}
+        images={images}
+        initialIndex={currentImageIndex}
+        onClose={() => setIsViewerOpen(false)}
+        language={language}
+      />
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { createRequire } from "module";
 const cjsRequire = typeof module !== "undefined" && typeof require !== "undefined"
   ? require
   : createRequire(typeof import.meta !== "undefined" && (import.meta as any).url ? (import.meta as any).url : `file://${typeof __filename !== "undefined" ? __filename : ""}`);
-const archiver = cjsRequire("archiver");
+import { ZipArchive } from "archiver";
 import multer from "multer";
 import AdmZip from "adm-zip";
 import crypto from "crypto";
@@ -89,29 +89,94 @@ async function sendCallbackEmailNotification() {
     const fromDomain = from.includes('@') ? from.split('@')[1].trim().replace('>', '') : 'benaa-edara.com';
 
     const logoHtml = settings?.logoUrl 
-      ? `<img src="${siteUrl}/settings-logo.png" style="max-height: 50px; display: inline-block; vertical-align: middle;" alt="Benaa & Edara Logo" />`
-      : `<span style="font-size: 20px; font-weight: bold; color: #2C4A5E; font-family: Arial, sans-serif; vertical-align: middle;">بناء وإدارة | Benaa & Edara</span>`;
+      ? `<img src="${siteUrl}/settings-logo.png" alt="بناء وإدارة العقارية | Benaa & Edara" style="max-height: 55px; width: auto; display: block; margin: 0 auto;" />`
+      : `<span style="font-size: 22px; font-weight: 800; color: #111827; font-family: 'Cairo', sans-serif; display: block; text-align: center; letter-spacing: -0.5px;">بناء وإدارة <span style="color: #D4AF37;">|</span> Benaa & Edara</span>`;
 
     const emailSubject = "طلب جديد على المنصة / New Request on Platform";
     const htmlContent = `
-      <div style="background-color: #f8fafc; padding: 40px 20px; font-family: Arial, sans-serif; min-height: 100%; direction: rtl;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border-top: 6px solid #2C4A5E; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
-          <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; text-align: center; background-color: #fafbfb;">
-            ${logoHtml}
-          </div>
-          <div style="padding: 35px 30px; text-align: right;">
-            <h2 style="color: #2C4A5E; font-size: 20px; font-weight: bold; margin: 0 0 20px 0; font-family: Arial, sans-serif; text-align: center;">طلب اتصال جديد / New Contact Request</h2>
-            <p style="font-size: 15px; line-height: 1.6; color: #1e293b; margin: 0 0 15px 0; font-weight: 500;">يوجد طلب اتصال أو رسالة تواصل جديدة على المنصة. يرجى تسجيل الدخول إلى لوحة التحكم لمعاينة التفاصيل ومعالجتها.</p>
-            <p style="font-size: 14px; line-height: 1.6; color: #475569; direction: ltr; text-align: left; margin: 0 0 30px 0; border-left: 3px solid #2C4A5E; padding-left: 15px;">There is a new contact or callback request on the platform. Please log in to the admin panel to view the details and handle it.</p>
-            <div style="text-align: center; margin: 30px 0 10px 0;">
-              <a href="${siteUrl}/admin" style="background-color: #2C4A5E; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(44, 74, 94, 0.25);">الانتقال إلى لوحة التحكم / Go to Admin Panel</a>
-            </div>
-          </div>
-          <div style="padding: 25px 20px; text-align: center; font-size: 12px; color: #94a3b8; background-color: #f8fafc; border-top: 1px solid #f1f5f9;">
-            <p style="margin: 0; font-weight: bold; color: #475569;">بناء وإدارة العقارية / Benaa & Edara Real Estate</p>
-          </div>
-        </div>
-      </div>
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Cairo', 'Inter', sans-serif; -webkit-font-smoothing: antialiased;">
+        
+        <!-- Full-Width Header -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 1px solid #E5E7EB; direction: rtl;">
+          <tr>
+            <td style="padding: 30px 20px; text-align: center;">
+              ${logoHtml}
+            </td>
+          </tr>
+        </table>
+
+        <!-- Main Content Area -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; direction: rtl;">
+          <tr>
+            <td align="center">
+              <!-- Content wrapper -->
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width: 800px; margin: 0 auto;">
+                <tr>
+                  <td style="padding: 50px 30px; text-align: right;">
+                    
+                    <!-- Title -->
+                    <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 700; color: #111827; font-family: 'Cairo', sans-serif;">
+                      طلب اتصال جديد / New Request
+                    </h1>
+
+                    <p style="margin: 0 0 15px 0; font-size: 17px; line-height: 1.7; color: #4B5563; font-family: 'Cairo', sans-serif;">
+                      يوجد طلب اتصال أو رسالة تواصل جديدة على المنصة. يرجى تسجيل الدخول إلى لوحة التحكم لمعاينة التفاصيل ومعالجتها.
+                    </p>
+
+                    <p style="margin: 0 0 40px 0; font-size: 15px; line-height: 1.6; color: #6B7280; font-family: 'Inter', sans-serif; text-align: left; direction: ltr; border-left: 3px solid #D4AF37; padding-left: 15px;">
+                      There is a new contact or callback request on the platform. Please log in to the admin panel to view the details and handle it.
+                    </p>
+
+                    <!-- Action Button -->
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 30px 0 40px 0;">
+                      <tr>
+                        <td align="center">
+                          <a href="${siteUrl}/admin" style="background-color: #1A202C; color: #FFFFFF; border: 1px solid #D4AF37; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; display: inline-block; font-size: 15px; font-family: 'Cairo', 'Inter', sans-serif; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                            الانتقال إلى لوحة التحكم / Go to Admin Panel
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Signature -->
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                      <tr>
+                        <td style="padding-top: 30px; border-top: 1px solid #F3F4F6;">
+                          <p style="margin: 0 0 6px 0; font-size: 15px; color: #6B7280; font-family: 'Cairo', sans-serif;">مع أطيب التحيات،</p>
+                          <p style="margin: 0; font-size: 14px; color: #D4AF37; font-weight: 600; font-family: 'Cairo', sans-serif;">بناء وإدارة العقارية</p>
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Compact Dark Footer -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #1A202C; direction: rtl;">
+          <tr>
+            <td style="padding: 25px 20px; text-align: center; color: #A0AEC0; font-family: 'Cairo', 'Inter', sans-serif;">
+              
+              <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #FFFFFF;">
+                بناء وإدارة العقارية / Benaa & Edara Real Estate
+              </h3>
+
+            </td>
+          </tr>
+        </table>
+
+      </body>
+      </html>
     `;
 
     const textContent = `
@@ -200,69 +265,134 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
       : `رد على طلبك / Reply to your request - بناء وإدارة`;
 
     const logoHtml = settings?.logoUrl 
-      ? `<img src="${siteUrl}/settings-logo.png" style="max-height: 50px; display: inline-block; vertical-align: middle;" alt="Benaa & Edara Logo" />`
-      : `<span style="font-size: 20px; font-weight: bold; color: #2C4A5E; font-family: Arial, sans-serif; vertical-align: middle;">بناء وإدارة | Benaa & Edara</span>`;
+      ? `<img src="${siteUrl}/settings-logo.png" alt="بناء وإدارة العقارية | Benaa & Edara" style="max-height: 55px; width: auto; display: block; margin: 0 auto;" />`
+      : `<span style="font-size: 22px; font-weight: 800; color: #111827; font-family: 'Cairo', sans-serif; display: block; text-align: center; letter-spacing: -0.5px;">بناء وإدارة <span style="color: #D4AF37;">|</span> Benaa & Edara</span>`;
 
     const htmlContent = `
-      <div style="background-color: #f8fafc; padding: 40px 20px; font-family: Arial, sans-serif; min-height: 100%; direction: rtl;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border-top: 6px solid #2C4A5E; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
-          <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; text-align: center; background-color: #fafbfb;">
-            ${logoHtml}
-          </div>
-          <div style="padding: 35px 30px; text-align: right;">
-            <h2 style="color: #0f172a; font-size: 20px; font-weight: bold; margin: 0 0 15px 0; font-family: Arial, sans-serif;">مرحباً ${callbackRequest.name}،</h2>
-            <p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 20px 0;">تم الرد على طلب الاتصال أو رسالة التواصل الخاصة بك من قبل فريق بناء وإدارة:</p>
-            
-            <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border-right: 4px solid #2C4A5E; margin: 20px 0; font-size: 15px; line-height: 1.6; color: #1e293b; text-align: right; white-space: pre-line;">
-              ${replyText}
-            </div>
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Cairo', 'Inter', sans-serif; -webkit-font-smoothing: antialiased;">
+        
+        <!-- Full-Width Header -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 1px solid #E5E7EB; direction: rtl;">
+          <tr>
+            <td style="padding: 30px 20px; text-align: center;">
+              ${logoHtml}
+            </td>
+          </tr>
+        </table>
 
-            ${callbackRequest.message ? `
-            <div style="margin: 25px 0; padding: 15px 20px; background-color: #fafafa; border-right: 3px solid #cbd5e1; border-radius: 4px; font-size: 13px; color: #64748b;">
-              <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 12px; color: #475569;">الرسالة الأصلية / Original Message:</p>
-              <p style="margin: 0; font-style: italic;">"${callbackRequest.message}"</p>
-            </div>
-            ` : ''}
+        <!-- Main Content Area -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; direction: rtl;">
+          <tr>
+            <td align="center">
+              <!-- Content wrapper -->
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width: 800px; margin: 0 auto;">
+                <tr>
+                  <td style="padding: 50px 30px; text-align: right;">
+                    
+                    <!-- Greeting -->
+                    <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 700; color: #111827; font-family: 'Cairo', sans-serif;">
+                      مرحباً ${callbackRequest.name}،
+                    </h1>
 
-            <div style="margin-top: 30px; font-size: 14px; color: #334155; line-height: 1.5; border-top: 1px solid #f1f5f9; padding-top: 20px;">
-              <p style="margin: 0 0 5px 0; color: #64748b;">مع أطيب التحيات، / Best regards,</p>
-              <p style="margin: 0; font-weight: bold; color: #2C4A5E; font-size: 16px;">${senderName || 'فريق بناء وإدارة / Benaa & Edara Team'}</p>
-              <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">شركة بناء وإدارة العقارية / Benaa & Edara Real Estate</p>
-            </div>
-          </div>
-          
-          <div style="padding: 20px 30px; background-color: #f0fdf4; border-top: 1px solid #dcfce7; text-align: center;">
-            <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 14px; color: #166534;">💬 يمكنك الرد مباشرة على هذا البريد الإلكتروني للتواصل معنا.</p>
-            <p style="margin: 0; font-size: 12px; color: #15803d; font-family: Arial, sans-serif;">You can reply directly to this email to get in touch with us.</p>
-          </div>
+                    <p style="margin: 0 0 30px 0; font-size: 17px; line-height: 1.7; color: #4B5563; font-family: 'Cairo', sans-serif;">
+                      شكراً لتواصلك مع شركة بناء وإدارة العقارية. تم الرد على استفسارك من قبل فريقنا:
+                    </p>
 
-          <div style="padding: 30px 20px; text-align: center; font-size: 12px; color: #94a3b8; background-color: #f8fafc; border-top: 1px solid #f1f5f9;">
-            <p style="margin: 0 0 12px 0; font-weight: bold; color: #475569;">شركة بناء وإدارة العقارية / Benaa & Edara Real Estate</p>
-            
-            <div style="margin-bottom: 12px;">
-              <span style="display: inline-block; margin: 0 8px;">
-                <strong style="color: #64748b;">البريد / Email:</strong> <a href="mailto:${replyTo}" style="color: #2C4A5E; text-decoration: none;">${replyTo}</a>
-              </span>
-              ${settings?.callingNumber ? `
-              <span style="display: inline-block; margin: 0 8px;">
-                <strong style="color: #64748b;">الهاتف / Phone:</strong> <a href="tel:${settings.callingNumber}" style="color: #2C4A5E; text-decoration: none;">${settings.callingNumber}</a>
-              </span>
+                    <!-- The Actual Reply -->
+                    <div style="margin: 0 0 40px 0; font-size: 20px; line-height: 1.8; color: #111827; font-weight: 600; font-family: 'Cairo', sans-serif; white-space: pre-line;">
+                      ${replyText}
+                    </div>
+
+                    <!-- Original Message Block -->
+                    ${callbackRequest.message ? `
+                    <div style="border-right: 4px solid #D4AF37; padding: 15px 25px; margin-bottom: 40px; background-color: #FAFAFA; font-family: 'Cairo', sans-serif;">
+                      <p style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">
+                        رسالتك الأصلية / Your Message
+                      </p>
+                      <p style="margin: 0; font-size: 16px; line-height: 1.7; color: #6B7280; font-style: italic;">
+                        "${callbackRequest.message}"
+                      </p>
+                    </div>
+                    ` : ''}
+
+                    <!-- Signature -->
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                      <tr>
+                        <td style="padding-top: 30px; border-top: 1px solid #F3F4F6;">
+                          <p style="margin: 0 0 6px 0; font-size: 15px; color: #6B7280; font-family: 'Cairo', sans-serif;">مع أطيب التحيات،</p>
+                          <p style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #111827; font-family: 'Cairo', sans-serif;">${senderName || 'المدير العام / Administrator'}</p>
+                          <p style="margin: 0; font-size: 14px; color: #D4AF37; font-weight: 600; font-family: 'Cairo', sans-serif;">شركة بناء وإدارة العقارية</p>
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Slim Reply Instruction Bar -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #F9FAFB; border-top: 1px solid #E5E7EB; direction: rtl;">
+          <tr>
+            <td style="padding: 12px 20px; text-align: center; font-family: 'Cairo', 'Inter', sans-serif;">
+              <p style="margin: 0; font-size: 13px; color: #4B5563;">
+                للرد علينا، يمكنك ببساطة الرد مباشرة على هذا البريد الإلكتروني.
+                <span style="font-size: 12px; color: #9CA3AF; font-family: 'Inter', sans-serif; display: inline-block; margin-right: 8px;">You can reply directly to this email to get in touch.</span>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Compact Dark Footer -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #1A202C; direction: rtl;">
+          <tr>
+            <td style="padding: 25px 20px; text-align: center; color: #A0AEC0; font-family: 'Cairo', 'Inter', sans-serif;">
+              
+              <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #FFFFFF;">
+                شركة بناء وإدارة العقارية
+              </h3>
+
+              <!-- Contact Links -->
+              <div style="margin-bottom: 12px; font-size: 13px;">
+                <a href="mailto:${replyTo}" style="color: #D4AF37; text-decoration: none; display: inline-block; margin: 0 10px;">
+                  ${replyTo}
+                </a>
+                ${settings?.callingNumber ? `
+                <span style="color: #4A5568;">|</span>
+                <a href="tel:${settings.callingNumber}" style="color: #D4AF37; text-decoration: none; display: inline-block; margin: 0 10px; font-family: 'Inter', sans-serif;">
+                  ${settings.callingNumber}
+                </a>
+                ` : ''}
+                ${settings?.whatsappNumber ? `
+                <span style="color: #4A5568;">|</span>
+                <a href="https://wa.me/${settings.whatsappNumber.replace(/\+/g, '').replace(/\s/g, '')}" style="color: #D4AF37; text-decoration: none; display: inline-block; margin: 0 10px; font-family: 'Inter', sans-serif;">
+                  واتساب / WhatsApp
+                </a>
+                ` : ''}
+              </div>
+
+              <!-- Location -->
+              ${settings?.addressAr ? `
+              <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #718096;">
+                ${settings.addressAr}
+              </p>
               ` : ''}
-              ${settings?.whatsappNumber ? `
-              <span style="display: inline-block; margin: 0 8px;">
-                <strong style="color: #64748b;">واتساب / WhatsApp:</strong> <a href="https://wa.me/${settings.whatsappNumber.replace(/\+/g, '').replace(/\s/g, '')}" style="color: #2C4A5E; text-decoration: none;">+${settings.whatsappNumber}</a>
-              </span>
-              ` : ''}
-            </div>
-            
-            ${settings?.addressAr ? `
-            <p style="margin: 0; font-size: 11px; color: #64748b;">
-              <strong>الموقع / Location:</strong> ${settings.addressAr}
-            </p>
-            ` : ''}
-          </div>
-        </div>
-      </div>
+
+            </td>
+          </tr>
+        </table>
+
+      </body>
+      </html>
     `;
 
     const plainReplyText = replyText.replace(/<[^>]*>/g, '').trim();
@@ -316,6 +446,153 @@ ${settings?.addressAr ? `الموقع / Location: ${settings.addressAr}` : ''}
     logger.info(`[REPLY EMAIL SUCCESS] Reply email sent to customer: ${callbackRequest.email}`);
   } catch (error) {
     logger.error(`[REPLY EMAIL ERROR] Failed to send reply email to customer`, error);
+  }
+}
+
+function cleanEmailReplyBody(body: string): string {
+  if (!body) return '';
+  
+  const lines = body.split(/\r?\n/);
+  const cleanLines: string[] = [];
+  
+  const markers = [
+    /^\s*On\s+.*,\s+.*,\s+.*wrote:\s*$/i,
+    /^\s*On\s+.*wrote:\s*$/i,
+    /^\s*في\s+.*كتب\s+.*:\s*$/i,
+    /^\s*-+\s*Original\s+Message\s*-+\s*$/i,
+    /^\s*-+\s*الرسالة\s+الأصلية\s*-+\s*$/i,
+    /^\s*From:\s+/i,
+    /^\s*من:\s+/i,
+    /^\s*Sent:\s+/i,
+    /^\s*________________________________\s*$/
+  ];
+  
+  for (const line of lines) {
+    let isMarker = false;
+    for (const marker of markers) {
+      if (marker.test(line)) {
+        isMarker = true;
+        break;
+      }
+    }
+    if (isMarker) {
+      break;
+    }
+    cleanLines.push(line);
+  }
+  
+  let result = cleanLines.join('\n').trim();
+  result = result.replace(/\n\s*--\s*\n[\s\S]*$/, '');
+  return result;
+}
+
+let isSyncing = false;
+
+async function syncInboundEmails() {
+  if (isSyncing) return;
+  isSyncing = true;
+  
+  try {
+    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const host = settings?.imapHost;
+    const port = settings?.imapPort || 993;
+    const user = settings?.smtpUser;
+    const pass = settings?.smtpPass;
+    
+    if (!host || !user || !pass) {
+      return;
+    }
+    
+    const { ImapFlow } = require('imapflow');
+    const { simpleParser } = require('mailparser');
+    
+    const client = new ImapFlow({
+      host,
+      port,
+      secure: true,
+      auth: { user, pass },
+      logger: false,
+      clientInfo: {
+        name: 'Benaa & Edara Inbound Sync'
+      }
+    });
+    
+    await client.connect();
+    const lock = await client.getMailboxLock('INBOX');
+    
+    try {
+      const messages = await client.search({ seen: false });
+      
+      for (const uid of messages) {
+        try {
+          const emailData = await client.fetchOne(uid, { source: true });
+          if (!emailData || !emailData.source) continue;
+          
+          const parsed = await simpleParser(emailData.source);
+          const referencesList: string[] = [];
+          
+          if (parsed.inReplyTo) {
+            referencesList.push(parsed.inReplyTo);
+          }
+          if (parsed.references) {
+            if (Array.isArray(parsed.references)) {
+              referencesList.push(...parsed.references);
+            } else {
+              referencesList.push(parsed.references);
+            }
+          }
+          
+          let matchedNote = null;
+          for (const ref of referencesList) {
+            const match = ref.match(/<note-([^@]+)@/);
+            if (match) {
+              const noteId = match[1];
+              matchedNote = await prisma.callbackNote.findUnique({
+                where: { id: noteId },
+                include: { callbackRequest: true }
+              });
+              if (matchedNote) {
+                break;
+              }
+            }
+          }
+          
+          if (matchedNote) {
+            const callbackRequest = matchedNote.callbackRequest;
+            const rawBody = parsed.text || '';
+            const cleanedText = cleanEmailReplyBody(rawBody);
+            
+            if (cleanedText) {
+              await prisma.callbackNote.create({
+                data: {
+                  callbackRequestId: callbackRequest.id,
+                  text: cleanedText,
+                  authorName: callbackRequest.name
+                }
+              });
+              
+              await prisma.callbackRequest.update({
+                where: { id: callbackRequest.id },
+                data: { status: 'STILL_GOING' }
+              });
+              
+              logger.info(`[IMAP SYNC] Synchronized inbound reply email from customer for callback request ID ${callbackRequest.id}`);
+            }
+          }
+          
+          await client.messageFlagsAdd(uid, ['\\Seen']);
+        } catch (msgErr) {
+          logger.error(`[IMAP SYNC] Failed to process message UID ${uid}:`, msgErr);
+        }
+      }
+    } finally {
+      lock.release();
+      await client.logout();
+    }
+  } catch (error) {
+    logger.error("[IMAP SYNC ERROR] Failed during IMAP connection or polling:", error);
+  } finally {
+    isSyncing = false;
   }
 }
 
@@ -1590,7 +1867,11 @@ async function startServer() {
       `ALTER TABLE "Property" ADD COLUMN "allowedPaymentPlans" text DEFAULT '["1","2","4"]'`,
       `ALTER TABLE Property ADD COLUMN allowedPaymentPlans text DEFAULT '["1","2","4"]'`,
       `ALTER TABLE "Property" ADD COLUMN "videoUrl" text`,
-      `ALTER TABLE Property ADD COLUMN videoUrl text`
+      `ALTER TABLE Property ADD COLUMN videoUrl text`,
+      `ALTER TABLE "Settings" ADD COLUMN "imapHost" text`,
+      `ALTER TABLE Settings ADD COLUMN imapHost text`,
+      `ALTER TABLE "Settings" ADD COLUMN "imapPort" integer`,
+      `ALTER TABLE Settings ADD COLUMN imapPort integer`
     ];
     for (const cmd of alterCommands) {
       try {
@@ -1717,7 +1998,7 @@ async function startServer() {
       const { 
         whatsappNumber, callingNumber, whatsappMessage, otpWebhookUrl, otpMessageTemplate, otpWebhookPayload, 
         homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, 
-        notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, analyticsScript, analyticsDashboardUrl,
+        notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, imapHost, imapPort, analyticsScript, analyticsDashboardUrl,
         addressAr, addressEn, addressMapLink,
         techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode
       } = req.body;
@@ -1768,6 +2049,10 @@ async function startServer() {
       if (smtpUser !== undefined) updateData.smtpUser = smtpUser;
       if (smtpPass !== undefined) updateData.smtpPass = smtpPass;
       if (smtpFrom !== undefined) updateData.smtpFrom = smtpFrom;
+
+      // Custom IMAP fields
+      if (imapHost !== undefined) updateData.imapHost = imapHost;
+      if (imapPort !== undefined) updateData.imapPort = imapPort ? Number(imapPort) : null;
 
       // Custom Analytics fields
       if (analyticsScript !== undefined) updateData.analyticsScript = analyticsScript;
@@ -2046,7 +2331,7 @@ async function startServer() {
   //   - manifest.json   (metadata)
   app.get("/api/admin/backup", requirePermission('settings'), async (req, res) => {
     try {
-      const archive = archiver('zip', { zlib: { level: 6 } });
+      const archive = new ZipArchive({ zlib: { level: 6 } });
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const filename = `benaa-edara-backup-${timestamp}.zip`;
 
@@ -2786,6 +3071,18 @@ async function startServer() {
     console.log(`[ADMIN]   Username : admin`);
     console.log(`[ADMIN]   Password : admin`);
     console.log(`--------------------------------------------------`);
+
+    // Run immediate sync on boot
+    syncInboundEmails().catch(err => {
+      logger.error("[IMAP SYNC BOOT ERROR]", err);
+    });
+
+    // Start IMAP Polling every 2 minutes (120000ms)
+    setInterval(() => {
+      syncInboundEmails().catch(err => {
+        logger.error("[IMAP SYNC INTERVAL ERROR]", err);
+      });
+    }, 120000);
   });
 }
 

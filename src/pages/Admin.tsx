@@ -174,6 +174,10 @@ export default function Admin() {
   const [smtpPass, setSmtpPass] = useState('');
   const [smtpFrom, setSmtpFrom] = useState('');
 
+  // IMAP Settings State
+  const [imapHost, setImapHost] = useState('');
+  const [imapPort, setImapPort] = useState('');
+
   // Analytics Settings State
   const [analyticsScript, setAnalyticsScript] = useState('');
   const [analyticsDashboardUrl, setAnalyticsDashboardUrl] = useState('');
@@ -289,6 +293,10 @@ export default function Admin() {
       if (data.smtpUser !== undefined) setSmtpUser(data.smtpUser || '');
       if (data.smtpPass !== undefined) setSmtpPass(data.smtpPass || '');
       if (data.smtpFrom !== undefined) setSmtpFrom(data.smtpFrom || '');
+      
+      // Load IMAP Settings
+      if (data.imapHost !== undefined) setImapHost(data.imapHost || '');
+      if (data.imapPort !== undefined) setImapPort(data.imapPort?.toString() || '');
       
       // Load Analytics Settings
       if (data.analyticsScript !== undefined) setAnalyticsScript(data.analyticsScript || '');
@@ -679,6 +687,8 @@ export default function Admin() {
         smtpUser,
         smtpPass,
         smtpFrom,
+        imapHost,
+        imapPort: imapPort ? Number(imapPort) : null,
         analyticsScript,
         analyticsDashboardUrl,
         addressAr,
@@ -1980,6 +1990,40 @@ export default function Admin() {
                           placeholder="no-reply@yourdomain.com"
                           dir="ltr"
                         />
+                      </div>
+
+                      <div className="border-t border-border/60 pt-6 mt-6 space-y-4">
+                        <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم البريد الوارد IMAP (لاستلام الردود)' : 'IMAP Inbound Mail Settings (For replies)'}</h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'خادم IMAP (Host)' : 'IMAP Host'}</label>
+                            <input
+                              type="text"
+                              value={imapHost}
+                              onChange={(e) => setImapHost(e.target.value)}
+                              className="cn-input font-mono text-xs bg-background"
+                              placeholder="imap.gmail.com"
+                              dir="ltr"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'منفذ IMAP (Port)' : 'IMAP Port'}</label>
+                            <input
+                              type="number"
+                              value={imapPort}
+                              onChange={(e) => setImapPort(e.target.value)}
+                              className="cn-input font-mono text-xs bg-background"
+                              placeholder="993"
+                              dir="ltr"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {language === 'ar' 
+                            ? 'سيتم استخدام اسم المستخدم وكلمة المرور الخاصة بخادم SMTP تلقائياً لتسجيل الدخول إلى خادم IMAP.' 
+                            : 'The SMTP Username and Password will be automatically used to authenticate with the IMAP server.'}
+                        </p>
                       </div>
                     </div>
                   </div>

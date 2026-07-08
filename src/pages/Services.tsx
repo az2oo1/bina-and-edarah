@@ -126,16 +126,16 @@ export default function Services() {
 
         {/* Page Header */}
         <div className="text-center mb-16">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 border border-primary/20 text-primary mb-4 uppercase tracking-wider">
-            💼 {language === 'ar' ? 'حلولنا العقارية' : 'Our Real Estate Solutions'}
-          </span>
+          <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3 select-none">
+            {language === 'ar' ? 'خدماتنا العقارية' : 'OUR SERVICES'}
+          </p>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground mb-4">
-            {language === 'ar' ? 'نقدم حلولاً عقارية متكاملة وموثوقة' : 'Providing Integrated & Reliable Solutions'}
+            {language === 'ar' ? 'حلول عقارية متكاملة وموثوقة' : 'Comprehensive & Reliable Real Estate Services'}
           </h1>
           <p className="max-w-2xl mx-auto text-muted-foreground text-sm sm:text-base leading-relaxed">
             {language === 'ar' 
-              ? 'نهدف في شركة بناء وإدارة إلى تمكين عملائنا من تحقيق أهدافهم السكنية والاستثمارية بأعلى معايير الاحترافية والكفاءة.' 
-              : 'At Benaa & Edara, we aim to enable our clients to achieve their residential and investment goals with the highest standards of professionalism and efficiency.'}
+              ? 'نهدف في شركة بناء وإدارة إلى مساعدة الملاك والمستأجرين في تحقيق أهدافهم العقارية والاستثمارية بأعلى معايير المهنية.' 
+              : 'At Benaa & Edara, we aim to assist owners and tenants in achieving their real estate and investment goals with the highest professional standards.'}
           </p>
         </div>
 

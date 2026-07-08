@@ -48,17 +48,23 @@ export default function Contact() {
 
   return (
     <div className="bg-background min-h-screen py-16 px-4 sm:px-6 lg:px-8 text-foreground relative overflow-hidden font-sans">
-      {/* Decorative Blur Backgrounds */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
+      {/* Premium Theme-Adaptive Background with Decorative Dots & Glows */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Soft blurred background color glows */}
+        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-sky-400/10 dark:bg-sky-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-indigo-400/8 dark:bg-indigo-500/8 rounded-full blur-[90px] pointer-events-none"></div>
+        
+        {/* Dots Grid Pattern (Subtle & Elegant 1px) */}
+        <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+      </div>
 
       <div className="max-w-6xl mx-auto relative z-10">
         
         {/* Page Header */}
         <div className="text-center mb-16">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/10 border border-amber-400/20 text-amber-400 mb-4 uppercase tracking-wider animate-pulse">
-            📞 {language === 'ar' ? 'تواصل معنا' : 'Contact Us'}
-          </span>
+          <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-3 select-none">
+            {language === 'ar' ? 'تواصل معنا' : 'CONTACT US'}
+          </p>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground mb-4">
             {language === 'ar' ? 'يسعدنا تواصلك الدائم معنا' : 'We are always glad to connect'}
           </h1>

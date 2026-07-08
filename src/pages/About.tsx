@@ -23,24 +23,23 @@ export default function About() {
 
         {/* Header Section */}
         <div className="text-center mb-16 space-y-4">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 border border-primary/20 text-primary uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" />
-            {language === 'ar' ? 'من نحن' : 'Who We Are'}
-          </span>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            {language === 'ar' ? 'نبتكر آفاقاً جديدة للمعيشة والاستثمار' : 'Creating New Horizons for Living & Investing'}
+          <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3 select-none">
+            {language === 'ar' ? 'عن الشركة' : 'ABOUT US'}
+          </p>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
+            {language === 'ar' ? 'التميز في التطوير العقاري وإدارة الأملاك' : 'Excellence in Real Estate Development & Property Management'}
           </h1>
           <p className="max-w-3xl mx-auto text-muted-foreground text-sm sm:text-base leading-relaxed">
             {language === 'ar' 
-              ? 'في شركة بناء وإدارة العقارية، نؤمن بأن العقار ليس مجرد بناء، بل هو مساحة لصناعة المستقبل وفرصة استثمارية واعدة. نحن ندمج التخطيط الاستراتيجي مع الجودة العالية لنلبي كافة متطلبات عملائنا.'
-              : 'At Benaa & Edara Real Estate, we believe that property is not just a structure, but a space to create the future and a promising investment opportunity. We merge strategic planning with high quality to meet all our clients\' needs.'}
+              ? 'نعمل في شركة بناء وإدارة العقارية على تقديم خدمات عقارية متكاملة تشمل التطوير وإدارة الأملاك والاستشارات العقارية وفق أعلى معايير الجودة والمهنية لتلبية تطلعات عملائنا في المملكة.'
+              : 'At Benaa & Edara Real Estate, we provide integrated property development, management, and consulting services according to the highest quality and professional standards to meet our clients\' goals in the Kingdom.'}
           </p>
         </div>
 
         {/* Detailed Brand Story */}
         <div className="bg-card/40 border border-border/60 rounded-2xl p-8 sm:p-10 mb-16 backdrop-blur-md">
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-6">
-            {language === 'ar' ? 'بناء وإدارة العقارية: قصة تميز' : 'Benaa & Edara Real Estate: A Story of Excellence'}
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6">
+            {language === 'ar' ? 'عن شركة بناء وإدارة العقارية' : 'About Benaa & Edara Real Estate'}
           </h2>
           <div className="space-y-4 text-xs sm:text-sm text-muted-foreground leading-relaxed text-justify">
             <p>
@@ -65,30 +64,30 @@ export default function About() {
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white mb-2 group-hover:text-sky-400 transition-colors">
+              <h3 className="text-sm font-bold text-foreground mb-2 group-hover:text-sky-400 transition-colors">
                 {language === 'ar' ? 'رؤيتنا' : 'Our Vision'}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {language === 'ar' 
-                  ? 'أن نكون الخيار الأول والملهم في التطوير والإدارة العقارية المبتكرة في المملكة.' 
-                  : 'To be the premier and inspiring choice for innovative real estate development and management in the Kingdom.'}
+                  ? 'أن نكون الشريك العقاري المفضل في خدمات التطوير وإدارة الأملاك على مستوى المملكة.' 
+                  : 'To be the preferred real estate partner for development and property management services in the Kingdom.'}
               </p>
             </div>
           </div>
 
           {/* Mission Card */}
           <div className="flex flex-col gap-4 p-6 rounded-xl bg-card border border-border hover:border-amber-500/20 backdrop-blur-lg hover:bg-card/[0.04] transition-all duration-300 group">
-            <div className="w-11 h-11 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-md">
+            <div className="w-11 h-11 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-md">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white mb-2 group-hover:text-amber-400 transition-colors">
+              <h3 className="text-sm font-bold text-foreground mb-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                 {language === 'ar' ? 'رسالتنا' : 'Our Mission'}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {language === 'ar' 
-                  ? 'تقديم حلول عقارية متكاملة ومستدامة تلبي تطلعات عملائنا وترتقي بجودة الحياة اليومية.' 
-                  : 'Providing integrated, sustainable real estate solutions that meet client expectations and enhance quality of life.'}
+                  ? 'تقديم خدمات عقارية موثوقة تلبي احتياجات عملائنا وتحافظ على القيمة الاستثمارية لأملاكهم.' 
+                  : 'Providing reliable real estate services that meet our clients\' needs and preserve the investment value of their assets.'}
               </p>
             </div>
           </div>
@@ -99,13 +98,13 @@ export default function About() {
               <KeySquare className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white mb-2 group-hover:text-sky-400 transition-colors">
+              <h3 className="text-sm font-bold text-foreground mb-2 group-hover:text-sky-400 transition-colors">
                 {language === 'ar' ? 'قيمنا' : 'Our Values'}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {language === 'ar' 
-                  ? 'الالترام التام بالشفافية والابتكار المستمر وبناء شراكات حقيقية طويلة الأمد.' 
-                  : 'Total commitment to transparency, continuous innovation, and building long-term partnerships.'}
+                  ? 'الالتزام التام بالمهنية والشفافية وبناء علاقات طويلة الأمد مع الملاك والمستأجرين.' 
+                  : 'Total commitment to professionalism, transparency, and building long-term relations with owners and tenants.'}
               </p>
             </div>
           </div>
@@ -114,7 +113,7 @@ export default function About() {
 
         {/* Call to action */}
         <div className="bg-muted/20 border border-border rounded-2xl p-8 text-center max-w-3xl mx-auto">
-          <h3 className="text-lg font-bold text-white mb-2">
+          <h3 className="text-lg font-bold text-foreground mb-2">
             {language === 'ar' ? 'هل لديك أي استفسار عقاري؟' : 'Have any real estate inquiry?'}
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed mb-6">

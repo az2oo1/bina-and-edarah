@@ -107,6 +107,9 @@ model Settings {
   smtpUser           String?
   smtpPass           String?
   smtpFrom           String?
+  // Custom IMAP settings
+  imapHost           String?
+  imapPort           Int?
   // Custom Open-Source Analytics
   analyticsScript    String?
   analyticsDashboardUrl String?

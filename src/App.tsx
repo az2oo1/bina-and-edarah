@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router';
-import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X } from 'lucide-react';
+import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X, Sun, Moon } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { DialogProvider } from './context/DialogContext';
 import { Logo } from './components/Logo';
 import { SocialIconsRow, SocialLinks } from './components/SocialIcons';
@@ -68,6 +69,7 @@ function useSocialSettings(): SocialLinks {
 
 function Navbar() {
   const { language, toggleLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [user, setUser] = useState<{username: string, role: string} | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -98,14 +100,18 @@ function Navbar() {
   };
 
   return (
-    <nav className="bg-card/95 border-b border-border shadow-md sticky top-0 z-50 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="bg-card/95 border-b border-border shadow-md sticky top-0 z-50 backdrop-blur-md w-full">
+      <div className="w-full px-4 sm:px-8 lg:px-12">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center gap-2 mr-6 sm:rtl:ml-6 sm:rtl:mr-0 group">
-              <div className="bg-white rounded-lg p-1 shadow-md flex-shrink-0">
-                <Logo className="h-8 w-8" logoUrl={logoUrl} />
-              </div>
+            <Link to="/" className="flex-shrink-0 flex items-center gap-2 mr-12 lg:mr-20 sm:rtl:ml-12 sm:rtl:mr-0 lg:rtl:ml-20 group">
+              {theme === 'dark' ? (
+                <div className="bg-white rounded-lg p-1 shadow-md flex-shrink-0">
+                  <Logo className="h-8 w-8 text-slate-950" logoUrl={logoUrl} />
+                </div>
+              ) : (
+                <Logo className="h-9 w-9 flex-shrink-0 text-slate-800" logoUrl={logoUrl} />
+              )}
               <span className="font-bold text-base text-foreground tracking-wide hidden md:block">{t('hero.title')}</span>
             </Link>
             <div className="hidden sm:flex items-center gap-6 lg:gap-10">
@@ -116,7 +122,7 @@ function Navbar() {
                 <div className="absolute top-[80%] left-1/2 -translate-x-1/2 pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="bg-card border border-border rounded-lg shadow-lg py-2 text-right rtl:text-right ltr:text-left backdrop-blur-md">
                     <Link to="/services" className="block px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
-                      {language === 'ar' ? 'حلول عقارية' : 'Real Estate Solutions'}
+                      {language === 'ar' ? 'حلول عقارية' : 'Solutions'}
                     </Link>
                     <Link to="/about" className="block px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
                       {language === 'ar' ? 'من نحن' : 'About Us'}
@@ -124,9 +130,6 @@ function Navbar() {
                   </div>
                 </div>
               </div>
-              <Link to="/services" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                {language === 'ar' ? 'حلول عقارية' : 'Real Estate Solutions'}
-              </Link>
               <Link to="/projects" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.projects')}
               </Link>
@@ -146,6 +149,13 @@ function Navbar() {
             >
               <Globe className="h-3.5 w-3.5" />
               <span>{language === 'ar' ? 'English' : 'العربية'}</span>
+            </button>
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-full text-muted-foreground border border-border hover:text-foreground hover:border-foreground transition-all flex items-center justify-center cursor-pointer"
+              title={theme === 'dark' ? (language === 'ar' ? 'الوضع المضيء' : 'Light Mode') : (language === 'ar' ? 'الوضع الداكن' : 'Dark Mode')}
+            >
+              {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
             {user ? (
               <div className="flex items-center gap-2">
@@ -202,7 +212,7 @@ function Navbar() {
             onClick={() => setIsOpen(false)}
             className="block text-muted-foreground hover:text-foreground text-xs font-semibold py-1 border-b border-border/5"
           >
-            {language === 'ar' ? 'حلول عقارية' : 'Real Estate Solutions'}
+            {language === 'ar' ? 'حلول عقارية' : 'Solutions'}
           </Link>
           <Link 
             to="/about" 
@@ -244,6 +254,16 @@ function Navbar() {
               <Globe className="h-3.5 w-3.5" />
               <span>{language === 'ar' ? 'English' : 'العربية'}</span>
             </button>
+            <button
+              onClick={() => {
+                toggleTheme();
+                setIsOpen(false);
+              }}
+              className="w-full px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground border border-border hover:text-foreground hover:border-foreground transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+              <span>{theme === 'dark' ? (language === 'ar' ? 'الوضع المضيء' : 'Light Mode') : (language === 'ar' ? 'الوضع الداكن' : 'Dark Mode')}</span>
+            </button>
             {user ? (
               <div className="flex flex-col gap-2">
                 <Link 
@@ -281,6 +301,7 @@ function Navbar() {
 
 function Footer() {
   const { language } = useLanguage();
+  const { theme } = useTheme();
   const logoUrl = useLogoUrl();
   const socialLinks = useSocialSettings();
   return (
@@ -289,10 +310,14 @@ function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           {/* Logo & Name */}
           <div className="flex items-center gap-2">
-            <div className="bg-white rounded-lg p-1 shadow-md">
-              <Logo className="h-6 w-6" logoUrl={logoUrl} />
-            </div>
-            <span className="font-bold text-foreground text-xs select-none">{language === 'ar' ? 'بناء وإدارة' : 'Benaa & Edara'}</span>
+            {theme === 'dark' ? (
+              <div className="bg-white rounded-lg p-1 shadow-md">
+                <Logo className="h-6 w-6 text-slate-950" logoUrl={logoUrl} />
+              </div>
+            ) : (
+              <Logo className="h-7 w-7 text-slate-800" logoUrl={logoUrl} />
+            )}
+            <span className="font-bold text-foreground text-xs select-none">{language === 'ar' ? 'شركة بناء وإدارة العقارية' : 'Benaa & Edara'}</span>
           </div>
 
           {/* Copyright in Center */}
@@ -354,8 +379,9 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 
 function AppContent() {
   const { language } = useLanguage();
+  const { theme } = useTheme();
   return (
-    <div className="dark min-h-screen bg-background font-sans text-foreground flex flex-col" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className={`${theme === 'dark' ? 'dark' : ''} min-h-screen bg-background font-sans text-foreground flex flex-col`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <Navbar />
       <main className="flex-grow">
         <Routes>
@@ -387,14 +413,16 @@ function AppContent() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <DialogProvider>
-        <BrowserRouter>
-          <PageTracker />
-          <AppContent />
-        </BrowserRouter>
-      </DialogProvider>
-    </LanguageProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <DialogProvider>
+          <BrowserRouter>
+            <PageTracker />
+            <AppContent />
+          </BrowserRouter>
+        </DialogProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }
 
