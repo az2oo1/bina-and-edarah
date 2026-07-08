@@ -83,15 +83,30 @@ async function sendCallbackEmailNotification() {
     const user = settings?.smtpUser || process.env.SMTP_USER;
     const pass = settings?.smtpPass || process.env.SMTP_PASS;
     const from = settings?.smtpFrom || process.env.SMTP_FROM || "no-reply@benaa-edara.com";
+    const siteUrl = process.env.APP_URL || 'http://localhost:3000';
+
+    const logoHtml = settings?.logoUrl 
+      ? `<img src="${siteUrl}/settings-logo.png" style="max-height: 50px; display: inline-block; vertical-align: middle;" alt="Benaa & Edara Logo" />`
+      : `<span style="font-size: 20px; font-weight: bold; color: #2C4A5E; font-family: Arial, sans-serif; vertical-align: middle;">بناء وإدارة | Benaa & Edara</span>`;
 
     const emailSubject = "طلب جديد على المنصة / New Request on Platform";
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; margin: auto;">
-        <h2 style="color: #3b82f6; margin-bottom: 20px;">طلب اتصال جديد / New Contact Request</h2>
-        <p style="font-size: 14px; line-height: 1.6; color: #334155;">يوجد طلب اتصال أو رسالة تواصل جديدة على المنصة. يرجى تسجيل الدخول إلى لوحة التحكم لمعاينة التفاصيل ومعالجتها.</p>
-        <p style="font-size: 14px; line-height: 1.6; color: #334155; direction: ltr; text-align: left; margin-top: 15px;">There is a new contact or callback request on the platform. Please log in to the admin panel to view the details and handle it.</p>
-        <div style="margin-top: 30px; text-align: center;">
-          <a href="${process.env.APP_URL || 'http://localhost:3000'}/admin" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">الانتقال إلى لوحة التحكم / Go to Admin Panel</a>
+      <div style="background-color: #f8fafc; padding: 40px 20px; font-family: Arial, sans-serif; min-height: 100%; direction: rtl;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border-top: 6px solid #2C4A5E; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
+          <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; text-align: center; background-color: #fafbfb;">
+            ${logoHtml}
+          </div>
+          <div style="padding: 35px 30px; text-align: right;">
+            <h2 style="color: #2C4A5E; font-size: 20px; font-weight: bold; margin: 0 0 20px 0; font-family: Arial, sans-serif; text-align: center;">طلب اتصال جديد / New Contact Request</h2>
+            <p style="font-size: 15px; line-height: 1.6; color: #1e293b; margin: 0 0 15px 0; font-weight: 500;">يوجد طلب اتصال أو رسالة تواصل جديدة على المنصة. يرجى تسجيل الدخول إلى لوحة التحكم لمعاينة التفاصيل ومعالجتها.</p>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569; direction: ltr; text-align: left; margin: 0 0 30px 0; border-left: 3px solid #2C4A5E; padding-left: 15px;">There is a new contact or callback request on the platform. Please log in to the admin panel to view the details and handle it.</p>
+            <div style="text-align: center; margin: 30px 0 10px 0;">
+              <a href="${siteUrl}/admin" style="background-color: #2C4A5E; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(44, 74, 94, 0.25);">الانتقال إلى لوحة التحكم / Go to Admin Panel</a>
+            </div>
+          </div>
+          <div style="padding: 25px 20px; text-align: center; font-size: 12px; color: #94a3b8; background-color: #f8fafc; border-top: 1px solid #f1f5f9;">
+            <p style="margin: 0; font-weight: bold; color: #475569;">بناء وإدارة العقارية / Benaa & Edara Real Estate</p>
+          </div>
         </div>
       </div>
     `;
@@ -127,7 +142,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   AGENT: ['properties', 'projects', 'callbacks']
 };
 
-async function sendReplyEmailNotification(callbackRequest: any, replyText: string) {
+async function sendReplyEmailNotification(callbackRequest: any, replyText: string, senderName?: string) {
   try {
     if (!callbackRequest.email) {
       logger.info(`[REPLY EMAIL skipped] No customer email provided for callback request ID ${callbackRequest.id}`);
@@ -140,17 +155,73 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
     const user = settings?.smtpUser || process.env.SMTP_USER;
     const pass = settings?.smtpPass || process.env.SMTP_PASS;
     const from = settings?.smtpFrom || process.env.SMTP_FROM || "no-reply@benaa-edara.com";
+    const replyTo = settings?.email || from;
+    const siteUrl = process.env.APP_URL || 'http://localhost:3000';
+
+    const logoHtml = settings?.logoUrl 
+      ? `<img src="${siteUrl}/settings-logo.png" style="max-height: 50px; display: inline-block; vertical-align: middle;" alt="Benaa & Edara Logo" />`
+      : `<span style="font-size: 20px; font-weight: bold; color: #2C4A5E; font-family: Arial, sans-serif; vertical-align: middle;">بناء وإدارة | Benaa & Edara</span>`;
 
     const emailSubject = "رد على طلبك / Reply to your request - بناء وإدارة";
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; margin: auto;">
-        <h2 style="color: #3b82f6; margin-bottom: 20px;">مرحباً ${callbackRequest.name}،</h2>
-        <p style="font-size: 14px; line-height: 1.6; color: #334155;">تم الرد على طلب الاتصال أو رسالة التواصل الخاصة بك من قبل فريق بناء وإدارة:</p>
-        <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border-right: 4px solid #3b82f6; margin: 20px 0; font-size: 14px; line-height: 1.6; color: #1e293b;">
-          ${replyText}
+      <div style="background-color: #f8fafc; padding: 40px 20px; font-family: Arial, sans-serif; min-height: 100%; direction: rtl;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border-top: 6px solid #2C4A5E; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
+          <div style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9; text-align: center; background-color: #fafbfb;">
+            ${logoHtml}
+          </div>
+          <div style="padding: 35px 30px; text-align: right;">
+            <h2 style="color: #0f172a; font-size: 20px; font-weight: bold; margin: 0 0 15px 0; font-family: Arial, sans-serif;">مرحباً ${callbackRequest.name}،</h2>
+            <p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 20px 0;">تم الرد على طلب الاتصال أو رسالة التواصل الخاصة بك من قبل فريق بناء وإدارة:</p>
+            
+            <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border-right: 4px solid #2C4A5E; margin: 20px 0; font-size: 15px; line-height: 1.6; color: #1e293b; text-align: right; white-space: pre-line;">
+              ${replyText}
+            </div>
+
+            ${callbackRequest.message ? `
+            <div style="margin: 25px 0; padding: 15px 20px; background-color: #fafafa; border-right: 3px solid #cbd5e1; border-radius: 4px; font-size: 13px; color: #64748b;">
+              <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 12px; color: #475569;">الرسالة الأصلية / Original Message:</p>
+              <p style="margin: 0; font-style: italic;">"${callbackRequest.message}"</p>
+            </div>
+            ` : ''}
+
+            <div style="margin-top: 30px; font-size: 14px; color: #334155; line-height: 1.5; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+              <p style="margin: 0 0 5px 0; color: #64748b;">مع أطيب التحيات، / Best regards,</p>
+              <p style="margin: 0; font-weight: bold; color: #2C4A5E; font-size: 16px;">${senderName || 'فريق بناء وإدارة / Benaa & Edara Team'}</p>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">شركة بناء وإدارة العقارية / Benaa & Edara Real Estate</p>
+            </div>
+          </div>
+          
+          <div style="padding: 20px 30px; background-color: #f0fdf4; border-top: 1px solid #dcfce7; text-align: center;">
+            <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 14px; color: #166534;">💬 يمكنك الرد مباشرة على هذا البريد الإلكتروني للتواصل معنا.</p>
+            <p style="margin: 0; font-size: 12px; color: #15803d; font-family: Arial, sans-serif;">You can reply directly to this email to get in touch with us.</p>
+          </div>
+
+          <div style="padding: 30px 20px; text-align: center; font-size: 12px; color: #94a3b8; background-color: #f8fafc; border-top: 1px solid #f1f5f9;">
+            <p style="margin: 0 0 12px 0; font-weight: bold; color: #475569;">شركة بناء وإدارة العقارية / Benaa & Edara Real Estate</p>
+            
+            <div style="margin-bottom: 12px;">
+              <span style="display: inline-block; margin: 0 8px;">
+                <strong style="color: #64748b;">البريد / Email:</strong> <a href="mailto:${replyTo}" style="color: #2C4A5E; text-decoration: none;">${replyTo}</a>
+              </span>
+              ${settings?.callingNumber ? `
+              <span style="display: inline-block; margin: 0 8px;">
+                <strong style="color: #64748b;">الهاتف / Phone:</strong> <a href="tel:${settings.callingNumber}" style="color: #2C4A5E; text-decoration: none;">${settings.callingNumber}</a>
+              </span>
+              ` : ''}
+              ${settings?.whatsappNumber ? `
+              <span style="display: inline-block; margin: 0 8px;">
+                <strong style="color: #64748b;">واتساب / WhatsApp:</strong> <a href="https://wa.me/${settings.whatsappNumber.replace(/\+/g, '').replace(/\s/g, '')}" style="color: #2C4A5E; text-decoration: none;">+${settings.whatsappNumber}</a>
+              </span>
+              ` : ''}
+            </div>
+            
+            ${settings?.addressAr ? `
+            <p style="margin: 0; font-size: 11px; color: #64748b;">
+              <strong>الموقع / Location:</strong> ${settings.addressAr}
+            </p>
+            ` : ''}
+          </div>
         </div>
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #64748b;">هذا البريد الإلكتروني مرسل تلقائياً، يرجى عدم الرد عليه مباشرة.</p>
       </div>
     `;
 
@@ -170,6 +241,7 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
     await transporter.sendMail({
       from,
       to: callbackRequest.email,
+      replyTo,
       subject: emailSubject,
       html: htmlContent
     });
@@ -495,6 +567,10 @@ async function startServer() {
       
       let html = fs.readFileSync(indexPath, 'utf8');
       
+      if (!isProd && (global as any).viteServer) {
+        html = await (global as any).viteServer.transformIndexHtml(req.url, html);
+      }
+      
       // Build OG tags
       const ogTags = `
         <title>${title}</title>
@@ -530,6 +606,8 @@ async function startServer() {
   app.get('/properties', injectOGTags);
   app.get('/projects', injectOGTags);
   app.get('/contact', injectOGTags);
+  app.get('/services', injectOGTags);
+  app.get('/about', injectOGTags);
   app.get('/login', injectOGTags);
   app.get('/', injectOGTags);
 
@@ -2330,7 +2408,7 @@ async function startServer() {
       });
 
       // Send Email notification ping to customer
-      await sendReplyEmailNotification(updatedRequest, text);
+      await sendReplyEmailNotification(updatedRequest, text, (req as any).user.name);
 
       // Send Email notification ping to staff
       await sendCallbackEmailNotification();
@@ -2588,6 +2666,7 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: "spa",
     });
+    (global as any).viteServer = vite;
     app.use(vite.middlewares);
   } else {
     // Production serving

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { motion } from 'motion/react';
-import { Users, Search, Building2, Phone, Calendar, Wallet, X, CheckCircle2, ArrowRight, Trash2, Eye } from 'lucide-react';
+import { Users, Search, Building2, Phone, Calendar, Wallet, X, CheckCircle2, ArrowRight, Trash2, Eye, Loader2 } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { useDialog } from '../context/DialogContext';
 
@@ -407,14 +407,14 @@ export default function AdminRenters() {
             </div>
 
         <div className="relative w-full md:w-72">
-          <div className="absolute inset-y-0 ltr:left-0 ltr:right-auto rtl:right-0 rtl:left-auto flex items-center px-3 pointer-events-none text-gray-400">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none text-gray-400">
             <Search className="w-5 h-5" />
           </div>
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="cn-input ltr:pl-10 rtl:pr-10"
+            className="cn-input !ps-10"
             placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
           />
         </div>

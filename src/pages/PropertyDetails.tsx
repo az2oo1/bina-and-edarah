@@ -26,6 +26,7 @@ interface Property {
   imageUrls: string; // JSON string
   aqarLink?: string;
   allowedPaymentPlans?: string;
+  paymentsCount?: number | null;
   videoUrl?: string;
   createdAt: string;
 }

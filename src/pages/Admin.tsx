@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon, SnapIcon } from '../components/SocialIcons';
@@ -183,12 +183,9 @@ export default function Admin() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [homeImages, setHomeImages] = useState<{
     hero: string | null;
-    service1: string | null;
-    service2: string | null;
-    service3: string | null;
-    service4: string | null;
+    promoVideo: string | null;
   }>({
-    hero: null, service1: null, service2: null, service3: null, service4: null
+    hero: null, promoVideo: null
   });
   const [imageSlotUploading, setImageSlotUploading] = useState<string | null>(null);
 
@@ -796,7 +793,7 @@ export default function Admin() {
   };
 
   return (
-    <div className="bg-background text-foreground min-h-screen py-16">
+    <div className="bg-background text-foreground min-h-screen pt-4 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header Title & Logout */}
@@ -1022,19 +1019,17 @@ export default function Admin() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => handleEditClick(property)}
-                                className="p-2 text-muted-foreground hover:text-foreground rounded border border-border bg-white cursor-pointer transition-colors inline-block"
+                                className="p-2 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
                                 title={language === 'ar' ? 'تعديل' : 'Edit'}
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
+                                <Pencil className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDelete(property.id)}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded border border-border bg-white cursor-pointer transition-colors inline-block"
+                                className="p-2 text-red-500 hover:text-red-400 hover:border-red-500/30 rounded-lg border border-border bg-card/50 hover:bg-red-950/20 cursor-pointer transition-all inline-flex items-center justify-center"
                                 title={t('admin.deleteProperty')}
                               >
-                                <Trash2 className="w-5 h-5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -1721,7 +1716,7 @@ export default function Admin() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="min-h-[500px] max-w-2xl">
+          <div className="min-h-[500px] w-full max-w-5xl">
             <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border">
               <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
                 <SettingsIcon className="w-6 h-6 text-muted-foreground" />
@@ -1732,31 +1727,36 @@ export default function Admin() {
               </div>
             </div>
             
-            <div className="flex bg-muted p-1 rounded-xl mb-6 flex-wrap gap-1">
-              <button onClick={() => setActiveSettingsSection('whatsapp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'whatsapp' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'التواصل الاجتماعي والواتساب' : 'WhatsApp & Social'}
-              </button>
-              <button onClick={() => setActiveSettingsSection('email')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'email' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
-              </button>
-              <button onClick={() => setActiveSettingsSection('otp')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'otp' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'رمز تحقق' : 'OTP'}
-              </button>
-              <button onClick={() => setActiveSettingsSection('images')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'images' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'صور' : 'Images'}
-              </button>
-              <button onClick={() => setActiveSettingsSection('analytics')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'analytics' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'التحليلات' : 'Analytics'}
-              </button>
-              <button onClick={() => setActiveSettingsSection('backup')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'backup' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'نسخة احتياطية' : 'Backup'}
-              </button>
-              <button onClick={() => setActiveSettingsSection('techhub')} className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-colors ${activeSettingsSection === 'techhub' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                {language === 'ar' ? 'الربط الإلكتروني (TechHub)' : 'TechHub Sync'}
-              </button>
-            </div>
-            
-            <form onSubmit={handleSaveSettings} className="space-y-6 shadcn-card p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+              {/* Settings Sidebar */}
+              <div className="col-span-1 flex flex-col gap-1.5 bg-card border border-border p-2 rounded-xl">
+                {[
+                  { section: 'whatsapp', labelAr: 'التواصل والواتساب', labelEn: 'WhatsApp & Social', icon: <MessageSquare className="w-4 h-4" /> },
+                  { section: 'email', labelAr: 'البريد الإلكتروني', labelEn: 'Email Settings', icon: <Mail className="w-4 h-4" /> },
+                  { section: 'otp', labelAr: 'رمز التحقق (OTP)', labelEn: 'OTP Verification', icon: <KeyRound className="w-4 h-4" /> },
+                  { section: 'images', labelAr: 'صور الموقع', labelEn: 'Site Images', icon: <ImagePlus className="w-4 h-4" /> },
+                  { section: 'analytics', labelAr: 'إحصائيات الموقع', labelEn: 'Site Analytics', icon: <BarChart3 className="w-4 h-4" /> },
+                  { section: 'backup', labelAr: 'نسخة احتياطية', labelEn: 'Database Backup', icon: <Database className="w-4 h-4" /> },
+                  { section: 'techhub', labelAr: 'ربط TechHub', labelEn: 'TechHub Sync', icon: <RefreshCw className="w-4 h-4" /> },
+                ].map((item) => (
+                  <button
+                    key={item.section}
+                    type="button"
+                    onClick={() => setActiveSettingsSection(item.section as any)}
+                    className={`flex items-center gap-3 w-full py-2.5 px-3 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      activeSettingsSection === item.section 
+                        ? 'bg-primary text-primary-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {item.icon}
+                    <span>{language === 'ar' ? item.labelAr : item.labelEn}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Settings Form Content */}
+              <form onSubmit={handleSaveSettings} className="col-span-1 md:col-span-3 space-y-6 bg-card border border-border p-6 rounded-xl">
               
               {activeSettingsSection === 'whatsapp' && (
                 <div>
@@ -1767,7 +1767,7 @@ export default function Admin() {
                     <div>
                       <label className="cn-label mb-2">{t('admin.placeholder.whatsapp')}</label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center ltr:pl-3.5 ltr:pr-2.5 rtl:pr-3.5 rtl:pl-2.5 pointer-events-none text-gray-400">
+                        <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pe-2.5 pointer-events-none text-gray-400">
                           <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                         </div>
                         <input
@@ -1775,7 +1775,7 @@ export default function Admin() {
                           type="text"
                           value={whatsappNumber}
                           onChange={(e) => setWhatsappNumber(e.target.value)}
-                          className="cn-input font-mono ltr:pl-12 ltr:pr-4 rtl:pr-12 rtl:pl-4 h-12 bg-background animate-all"
+                          className="cn-input font-mono !ps-12 pe-4 h-12 bg-background transition-all"
                           placeholder="966500000000"
                           dir="ltr"
                         />
@@ -1789,7 +1789,7 @@ export default function Admin() {
                     <div>
                       <label className="cn-label mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 flex items-center ltr:pl-3.5 ltr:pr-2.5 rtl:pr-3.5 rtl:pl-2.5 pointer-events-none text-gray-400">
+                        <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pe-2.5 pointer-events-none text-gray-400">
                           <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                         </div>
                         <input
@@ -1797,7 +1797,7 @@ export default function Admin() {
                           type="text"
                           value={callingNumber}
                           onChange={(e) => setCallingNumber(e.target.value)}
-                          className="cn-input font-mono ltr:pl-12 ltr:pr-4 rtl:pr-12 rtl:pl-4 h-12 bg-background animate-all"
+                          className="cn-input font-mono !ps-12 pe-4 h-12 bg-background transition-all"
                           placeholder="966500000000"
                           dir="ltr"
                         />
@@ -2087,58 +2087,40 @@ export default function Admin() {
                     onRemove: () => setHomeImages(p => ({ ...p, hero: null })),
                   },
                   {
-                    key: 'service1' as const,
-                    labelAr: 'صورة خدمة ١ – تطوير وتسويق عقاري',
-                    labelEn: 'Service Image 1 – Real Estate Development',
-                    hintAr: '', hintEn: '',
-                    current: homeImages.service1,
-                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, service1: base64 })),
-                    onRemove: () => setHomeImages(p => ({ ...p, service1: null })),
-                  },
-                  {
-                    key: 'service2' as const,
-                    labelAr: 'صورة خدمة ٢ – تأجير ومبيعات',
-                    labelEn: 'Service Image 2 – Leasing & Sales',
-                    hintAr: '', hintEn: '',
-                    current: homeImages.service2,
-                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, service2: base64 })),
-                    onRemove: () => setHomeImages(p => ({ ...p, service2: null })),
-                  },
-                  {
-                    key: 'service3' as const,
-                    labelAr: 'صورة خدمة ٣ – إدارة أملاك',
-                    labelEn: 'Service Image 3 – Property Management',
-                    hintAr: '', hintEn: '',
-                    current: homeImages.service3,
-                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, service3: base64 })),
-                    onRemove: () => setHomeImages(p => ({ ...p, service3: null })),
-                  },
-                  {
-                    key: 'service4' as const,
-                    labelAr: 'صورة خدمة ٤ – استشارات عقارية',
-                    labelEn: 'Service Image 4 – Consulting',
-                    hintAr: '', hintEn: '',
-                    current: homeImages.service4,
-                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, service4: base64 })),
-                    onRemove: () => setHomeImages(p => ({ ...p, service4: null })),
+                    key: 'promoVideo' as const,
+                    labelAr: 'فيديو العرض التعريفي في الصفحة الرئيسية',
+                    labelEn: 'Promotional Video for Home Page',
+                    hintAr: 'يمكنك رفع ملف فيديو (MP4) أو إدخال رابط فيديو مباشر في الحقل أدناه.',
+                    hintEn: 'You can upload a video file (MP4) or enter a direct video URL in the field below.',
+                    current: homeImages.promoVideo,
+                    isVideo: true,
+                    onUpload: (val: string) => setHomeImages(p => ({ ...p, promoVideo: val })),
+                    onRemove: () => setHomeImages(p => ({ ...p, promoVideo: null })),
                   },
                 ];
 
-                const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, onUpload: (b: string) => void) => {
+                const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, isVideo: boolean, onUpload: (b: string) => void) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   if (file.size > 50 * 1024 * 1024) {
-                    await showAlert(language === 'ar' ? 'حجم الصورة يتجاوز 50MB' : 'Image exceeds 50MB limit');
+                    await showAlert(language === 'ar' ? 'حجم الملف يتجاوز 50MB' : 'File exceeds 50MB limit');
                     return;
                   }
                   setImageSlotUploading(slotKey);
                   let base64 = '';
-                  if (slotKey === 'hero') {
+                  if (isVideo) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      onUpload(reader.result as string);
+                      setImageSlotUploading(null);
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = '';
+                    return;
+                  } else if (slotKey === 'hero') {
                     base64 = await compressImage(file, 2560, 1440, 0.92);
                   } else if (slotKey === 'logo') {
                     base64 = await compressImage(file, 512, 512, 0.95);
-                  } else {
-                    base64 = await compressImage(file, 1280, 800, 0.85);
                   }
                   onUpload(base64);
                   setImageSlotUploading(null);
@@ -2148,12 +2130,12 @@ export default function Admin() {
                 return (
                   <div>
                     <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">
-                      {language === 'ar' ? 'صور الصفحة الرئيسية والشعار' : 'Home Page Images & Logo'}
+                      {language === 'ar' ? 'وسائط الصفحة الرئيسية والشعار' : 'Home Page Media & Logo'}
                     </h3>
                     <p className="text-xs text-muted-foreground mb-4">
                       {language === 'ar'
-                        ? 'ارفع صوراً مخصصة لكل قسم. إذا لم ترفع صورة سيتم استخدام الصورة الافتراضية.'
-                        : 'Upload custom images for each section. Default images will be used if none are uploaded.'}
+                        ? 'ارفع شعار الموقع، صورة الخلفية الرئيسية، وفيديو العرض التعريفي.'
+                        : 'Upload site logo, hero background image, and homepage video.'}
                     </p>
                     <div className="space-y-6">
                       {imageSlots.map(slot => (
@@ -2168,13 +2150,17 @@ export default function Admin() {
                           )}
                           <div className="flex items-center gap-4 flex-wrap mt-3">
                             {slot.current ? (
-                              <div className="relative w-28 h-20 rounded-xl overflow-hidden border-2 border-primary bg-muted flex-shrink-0">
-                                <img src={slot.current} alt="preview" className="w-full h-full object-cover" />
+                              <div className="relative w-28 h-20 rounded-xl overflow-hidden border-2 border-primary bg-muted flex-shrink-0 flex items-center justify-center">
+                                {slot.isVideo ? (
+                                  <video src={slot.current} className="w-full h-full object-cover" muted />
+                                ) : (
+                                  <img src={slot.current} alt="preview" className="w-full h-full object-cover" />
+                                )}
                                 <button
                                   type="button"
                                   onClick={slot.onRemove}
                                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow cursor-pointer"
-                                  title={language === 'ar' ? 'حذف الصورة' : 'Remove image'}
+                                  title={language === 'ar' ? (slot.isVideo ? 'حذف الفيديو' : 'حذف الصورة') : (slot.isVideo ? 'Remove video' : 'Remove image')}
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
@@ -2188,10 +2174,10 @@ export default function Admin() {
                             <div>
                               <input
                                 type="file"
-                                accept="image/*"
+                                accept={slot.isVideo ? "video/*" : "image/*"}
                                 id={`img-slot-${slot.key}`}
                                 className="hidden"
-                                onChange={(e) => handleSlotUpload(e, slot.key, slot.onUpload)}
+                                onChange={(e) => handleSlotUpload(e, slot.key, Boolean(slot.isVideo), slot.onUpload)}
                                 disabled={imageSlotUploading === slot.key}
                               />
                               <label
@@ -2206,12 +2192,27 @@ export default function Admin() {
                                   <ImagePlus className="w-4 h-4 text-muted-foreground" />
                                 )}
                                 {slot.current
-                                  ? (language === 'ar' ? 'تغيير الصورة' : 'Change Image')
-                                  : (language === 'ar' ? 'رفع صورة' : 'Upload Image')
+                                  ? (slot.isVideo ? (language === 'ar' ? 'تغيير الفيديو' : 'Change Video') : (language === 'ar' ? 'تغيير الصورة' : 'Change Image'))
+                                  : (slot.isVideo ? (language === 'ar' ? 'رفع فيديو' : 'Upload Video') : (language === 'ar' ? 'رفع صورة' : 'Upload Image'))
                                 }
                               </label>
                               <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? 'الحد الأقصى 50MB' : 'Max 50MB'}</p>
                             </div>
+                            
+                            {slot.isVideo && (
+                              <div className="w-full mt-4 border-t border-border pt-4">
+                                <label className="cn-label text-[11px] mb-1.5 font-bold text-foreground">
+                                  {language === 'ar' ? 'أو أدخل رابط فيديو مباشر (MP4):' : 'Or enter a direct video URL (MP4):'}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={slot.current && !slot.current.startsWith('data:') ? slot.current : ''}
+                                  onChange={(e) => slot.onUpload(e.target.value)}
+                                  placeholder="https://assets.mixkit.co/.../video.mp4"
+                                  className="cn-input bg-background font-mono h-11 text-xs max-w-xl"
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -2468,7 +2469,8 @@ export default function Admin() {
               </div>
             </form>
           </div>
-        )}
+        </div>
+      )}
 
         {activeTab === 'callbacks' && <AdminCallbacks />}
         {activeTab === 'users' && <AdminUsers />}

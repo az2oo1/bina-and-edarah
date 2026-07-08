@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, BuildingIcon, KeySquare, Hammer, Headphones, Mail, Layers } from 'lucide-react';
+import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, Building, KeySquare, Hammer, Headphones, Mail, Layers, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router';
 import { SocialIconsRow } from '../components/SocialIcons';
 
 const DEFAULT_IMAGES = {
   hero: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop',
-  service1: 'https://images.unsplash.com/photo-1541885088926-d68a98b04a8e?auto=format&fit=crop&w=800&q=80',
-  service2: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80',
-  service3: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
-  service4: 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&w=800&q=80',
+  promoVideo: 'https://assets.mixkit.co/videos/preview/mixkit-modern-apartment-buildings-in-a-city-43183-large.mp4',
+  service1: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000',
+  service2: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1000',
+  service3: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000',
+  service4: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1000',
 };
 
 export type HomeImages = typeof DEFAULT_IMAGES;
@@ -33,6 +34,38 @@ export default function Home() {
 
   const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
+  
+  const [activeSection, setActiveSection] = useState('hero');
+
+  useEffect(() => {
+    const sections = ['hero', 'solutions', 'video-tour', 'featured-projects', 'features', 'contact-cta'];
+    const handleScroll = () => {
+      // Detect if user has scrolled to the absolute bottom of the page
+      const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60;
+      if (isAtBottom) {
+        setActiveSection('contact-cta');
+        return;
+      }
+
+      const scrollPosition = window.scrollY + window.innerHeight / 3;
+
+      for (const id of sections) {
+        const el = document.getElementById(id);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            setActiveSection(id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     fetch('/api/projects')
@@ -75,8 +108,8 @@ export default function Home() {
       icon: <Hammer className="w-8 h-8" />,
       titleAr: 'تطوير وتسويق عقاري',
       titleEn: 'Real Estate Development',
-      descAr: 'نبتكر أساليب جديدة في التطوير و التسويق العقاري لنوفر لعملائنا مساحات استثنائية تجمع بين الفخامة والعملية، مع ضمان تحقيق أعلى معايير الجودة والاستدامة.',
-      descEn: 'We innovate new methods in real estate development & marketing to provide exceptional spaces combining luxury and practicality, ensuring top quality and sustainability.',
+      descAr: 'نبتكر مساحات استثنائية تجمع الفخامة بالعملية وبأعلى المعايير.',
+      descEn: 'We innovate exceptional spaces combining luxury and practicality.',
       bg: 'bg-blue-50',
       border: 'border-blue-100',
       color: 'text-blue-600',
@@ -87,8 +120,8 @@ export default function Home() {
       icon: <KeySquare className="w-8 h-8" />,
       titleAr: 'تأجير ومبيعات',
       titleEn: 'Leasing & Sales',
-      descAr: 'نوفر باقة واسعة من العقارات المميزة في أرقى الأحياء السكنية والتجارية، مع فريق مبيعات محترف يضمن لك إتمام الصفقات بكل سلاسة وأمان.',
-      descEn: 'We offer a wide range of premium properties in the best residential and commercial neighborhoods, with a professional sales team ensuring smooth and secure transactions.',
+      descAr: 'خيارات عقارية مميزة مع فريق يضمن سلاسة الصفقات وأمانها.',
+      descEn: 'Premium real estate options with a team ensuring smooth transactions.',
       bg: 'bg-yellow-50',
       border: 'border-yellow-100',
       color: 'text-yellow-600',
@@ -99,8 +132,8 @@ export default function Home() {
       icon: <ShieldCheck className="w-8 h-8" />,
       titleAr: 'إدارة أملاك',
       titleEn: 'Property Management',
-      descAr: 'خدمة إدارة متكاملة تهدف إلى تعظيم عوائد الاستثمار الخاص بك وحماية أصولك، عبر صيانة دورية، إدارة علاقات المستأجرين، وتحصيل الإيجارات.',
-      descEn: 'An integrated management service aimed at maximizing your investment returns and protecting your assets through regular maintenance, tenant relations, and rent collection.',
+      descAr: 'إدارة أملاك احترافية تضمن لك راحة البال وتحقيق أعلى العوائد.',
+      descEn: 'Professional property management ensuring peace of mind and high returns.',
       bg: 'bg-green-50',
       border: 'border-green-100',
       color: 'text-green-600',
@@ -108,11 +141,11 @@ export default function Home() {
     },
     {
       id: 'consulting',
-      icon: <BuildingIcon className="w-8 h-8" />,
+      icon: <Building className="w-8 h-8" />,
       titleAr: 'استشارات عقارية',
       titleEn: 'Real Estate Consulting',
-      descAr: 'نضع خبرتنا العميقة بين يديك لتقديم استشارات دقيقة وموثوقة مبنية على أحدث تحليلات السوق لمساعدتك في اتخاذ قرارات استثمارية مربحة.',
-      descEn: 'We put our deep expertise in your hands to provide accurate and reliable consulting based on the latest market analysis to help you make profitable investment decisions.',
+      descAr: 'استشارات عقارية دقيقة وموثوقة لمساعدتك في اتخاذ قراراتك.',
+      descEn: 'Accurate real estate consulting to help you make informed decisions.',
       bg: 'bg-indigo-50',
       border: 'border-indigo-100',
       color: 'text-indigo-600',
@@ -126,15 +159,15 @@ export default function Home() {
       {(() => {
         const isDefaultHero = !images.hero || images.hero === DEFAULT_IMAGES.hero;
         return (
-          <section className={`relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden ${isDefaultHero ? 'bg-background border-b border-border' : 'bg-slate-950'}`}>
+          <section id="hero" className="relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden bg-slate-950">
             {isDefaultHero ? (
-              /* Sleek, Premium Light Gradient Mesh for White Theme */
-              <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-50 via-[#f8fafc] to-background">
-                {/* Decorative soft blue/slate glows */}
-                <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl opacity-60 animate-pulse pointer-events-none"></div>
-                <div className="absolute bottom-1/4 right-1/3 w-[450px] h-[450px] bg-indigo-500/5 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
+              /* Sleek, Premium Dark Gradient Mesh with Animation */
+              <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-950 via-[#111d35] to-slate-950">
+                {/* Decorative glows */}
+                <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl opacity-30 animate-pulse pointer-events-none"></div>
+                <div className="absolute bottom-1/4 right-1/3 w-[450px] h-[450px] bg-sky-500/10 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
                 {/* Grid line decoration */}
-                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
               </div>
             ) : (
               /* Custom background image uploaded by the user */
@@ -148,159 +181,115 @@ export default function Home() {
 
             {/* Content */}
             <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center py-20 animate-fade-in">
-              <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold ${isDefaultHero ? 'bg-primary/10 border border-primary/20 text-primary' : 'bg-amber-500/25 border border-amber-500/50 text-amber-300'} backdrop-blur-md mb-6 uppercase tracking-wider shadow-sm`}>
+              <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold ${isDefaultHero ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-amber-500/25 border border-amber-500/50 text-amber-300'} backdrop-blur-md mb-6 uppercase tracking-wider shadow-sm`}>
                 ✨ {language === 'ar' ? 'رؤية مستقبلية للمعيشة العقارية الفاخرة' : 'A Future Vision of Luxury Living'}
               </span>
-              <h1 className={`text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight select-none ${isDefaultHero ? 'text-foreground' : 'text-white'}`}>
+              <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white mb-6 leading-tight select-none">
                 {t('hero.title')}
               </h1>
-              <p className={`max-w-2xl mx-auto text-sm sm:text-lg font-medium leading-relaxed select-none mb-10 opacity-95 ${isDefaultHero ? 'text-muted-foreground' : 'text-slate-100'}`}>
+              <p className="max-w-2xl mx-auto text-sm sm:text-lg font-medium leading-relaxed select-none mb-10 opacity-95 text-slate-100">
                 {t('hero.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
-                <Link to="/projects" className="inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer">
-                  <span>{language === 'ar' ? 'مشاريعنا' : 'Projects We Developed'}</span>
+                <button 
+                  onClick={() => document.getElementById('featured-projects')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer"
+                >
+                  <span>{language === 'ar' ? 'مشاريعنا المتميزة' : 'Featured Projects'}</span>
                   <Arrow className="w-5 h-5 text-white" />
-                </Link>
-                <Link to="/properties" className={`inline-flex items-center justify-center gap-2 border h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer ${isDefaultHero ? 'border-border text-foreground hover:bg-muted/50' : 'border-white/20 text-white hover:bg-white/5 hover:border-white/40'}`}>
+                </button>
+                <Link to="/properties" className="inline-flex items-center justify-center gap-2 border border-white/20 text-white hover:bg-white/5 hover:border-white/40 h-14 px-8 rounded-lg text-sm font-bold shadow-md hover:shadow-lg backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] will-change-transform cursor-pointer">
                   <span>{language === 'ar' ? 'عقارات للبيع أو الإيجار' : 'Properties to Buy or Rent'}</span>
                 </Link>
               </div>
             </div>
             
+            {/* Smooth Scroll Down Button */}
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 select-none animate-in fade-in slide-in-from-bottom duration-1000 delay-500">
+              <button 
+                onClick={() => document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex flex-col items-center gap-1.5 text-white/50 hover:text-white/95 transition-colors cursor-pointer group"
+              >
+                <span className="text-[10px] font-extrabold tracking-widest uppercase">{language === 'ar' ? 'حلول عقارية' : 'Real Estate Solutions'}</span>
+                <ChevronDown className="w-5 h-5 animate-bounce" />
+              </button>
+            </div>
+            
             {/* Subtle bottom fade */}
-            <div className={`absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t ${isDefaultHero ? 'from-background' : 'from-slate-950'} to-transparent pointer-events-none`}></div>
+            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>
           </section>
         );
       })()}
 
-      {/* Giant Skyscraper Section (Immediately under the Hero) */}
-      <section className="relative w-full bg-background pb-32 pt-12 overflow-hidden border-b border-border flex flex-col items-center justify-center">
-        {/* Decorative Grid Lines */}
+      {/* Combined "Who We Are" & "Real Estate Solutions" Section */}
+      <section id="solutions" className="py-24 bg-background relative z-20 border-b border-border relative isolate overflow-hidden">
+        {/* Decorative Grid Lines & Glows */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #38bdf8 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }}></div>
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
-
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10 w-full flex flex-col items-center">
-          
-
-
-
-
-          {/* About Us stacked details (Centered Title + 3 Cards arranged horizontally below the skyscraper) */}
-          <div className="w-full space-y-12">
-            <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/25 uppercase">
-                {language === 'ar' ? 'من نحن' : 'Who We Are'}
-              </span>
-              <h3 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight mt-4 leading-tight">
-                {language === 'ar' ? 'نبتكر آفاقاً جديدة للمعيشة والاستثمار' : 'Creating New Horizons for Living & Investing'}
-              </h3>
-              <p className="text-muted-foreground text-xs sm:text-sm mt-3 leading-relaxed">
-                {language === 'ar' 
-                  ? 'في بناء وإدارة، نجمع بين التخطيط الاستراتيجي، والتصميم المبتكر، والجودة المطلقة لتقديم حلول سكنية واستثمارية فريدة ترتقي بجودة الحياة.'
-                  : 'At Benaa & Edara, we merge strategic planning, innovative design, and absolute quality to deliver exceptional residential and investment spaces.'}
-              </p>
-            </div>
-
-            {/* 3 cards arranged in a 3-column grid below the building */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              
-              {/* Vision Box */}
-              <div className="flex flex-col gap-4 p-6 rounded-xl bg-card border border-border hover:border-sky-500/20 backdrop-blur-lg hover:bg-card/[0.04] transition-all duration-300 group/card text-right rtl:text-right ltr:text-left">
-                <div className="w-11 h-11 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center shadow-md">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground mb-2 group-hover/card:text-sky-400 transition-colors">
-                    {language === 'ar' ? 'رؤيتنا' : 'Our Vision'}
-                  </h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {language === 'ar' 
-                      ? 'أن نكون الخيار الأول والملهم في التطوير والإدارة العقارية المبتكرة في المملكة.' 
-                      : 'To be the premier and inspiring choice for innovative real estate development and management in the Kingdom.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Mission Box */}
-              <div className="flex flex-col gap-4 p-6 rounded-xl bg-card border border-border hover:border-amber-500/20 backdrop-blur-lg hover:bg-card/[0.04] transition-all duration-300 group/card text-right rtl:text-right ltr:text-left">
-                <div className="w-11 h-11 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-md">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground mb-2 group-hover/card:text-amber-400 transition-colors">
-                    {language === 'ar' ? 'رسالتنا' : 'Our Mission'}
-                  </h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {language === 'ar' 
-                      ? 'تقديم حلول عقارية متكاملة ومستدامة تلبي تطلعات عملائنا وترتقي بجودة الحياة اليومية.' 
-                      : 'Providing integrated, sustainable real estate solutions that meet client expectations and enhance quality of life.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Values Box */}
-              <div className="flex flex-col gap-4 p-6 rounded-xl bg-card border border-border hover:border-sky-500/20 backdrop-blur-lg hover:bg-card/[0.04] transition-all duration-300 group/card text-right rtl:text-right ltr:text-left">
-                <div className="w-11 h-11 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center shadow-md">
-                  <KeySquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground mb-2 group-hover/card:text-sky-400 transition-colors">
-                    {language === 'ar' ? 'قيمنا' : 'Our Values'}
-                  </h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {language === 'ar' 
-                      ? 'الالتزام التام بالشفافية والابتكار المستمر وبناء شراكات حقيقية طويلة الأمد.' 
-                      : 'Total commitment to transparency, continuous innovation, and building long-term partnerships.'}
-                  </p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-      </section>
-      {/* Services Section */}
-      <section className="py-24 bg-background relative z-20 border-b border-border relative isolate overflow-hidden">
-        {/* Dynamic mesh glow effect for services */}
         <div aria-hidden="true" className="absolute top-0 right-0 -z-10 blur-3xl opacity-20 select-none pointer-events-none translate-x-1/3">
           <div 
             style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
-            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-sky-50 to-slate-100/50"
+            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-sky-500/10 to-indigo-500/10"
           ></div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
-             <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-sky-400 bg-sky-400/10 border border-sky-400/25 uppercase">
-               {language === 'ar' ? 'ماذا نقدم' : 'Our Services'}
-             </span>
-             <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight mt-4 leading-tight">
-               {language === 'ar' ? 'خدمات عقارية متكاملة تلبي تطلعاتكم' : 'Comprehensive Real Estate Services'}
-             </h2>
+
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10 w-full">
+          {/* Header Info */}
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/25 uppercase">
+              {language === 'ar' ? 'من نحن & حلولنا العقارية' : 'Who We Are & Our Solutions'}
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
+              {language === 'ar' ? 'حلول عقارية تلبي تطلعاتكم' : 'Real Estate Solutions Fitting Your Aspirations'}
+            </h2>
+            <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
+              {language === 'ar' 
+                ? 'في بناء وإدارة، نجمع بين التخطيط الاستراتيجي، والتصميم المبتكر، والجودة المطلقة لتقديم حلول سكنية واستثمارية فريدة ترتقي بجودة الحياة.'
+                : 'At Benaa & Edara, we merge strategic planning, innovative design, and absolute quality to deliver exceptional residential and investment spaces.'}
+            </p>
+            
+            {/* The Two Page Navigation Buttons/Links Side-by-Side */}
+            <div className="pt-4 flex flex-wrap gap-4 justify-center">
+              <Link 
+                to="/about" 
+                className="inline-flex items-center justify-center gap-1.5 bg-[#2563eb] text-white hover:bg-[#1d4ed8] px-5 py-2.5 rounded-lg text-xs font-bold shadow-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer select-none"
+              >
+                <span>{language === 'ar' ? 'تعرّف علينا أكثر (من نحن)' : 'Learn More About Us (About)'}</span>
+                <Arrow className="w-4 h-4 text-white" />
+              </Link>
+              <Link 
+                to="/services" 
+                className="inline-flex items-center justify-center gap-1.5 border border-white/20 text-white hover:bg-white/5 hover:border-white/45 px-5 py-2.5 rounded-lg text-xs font-bold shadow-md backdrop-blur-md transform-gpu transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer select-none"
+              >
+                <span>{language === 'ar' ? 'تصفح كافة حلولنا العقارية' : 'Browse All Our Solutions (Services)'}</span>
+                <Arrow className="w-4 h-4 text-white" />
+              </Link>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {services.map((service, index) => {
               const isEven = index % 2 === 0;
               return (
                 <div 
                   key={service.id} 
-                  className={`flex flex-col bg-card border border-border rounded-xl p-8 hover:${isEven ? 'border-sky-500/20' : 'border-amber-500/20'} backdrop-blur-lg hover:bg-card/[0.04] transition-all duration-300 group`}
+                  className={`flex flex-col bg-card border border-border rounded-xl p-6 hover:${isEven ? 'border-sky-500/20' : 'border-amber-500/20'} backdrop-blur-lg hover:bg-card/[0.04] transition-all duration-300 group`}
                 >
-                  <div className={`w-12 h-12 rounded-lg ${isEven ? 'bg-sky-500/10 border border-sky-500/20 text-sky-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'} flex items-center justify-center mb-6 shadow-md`}>
+                  <div className={`w-12 h-12 rounded-lg ${isEven ? 'bg-sky-500/10 border border-sky-500/20 text-sky-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'} flex items-center justify-center mb-4 shadow-md`}>
                     {service.icon}
                   </div>
-                  <h3 className={`text-lg font-bold text-foreground mb-3 group-hover:${isEven ? 'text-sky-400' : 'text-amber-400'} transition-colors`}>
+                  <h3 className={`text-base font-bold text-foreground mb-2 group-hover:${isEven ? 'text-sky-400' : 'text-amber-400'} transition-colors`}>
                     {language === 'ar' ? service.titleAr : service.titleEn}
                   </h3>
                   <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed text-justify mb-6">
                     {language === 'ar' ? service.descAr : service.descEn}
                   </p>
                   {/* Clean hover link */}
-                  <div className={`mt-auto flex items-center gap-1.5 text-xs font-semibold ${isEven ? 'text-[#2563eb] group-hover:text-sky-400' : 'text-[#f59e0b] group-hover:text-amber-400'} transition-colors cursor-pointer select-none`}>
+                  <Link to="/services" className={`mt-auto inline-flex items-center gap-1.5 text-xs font-bold ${isEven ? 'text-[#2563eb] group-hover:text-sky-400' : 'text-[#f59e0b] group-hover:text-amber-400'} transition-colors cursor-pointer select-none`}>
                     <span>{language === 'ar' ? 'اقرأ المزيد' : 'Learn More'}</span>
                     <Arrow className="w-3.5 h-3.5" />
-                  </div>
+                  </Link>
                 </div>
               );
             })}
@@ -309,7 +298,7 @@ export default function Home() {
       </section>
 
       {/* Promotional Video Section */}
-      <section className="py-24 bg-card border-t border-b border-border relative overflow-hidden">
+      <section id="video-tour" className="py-24 bg-card border-t border-b border-border relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -336,12 +325,13 @@ export default function Home() {
             {/* Video Player */}
             <div className="relative aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl bg-slate-900 group">
               <video
+                key={images.promoVideo || 'default-video'}
                 className="w-full h-full object-cover"
                 controls
                 preload="metadata"
                 poster="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80"
               >
-                <source src="https://assets.mixkit.co/videos/preview/mixkit-modern-apartment-buildings-in-a-city-43183-large.mp4" type="video/mp4" />
+                <source src={images.promoVideo || DEFAULT_IMAGES.promoVideo} />
                 Your browser does not support the video tag.
               </video>
             </div>
@@ -350,12 +340,12 @@ export default function Home() {
       </section>
 
       {/* Featured Projects Album Section */}
-      <section className="py-24 bg-background border-t border-b border-border relative overflow-hidden relative isolate">
+      <section id="featured-projects" className="py-24 bg-background border-t border-b border-border relative overflow-hidden relative isolate">
         {/* Dynamic mesh glow effect for projects */}
         <div aria-hidden="true" className="absolute top-0 left-0 -z-10 blur-3xl opacity-20 select-none pointer-events-none -translate-x-1/3">
           <div 
             style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
-            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-slate-100 to-sky-100/50"
+            className="aspect-1155/678 w-[64rem] bg-gradient-to-tr from-sky-500/10 to-indigo-500/10"
           ></div>
         </div>
         {/* Aesthetics lines */}
@@ -364,10 +354,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-extrabold text-foreground tracking-tight">
-              {language === 'ar' ? 'ألبوم مشاريعنا المتميزة' : 'Featured Projects Album'}
+              {language === 'ar' ? 'مشاريعنا المتميزة' : 'Featured Projects'}
             </h2>
             <p className="text-sm text-muted-foreground mt-3 max-w-xl mx-auto leading-relaxed">
-              {language === 'ar' ? 'تصفح ألبوم صور المشاريع التي قمنا بتطويرها مؤخراً، انقر على أي مشروع للمزيد من التفاصيل.' : 'Browse the photo album of our recently developed projects, click on any project to view details.'}
+              {language === 'ar' ? 'تصفح صور المشاريع التي قمنا بتطويرها مؤخراً، انقر على أي مشروع للمزيد من التفاصيل.' : 'Browse the photos of our recently developed projects, click on any project to view details.'}
             </p>
           </div>
 
@@ -416,6 +406,18 @@ export default function Home() {
               );
             })}
           </div>
+
+          {featuredProjects.length > 0 && (
+            <div className="mt-16 text-center">
+              <Link 
+                to="/projects" 
+                className="btn-outline px-6 h-11 text-xs font-bold rounded-lg shadow-xs hover:bg-muted/30 transition-all cursor-pointer inline-flex items-center gap-2"
+              >
+                <span>{language === 'ar' ? 'تصفح جميع المشاريع' : 'Browse All Projects'}</span>
+                <Arrow className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
 
           {featuredProjects.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-sm">
@@ -506,7 +508,7 @@ export default function Home() {
       </section>
 
 {/* Features Section */}
-      <section className="py-24 bg-background border-b border-border">
+      <section id="features" className="py-24 bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <span className="inline-flex px-3 py-1 rounded-md text-[11px] font-bold tracking-wider text-sky-400 bg-sky-400/10 border border-sky-400/25 uppercase">
@@ -552,7 +554,7 @@ export default function Home() {
       </section>
 
       {/* Premium CTA to Contact Form */}
-      <section className="relative isolate overflow-hidden bg-background py-20 border-t border-border flex flex-col items-center justify-center text-center gap-6">
+      <section id="contact-cta" className="relative isolate overflow-hidden bg-background py-20 border-t border-border flex flex-col items-center justify-center text-center gap-6">
         <h2 className="text-3xl font-extrabold text-foreground tracking-tight sm:text-4xl">
           {language === 'ar' ? 'هل تحتاج إلى مساعدة أو استشارة؟' : 'Need Help or Consultation?'}
         </h2>
@@ -575,10 +577,48 @@ export default function Home() {
         <div aria-hidden="true" className="absolute top-1/2 left-1/2 -z-10 -translate-x-1/2 -translate-y-1/2 blur-3xl opacity-20 select-none pointer-events-none">
           <div 
             style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }} 
-            className="aspect-1155/678 w-[48rem] bg-gradient-to-tr from-slate-100 to-indigo-50/50"
+            className="aspect-1155/678 w-[48rem] bg-gradient-to-tr from-sky-500/10 to-indigo-600/10"
           ></div>
         </div>
       </section>
+
+      {/* Scrollspy Side Dot Indicator */}
+      <div className="fixed top-1/2 -translate-y-1/2 z-40 ltr:right-6 rtl:left-6 hidden md:flex flex-col gap-3.5 items-center bg-card/70 border border-border/80 backdrop-blur-md rounded-full px-2 py-5 shadow-2xl">
+        {[
+          { id: 'hero', ar: 'الرئيسية', en: 'Home' },
+          { id: 'solutions', ar: 'من نحن والحلول', en: 'About & Solutions' },
+          { id: 'video-tour', ar: 'الفيديو التعريفي', en: 'Video Tour' },
+          { id: 'featured-projects', ar: 'مشاريعنا', en: 'Our Projects' },
+          { id: 'features', ar: 'ميزاتنا', en: 'Why Us' },
+          { id: 'contact-cta', ar: 'تواصل معنا', en: 'Contact' }
+        ].map((sec) => {
+          const isActive = activeSection === sec.id;
+          return (
+            <button
+              key={sec.id}
+              onClick={() => document.getElementById(sec.id)?.scrollIntoView({ behavior: 'smooth' })}
+              className="relative group flex items-center justify-center w-5 h-5 cursor-pointer select-none"
+              aria-label={language === 'ar' ? sec.ar : sec.en}
+            >
+              {/* Dot element */}
+              <div 
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  isActive 
+                    ? 'bg-amber-400 scale-125 ring-4 ring-amber-400/20' 
+                    : 'bg-muted-foreground/35 group-hover:bg-muted-foreground/75 scale-100'
+                }`}
+              />
+              
+              {/* Hover Text Tooltip */}
+              <div className="absolute top-1/2 -translate-y-1/2 ltr:right-8 rtl:left-8 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none select-none">
+                <div className="bg-slate-900/95 text-white border border-white/10 text-[9px] font-bold py-1 px-2.5 rounded-lg shadow-lg whitespace-nowrap">
+                  {language === 'ar' ? sec.ar : sec.en}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

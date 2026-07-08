@@ -213,17 +213,15 @@ export default function AdminCallbacks() {
         <div className="flex items-center gap-2">
           {/* Search bar */}
           <div className="relative w-full md:w-64">
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none rtl:right-0 rtl:left-auto ltr:left-0 ltr:right-auto ltr:pl-3">
-              <Search className="h-4 w-4 text-muted-foreground" />
+            <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-muted-foreground">
+              <Search className="h-4 w-4" />
             </div>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={language === 'ar' ? 'بحث بالاسم، الجوال، أو الرسالة...' : 'Search by name, phone...'}
-              className={`block w-full bg-card border border-border rounded-lg py-2 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary ${
-                language === 'ar' ? 'pr-9 pl-4' : 'pl-9 pr-4'
-              }`}
+              className="block w-full bg-card border border-border rounded-lg py-2 ps-9 pe-4 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </div>

@@ -46,13 +46,13 @@ export default function AdminReceipts() {
           </div>
         </div>
         <div className="relative w-full md:w-72">
-          <Search className="absolute top-1/2 -translate-y-1/2 text-muted-foreground/60 w-4 h-4 ltr:left-3 rtl:right-3" />
+          <Search className="absolute top-1/2 -translate-y-1/2 text-muted-foreground/60 w-4 h-4 start-3" />
           <input 
             type="text" 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={language === 'ar' ? 'بحث (الاسم، الجوال، العقار)...' : 'Search (Name, Phone, Property)...'}
-            className="cn-input ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4"
+            className="cn-input !ps-10 pe-4"
           />
         </div>
       </div>

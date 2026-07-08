@@ -507,14 +507,14 @@ export default function AdminBuildings() {
 
             <div className="p-3 border-b border-border">
                <div className="relative max-w-md">
-                 <div className="absolute inset-y-0 ltr:left-0 ltr:right-auto rtl:right-0 rtl:left-auto flex items-center px-3 pointer-events-none text-gray-400">
+                 <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none text-gray-400">
                    <Search className="w-5 h-5" />
                  </div>
                  <input
                    type="text"
                    value={searchRenters}
                    onChange={e => setSearchRenters(e.target.value)}
-                   className="cn-input ltr:pl-10 rtl:pr-10"
+                   className="cn-input !ps-10"
                    placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
                  />
                </div>

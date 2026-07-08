@@ -14,6 +14,8 @@ import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Contact from './pages/Contact';
+import Services from './pages/Services';
+import About from './pages/About';
 
 function useLogoUrl() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -107,8 +109,23 @@ function Navbar() {
               <span className="font-bold text-base text-foreground tracking-wide hidden md:block">{t('hero.title')}</span>
             </Link>
             <div className="hidden sm:flex items-center gap-6 lg:gap-10">
-              <Link to="/" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                {t('nav.home')}
+              <div className="relative group py-5 select-none">
+                <Link to="/" className="inline-flex items-center gap-1 px-1 pt-1 border-b-2 border-transparent group-hover:border-amber-400 text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-all cursor-pointer">
+                  {t('nav.home')}
+                </Link>
+                <div className="absolute top-[80%] left-1/2 -translate-x-1/2 pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="bg-card border border-border rounded-lg shadow-lg py-2 text-right rtl:text-right ltr:text-left backdrop-blur-md">
+                    <Link to="/services" className="block px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
+                      {language === 'ar' ? 'حلول عقارية' : 'Real Estate Solutions'}
+                    </Link>
+                    <Link to="/about" className="block px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
+                      {language === 'ar' ? 'من نحن' : 'About Us'}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+              <Link to="/services" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                {language === 'ar' ? 'حلول عقارية' : 'Real Estate Solutions'}
               </Link>
               <Link to="/projects" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.projects')}
@@ -179,6 +196,20 @@ function Navbar() {
             className="block text-muted-foreground hover:text-foreground text-xs font-semibold py-1 border-b border-border/5"
           >
             {t('nav.home')}
+          </Link>
+          <Link 
+            to="/services" 
+            onClick={() => setIsOpen(false)}
+            className="block text-muted-foreground hover:text-foreground text-xs font-semibold py-1 border-b border-border/5"
+          >
+            {language === 'ar' ? 'حلول عقارية' : 'Real Estate Solutions'}
+          </Link>
+          <Link 
+            to="/about" 
+            onClick={() => setIsOpen(false)}
+            className="block text-muted-foreground hover:text-foreground text-xs font-semibold py-1 border-b border-border/5"
+          >
+            {language === 'ar' ? 'من نحن' : 'About Us'}
           </Link>
           <Link 
             to="/projects" 
@@ -285,6 +316,9 @@ function PageTracker() {
   const location = useLocation();
 
   useEffect(() => {
+    // Scroll window to top on route change
+    window.scrollTo(0, 0);
+
     // Only track viewing pages, not admin stuff. Or tracking all is fine.
     const path = location.pathname;
     let propertyId = null;
@@ -326,6 +360,8 @@ function AppContent() {
       <main className="flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/about" element={<About />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:id" element={<ProjectDetails />} />
           <Route path="/properties" element={<Properties />} />
