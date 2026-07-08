@@ -360,8 +360,8 @@ export default function AdminCallbacks() {
                     onClick={() => handleUpdateStatus(selectedRequest.id, 'REPLIED_WHATSAPP')}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                       selectedRequest.status === 'REPLIED_WHATSAPP'
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold'
-                        : 'border-border text-muted-foreground hover:bg-slate-50'
+                        ? 'bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-emerald-950/60 dark:border-emerald-700 dark:text-emerald-400 font-bold'
+                        : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -372,8 +372,8 @@ export default function AdminCallbacks() {
                     onClick={() => handleUpdateStatus(selectedRequest.id, 'STILL_GOING')}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                       selectedRequest.status === 'STILL_GOING'
-                        ? 'bg-blue-50 border-blue-300 text-blue-700 font-bold'
-                        : 'border-border text-muted-foreground hover:bg-slate-50'
+                        ? 'bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-950/60 dark:border-blue-700 dark:text-blue-400 font-bold'
+                        : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
@@ -384,8 +384,8 @@ export default function AdminCallbacks() {
                     onClick={() => handleUpdateStatus(selectedRequest.id, 'CLOSED')}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                       selectedRequest.status === 'CLOSED'
-                        ? 'bg-muted border-border text-muted-foreground font-bold'
-                        : 'border-border text-muted-foreground hover:bg-slate-50'
+                        ? 'bg-slate-200 border-slate-400 text-slate-700 dark:bg-slate-700 dark:border-slate-500 dark:text-slate-200 font-bold'
+                        : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
                     <Archive className="w-3.5 h-3.5" />

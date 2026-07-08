@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
-import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { ImageViewer } from '../components/ImageViewer';
 
@@ -62,6 +62,8 @@ export default function PropertyDetails() {
   const [activeImage, setActiveImage] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<string>("1");
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [showUnits, setShowUnits] = useState(false);
+  const [expandedUnitId, setExpandedUnitId] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch Settings
@@ -308,17 +310,11 @@ export default function PropertyDetails() {
                       </p>
                     </div>
                   </div>
-                  <Link 
-                    to={`/properties?parentId=${property.id}`} 
-                    className="w-full inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-10 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
-                  >
-                    <Building2 className="w-4 h-4 text-white" />
-                    <span>{language === 'ar' ? 'تصفح الوحدات المتوفرة' : 'View Available Units'}</span>
-                  </Link>
                 </div>
               ) : (
-                <div className="mb-6 pb-6 border-b border-border">
-                  <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">{t('common.totalCost')}</p>
+                property.price > 0 ? (
+                  <div className="mb-6 pb-6 border-b border-border">
+                    <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">{t('common.totalCost')}</p>
                   <div className="flex items-end gap-1 mb-4">
                     <span className="text-3xl font-extrabold text-foreground font-mono tracking-tight">{(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()}</span>
                     <SrIcon className="w-6 h-6 text-primary pb-0.5" />
@@ -458,9 +454,98 @@ export default function PropertyDetails() {
                     })()}
                   </div>
                 </div>
+                ) : null
               )}
 
-              {/* Actions */}
+              {/* Show Units Button (above actions) */}
+              {property.subProperties && property.subProperties.length > 0 && (
+                <div className="mb-4">
+                  <button
+                    onClick={() => setShowUnits(!showUnits)}
+                    className="w-full inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-10 px-4 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span>{showUnits ? (language === 'ar' ? 'إخفاء الوحدات' : 'Hide Units') : (language === 'ar' ? 'عرض الوحدات' : 'Show Units')}</span>
+                    {showUnits ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+
+                  {showUnits && (
+                    <div className="mt-3 border border-border rounded-xl overflow-hidden divide-y divide-border">
+                      {property.subProperties.map((unit) => {
+                        const isExpanded = expandedUnitId === unit.id;
+                        let unitDetails: Array<{key: string; value: string}> = [];
+                        try { unitDetails = JSON.parse(unit.details || '[]'); } catch (_) {}
+                        const unitImages = (() => { try { const p = JSON.parse(unit.imageUrls || '[]'); return Array.isArray(p) ? p : []; } catch (_) { return []; } })();
+                        const isAvailable = unit.status === 'PUBLISHED';
+                        const isSold = unit.status === 'SOLD';
+                        const isRented = unit.status === 'RENTED';
+                        return (
+                          <div key={unit.id}>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedUnitId(isExpanded ? null : unit.id)}
+                              className="w-full flex items-center justify-between p-3 text-start hover:bg-muted/40 transition-colors"
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-xs font-bold text-foreground">
+                                  {language === 'ar' ? unit.titleAr : unit.titleEn}
+                                </span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {unit.price > 0 && (
+                                    <span className="text-[11px] font-bold text-primary font-mono">
+                                      {unit.price.toLocaleString()} SAR
+                                    </span>
+                                  )}
+                                  {unit.area > 0 && (
+                                    <span className="text-[10px] text-muted-foreground">{unit.area} {t('common.sqm')}</span>
+                                  )}
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                    isAvailable ? 'bg-emerald-100 text-emerald-700' :
+                                    isSold ? 'bg-red-100 text-red-700' :
+                                    isRented ? 'bg-amber-100 text-amber-700' :
+                                    'bg-slate-100 text-slate-500'
+                                  }`}>
+                                    {isAvailable ? (language === 'ar' ? 'متاح' : 'Available') :
+                                     isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
+                                     isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
+                                     (language === 'ar' ? 'مخفي' : 'Hidden')}
+                                  </span>
+                                </div>
+                              </div>
+                              {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                            </button>
+
+                            {isExpanded && (
+                              <div className="px-3 pb-3 space-y-3 bg-muted/20">
+                                {unitImages.length > 0 && (
+                                  <img src={unitImages[0]} alt={unit.titleAr} className="w-full h-32 object-cover rounded-lg" />
+                                )}
+                                {unitDetails.length > 0 && (
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    {unitDetails.map((d, i) => (
+                                      <div key={i} className="bg-background border border-border rounded-md px-2 py-1.5">
+                                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wide">{d.key}</p>
+                                        <p className="text-xs font-bold text-foreground">{d.value}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <a
+                                  href={`/properties/${unit.id}`}
+                                  className="w-full inline-flex items-center justify-center gap-1.5 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-8 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm"
+                                >
+                                  {language === 'ar' ? 'عرض صفحة الوحدة' : 'View Unit Page'}
+                                  {language === 'ar' ? <ArrowRight className="w-3 h-3" /> : <ArrowLeft className="w-3 h-3" />}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2 pt-2">
                 <a
                   href={`tel:${callingNumber.replace(/\+/g, '')}`}

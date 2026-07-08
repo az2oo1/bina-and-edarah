@@ -37,6 +37,7 @@ export default function Properties() {
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [showIndividualUnits, setShowIndividualUnits] = useState(false);
 
   useEffect(() => {
     fetch('/api/properties')
@@ -129,7 +130,8 @@ export default function Properties() {
     if (parentIdParam) {
       if (p.parentId !== parentIdParam) return false;
     } else {
-      if (p.parentId) return false;
+      // Hide sub-properties by default unless filter is ON or viewing by parent
+      if (p.parentId && !showIndividualUnits) return false;
     }
 
     if (typeFilter !== 'ALL' && p.type !== typeFilter) return false;
@@ -267,6 +269,20 @@ export default function Properties() {
                   className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
                 />
               </div>
+              {!parentIdParam && (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="show-individual-units"
+                    checked={showIndividualUnits}
+                    onChange={(e) => setShowIndividualUnits(e.target.checked)}
+                    className="w-4 h-4 accent-primary cursor-pointer rounded"
+                  />
+                  <label htmlFor="show-individual-units" className="text-xs text-muted-foreground font-medium cursor-pointer select-none">
+                    {language === 'ar' ? 'عرض الوحدات كإعلانات مستقلة' : 'Show units as individual listings'}
+                  </label>
+                </div>
+              )}
             </div>
 
             {filteredProperties.length === 0 ? (
@@ -347,9 +363,15 @@ export default function Properties() {
                       <div className="mt-auto pt-3.5 border-t border-border flex items-end justify-between">
                         <div>
                           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{t('common.price')}</p>
-                          <p className="text-lg font-bold text-primary font-mono tracking-tight flex items-center gap-0.5">
-                            {(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()} <SrIcon className="w-5 h-5 text-primary" />
-                          </p>
+                          {property.price > 0 ? (
+                            <p className="text-lg font-bold text-primary font-mono tracking-tight flex items-center gap-0.5">
+                              {(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()} <SrIcon className="w-5 h-5 text-primary" />
+                            </p>
+                          ) : (
+                            <p className="text-sm font-bold text-primary flex items-center gap-1.5">
+                              {language === 'ar' ? 'عرض الوحدات' : 'Show Units'}
+                            </p>
+                          )}
                         </div>
                         {property.vatExempt ? (
                           <div className="text-right">

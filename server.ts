@@ -1823,6 +1823,8 @@ async function startServer() {
     try {
       const body = req.body;
       const type = body.type || "SALE";
+      const subPropertiesData = body.subProperties || [];
+
       const newProperty = await prisma.property.create({
         data: {
           titleAr: body.titleAr || (type === "SALE" ? "عقار للبيع" : "عقار للإيجار"),
@@ -1854,8 +1856,46 @@ async function startServer() {
           status: body.status || "PUBLISHED",
         }
       });
+
+      // Create nested subProperties if any
+      if (Array.isArray(subPropertiesData) && subPropertiesData.length > 0) {
+        for (const unit of subPropertiesData) {
+          await prisma.property.create({
+            data: {
+              titleAr: unit.titleAr || "وحدة سكنية",
+              titleEn: unit.titleEn || "Unit",
+              type: unit.type || type,
+              propertyCategory: unit.propertyCategory || "APARTMENT",
+              paymentFrequency: unit.paymentFrequency || (type === "RENT" ? "MONTHLY" : null),
+              paymentsCount: safeIntOrNull(unit.paymentsCount),
+              area: safeFloat(unit.area),
+              details: unit.details || null,
+              locationLink: body.locationLink || null,
+              locationText: body.locationText || null,
+              description: unit.description || "",
+              features: unit.features || null,
+              propertyAge: safeInt(body.propertyAge),
+              electricityCost: safeFloat(unit.electricityCost),
+              electricityFrequency: unit.electricityFrequency || null,
+              vat: safeFloat(unit.vat),
+              vatExempt: unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false,
+              utilityBills: unit.utilityBills || "NONE",
+              commission: safeFloat(unit.commission),
+              price: safeFloat(unit.price),
+              imageUrls: processImageUrls(unit.imageUrls),
+              aqarLink: unit.aqarLink || null,
+              allowedPaymentPlans: unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
+              videoUrl: unit.videoUrl || null,
+              userId: body.userId || null,
+              parentId: newProperty.id,
+              status: unit.status || "PUBLISHED",
+            }
+          });
+        }
+      }
+
       invalidateCache('properties');
-      await logAction(req, "ADD_PROPERTY", `Added property: ${newProperty.titleAr} (${newProperty.id})`);
+      await logAction(req, "ADD_PROPERTY", `Added property: ${newProperty.titleAr} (${newProperty.id}) with ${subPropertiesData.length} units`);
       res.status(201).json(newProperty);
     } catch (error) {
       logger.error("Error creating property:", error);
@@ -1867,6 +1907,8 @@ async function startServer() {
     try {
       const body = req.body;
       const type = body.type || "SALE";
+      const subPropertiesData = body.subProperties || [];
+
       const updatedProperty = await prisma.property.update({
         where: { id: req.params.id },
         data: {
@@ -1899,8 +1941,73 @@ async function startServer() {
           status: body.status || "PUBLISHED",
         }
       });
+
+      // Synchronize subProperties:
+      // Get all current subproperties of this building from DB
+      const dbSubProperties = await prisma.property.findMany({
+        where: { parentId: req.params.id }
+      });
+
+      const payloadSubIds = subPropertiesData.map((u: any) => u.id).filter(Boolean);
+
+      // 1. Delete ones that are not in the payload
+      const idsToDelete = dbSubProperties.filter(p => !payloadSubIds.includes(p.id)).map(p => p.id);
+      if (idsToDelete.length > 0) {
+        await prisma.property.deleteMany({
+          where: { id: { in: idsToDelete } }
+        });
+      }
+
+      // 2. Create or Update the rest
+      if (Array.isArray(subPropertiesData)) {
+        for (const unit of subPropertiesData) {
+          const unitData = {
+            titleAr: unit.titleAr || "وحدة سكنية",
+            titleEn: unit.titleEn || "Unit",
+            type: unit.type || type,
+            propertyCategory: unit.propertyCategory || "APARTMENT",
+            paymentFrequency: unit.paymentFrequency || (type === "RENT" ? "MONTHLY" : null),
+            paymentsCount: safeIntOrNull(unit.paymentsCount),
+            area: safeFloat(unit.area),
+            details: unit.details || null,
+            locationLink: body.locationLink || null,
+            locationText: body.locationText || null,
+            description: unit.description || "",
+            features: unit.features || null,
+            propertyAge: safeInt(body.propertyAge),
+            electricityCost: safeFloat(unit.electricityCost),
+            electricityFrequency: unit.electricityFrequency || null,
+            vat: safeFloat(unit.vat),
+            vatExempt: unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false,
+            utilityBills: unit.utilityBills || "NONE",
+            commission: safeFloat(unit.commission),
+            price: safeFloat(unit.price),
+            imageUrls: processImageUrls(unit.imageUrls),
+            aqarLink: unit.aqarLink || null,
+            allowedPaymentPlans: unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
+            videoUrl: unit.videoUrl || null,
+            userId: body.userId || null,
+            parentId: updatedProperty.id,
+            status: unit.status || "PUBLISHED",
+          };
+
+          if (unit.id && dbSubProperties.some(p => p.id === unit.id)) {
+            // Update existing unit
+            await prisma.property.update({
+              where: { id: unit.id },
+              data: unitData
+            });
+          } else {
+            // Create new unit
+            await prisma.property.create({
+              data: unitData
+            });
+          }
+        }
+      }
+
       invalidateCache('properties');
-      await logAction(req, "UPDATE_PROPERTY", `Updated property: ${updatedProperty.titleAr} (${req.params.id})`);
+      await logAction(req, "UPDATE_PROPERTY", `Updated property: ${updatedProperty.titleAr} (${req.params.id}) with synced subProperties`);
       res.json(updatedProperty);
     } catch (error) {
       logger.error("Error updating property:", error);
