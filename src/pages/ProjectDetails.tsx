@@ -58,6 +58,7 @@ export default function ProjectDetails() {
   }
 
   const images = project.imageUrls && project.imageUrls.length > 0 ? project.imageUrls : ['https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070'];
+  const currentMedia = images[currentImageIndex];
 
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % images.length);
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
@@ -94,19 +95,39 @@ export default function ProjectDetails() {
         {/* Gallery */}
         <div className="bg-card rounded-lg p-2 border border-border shadow-xs mb-8">
           <div 
-            onClick={() => setIsViewerOpen(true)}
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.tagName === 'VIDEO' || target.closest('button')) {
+                return;
+              }
+              setIsViewerOpen(true);
+            }}
             className="relative h-80 sm:h-[500px] rounded overflow-hidden group bg-slate-100 cursor-pointer"
           >
-            <img 
-              src={images[currentImageIndex]} 
-              alt="Project" 
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.01]"
-            />
+            {currentMedia && (
+              currentMedia.startsWith('data:video') || 
+              currentMedia.endsWith('.mp4') || 
+              currentMedia.endsWith('.mov') || 
+              currentMedia.endsWith('.webm') || 
+              currentMedia.endsWith('.avi')
+            ) ? (
+              <video 
+                src={currentMedia} 
+                controls 
+                className="w-full h-full object-cover relative z-10" 
+              />
+            ) : (
+              <img 
+                src={currentMedia} 
+                alt="Project" 
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.01]"
+              />
+            )}
             {/* Hover expand overlay */}
-            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-250 flex items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-250 flex items-center justify-center pointer-events-none z-20">
               <div className="bg-black/75 backdrop-blur-xs text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transform translate-y-2 group-hover:translate-y-0 transition-all duration-250 shadow-xl border border-white/10">
                 <Maximize2 className="w-4 h-4 text-primary" />
-                <span>{language === 'ar' ? 'عرض الصورة كاملة' : 'View Full Image'}</span>
+                <span>{language === 'ar' ? 'عرض الوسائط كاملة' : 'View Full Media'}</span>
               </div>
             </div>
 

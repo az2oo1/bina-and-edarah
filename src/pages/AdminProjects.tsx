@@ -93,16 +93,32 @@ export default function AdminProjects() {
     const files = e.target.files;
     if (!files) return;
 
-    let base64Images: string[] = [...formData.imageUrls];
+    let base64Medias: string[] = [...formData.imageUrls];
     for (const file of Array.from(files) as File[]) {
       try {
-        const base64 = await compressImage(file);
-        base64Images.push(base64);
+        if (file.type.startsWith('image/')) {
+          const base64 = await compressImage(file);
+          base64Medias.push(base64);
+        } else if (file.type.startsWith('video/')) {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              if (typeof event.target?.result === 'string') {
+                resolve(event.target.result);
+              } else {
+                reject(new Error('Failed to read video file'));
+              }
+            };
+            reader.onerror = () => reject(new Error('Video read error'));
+            reader.readAsDataURL(file);
+          });
+          base64Medias.push(base64);
+        }
       } catch (err) {
         console.error(err);
       }
     }
-    setFormData(prev => ({ ...prev, imageUrls: base64Images }));
+    setFormData(prev => ({ ...prev, imageUrls: base64Medias }));
     e.target.value = '';
   };
 
@@ -356,24 +372,41 @@ export default function AdminProjects() {
           </div>
 
           <div className="mt-8 space-y-6">
-            <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'الصور' : 'Images'}</h3>
+            <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'الصور والفيديوهات' : 'Images & Videos'}</h3>
             <div className="border border-dashed border-border rounded-lg p-6 text-center hover:bg-slate-50 transition-colors bg-slate-50/30">
               <label className="cursor-pointer flex flex-col items-center">
                 <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
-                <span className="text-muted-foreground font-medium mb-2">{language === 'ar' ? 'اضغط لاختيار الصور' : 'Click to select images'}</span>
-                <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                <span className="text-muted-foreground font-medium mb-2">{language === 'ar' ? 'اضغط لاختيار الصور والفيديوهات' : 'Click to select images & videos'}</span>
+                <input type="file" multiple accept="image/*,video/*" onChange={handleImageUpload} className="hidden" />
               </label>
             </div>
             {formData.imageUrls.length > 0 && (
               <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4">
-                {formData.imageUrls.map((url, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-md border border-border overflow-hidden group shadow-xs">
-                    <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
-                    <button type="button" onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                {formData.imageUrls.map((url, idx) => {
+                  const isVideo = url && (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm') || url.endsWith('.avi'));
+                  return (
+                    <div key={idx} className="relative aspect-square rounded-md border border-border overflow-hidden group shadow-xs">
+                      {isVideo ? (
+                        <video src={url} className="w-full h-full object-cover" muted playsInline />
+                      ) : (
+                        <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                      )}
+
+                      {/* Play overlay for video */}
+                      {isVideo && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
+                          <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white">
+                            <svg className="w-4 h-4 ml-0.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                          </div>
+                        </div>
+                      )}
+
+                      <button type="button" onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

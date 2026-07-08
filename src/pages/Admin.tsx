@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon, SnapIcon } from '../components/SocialIcons';
@@ -370,29 +370,45 @@ export default function Admin() {
       totalSize += file.size;
     }
 
-    if (totalSize > 50 * 1024 * 1024) {
+    if (totalSize > 250 * 1024 * 1024) {
       setImageUploadMessage({ 
         type: 'error', 
-        text: language === 'ar' ? 'إجمالي حجم الصور المرفوعة يتجاوز الحد الأقصى (50MB)' : 'Total upload size of images exceeds limit (50MB)' 
+        text: language === 'ar' ? 'إجمالي حجم الملفات المرفوعة يتجاوز الحد الأقصى (250MB)' : 'Total upload size of files exceeds limit (250MB)' 
       });
       setIsUploadingImages(false);
       e.target.value = '';
       return;
     }
 
-    let base64Images: string[] = [...formData.imageUrls];
+    let base64Medias: string[] = [...formData.imageUrls];
 
-    // Process sequentially to avoid blocking UI too much
+    // Process sequentially
     for (const file of Array.from(files) as File[]) {
       try {
-        const base64 = await compressImage(file);
-        base64Images.push(base64);
+        if (file.type.startsWith('image/')) {
+          const base64 = await compressImage(file);
+          base64Medias.push(base64);
+        } else if (file.type.startsWith('video/')) {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              if (typeof event.target?.result === 'string') {
+                resolve(event.target.result);
+              } else {
+                reject(new Error('Failed to read video file'));
+              }
+            };
+            reader.onerror = () => reject(new Error('Video read error'));
+            reader.readAsDataURL(file);
+          });
+          base64Medias.push(base64);
+        }
       } catch (err) {
         console.error(err);
       }
     }
     
-    setFormData(prev => ({ ...prev, imageUrls: base64Images }));
+    setFormData(prev => ({ ...prev, imageUrls: base64Medias }));
     setIsUploadingImages(false);
     
     // reset input
@@ -475,40 +491,7 @@ export default function Admin() {
     }
   };
 
-  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
 
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 45 * 1024 * 1024) {
-      await showAlert(language === 'ar' ? 'حجم الفيديو يتجاوز الحد المسموح به (45 ميغابايت)' : 'Video size exceeds 45MB limit');
-      return;
-    }
-
-    setIsUploadingVideo(true);
-    try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (typeof event.target?.result === 'string') {
-            resolve(event.target.result);
-          } else {
-            reject(new Error('Failed to read video file'));
-          }
-        };
-        reader.onerror = () => reject(new Error('Video read error'));
-        reader.readAsDataURL(file);
-      });
-      setFormData(prev => ({ ...prev, videoUrl: base64 }));
-    } catch (err) {
-      console.error(err);
-      await showAlert(language === 'ar' ? 'فشل معالجة ملف الفيديو' : 'Failed to process video file');
-    } finally {
-      setIsUploadingVideo(false);
-      e.target.value = '';
-    }
-  };
 
   const resetForm = () => {
     setFormData({
@@ -1512,9 +1495,9 @@ export default function Admin() {
                   <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="cn-input resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
                 </div>
 
-                {/* Images Section */}
+                {/* Images and Videos Section */}
                 <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الصور' : 'Images'} (Max 50MB total)</h3>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الصور والفيديوهات' : 'Images & Videos'} (Max 250MB total)</h3>
                   
                   {imageUploadMessage && (
                     <div className="mb-4 p-4 rounded-xl font-bold border bg-red-50 text-red-700 border-red-200 flex items-center gap-3">
@@ -1524,7 +1507,7 @@ export default function Admin() {
                   )}
 
                   <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isUploadingImages ? 'border-border bg-muted cursor-not-allowed' : 'border-border bg-card hover:bg-muted'}`}>
-                    <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" disabled={isUploadingImages} />
+                    <input type="file" multiple accept="image/*,video/*" onChange={handleImageUpload} className="hidden" id="image-upload" disabled={isUploadingImages} />
                     <label htmlFor="image-upload" className={`flex flex-col items-center ${isUploadingImages ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                       {isUploadingImages ? (
                         <Loader2 className="w-12 h-12 text-indigo-500 mb-4 animate-spin" />
@@ -1533,117 +1516,74 @@ export default function Admin() {
                       )}
                       
                       <span className={`font-bold text-lg ${isUploadingImages ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
-                        {isUploadingImages ? (language === 'ar' ? 'جاري معالجة الصور...' : 'Processing Images...') : t('admin.placeholder.imagesDesc')}
+                        {isUploadingImages ? (language === 'ar' ? 'جاري معالجة الملفات...' : 'Processing Media...') : (language === 'ar' ? 'اسحب وأفلت الصور ومقاطع الفيديو هنا، أو اضغط للتصفح' : 'Drag & drop images and videos here, or click to browse')}
                       </span>
                     </label>
                   </div>
                   
                   {formData.imageUrls.length > 0 && (
                     <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                      {formData.imageUrls.map((url, i) => (
-                        <div key={i} className="relative aspect-square bg-muted rounded-xl overflow-hidden border border-border group/img">
-                          <img src={url} alt="upload preview" className="w-full h-full object-cover" />
-                          
-                          {/* Main Image Badge */}
-                          {i === 0 && (
-                            <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm z-10">
-                              {language === 'ar' ? 'الرئيسية' : 'Main'}
+                      {formData.imageUrls.map((url, i) => {
+                        const isVideo = url && (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm') || url.endsWith('.avi'));
+                        return (
+                          <div key={i} className="relative aspect-square bg-muted rounded-xl overflow-hidden border border-border group/img">
+                            {isVideo ? (
+                              <video src={url} className="w-full h-full object-cover" muted playsInline />
+                            ) : (
+                              <img src={url} alt="upload preview" className="w-full h-full object-cover" />
+                            )}
+                            
+                            {/* Main Image Badge */}
+                            {i === 0 && (
+                              <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm z-10">
+                                {language === 'ar' ? 'الرئيسية' : 'Main'}
+                              </div>
+                            )}
+
+                            {/* Play overlay for video */}
+                            {isVideo && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
+                                <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white">
+                                  <svg className="w-4 h-4 ml-0.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                </div>
+                              </div>
+                            )}
+
+                            <button 
+                              type="button" 
+                              onClick={() => removeImage(i)} 
+                              className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md z-10 transition-colors cursor-pointer"
+                              title={language === 'ar' ? 'حذف' : 'Delete'}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Rearrange Arrows Overlay Bar */}
+                            <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1.5 z-10 opacity-85 hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                disabled={i === 0}
+                                onClick={() => moveImage(i, 'prev')}
+                                className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                                title={language === 'ar' ? 'تحريك للخلف' : 'Move Left'}
+                              >
+                                <ArrowLeft className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={i === formData.imageUrls.length - 1}
+                                onClick={() => moveImage(i, 'next')}
+                                className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                                title={language === 'ar' ? 'تحريك للأمام' : 'Move Right'}
+                              >
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
                             </div>
-                          )}
-
-                          <button 
-                            type="button" 
-                            onClick={() => removeImage(i)} 
-                            className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md z-10 transition-colors cursor-pointer"
-                            title={language === 'ar' ? 'حذف' : 'Delete'}
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Rearrange Arrows Overlay Bar */}
-                          <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1.5 z-10 opacity-85 hover:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              disabled={i === 0}
-                              onClick={() => moveImage(i, 'prev')}
-                              className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                              title={language === 'ar' ? 'تحريك للخلف' : 'Move Left'}
-                            >
-                              <ArrowLeft className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={i === formData.imageUrls.length - 1}
-                              onClick={() => moveImage(i, 'next')}
-                              className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                              title={language === 'ar' ? 'تحريك للأمام' : 'Move Right'}
-                            >
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
-                </div>
-                
-                {/* Video Tour Section */}
-                <div className="border-t border-border pt-6 mt-6">
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">
-                    {language === 'ar' ? 'العرض المرئي للعقار (فيديو)' : 'Property Video Tour'}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-6">
-                    <div>
-                      <label className="cn-label mb-2">{language === 'ar' ? 'رابط فيديو مباشر (URL)' : 'Direct Video URL'}</label>
-                      <input 
-                        type="text" 
-                        value={formData.videoUrl && !formData.videoUrl.startsWith('data:video') ? formData.videoUrl : ''} 
-                        onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })} 
-                        className="cn-input text-xs" 
-                        placeholder={language === 'ar' ? 'أو أدخل رابط فيديو مباشر (مثال: https://assets...mp4)' : 'Or enter a direct mp4 video URL (e.g. https://...mp4)'} 
-                        dir="ltr"
-                      />
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <span className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        {language === 'ar' ? 'أو رفع ملف فيديو (الحد الأقصى 45 ميغابايت):' : 'Or Upload a Video File (Max 45MB):'}
-                      </span>
-                      
-                      <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isUploadingVideo ? 'border-border bg-muted cursor-not-allowed' : 'border-border bg-card hover:bg-muted'}`}>
-                        <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" id="video-upload" disabled={isUploadingVideo} />
-                        <label htmlFor="video-upload" className={`flex flex-col items-center ${isUploadingVideo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                          {isUploadingVideo ? (
-                            <Loader2 className="w-12 h-12 text-indigo-500 mb-4 animate-spin" />
-                          ) : (
-                            <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                          )}
-                          
-                          <span className="font-bold text-sm text-muted-foreground">
-                            {isUploadingVideo ? (language === 'ar' ? 'جاري معالجة الفيديو...' : 'Processing Video Tour...') : (language === 'ar' ? 'اختر ملف فيديو لرفعه' : 'Choose a video file to upload')}
-                          </span>
-                        </label>
-                      </div>
-                      
-                      {formData.videoUrl && (
-                        <div className="relative border border-border bg-muted rounded-xl p-4 flex flex-col gap-3">
-                          <span className="text-[11px] font-bold text-emerald-600 block uppercase tracking-wider">
-                            {language === 'ar' ? 'تم تجهيز عرض الفيديو بنجاح!' : 'Video tour ready!'}
-                          </span>
-                          <div className="relative w-full max-w-sm aspect-video rounded-lg overflow-hidden border border-border bg-black">
-                            <video src={formData.videoUrl} controls className="w-full h-full object-cover" />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, videoUrl: '' })}
-                            className="w-max px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer"
-                          >
-                            {language === 'ar' ? 'إزالة الفيديو' : 'Remove Video'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
               
               <div className="pt-6">
@@ -2146,8 +2086,8 @@ export default function Admin() {
                 const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, isVideo: boolean, onUpload: (b: string) => void) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  if (file.size > 50 * 1024 * 1024) {
-                    await showAlert(language === 'ar' ? 'حجم الملف يتجاوز 50MB' : 'File exceeds 50MB limit');
+                  if (file.size > 250 * 1024 * 1024) {
+                    await showAlert(language === 'ar' ? 'حجم الملف يتجاوز 250MB' : 'File exceeds 250MB limit');
                     return;
                   }
                   setImageSlotUploading(slotKey);

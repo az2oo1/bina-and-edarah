@@ -155,80 +155,109 @@ export default function PropertyDetails() {
           {/* Main Content & Gallery */}
           <div className="lg:col-span-2 space-y-6">
             {/* Gallery */}
-             <div className="shadcn-card overflow-hidden">
-              <div 
-                onClick={() => setIsViewerOpen(true)}
-                className="relative h-80 sm:h-[450px] w-full bg-slate-100 group/gallery cursor-pointer overflow-hidden"
-              >
-                {property.videoUrl && activeImage === images.length ? (
-                  <video src={property.videoUrl} controls className="w-full h-full object-cover" />
-                ) : (
-                  <>
-                    <img 
-                      src={images[activeImage]} 
-                      alt={language === 'ar' ? property.titleAr : property.titleEn}
-                      className="w-full h-full object-cover transition-opacity duration-300"
-                    />
-                    {/* Hover expand overlay */}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-250 flex items-center justify-center">
-                      <div className="bg-black/75 backdrop-blur-xs text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transform translate-y-2 group-hover/gallery:translate-y-0 transition-all duration-250 shadow-xl border border-white/10">
-                        <Maximize className="w-4 h-4 text-primary" />
-                        <span>{language === 'ar' ? 'عرض الصورة كاملة' : 'View Full Image'}</span>
-                      </div>
-                    </div>
-                  </>
-                )}
+             {(() => {
+               const allMedias = [...images];
+               if (property.videoUrl && !allMedias.includes(property.videoUrl)) {
+                 allMedias.push(property.videoUrl);
+               }
+               const activeUrl = allMedias[activeImage];
+               const isActiveVideo = activeUrl && (
+                 activeUrl.startsWith('data:video') || 
+                 activeUrl.endsWith('.mp4') || 
+                 activeUrl.endsWith('.mov') || 
+                 activeUrl.endsWith('.webm') || 
+                 activeUrl.endsWith('.avi')
+               );
 
-                {/* Slider Navigation Controls */}
-                {(images.length > 1 || property.videoUrl) && (
-                  <>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveImage((prev) => (prev - 1 + (images.length + (property.videoUrl ? 1 : 0))) % (images.length + (property.videoUrl ? 1 : 0)));
-                      }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
-                      title={language === 'ar' ? 'السابق' : 'Previous'}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveImage((prev) => (prev + 1) % (images.length + (property.videoUrl ? 1 : 0)));
-                      }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
-                      title={language === 'ar' ? 'التالي' : 'Next'}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-              </div>
-              {(images.length > 1 || property.videoUrl) && (
-                <div className="flex gap-2 p-3 overflow-x-auto border-t border-border custom-scrollbar">
-                  {images.map((img, i) => (
-                    <button 
-                      key={i} 
-                      onClick={() => setActiveImage(i)}
-                      className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all cursor-pointer ${activeImage === i ? 'border-primary opacity-100' : 'border-transparent opacity-65 hover:opacity-100'}`}
-                    >
-                      <img src={img} alt={`Thumbnail ${i}`} className="w-full h-full object-cover rounded-[2px]" />
-                    </button>
-                  ))}
-                  {property.videoUrl && (
-                    <button 
-                      onClick={() => setActiveImage(images.length)}
-                      className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all cursor-pointer bg-slate-950 text-white flex flex-col items-center justify-center gap-1 ${activeImage === images.length ? 'border-primary opacity-100' : 'border-transparent opacity-65 hover:opacity-100'}`}
-                      title={language === 'ar' ? 'مشاهدة الفيديو' : 'Watch Video'}
-                    >
-                      <svg className="w-6 h-6 text-primary animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'فيديو' : 'Video'}</span>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+               return (
+                 <div className="shadcn-card overflow-hidden">
+                   <div 
+                     onClick={(e) => {
+                       const target = e.target as HTMLElement;
+                       if (target.tagName === 'VIDEO' || target.closest('button')) {
+                         return;
+                       }
+                       setIsViewerOpen(true);
+                     }}
+                     className="relative h-80 sm:h-[450px] w-full bg-slate-100 group/gallery cursor-pointer overflow-hidden"
+                   >
+                     {isActiveVideo ? (
+                       <video src={activeUrl} controls className="w-full h-full object-cover relative z-10" />
+                     ) : (
+                       <>
+                         <img 
+                           src={activeUrl} 
+                           alt={language === 'ar' ? property.titleAr : property.titleEn}
+                           className="w-full h-full object-cover transition-opacity duration-300"
+                         />
+                         {/* Hover expand overlay */}
+                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-250 flex items-center justify-center z-20">
+                           <div className="bg-black/75 backdrop-blur-xs text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transform translate-y-2 group-hover/gallery:translate-y-0 transition-all duration-250 shadow-xl border border-white/10">
+                             <Maximize className="w-4 h-4 text-primary" />
+                             <span>{language === 'ar' ? 'عرض الوسائط كاملة' : 'View Full Media'}</span>
+                           </div>
+                         </div>
+                       </>
+                     )}
+
+                     {/* Slider Navigation Controls */}
+                     {allMedias.length > 1 && (
+                       <>
+                         <button 
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setActiveImage((prev) => (prev - 1 + allMedias.length) % allMedias.length);
+                           }}
+                           className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
+                           title={language === 'ar' ? 'السابق' : 'Previous'}
+                         >
+                           <ChevronLeft className="w-4 h-4" />
+                         </button>
+                         <button 
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setActiveImage((prev) => (prev + 1) % allMedias.length);
+                           }}
+                           className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
+                           title={language === 'ar' ? 'التالي' : 'Next'}
+                         >
+                           <ChevronRight className="w-4 h-4" />
+                         </button>
+                       </>
+                     )}
+                   </div>
+                   {allMedias.length > 1 && (
+                     <div className="flex gap-2 p-3 overflow-x-auto border-t border-border custom-scrollbar">
+                       {allMedias.map((mediaUrl, i) => {
+                         const isItemVideo = mediaUrl && (
+                           mediaUrl.startsWith('data:video') || 
+                           mediaUrl.endsWith('.mp4') || 
+                           mediaUrl.endsWith('.mov') || 
+                           mediaUrl.endsWith('.webm') || 
+                           mediaUrl.endsWith('.avi')
+                         );
+                         return (
+                           <button 
+                             key={i} 
+                             onClick={() => setActiveImage(i)}
+                             className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all cursor-pointer overflow-hidden ${activeImage === i ? 'border-primary opacity-100' : 'border-transparent opacity-65 hover:opacity-100'}`}
+                           >
+                             {isItemVideo ? (
+                               <div className="w-full h-full bg-slate-950 text-white flex flex-col items-center justify-center gap-1 select-none">
+                                 <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                 <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'فيديو' : 'Video'}</span>
+                               </div>
+                             ) : (
+                               <img src={mediaUrl} alt={`Thumbnail ${i}`} className="w-full h-full object-cover rounded-[2px]" />
+                             )}
+                           </button>
+                         );
+                       })}
+                     </div>
+                   )}
+                 </div>
+               );
+             })()}
 
             {/* Description & Features */}
             <div className="shadcn-card p-6">

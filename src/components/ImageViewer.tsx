@@ -52,8 +52,19 @@ export function ImageViewer({
 
   if (!isOpen) return null;
 
-  const totalItems = images.length + (videoUrl ? 1 : 0);
-  const isVideoActive = videoUrl && activeIndex === images.length;
+  const allMedias = [...images];
+  if (videoUrl && !allMedias.includes(videoUrl)) {
+    allMedias.push(videoUrl);
+  }
+  const totalItems = allMedias.length;
+  const activeUrl = allMedias[activeIndex];
+  const isVideoActive = activeUrl && (
+    activeUrl.startsWith('data:video') || 
+    activeUrl.endsWith('.mp4') || 
+    activeUrl.endsWith('.mov') || 
+    activeUrl.endsWith('.webm') || 
+    activeUrl.endsWith('.avi')
+  );
 
   const handleNext = () => {
     setIsZoomed(false);
@@ -128,7 +139,7 @@ export function ImageViewer({
           <div className="w-full h-full max-w-7xl max-h-[75vh] flex items-center justify-center overflow-hidden">
             {isVideoActive ? (
               <video 
-                src={videoUrl} 
+                src={activeUrl} 
                 controls 
                 autoPlay
                 className="max-w-full max-h-full rounded-lg shadow-2xl object-contain border border-white/5" 
@@ -140,7 +151,7 @@ export function ImageViewer({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                src={images[activeIndex]}
+                src={activeUrl}
                 alt={`Lightbox item ${activeIndex}`}
                 className={`max-w-full max-h-full rounded-lg shadow-2xl transition-all duration-300 ${
                   isZoomed ? 'object-cover w-full h-full cursor-zoom-out' : 'object-contain cursor-zoom-in'
@@ -155,29 +166,33 @@ export function ImageViewer({
         <div className="w-full bg-gradient-to-t from-black/80 to-black/20 py-4 px-6 z-10 flex flex-col items-center gap-3">
           {totalItems > 1 && (
             <div className="flex gap-2.5 overflow-x-auto max-w-full px-2 py-1.5 custom-scrollbar select-none">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleThumbnailClick(idx)}
-                  className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                    activeIndex === idx ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
-                  }`}
-                >
-                  <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-              {videoUrl && (
-                <button
-                  onClick={() => handleThumbnailClick(images.length)}
-                  className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 bg-slate-900 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                    activeIndex === images.length ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
-                  }`}
-                  title={language === 'ar' ? 'فيديو' : 'Video'}
-                >
-                  <Video className="w-6 h-6 text-primary" />
-                  <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'فيديو' : 'Video'}</span>
-                </button>
-              )}
+              {allMedias.map((mediaUrl, idx) => {
+                const isItemVideo = mediaUrl && (
+                  mediaUrl.startsWith('data:video') || 
+                  mediaUrl.endsWith('.mp4') || 
+                  mediaUrl.endsWith('.mov') || 
+                  mediaUrl.endsWith('.webm') || 
+                  mediaUrl.endsWith('.avi')
+                );
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleThumbnailClick(idx)}
+                    className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                      activeIndex === idx ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
+                    }`}
+                  >
+                    {isItemVideo ? (
+                      <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center gap-1">
+                        <Video className="w-5 h-5 text-primary" />
+                        <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'فيديو' : 'Video'}</span>
+                      </div>
+                    ) : (
+                      <img src={mediaUrl} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

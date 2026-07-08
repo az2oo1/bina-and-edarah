@@ -652,6 +652,17 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 function saveBase64Image(dataStr: string): string {
   if (!dataStr || typeof dataStr !== 'string') return dataStr;
   
+  // Check if it's a base64 video data URL
+  const videoMatch = dataStr.match(/^data:video\/([a-zA-Z0-9+]+);base64,(.+)$/);
+  if (videoMatch) {
+    const ext = videoMatch[1];
+    const base64Data = videoMatch[2];
+    const filename = `${crypto.randomUUID()}.${ext}`;
+    const filepath = path.join(UPLOADS_DIR, filename);
+    fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
+    return `/uploads/${filename}`;
+  }
+
   // Check if it's a base64 data URL
   const match = dataStr.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
   if (!match) {
@@ -757,8 +768,9 @@ async function startServer() {
   // Read cookies
   app.use(cookieParser());
 
-  // Increase payload size for base64 multi-image uploads
-  app.use(express.json({ limit: '50mb' }));
+  // Increase payload size for base64 multi-image/video uploads (up to 350MB to support 250MB videos)
+  app.use(express.json({ limit: '350mb' }));
+  app.use(express.urlencoded({ limit: '350mb', extended: true }));
   
   // Serve static uploaded files
   app.use('/uploads', express.static(UPLOADS_DIR));
