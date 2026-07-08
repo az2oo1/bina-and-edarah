@@ -26,10 +26,27 @@ const LOG_FILE = fs.existsSync('/data')
   ? '/data/server.log' 
   : path.resolve(process.cwd(), 'server.log');
 
+function serializeMeta(meta: any[]): string {
+  if (!meta.length) return "";
+  return meta.map(arg => {
+    if (arg instanceof Error) {
+      return `${arg.message}\n${arg.stack}`;
+    }
+    if (typeof arg === 'object') {
+      try {
+        return JSON.stringify(arg);
+      } catch (err) {
+        return String(arg);
+      }
+    }
+    return String(arg);
+  }).join(' ');
+}
+
 const logger = {
   info: (msg: string, ...meta: any[]) => {
     const time = new Date().toISOString();
-    const logMsg = `[${time}] [INFO] ${msg} ${meta.length ? JSON.stringify(meta) : ""}\n`;
+    const logMsg = `[${time}] [INFO] ${msg} ${serializeMeta(meta)}\n`;
     console.log(logMsg.trim());
     try {
       fs.appendFileSync(LOG_FILE, logMsg);
@@ -39,7 +56,7 @@ const logger = {
   },
   error: (msg: string, ...meta: any[]) => {
     const time = new Date().toISOString();
-    const logMsg = `[${time}] [ERROR] ${msg} ${meta.length ? JSON.stringify(meta) : ""}\n`;
+    const logMsg = `[${time}] [ERROR] ${msg} ${serializeMeta(meta)}\n`;
     console.error(logMsg.trim());
     try {
       fs.appendFileSync(LOG_FILE, logMsg);
@@ -49,7 +66,7 @@ const logger = {
   },
   warn: (msg: string, ...meta: any[]) => {
     const time = new Date().toISOString();
-    const logMsg = `[${time}] [WARN] ${msg} ${meta.length ? JSON.stringify(meta) : ""}\n`;
+    const logMsg = `[${time}] [WARN] ${msg} ${serializeMeta(meta)}\n`;
     console.warn(logMsg.trim());
     try {
       fs.appendFileSync(LOG_FILE, logMsg);
@@ -59,7 +76,19 @@ const logger = {
   }
 };
 
-async function sendCallbackEmailNotification() {
+function getSiteUrl(req?: any): string {
+  if (process.env.APP_URL && process.env.APP_URL !== "MY_APP_URL") {
+    return process.env.APP_URL.replace(/\/$/, "");
+  }
+  if (req) {
+    const host = req.get("host");
+    const protocol = req.secure || req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
+    return `${protocol}://${host}`;
+  }
+  return "http://localhost:3000";
+}
+
+async function sendCallbackEmailNotification(req?: any) {
   try {
     const settings = await prisma.settings.findUnique({ where: { id: "global" } });
     
@@ -67,7 +96,8 @@ async function sendCallbackEmailNotification() {
     const admins = await prisma.admin.findMany({
       where: {
         email: {
-          notIn: [null, ""]
+          not: null,
+          notIn: [""]
         }
       }
     });
@@ -83,7 +113,7 @@ async function sendCallbackEmailNotification() {
     const user = settings?.smtpUser || process.env.SMTP_USER;
     const pass = settings?.smtpPass || process.env.SMTP_PASS;
     const from = settings?.smtpFrom || process.env.SMTP_FROM || "no-reply@benaa-edara.com";
-    const siteUrl = process.env.APP_URL || 'http://localhost:3000';
+    const siteUrl = getSiteUrl(req);
 
     const formattedFrom = from.includes("<") ? from : `"بناء وإدارة العقارية | Benaa & Edara" <${from}>`;
     const fromDomain = from.includes('@') ? from.split('@')[1].trim().replace('>', '') : 'benaa-edara.com';
@@ -200,7 +230,8 @@ There is a new contact or callback request on the platform. Please log in to the
       host,
       port,
       secure: port === 465,
-      auth: { user, pass }
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
     });
 
     await transporter.sendMail({
@@ -223,7 +254,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   AGENT: ['properties', 'projects', 'callbacks']
 };
 
-async function sendReplyEmailNotification(callbackRequest: any, replyText: string, senderName?: string) {
+async function sendReplyEmailNotification(callbackRequest: any, replyText: string, senderName?: string, req?: any) {
   try {
     if (!callbackRequest.email) {
       logger.info(`[REPLY EMAIL skipped] No customer email provided for callback request ID ${callbackRequest.id}`);
@@ -237,7 +268,7 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
     const pass = settings?.smtpPass || process.env.SMTP_PASS;
     const from = settings?.smtpFrom || process.env.SMTP_FROM || "no-reply@benaa-edara.com";
     const replyTo = settings?.email || from;
-    const siteUrl = process.env.APP_URL || 'http://localhost:3000';
+    const siteUrl = getSiteUrl(req);
 
     const formattedFrom = from.includes("<") ? from : `"بناء وإدارة العقارية | Benaa & Edara" <${from}>`;
     const fromDomain = from.includes('@') ? from.split('@')[1].trim().replace('>', '') : 'benaa-edara.com';
@@ -430,7 +461,8 @@ ${settings?.addressAr ? `الموقع / Location: ${settings.addressAr}` : ''}
       host,
       port,
       secure: port === 465,
-      auth: { user, pass }
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
     });
 
     await transporter.sendMail({
@@ -509,9 +541,12 @@ async function syncInboundEmails() {
     const client = new ImapFlow({
       host,
       port,
-      secure: true,
+      secure: port === 993,
       auth: { user, pass },
       logger: false,
+      tls: {
+        rejectUnauthorized: false
+      },
       clientInfo: {
         name: 'Benaa & Edara Inbound Sync'
       }
@@ -521,7 +556,13 @@ async function syncInboundEmails() {
     const lock = await client.getMailboxLock('INBOX');
     
     try {
-      const messages = await client.search({ seen: false });
+      const unseenMessages = await client.search({ seen: false });
+      
+      const sinceDate = new Date();
+      sinceDate.setDate(sinceDate.getDate() - 3);
+      const recentMessages = await client.search({ since: sinceDate });
+      
+      const messages = Array.from(new Set([...unseenMessages, ...recentMessages])).sort((a, b) => a - b);
       
       for (const uid of messages) {
         try {
@@ -542,45 +583,96 @@ async function syncInboundEmails() {
             }
           }
           
-          let matchedNote = null;
+          let matchedRequest = null;
           for (const ref of referencesList) {
-            const match = ref.match(/<note-([^@]+)@/);
-            if (match) {
-              const noteId = match[1];
-              matchedNote = await prisma.callbackNote.findUnique({
+            // Match note ID
+            const noteMatch = ref.match(/<note-([^@]+)@/);
+            if (noteMatch) {
+              const noteId = noteMatch[1];
+              const note = await prisma.callbackNote.findUnique({
                 where: { id: noteId },
                 include: { callbackRequest: true }
               });
-              if (matchedNote) {
+              if (note?.callbackRequest) {
+                matchedRequest = note.callbackRequest;
+                break;
+              }
+            }
+            
+            // Match direct request ID
+            const requestMatch = ref.match(/<request-reply-([^@]+)@/);
+            if (requestMatch) {
+              const requestId = requestMatch[1];
+              const callbackRequest = await prisma.callbackRequest.findUnique({
+                where: { id: requestId }
+              });
+              if (callbackRequest) {
+                matchedRequest = callbackRequest;
                 break;
               }
             }
           }
-          
-          if (matchedNote) {
-            const callbackRequest = matchedNote.callbackRequest;
-            const rawBody = parsed.text || '';
-            const cleanedText = cleanEmailReplyBody(rawBody);
-            
-            if (cleanedText) {
-              await prisma.callbackNote.create({
-                data: {
-                  callbackRequestId: callbackRequest.id,
-                  text: cleanedText,
-                  authorName: callbackRequest.name
+
+          // Fallback: match by sender's email address if no header matches
+          if (!matchedRequest && parsed.from?.value?.[0]?.address) {
+            const senderEmail = parsed.from.value[0].address.toLowerCase().trim();
+            const activeRequest = await prisma.callbackRequest.findFirst({
+              where: {
+                email: {
+                  equals: senderEmail,
+                  mode: 'insensitive'
+                },
+                status: {
+                  not: 'CLOSED'
                 }
-              });
-              
-              await prisma.callbackRequest.update({
-                where: { id: callbackRequest.id },
-                data: { status: 'STILL_GOING' }
-              });
-              
-              logger.info(`[IMAP SYNC] Synchronized inbound reply email from customer for callback request ID ${callbackRequest.id}`);
+              },
+              orderBy: {
+                createdAt: 'desc'
+              }
+            });
+            if (activeRequest) {
+              matchedRequest = activeRequest;
+              logger.info(`[IMAP SYNC] Matched inbound email to active callback request ID ${activeRequest.id} by sender email ${senderEmail}`);
             }
           }
           
-          await client.messageFlagsAdd(uid, ['\\Seen']);
+          if (matchedRequest) {
+            let rawBody = parsed.text || '';
+            if (!rawBody && parsed.html) {
+              rawBody = parsed.html.replace(/<[^>]*>/g, ' ');
+            }
+            const cleanedText = cleanEmailReplyBody(rawBody);
+            
+            if (cleanedText) {
+              const existingNote = await prisma.callbackNote.findFirst({
+                where: {
+                  callbackRequestId: matchedRequest.id,
+                  text: cleanedText
+                }
+              });
+              
+              if (!existingNote) {
+                await prisma.callbackNote.create({
+                  data: {
+                    callbackRequestId: matchedRequest.id,
+                    text: cleanedText,
+                    authorName: matchedRequest.name
+                  }
+                });
+                
+                await prisma.callbackRequest.update({
+                  where: { id: matchedRequest.id },
+                  data: { status: 'STILL_GOING' }
+                });
+                
+                logger.info(`[IMAP SYNC] Synchronized inbound reply email from customer for callback request ID ${matchedRequest.id}`);
+              }
+            }
+          }
+          
+          if (unseenMessages.includes(uid)) {
+            await client.messageFlagsAdd(uid, ['\\Seen']);
+          }
         } catch (msgErr) {
           logger.error(`[IMAP SYNC] Failed to process message UID ${uid}:`, msgErr);
         }
@@ -616,16 +708,23 @@ async function logAction(req: any, action: string, details: string) {
 }
 
 interface CacheStore {
-  properties: any | null;
+  propertiesAdmin: any | null;
+  propertiesPublic: any | null;
   projects: any | null;
 }
 const dbCache: CacheStore = {
-  properties: null,
+  propertiesAdmin: null,
+  propertiesPublic: null,
   projects: null
 };
 
 function invalidateCache(type: 'properties' | 'projects') {
-  dbCache[type] = null;
+  if (type === 'properties') {
+    dbCache.propertiesAdmin = null;
+    dbCache.propertiesPublic = null;
+  } else {
+    dbCache[type] = null;
+  }
   logger.info(`Cache invalidated for ${type}`);
 }
 
@@ -863,8 +962,29 @@ async function startServer() {
           return res.send(imageBuffer);
         }
       }
-      return res.redirect(base64Data);
+
+      if (base64Data.startsWith('/uploads/') || base64Data.startsWith('uploads/')) {
+        const fileName = base64Data.replace(/^\/?uploads\//, '');
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        if (fs.existsSync(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.sendFile(filePath);
+        }
+      }
+
+      if (base64Data.startsWith('http://') || base64Data.startsWith('https://')) {
+        return res.redirect(base64Data);
+      }
+
+      const directPath = path.resolve(process.cwd(), base64Data.replace(/^\//, ''));
+      if (fs.existsSync(directPath)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.sendFile(directPath);
+      }
+
+      return res.sendFile(path.join(process.cwd(), 'public', 'favicon.ico'));
     } catch (err) {
+      logger.error("Failed to serve settings logo:", err);
       return res.status(500).send('Internal Error');
     }
   });
@@ -1597,13 +1717,33 @@ async function startServer() {
   // Properties
   app.get("/api/properties", async (req, res) => {
     try {
-      if (dbCache.properties) {
-        logger.info("Serving properties from cache");
-        return res.json(dbCache.properties);
+      let isAdmin = false;
+      const token = req.cookies?.token;
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET) as any;
+          if (decoded && (decoded.role === 'ADMIN' || decoded.role === 'MANAGER' || decoded.role === 'AGENT')) {
+            isAdmin = true;
+          }
+        } catch (_) {}
       }
+
+      const cacheKey = isAdmin ? 'propertiesAdmin' : 'propertiesPublic';
+      if (dbCache[cacheKey]) {
+        logger.info(`Serving properties from cache (${cacheKey})`);
+        return res.json(dbCache[cacheKey]);
+      }
+
       const properties = await prisma.property.findMany({
+        where: isAdmin ? undefined : {
+          OR: [
+            { status: { not: 'DRAFT' } },
+            { status: null }
+          ]
+        },
         orderBy: { createdAt: 'desc' }
       });
+
       const enrichedProperties = properties.map(property => {
         const coords = extractCoords(property.locationLink);
         return {
@@ -1612,8 +1752,9 @@ async function startServer() {
           longitude: coords?.lon ?? null
         };
       });
-      dbCache.properties = enrichedProperties;
-      logger.info("Serving enriched properties from database & saving to cache");
+
+      dbCache[cacheKey] = enrichedProperties;
+      logger.info(`Serving enriched properties from database & saving to cache (${cacheKey})`);
       res.json(enrichedProperties);
     } catch (error) {
       logger.error("Failed to fetch properties", error);
@@ -1624,9 +1765,27 @@ async function startServer() {
   app.get("/api/properties/:id", async (req, res) => {
     try {
       const property = await prisma.property.findUnique({
-        where: { id: req.params.id }
+        where: { id: req.params.id },
+        include: { subProperties: true }
       });
       if (!property) return res.status(404).json({ error: "Property not found" });
+
+      if (property.status === 'DRAFT') {
+        let isAdmin = false;
+        const token = req.cookies?.token;
+        if (token) {
+          try {
+            const decoded = jwt.verify(token, JWT_SECRET) as any;
+            if (decoded && (decoded.role === 'ADMIN' || decoded.role === 'MANAGER' || decoded.role === 'AGENT')) {
+              isAdmin = true;
+            }
+          } catch (_) {}
+        }
+        if (!isAdmin) {
+          return res.status(404).json({ error: "Property not found" });
+        }
+      }
+
       const coords = extractCoords(property.locationLink);
       res.json({
         ...property,
@@ -1691,6 +1850,8 @@ async function startServer() {
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
           videoUrl: body.videoUrl || null,
           userId: body.userId || null,
+          parentId: body.parentId || null,
+          status: body.status || "PUBLISHED",
         }
       });
       invalidateCache('properties');
@@ -1734,6 +1895,8 @@ async function startServer() {
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
           videoUrl: body.videoUrl || null,
           userId: body.userId || null,
+          parentId: body.parentId || null,
+          status: body.status || "PUBLISHED",
         }
       });
       invalidateCache('properties');
@@ -1883,7 +2046,9 @@ async function startServer() {
       `ALTER TABLE "Settings" ADD COLUMN "imapHost" text`,
       `ALTER TABLE Settings ADD COLUMN imapHost text`,
       `ALTER TABLE "Settings" ADD COLUMN "imapPort" integer`,
-      `ALTER TABLE Settings ADD COLUMN imapPort integer`
+      `ALTER TABLE Settings ADD COLUMN imapPort integer`,
+      `ALTER TABLE "Property" ADD COLUMN "status" text DEFAULT 'PUBLISHED'`,
+      `ALTER TABLE Property ADD COLUMN status text DEFAULT 'PUBLISHED'`
     ];
     for (const cmd of alterCommands) {
       try {
@@ -2712,7 +2877,7 @@ async function startServer() {
       });
 
       // Send Email notification ping
-      await sendCallbackEmailNotification();
+      await sendCallbackEmailNotification(req);
 
       res.status(201).json(newRequest);
     } catch (error) {
@@ -2773,10 +2938,10 @@ async function startServer() {
       });
 
       // Send Email notification ping to customer
-      await sendReplyEmailNotification(updatedRequest, text, (req as any).user.name);
+      await sendReplyEmailNotification(updatedRequest, text, (req as any).user.name, req);
 
       // Send Email notification ping to staff
-      await sendCallbackEmailNotification();
+      await sendCallbackEmailNotification(req);
 
       await logAction(req, "REPLY_CALLBACK", `Added reply note to callback request ID ${id}`);
       res.status(201).json(note);

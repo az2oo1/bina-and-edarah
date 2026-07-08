@@ -21,6 +21,9 @@ interface Property {
   titleEn: string;
   type: string;
   price: number;
+  parentId?: string | null;
+  propertyCategory?: string;
+  status?: string;
 }
 
 interface Project {
@@ -79,6 +82,19 @@ const PREDEFINED_FEATURES = [
   { keyAr: 'مدخل ومخرج سهل وسريع للطرق الرئيسية', keyEn: 'Quick and easy access to highway / main roads' },
   { keyAr: 'موقع هادئ وراقٍ ومناسب جداً للعائلات', keyEn: 'Quiet, premium residential area - very family-friendly' },
 ];
+
+const CATEGORY_SUGGESTIONS: Record<string, string[]> = {
+  VILLA: ['Facade', 'Street Width', 'Rooms', 'Bedrooms', 'Halls', 'Bathrooms', 'Kitchen', 'Parking Spaces', 'Condition', 'Built Area'],
+  APARTMENT: ['Facade', 'Floor', 'Rooms', 'Bedrooms', 'Halls', 'Bathrooms', 'Kitchen', 'Parking Spaces', 'Condition', 'Built Area'],
+  ROOM: ['Floor', 'Rooms', 'Bathrooms', 'Kitchen', 'Condition'],
+  LAND: ['Facade', 'Street Width'],
+  OFFICE: ['Facade', 'Street Width', 'Floor', 'Elevators', 'Parking Spaces', 'Condition', 'Built Area'],
+  SHOP: ['Facade', 'Street Width', 'Elevators', 'Parking Spaces', 'Condition', 'Built Area'],
+  BUILDING: ['Facade', 'Street Width', 'Number of Units', 'Elevators', 'Parking Spaces', 'Condition', 'Built Area'],
+  COMPOUND: ['Facade', 'Number of Units', 'Elevators', 'Parking Spaces', 'Condition', 'Built Area'],
+  TOWER: ['Facade', 'Number of Units', 'Elevators', 'Parking Spaces', 'Condition', 'Built Area'],
+  MALL: ['Facade', 'Number of Units', 'Elevators', 'Parking Spaces', 'Condition', 'Built Area']
+};
 
 const TAB_TO_PERMISSION: Record<string, string> = {
   manage: 'properties',
@@ -214,6 +230,8 @@ export default function Admin() {
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<{type:'success'|'error', text:string} | null>(null);
 
+  const [currentStep, setCurrentStep] = useState(1);
+
   // Property Form State
   const [formData, setFormData] = useState({
     titleAr: '',
@@ -245,7 +263,9 @@ export default function Admin() {
     waterFrequencyVal: 'YEARLY',
     vatExempt: false,
     allowedPaymentPlans: ["1", "2", "4"] as string[],
-    videoUrl: ''
+    videoUrl: '',
+    parentId: '' as string | null,
+    status: 'PUBLISHED'
   });
 
   const fetchProperties = async () => {
@@ -437,8 +457,8 @@ export default function Admin() {
     setTimeout(() => setSubmitMessage(null), 5000);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveProperty = async (e: React.FormEvent | null, statusVal: 'PUBLISHED' | 'DRAFT') => {
+    if (e) e.preventDefault();
     setSubmitMessage(null);
     if (isUploadingImages) {
       showSubmitMessage('error', language === 'ar' ? 'الرجاء الانتظار حتى يكتمل رفع الصور' : 'Please wait for images to finish uploading');
@@ -457,6 +477,7 @@ export default function Admin() {
 
     const payload = {
       ...formData,
+      status: statusVal,
       utilityBills: utilityPayload,
       electricityCost: (formData.includeElectricity ? (parseFloat(formData.electricityCostVal) || 0) : 0) + (formData.includeWater ? (parseFloat(formData.waterCostVal) || 0) : 0),
       electricityFrequency: formData.includeElectricity ? formData.electricityFrequencyVal : (formData.includeWater ? formData.waterFrequencyVal : null),
@@ -476,7 +497,12 @@ export default function Admin() {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        showSubmitMessage('success', isEditing ? (language === 'ar' ? 'تم تحديث العقار بنجاح' : 'Property updated successfully!') : (language === 'ar' ? 'تم إضافة العقار بنجاح' : 'Property added successfully!'));
+        showSubmitMessage('success', isEditing 
+          ? (language === 'ar' ? 'تم تحديث العقار بنجاح' : 'Property updated successfully!') 
+          : (statusVal === 'DRAFT' 
+              ? (language === 'ar' ? 'تم حفظ المسودة بنجاح!' : 'Draft saved successfully!')
+              : (language === 'ar' ? 'تم إضافة العقار بنجاح' : 'Property added successfully!'))
+        );
         resetForm();
         fetchProperties();
         setTimeout(() => setShowAddForm(false), 2000);
@@ -489,6 +515,11 @@ export default function Admin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveProperty(e, formData.status as 'PUBLISHED' | 'DRAFT' || 'PUBLISHED');
   };
 
 
@@ -524,10 +555,13 @@ export default function Admin() {
       waterFrequencyVal: 'YEARLY',
       vatExempt: false,
       allowedPaymentPlans: ["1", "2", "4"],
-      videoUrl: ''
+      videoUrl: '',
+      parentId: '',
+      status: 'PUBLISHED'
     });
     setEditingId(null);
     setShowAddForm(false);
+    setCurrentStep(1);
   };
 
   const handleEditClick = async (property: Property) => {
@@ -633,7 +667,9 @@ export default function Admin() {
         waterFrequencyVal: parsedUtility.waterFrequency,
         vatExempt: propData.vatExempt || false,
         allowedPaymentPlans: parsedPaymentPlans,
-        videoUrl: propData.videoUrl || ''
+        videoUrl: propData.videoUrl || '',
+        parentId: propData.parentId || '',
+        status: propData.status || 'PUBLISHED'
       });
       setEditingId(property.id);
       setShowAddForm(true);
@@ -995,8 +1031,23 @@ export default function Admin() {
                         <tr key={property.id} className="border-b border-border hover:bg-slate-50/40 transition-colors">
                           <td className="px-4 py-3 text-xs text-muted-foreground">{index + 1}</td>
                           <td className="p-4">
-                            <p className="font-semibold text-xs text-foreground">{property.titleAr}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-xs text-foreground">{property.titleAr}</p>
+                              {property.status === 'DRAFT' && (
+                                <span className="inline-flex bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 text-[9px] px-1.5 py-0.5 rounded font-bold">
+                                  {language === 'ar' ? 'مسودة' : 'Draft'}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-[10px] text-muted-foreground font-sans mt-0.5" dir="ltr">{property.titleEn}</p>
+                            {(() => {
+                              const parent = property.parentId ? properties.find(p => p.id === property.parentId) : null;
+                              return parent ? (
+                                <span className="inline-flex bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[9px] px-1.5 py-0.5 rounded font-medium mt-1">
+                                  {language === 'ar' ? `وحدة في: ${parent.titleAr}` : `Unit in: ${parent.titleEn}`}
+                                </span>
+                              ) : null;
+                            })()}
                           </td>
                           <td className="p-4">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
@@ -1033,569 +1084,704 @@ export default function Admin() {
                 </div>
               )
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-12">
+              <form onSubmit={handleSubmit} className="space-y-8">
                 {submitMessage && (
                   <div className={`p-4 rounded-xl font-bold border flex items-center gap-3 ${submitMessage.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                      {submitMessage.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <X className="w-5 h-5 flex-shrink-0" />}
                      {submitMessage.text}
                   </div>
                 )}
-                {/* Basic Information Section */}
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Information'}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.titleAr')}</label>
-                      <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })} className="cn-input" placeholder="مثال: فيلا فاخرة للبيع في الملقا" />
-                    </div>
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.titleEn')}</label>
-                      <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })} className="cn-input" placeholder="e.g. Luxury Villa in Al Malqa" />
-                    </div>
-                    
-                    <div>
-                      <label className="cn-label mb-2">{language === 'ar' ? 'نوع العرض' : 'Type'}</label>
-                      <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="cn-input">
-                        <option value="SALE">{t('common.sale')}</option>
-                        <option value="RENT">{t('common.rent')}</option>
-                      </select>
-                    </div>
 
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.category')}</label>
-                      <select value={formData.propertyCategory} onChange={(e) => setFormData({ ...formData, propertyCategory: e.target.value })} className="cn-input">
-                        <option value="VILLA">{t('cat.VILLA')}</option>
-                        <option value="APARTMENT">{t('cat.APARTMENT')}</option>
-                        <option value="COMPOUND">{t('cat.COMPOUND')}</option>
-                        <option value="TOWER">{t('cat.TOWER')}</option>
-                        <option value="BUILDING">{t('cat.BUILDING')}</option>
-                        <option value="MALL">{t('cat.MALL')}</option>
-                        <option value="SHOP">{t('cat.SHOP')}</option>
-                        <option value="OFFICE">{t('cat.OFFICE')}</option>
-                        <option value="RESORT">{t('cat.RESORT')}</option>
-                        <option value="HOTEL">{t('cat.HOTEL')}</option>
-                        <option value="HOSPITAL">{t('cat.HOSPITAL')}</option>
-                        <option value="WAREHOUSE">{t('cat.WAREHOUSE')}</option>
-                        <option value="FARM">{t('cat.FARM')}</option>
-                        <option value="LAND">{t('cat.LAND')}</option>
-                        <option value="ROOM">{t('cat.ROOM')}</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.area')}</label>
-                      <input required type="number" value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} className="cn-input" placeholder="150" />
-                    </div>
-
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.propertyAge')}</label>
-                      <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({ ...formData, propertyAge: e.target.value })} className="cn-input" placeholder="0" />
-                    </div>
-                  </div>
+                {/* Step Indicator */}
+                <div className="flex items-center justify-between max-w-lg mx-auto mb-10 select-none">
+                  {[1, 2, 3, 4].map((step) => (
+                    <React.Fragment key={step}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (step < currentStep || (formData.titleAr && formData.price)) {
+                            setCurrentStep(step);
+                          }
+                        }}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border transition-all cursor-pointer ${
+                          currentStep === step
+                            ? 'bg-[#2563eb] text-white border-[#2563eb] shadow-md ring-2 ring-primary/20 scale-105'
+                            : currentStep > step
+                            ? 'bg-emerald-500 text-white border-emerald-500'
+                            : 'bg-card text-muted-foreground border-border hover:bg-muted/50'
+                        }`}
+                      >
+                        {currentStep > step ? '✓' : step}
+                      </button>
+                      {step < 4 && (
+                        <div className={`flex-1 h-[2px] transition-colors ${currentStep > step ? 'bg-emerald-500' : 'bg-border'}`} />
+                      )}
+                    </React.Fragment>
+                  ))}
                 </div>
 
-                {/* Location Section */}
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الموقع الجغرافي' : 'Location & Links'}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                      <label className="cn-label mb-2">{t('admin.placeholder.locationText')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="text" value={formData.locationText} onChange={(e) => setFormData({ ...formData, locationText: e.target.value })} className="cn-input" placeholder="Al Malqa, Riyadh..." />
-                    </div>
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.locationLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="url" value={formData.locationLink} onChange={(e) => setFormData({ ...formData, locationLink: e.target.value })} className="cn-input" placeholder="https://maps.google.com/..." />
-                    </div>
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.aqarLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
-                      <input type="url" value={formData.aqarLink} onChange={(e) => setFormData({ ...formData, aqarLink: e.target.value })} className="cn-input" placeholder="https://sa.aqar.fm/..." />
-                    </div>
-                  </div>
+                <div className="text-center mb-8">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                    {language === 'ar' ? `الخطوة ${currentStep} من 4` : `Step ${currentStep} of 4`}
+                  </p>
+                  <h3 className="text-lg font-bold text-foreground mt-1">
+                    {currentStep === 1 && (language === 'ar' ? 'المعلومات الأساسية والموقع' : 'Basic Info & Location')}
+                    {currentStep === 2 && (language === 'ar' ? 'التفاصيل المالية والخدمات' : 'Financials & Utilities')}
+                    {currentStep === 3 && (language === 'ar' ? 'الوصف والتفاصيل الإضافية' : 'Description & Custom Details')}
+                    {currentStep === 4 && (language === 'ar' ? 'الصور ومقاطع الفيديو' : 'Photos & Videos')}
+                  </h3>
                 </div>
 
-                {/* Financial Costs Section */}
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'التكاليف المالية' : 'Financial Details'}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className={formData.type === 'RENT' ? "md:col-span-2" : ""}>
-                      <label className="cn-label mb-2">{t('admin.placeholder.price')}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                        <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
-                          <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
+                {/* STEP 1: Basic & Location Info */}
+                {currentStep === 1 && (
+                  <div className="space-y-8 animate-in fade-in duration-350">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Information'}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.titleAr')}</label>
+                          <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })} className="cn-input" placeholder="مثال: فيلا فاخرة للبيع في الملقا" />
                         </div>
-                        <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0" placeholder="2500000" />
-                        {formData.type === 'RENT' && (
-                          <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
-                            <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card w-36 px-4 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer">
-                              <option value="YEARLY">{t('common.yearly')}</option>
-                              <option value="MONTHLY">{t('common.monthly')}</option>
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.titleEn')}</label>
+                          <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })} className="cn-input" placeholder="e.g. Luxury Villa in Al Malqa" />
+                        </div>
+                        
+                        <div>
+                          <label className="cn-label mb-2">{language === 'ar' ? 'نوع العرض' : 'Type'}</label>
+                          <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="cn-input">
+                            <option value="SALE">{t('common.sale')}</option>
+                            <option value="RENT">{t('common.rent')}</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.category')}</label>
+                          <select value={formData.propertyCategory} onChange={(e) => setFormData({ ...formData, propertyCategory: e.target.value })} className="cn-input">
+                            <option value="VILLA">{t('cat.VILLA')}</option>
+                            <option value="APARTMENT">{t('cat.APARTMENT')}</option>
+                            <option value="COMPOUND">{t('cat.COMPOUND')}</option>
+                            <option value="TOWER">{t('cat.TOWER')}</option>
+                            <option value="BUILDING">{t('cat.BUILDING')}</option>
+                            <option value="MALL">{t('cat.MALL')}</option>
+                            <option value="SHOP">{t('cat.SHOP')}</option>
+                            <option value="OFFICE">{t('cat.OFFICE')}</option>
+                            <option value="RESORT">{t('cat.RESORT')}</option>
+                            <option value="HOTEL">{t('cat.HOTEL')}</option>
+                            <option value="HOSPITAL">{t('cat.HOSPITAL')}</option>
+                            <option value="WAREHOUSE">{t('cat.WAREHOUSE')}</option>
+                            <option value="FARM">{t('cat.FARM')}</option>
+                            <option value="LAND">{t('cat.LAND')}</option>
+                            <option value="ROOM">{t('cat.ROOM')}</option>
+                          </select>
+                        </div>
+
+                        {formData.propertyCategory !== 'BUILDING' && formData.propertyCategory !== 'COMPOUND' && formData.propertyCategory !== 'TOWER' && formData.propertyCategory !== 'MALL' && (
+                          <div>
+                            <label className="cn-label mb-2">{language === 'ar' ? 'المبنى/المجمع التابع له (اختياري)' : 'Belongs to Building/Compound (Optional)'}</label>
+                            <select 
+                              value={formData.parentId || ''} 
+                              onChange={(e) => setFormData({ ...formData, parentId: e.target.value || null })} 
+                              className="cn-input"
+                            >
+                              <option value="">{language === 'ar' ? '— لا يوجد (عقار مستقل) —' : '— None (Standalone) —'}</option>
+                              {properties
+                                .filter(p => p.id !== editingId && (p.propertyCategory === 'BUILDING' || p.propertyCategory === 'COMPOUND' || p.propertyCategory === 'TOWER' || p.propertyCategory === 'MALL'))
+                                .map(p => (
+                                  <option key={p.id} value={p.id}>
+                                    {language === 'ar' ? p.titleAr : p.titleEn}
+                                  </option>
+                                ))
+                              }
                             </select>
                           </div>
                         )}
+
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.area')}</label>
+                          <input required type="number" value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} className="cn-input" placeholder="150" />
+                        </div>
+
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.propertyAge')}</label>
+                          <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({ ...formData, propertyAge: e.target.value })} className="cn-input" placeholder="0" />
+                        </div>
                       </div>
                     </div>
 
-                    {formData.type === 'RENT' && (
-                      <div className="md:col-span-2 space-y-2.5">
-                        <label className="cn-label text-xs">
-                          {language === 'ar' ? 'أقساط الدفع المقبولة' : 'Allowed Payment Installments'}
-                        </label>
-                        <div className="flex flex-wrap gap-2.5">
-                          {[
-                            { value: "1", labelAr: "دفعة واحدة سنوية", labelEn: "1 Payment (Annual)" },
-                            { value: "2", labelAr: "دفعتين (نصف سنوي)", labelEn: "2 Installments" },
-                            { value: "3", labelAr: "3 دفعات", labelEn: "3 Installments" },
-                            { value: "4", labelAr: "4 دفعات (ربع سنوي)", labelEn: "4 Installments" },
-                            { value: "6", labelAr: "6 دفعات", labelEn: "6 Installments" },
-                            { value: "12", labelAr: "12 دفعة شهري", labelEn: "12 Installments (Monthly)" }
-                          ].map((opt) => {
-                            const isSelected = formData.allowedPaymentPlans?.includes(opt.value);
-                            return (
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الموقع الجغرافي' : 'Location & Links'}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="md:col-span-2">
+                          <label className="cn-label mb-2">{t('admin.placeholder.locationText')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
+                          <input type="text" value={formData.locationText} onChange={(e) => setFormData({ ...formData, locationText: e.target.value })} className="cn-input" placeholder="Al Malqa, Riyadh..." />
+                        </div>
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.locationLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
+                          <input type="url" value={formData.locationLink} onChange={(e) => setFormData({ ...formData, locationLink: e.target.value })} className="cn-input" placeholder="https://maps.google.com/..." />
+                        </div>
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.aqarLink')} {language === 'ar' ? '(اختياري)' : '(Optional)'}</label>
+                          <input type="url" value={formData.aqarLink} onChange={(e) => setFormData({ ...formData, aqarLink: e.target.value })} className="cn-input" placeholder="https://sa.aqar.fm/..." />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 2: Financial Details & Utilities */}
+                {currentStep === 2 && (
+                  <div className="space-y-8 animate-in fade-in duration-350">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'التكاليف المالية والخدمات' : 'Financial Details & Utilities'}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className={formData.type === 'RENT' ? "md:col-span-2" : ""}>
+                          <label className="cn-label mb-2">{t('admin.placeholder.price')}</label>
+                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                            <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
+                              <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
+                            </div>
+                            <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0" placeholder="2500000" />
+                            {formData.type === 'RENT' && (
+                              <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
+                                <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card w-36 px-4 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer">
+                                  <option value="YEARLY">{t('common.yearly')}</option>
+                                  <option value="MONTHLY">{t('common.monthly')}</option>
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {formData.type === 'RENT' && (
+                          <div className="md:col-span-2 space-y-2.5">
+                            <label className="cn-label text-xs">
+                              {language === 'ar' ? 'أقساط الدفع المقبولة' : 'Allowed Payment Installments'}
+                            </label>
+                            <div className="flex flex-wrap gap-2.5">
+                              {[
+                                { value: "1", labelAr: "دفعة واحدة سنوية", labelEn: "1 Payment (Annual)" },
+                                { value: "2", labelAr: "دفعتين (نصف سنوي)", labelEn: "2 Installments" },
+                                { value: "3", labelAr: "3 دفعات", labelEn: "3 Installments" },
+                                { value: "4", labelAr: "4 دفعات (ربع سنوي)", labelEn: "4 Installments" },
+                                { value: "6", labelAr: "6 دفعات", labelEn: "6 Installments" },
+                                { value: "12", labelAr: "12 دفعة شهري", labelEn: "12 Installments (Monthly)" }
+                              ].map((opt) => {
+                                const isSelected = formData.allowedPaymentPlans?.includes(opt.value);
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => {
+                                      let updated = formData.allowedPaymentPlans || [];
+                                      if (updated.includes(opt.value)) {
+                                        updated = updated.filter(v => v !== opt.value);
+                                      } else {
+                                        updated = [...updated, opt.value];
+                                      }
+                                      updated.sort((a, b) => Number(a) - Number(b));
+                                      setFormData({ 
+                                        ...formData, 
+                                        allowedPaymentPlans: updated,
+                                        paymentsCount: updated[0] || '1'
+                                      });
+                                    }}
+                                    className={`py-2 px-4 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-primary/10 border-primary text-primary shadow-xs'
+                                        : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
+                                    }`}
+                                  >
+                                    {language === 'ar' ? opt.labelAr : opt.labelEn}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {formData.type === 'RENT' && (
+                          <div className="md:col-span-2 space-y-4">
+                            <label className="cn-label">{language === 'ar' ? 'الفواتير الخدمية' : 'Utility Bills'}</label>
+                            <div className="flex gap-4">
                               <button
-                                key={opt.value}
                                 type="button"
-                                onClick={() => {
-                                  let updated = formData.allowedPaymentPlans || [];
-                                  if (updated.includes(opt.value)) {
-                                    updated = updated.filter(v => v !== opt.value);
-                                  } else {
-                                    updated = [...updated, opt.value];
-                                  }
-                                  updated.sort((a, b) => Number(a) - Number(b));
-                                  setFormData({ 
-                                    ...formData, 
-                                    allowedPaymentPlans: updated,
-                                    paymentsCount: updated[0] || '1'
-                                  });
-                                }}
-                                className={`py-2 px-4 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-primary/10 border-primary text-primary shadow-xs'
+                                onClick={() => setFormData({ ...formData, includeElectricity: !formData.includeElectricity })}
+                                className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                  formData.includeElectricity 
+                                    ? 'bg-primary/10 border-primary text-primary shadow-xs' 
                                     : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
                                 }`}
                               >
-                                {language === 'ar' ? opt.labelAr : opt.labelEn}
+                                <span>⚡</span>
+                                <span>{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</span>
                               </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, includeWater: !formData.includeWater })}
+                                className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                  formData.includeWater 
+                                    ? 'bg-primary/10 border-primary text-primary shadow-xs' 
+                                    : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
+                                }`}
+                              >
+                                <span>💧</span>
+                                <span>{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</span>
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {formData.includeElectricity && (
+                                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                                  <label className="cn-label text-xs">
+                                    {language === 'ar' ? 'تكلفة الكهرباء:' : 'Electricity Cost:'}
+                                  </label>
+                                  <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                                    <div className="flex bg-muted items-center justify-center px-3 border-r border-border ltr:border-r rtl:border-l flex-shrink-0">
+                                      <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
+                                    </div>
+                                    <input 
+                                      type="number" 
+                                      value={formData.electricityCostVal} 
+                                      onChange={(e) => setFormData({ ...formData, electricityCostVal: e.target.value })} 
+                                      className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" 
+                                      placeholder="0" 
+                                    />
+                                    <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
+                                      <select 
+                                        value={formData.electricityFrequencyVal} 
+                                        onChange={(e) => setFormData({ ...formData, electricityFrequencyVal: e.target.value })} 
+                                        className="bg-card w-28 px-3 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer text-foreground"
+                                      >
+                                        <option value="YEARLY">{t('common.yearly')}</option>
+                                        <option value="MONTHLY">{t('common.monthly')}</option>
+                                      </select>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {formData.includeWater && (
+                                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                                  <label className="cn-label text-xs">
+                                    {language === 'ar' ? 'تكلفة المياه:' : 'Water Cost:'}
+                                  </label>
+                                  <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                                    <div className="flex bg-muted items-center justify-center px-3 border-r border-border ltr:border-r rtl:border-l flex-shrink-0">
+                                      <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
+                                    </div>
+                                    <input 
+                                      type="number" 
+                                      value={formData.waterCostVal} 
+                                      onChange={(e) => setFormData({ ...formData, waterCostVal: e.target.value })} 
+                                      className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" 
+                                      placeholder="0" 
+                                    />
+                                    <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
+                                      <select 
+                                        value={formData.waterFrequencyVal} 
+                                        onChange={(e) => setFormData({ ...formData, waterFrequencyVal: e.target.value })} 
+                                        className="bg-card w-28 px-3 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer text-foreground"
+                                      >
+                                        <option value="YEARLY">{t('common.yearly')}</option>
+                                        <option value="MONTHLY">{t('common.monthly')}</option>
+                                      </select>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                         <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="cn-label">{t('admin.placeholder.vat')}</label>
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ 
+                                ...formData, 
+                                vatExempt: !formData.vatExempt,
+                                vat: !formData.vatExempt ? '0' : formData.vat 
+                              })}
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${formData.vatExempt ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-muted text-muted-foreground border border-border hover:bg-gray-200'}`}
+                            >
+                              {formData.vatExempt ? (language === 'ar' ? 'معفى من الضريبة ✓' : 'VAT Exempt ✓') : (language === 'ar' ? 'معفى؟' : 'Exempt?')}
+                            </button>
+                          </div>
+                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                            <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
+                              <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
+                            </div>
+                            <input 
+                              type="number" 
+                              disabled={formData.vatExempt}
+                              value={formData.vatExempt ? '0' : formData.vat} 
+                              onChange={(e) => setFormData({ ...formData, vat: e.target.value })} 
+                              className="cn-input disabled:opacity-50" 
+                              placeholder="0" 
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.commission')}</label>
+                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                            <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
+                              <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
+                            </div>
+                            <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="cn-input" placeholder="0" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: Description & Custom Details */}
+                {currentStep === 3 && (
+                  <div className="space-y-8 animate-in fade-in duration-350">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الوصف' : 'Description'}</h3>
+                      <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="cn-input resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
+                    </div>
+
+                    <div className="space-y-8">
+                      {/* Additional Details (Key-Value) Card */}
+                      <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div>
+                          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
+                            <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">1</span>
+                            {language === 'ar' ? 'التفاصيل الإضافية (خصائص بقيمة)' : 'Additional Details (Key & Value)'}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            {language === 'ar' 
+                              ? 'أدخل خصائص محددة بقيمة، مثل: (الواجهة: شمالية، عدد الصالات: 2، مسطح البناء: 300 م²). ملاحظة: عمر العقار موجود في البيانات الأساسية.'
+                              : 'Enter specific key-value properties, e.g., (Facade: North, Halls: 2, Built Area: 300 m²). Note: Property Age is configured under Basic Information.'}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 py-2">
+                          {(() => {
+                            const allowedKeys = CATEGORY_SUGGESTIONS[formData.propertyCategory] || PREDEFINED_DETAILS.map(pd => pd.keyEn);
+                            return PREDEFINED_DETAILS.filter(pd => allowedKeys.includes(pd.keyEn)).map(pd => (
+                              <button
+                                key={pd.keyEn}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({ 
+                                    ...formData, 
+                                    detailsList: [...formData.detailsList, { id: Math.random().toString(), key: language === 'ar' ? pd.keyAr : pd.keyEn, value: '' }] 
+                                  });
+                                }}
+                                className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
+                                title={pd.example}
+                              >
+                                <PlusCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                {language === 'ar' ? pd.keyAr : pd.keyEn}
+                              </button>
+                            ));
+                          })()}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {formData.detailsList.length > 0 && (
+                            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-1 text-xs font-semibold text-muted-foreground">
+                              <div>{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
+                              <div>{language === 'ar' ? 'القيمة' : 'Value'}</div>
+                              <div className="w-10"></div>
+                            </div>
+                          )}
+                          {formData.detailsList.map((detail, idx) => (
+                            <div key={detail.id} className="flex gap-2 items-center relative group">
+                              <input
+                                type="text"
+                                value={detail.key}
+                                onChange={(e) => {
+                                  const newList = [...formData.detailsList];
+                                  newList[idx].key = e.target.value;
+                                  setFormData({ ...formData, detailsList: newList });
+                                }}
+                                placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'}
+                                className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                              />
+                              <input
+                                type="text"
+                                value={detail.value}
+                                onChange={(e) => {
+                                  const newList = [...formData.detailsList];
+                                  newList[idx].value = e.target.value;
+                                  setFormData({ ...formData, detailsList: newList });
+                                }}
+                                placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'}
+                                className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newList = formData.detailsList.filter((_, i) => i !== idx);
+                                  setFormData({ ...formData, detailsList: newList });
+                                }}
+                                className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
+                              >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, detailsList: [...formData.detailsList, { id: Math.random().toString(), key: '', value: '' }] })}
+                            className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2 text-sm text-sky-500"
+                          >
+                            <PlusCircle className="w-4.5 h-4.5" />
+                            {language === 'ar' ? 'إضافة تفصيل مخصص' : 'Add Custom Detail'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Additional Features (amenity tags) Card */}
+                      <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
+                        <div>
+                          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
+                            <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">2</span>
+                            {language === 'ar' ? 'المميزات الإضافية (نصوص فردية)' : 'Additional Features (Single Tags)'}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            {language === 'ar' 
+                              ? 'أدخل مميزات فردية أو خدمات عامة للعقار، مثل: (مسبح، نادي رياضي، دخول ذكي، حديقة).' 
+                              : 'Enter individual amenities or facilities, e.g., (Pool, Gym, Smart Access, Garden).'}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 py-2">
+                          {PREDEFINED_FEATURES.map(pf => (
+                            <button
+                              key={pf.keyEn}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ 
+                                  ...formData, 
+                                  featuresList: [...formData.featuresList, { id: Math.random().toString(), value: language === 'ar' ? pf.keyAr : pf.keyEn }] 
+                                });
+                              }}
+                              className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
+                            >
+                              <PlusCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                              {language === 'ar' ? pf.keyAr : pf.keyEn}
+                            </button>
+                          ))}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {formData.featuresList.length > 0 && (
+                            <div className="grid grid-cols-[1fr_auto] gap-2 px-1 text-xs font-semibold text-muted-foreground">
+                              <div>{language === 'ar' ? 'اسم الميزة' : 'Feature Name'}</div>
+                              <div className="w-10"></div>
+                            </div>
+                          )}
+                          {formData.featuresList.map((feature, idx) => (
+                            <div key={feature.id} className="flex gap-2 items-center relative group">
+                              <input
+                                type="text"
+                                value={feature.value}
+                                onChange={(e) => {
+                                  const newList = [...formData.featuresList];
+                                  newList[idx].value = e.target.value;
+                                  setFormData({ ...formData, featuresList: newList });
+                                }}
+                                placeholder={language === 'ar' ? 'ميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'}
+                                className="w-full border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newList = formData.featuresList.filter((_, i) => i !== idx);
+                                  setFormData({ ...formData, featuresList: newList });
+                                }}
+                                className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
+                              >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, featuresList: [...formData.featuresList, { id: Math.random().toString(), value: '' }] })}
+                            className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2 text-sm text-sky-500"
+                          >
+                            <PlusCircle className="w-4.5 h-4.5" />
+                            {language === 'ar' ? 'إضافة ميزة مخصصة' : 'Add Custom Feature'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 4: Media & Uploads */}
+                {currentStep === 4 && (
+                  <div className="space-y-8 animate-in fade-in duration-350">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الصور والفيديوهات' : 'Images & Videos'} (Max 250MB total)</h3>
+                      
+                      {imageUploadMessage && (
+                        <div className="mb-4 p-4 rounded-xl font-bold border bg-red-50 text-red-700 border-red-200 flex items-center gap-3">
+                           <X className="w-5 h-5 flex-shrink-0" />
+                           {imageUploadMessage.text}
+                        </div>
+                      )}
+
+                      <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isUploadingImages ? 'border-border bg-muted cursor-not-allowed' : 'border-[#2563eb]/30 bg-card hover:bg-muted'}`}>
+                        <input type="file" multiple accept="image/*,video/*" onChange={handleImageUpload} className="hidden" id="image-upload" disabled={isUploadingImages} />
+                        <label htmlFor="image-upload" className={`flex flex-col items-center ${isUploadingImages ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                          {isUploadingImages ? (
+                            <Loader2 className="w-12 h-12 text-indigo-500 mb-4 animate-spin" />
+                          ) : (
+                            <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
+                          )}
+                          
+                          <span className="font-bold text-lg text-muted-foreground">
+                            {isUploadingImages ? (language === 'ar' ? 'جاري معالجة الملفات...' : 'Processing Media...') : (language === 'ar' ? 'اسحب وأفلت الصور ومقاطع الفيديو هنا، أو اضغط للتصفح' : 'Drag & drop images and videos here, or click to browse')}
+                          </span>
+                        </label>
+                      </div>
+                      
+                      {formData.imageUrls.length > 0 && (
+                        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                          {formData.imageUrls.map((url, i) => {
+                            const isVideo = url && (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm') || url.endsWith('.avi'));
+                            return (
+                              <div key={i} className="relative aspect-square bg-muted rounded-xl overflow-hidden border border-border group/img">
+                                {isVideo ? (
+                                  <video src={url} className="w-full h-full object-cover" muted playsInline />
+                                ) : (
+                                  <img src={url} alt="upload preview" className="w-full h-full object-cover" />
+                                )}
+                                
+                                {/* Main Image Badge */}
+                                {i === 0 && (
+                                  <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm z-10">
+                                    {language === 'ar' ? 'الرئيسية' : 'Main'}
+                                  </div>
+                                )}
+
+                                {/* Play overlay for video */}
+                                {isVideo && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
+                                    <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white">
+                                      <svg className="w-4 h-4 ml-0.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <button 
+                                  type="button" 
+                                  onClick={() => removeImage(i)} 
+                                  className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md z-10 transition-colors cursor-pointer"
+                                  title={language === 'ar' ? 'حذف' : 'Delete'}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Rearrange Arrows Overlay Bar */}
+                                <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1.5 z-10 opacity-85 hover:opacity-100 transition-opacity">
+                                  <button
+                                    type="button"
+                                    disabled={i === 0}
+                                    onClick={() => moveImage(i, 'prev')}
+                                    className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                                    title={language === 'ar' ? 'تحريك للخلف' : 'Move Left'}
+                                  >
+                                    <ArrowLeft className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={i === formData.imageUrls.length - 1}
+                                    onClick={() => moveImage(i, 'next')}
+                                    className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                                    title={language === 'ar' ? 'تحريك للأمام' : 'Move Right'}
+                                  >
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
                             );
                           })}
                         </div>
-                      </div>
-                    )}
-
-                    {formData.type === 'RENT' && (
-                      <div className="md:col-span-2 space-y-4">
-                        <label className="cn-label">{language === 'ar' ? 'الفواتير الخدمية' : 'Utility Bills'}</label>
-                        <div className="flex gap-4">
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, includeElectricity: !formData.includeElectricity })}
-                            className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                              formData.includeElectricity 
-                                ? 'bg-primary/10 border-primary text-primary shadow-xs' 
-                                : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
-                            }`}
-                          >
-                            <span>⚡</span>
-                            <span>{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, includeWater: !formData.includeWater })}
-                            className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                              formData.includeWater 
-                                ? 'bg-primary/10 border-primary text-primary shadow-xs' 
-                                : 'bg-card border-border text-muted-foreground hover:bg-muted/50'
-                            }`}
-                          >
-                            <span>💧</span>
-                            <span>{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</span>
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {formData.includeElectricity && (
-                            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                              <label className="cn-label text-xs">
-                                {language === 'ar' ? 'تكلفة الكهرباء:' : 'Electricity Cost:'}
-                              </label>
-                              <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                                <div className="flex bg-muted items-center justify-center px-3 border-r border-border ltr:border-r rtl:border-l flex-shrink-0">
-                                  <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
-                                </div>
-                                <input 
-                                  type="number" 
-                                  value={formData.electricityCostVal} 
-                                  onChange={(e) => setFormData({ ...formData, electricityCostVal: e.target.value })} 
-                                  className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" 
-                                  placeholder="0" 
-                                />
-                                <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
-                                  <select 
-                                    value={formData.electricityFrequencyVal} 
-                                    onChange={(e) => setFormData({ ...formData, electricityFrequencyVal: e.target.value })} 
-                                    className="bg-card w-28 px-3 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer text-foreground"
-                                  >
-                                    <option value="YEARLY">{t('common.yearly')}</option>
-                                    <option value="MONTHLY">{t('common.monthly')}</option>
-                                  </select>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {formData.includeWater && (
-                            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                              <label className="cn-label text-xs">
-                                {language === 'ar' ? 'تكلفة المياه:' : 'Water Cost:'}
-                              </label>
-                              <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                                <div className="flex bg-muted items-center justify-center px-3 border-r border-border ltr:border-r rtl:border-l flex-shrink-0">
-                                  <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
-                                </div>
-                                <input 
-                                  type="number" 
-                                  value={formData.waterCostVal} 
-                                  onChange={(e) => setFormData({ ...formData, waterCostVal: e.target.value })} 
-                                  className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" 
-                                  placeholder="0" 
-                                />
-                                <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
-                                  <select 
-                                    value={formData.waterFrequencyVal} 
-                                    onChange={(e) => setFormData({ ...formData, waterFrequencyVal: e.target.value })} 
-                                    className="bg-card w-28 px-3 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer text-foreground"
-                                  >
-                                    <option value="YEARLY">{t('common.yearly')}</option>
-                                    <option value="MONTHLY">{t('common.monthly')}</option>
-                                  </select>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="cn-label">{t('admin.placeholder.vat')}</label>
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ 
-                            ...formData, 
-                            vatExempt: !formData.vatExempt,
-                            vat: !formData.vatExempt ? '0' : formData.vat 
-                          })}
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${formData.vatExempt ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-muted text-muted-foreground border border-border hover:bg-gray-200'}`}
-                        >
-                          {formData.vatExempt ? (language === 'ar' ? 'معفى من الضريبة ✓' : 'VAT Exempt ✓') : (language === 'ar' ? 'معفى؟' : 'Exempt?')}
-                        </button>
-                      </div>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                        <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
-                          <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
-                        </div>
-                        <input 
-                          type="number" 
-                          disabled={formData.vatExempt}
-                          value={formData.vatExempt ? '0' : formData.vat} 
-                          onChange={(e) => setFormData({ ...formData, vat: e.target.value })} 
-                          className="cn-input disabled:opacity-50" 
-                          placeholder="0" 
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.commission')}</label>
-                      <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                        <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
-                          <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
-                        </div>
-                        <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="cn-input" placeholder="0" />
-                      </div>
-                    </div>
-
-                    {/* Allowed Payment Plans checkboxes removed */}
-
-                  </div>
-                </div>
-
-                {/* Details & Features Section */}
-                <div className="space-y-8">
-                  {/* Additional Details (Key-Value) Card */}
-                  <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
-                        <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">1</span>
-                        {language === 'ar' ? 'التفاصيل الإضافية (خصائص بقيمة)' : 'Additional Details (Key & Value)'}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {language === 'ar' 
-                          ? 'أدخل خصائص محددة بقيمة، مثل: (الواجهة: شمالية، عدد الصالات: 2، مسطح البناء: 300 م²). ملاحظة: عمر العقار موجود في البيانات الأساسية.'
-                          : 'Enter specific key-value properties, e.g., (Facade: North, Halls: 2, Built Area: 300 m²). Note: Property Age is configured under Basic Information.'}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 py-2">
-                      {PREDEFINED_DETAILS.map(pd => (
-                        <button
-                          key={pd.keyEn}
-                          type="button"
-                          onClick={() => {
-                            setFormData({ 
-                              ...formData, 
-                              detailsList: [...formData.detailsList, { id: Math.random().toString(), key: language === 'ar' ? pd.keyAr : pd.keyEn, value: '' }] 
-                            });
-                          }}
-                          className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
-                          title={pd.example}
-                        >
-                          <PlusCircle className="w-3.5 h-3.5 text-muted-foreground" />
-                          {language === 'ar' ? pd.keyAr : pd.keyEn}
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {formData.detailsList.length > 0 && (
-                        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-1 text-xs font-semibold text-muted-foreground">
-                          <div>{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
-                          <div>{language === 'ar' ? 'القيمة' : 'Value'}</div>
-                          <div className="w-10"></div>
-                        </div>
                       )}
-                      {formData.detailsList.map((detail, idx) => (
-                        <div key={detail.id} className="flex gap-2 items-center relative group">
-                          <input
-                            type="text"
-                            value={detail.key}
-                            onChange={(e) => {
-                              const newList = [...formData.detailsList];
-                              newList[idx].key = e.target.value;
-                              setFormData({ ...formData, detailsList: newList });
-                            }}
-                            placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'}
-                            className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
-                          />
-                          <input
-                            type="text"
-                            value={detail.value}
-                            onChange={(e) => {
-                              const newList = [...formData.detailsList];
-                              newList[idx].value = e.target.value;
-                              setFormData({ ...formData, detailsList: newList });
-                            }}
-                            placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'}
-                            className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newList = formData.detailsList.filter((_, i) => i !== idx);
-                              setFormData({ ...formData, detailsList: newList });
-                            }}
-                            className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
-                          >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, detailsList: [...formData.detailsList, { id: Math.random().toString(), key: '', value: '' }] })}
-                        className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2 text-sm"
-                      >
-                        <PlusCircle className="w-4.5 h-4.5" />
-                        {language === 'ar' ? 'إضافة تفصيل مخصص' : 'Add Custom Detail'}
-                      </button>
                     </div>
                   </div>
+                )}
 
-                  {/* Additional Features (amenity tags) Card */}
-                  <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
-                        <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">2</span>
-                        {language === 'ar' ? 'المميزات الإضافية (نصوص فردية)' : 'Additional Features (Single Tags)'}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {language === 'ar' 
-                          ? 'أدخل مميزات فردية أو خدمات عامة للعقار، مثل: (مسبح، نادي رياضي، دخول ذكي، حديقة).' 
-                          : 'Enter individual amenities or facilities, e.g., (Pool, Gym, Smart Access, Garden).'}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 py-2">
-                      {PREDEFINED_FEATURES.map(pf => (
-                        <button
-                          key={pf.keyEn}
-                          type="button"
-                          onClick={() => {
-                            setFormData({ 
-                              ...formData, 
-                              featuresList: [...formData.featuresList, { id: Math.random().toString(), value: language === 'ar' ? pf.keyAr : pf.keyEn }] 
-                            });
-                          }}
-                          className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
-                        >
-                          <PlusCircle className="w-3.5 h-3.5 text-muted-foreground" />
-                          {language === 'ar' ? pf.keyAr : pf.keyEn}
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {formData.featuresList.length > 0 && (
-                        <div className="grid grid-cols-[1fr_auto] gap-2 px-1 text-xs font-semibold text-muted-foreground">
-                          <div>{language === 'ar' ? 'اسم الميزة' : 'Feature Name'}</div>
-                          <div className="w-10"></div>
-                        </div>
-                      )}
-                      {formData.featuresList.map((feature, idx) => (
-                        <div key={feature.id} className="flex gap-2 items-center relative group">
-                          <input
-                            type="text"
-                            value={feature.value}
-                            onChange={(e) => {
-                              const newList = [...formData.featuresList];
-                              newList[idx].value = e.target.value;
-                              setFormData({ ...formData, featuresList: newList });
-                            }}
-                            placeholder={language === 'ar' ? 'ميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'}
-                            className="w-full border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newList = formData.featuresList.filter((_, i) => i !== idx);
-                              setFormData({ ...formData, featuresList: newList });
-                            }}
-                            className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
-                          >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, featuresList: [...formData.featuresList, { id: Math.random().toString(), value: '' }] })}
-                        className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2 text-sm"
-                      >
-                        <PlusCircle className="w-4.5 h-4.5" />
-                        {language === 'ar' ? 'إضافة ميزة مخصصة' : 'Add Custom Feature'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الوصف' : 'Description'}</h3>
-                  <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="cn-input resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
-                </div>
-
-                {/* Images and Videos Section */}
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الصور والفيديوهات' : 'Images & Videos'} (Max 250MB total)</h3>
-                  
-                  {imageUploadMessage && (
-                    <div className="mb-4 p-4 rounded-xl font-bold border bg-red-50 text-red-700 border-red-200 flex items-center gap-3">
-                       <X className="w-5 h-5 flex-shrink-0" />
-                       {imageUploadMessage.text}
-                    </div>
+                {/* Wizard Navigation & Submission Panel */}
+                <div className="flex items-center justify-between gap-4 pt-6 border-t border-border mt-8 flex-wrap">
+                  {currentStep > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(currentStep - 1)}
+                      className="px-5 py-2.5 border border-border text-foreground hover:bg-muted rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+                      {language === 'ar' ? 'السابق' : 'Previous'}
+                    </button>
+                  ) : (
+                    <div />
                   )}
 
-                  <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isUploadingImages ? 'border-border bg-muted cursor-not-allowed' : 'border-border bg-card hover:bg-muted'}`}>
-                    <input type="file" multiple accept="image/*,video/*" onChange={handleImageUpload} className="hidden" id="image-upload" disabled={isUploadingImages} />
-                    <label htmlFor="image-upload" className={`flex flex-col items-center ${isUploadingImages ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                      {isUploadingImages ? (
-                        <Loader2 className="w-12 h-12 text-indigo-500 mb-4 animate-spin" />
-                      ) : (
-                        <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
-                      )}
-                      
-                      <span className={`font-bold text-lg ${isUploadingImages ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
-                        {isUploadingImages ? (language === 'ar' ? 'جاري معالجة الملفات...' : 'Processing Media...') : (language === 'ar' ? 'اسحب وأفلت الصور ومقاطع الفيديو هنا، أو اضغط للتصفح' : 'Drag & drop images and videos here, or click to browse')}
-                      </span>
-                    </label>
+                  <div className="flex items-center gap-3">
+                    {/* Save as Draft Button */}
+                    <button
+                      type="button"
+                      disabled={loading || isUploadingImages}
+                      onClick={async (e) => {
+                        if (!formData.titleAr) {
+                          await showAlert(language === 'ar' ? 'الرجاء إدخال عنوان العقار بالعربية على الأقل لحفظ المسودة' : 'Please enter at least the Arabic Title to save a draft.');
+                          return;
+                        }
+                        await saveProperty(e, 'DRAFT');
+                      }}
+                      className="px-5 py-2.5 border border-amber-300 bg-amber-50/50 hover:bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-400 rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {language === 'ar' ? 'حفظ كمسودة' : 'Save as Draft'}
+                    </button>
+
+                    {currentStep < 4 ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (currentStep === 1) {
+                            if (!formData.titleAr) {
+                              await showAlert(language === 'ar' ? 'الرجاء إدخال عنوان العقار بالعربية' : 'Please enter the Arabic Title.');
+                              return;
+                            }
+                          }
+                          if (currentStep === 2) {
+                            if (!formData.price) {
+                              await showAlert(language === 'ar' ? 'الرجاء إدخال السعر' : 'Please enter the price.');
+                              return;
+                            }
+                          }
+                          setCurrentStep(currentStep + 1);
+                        }}
+                        className="px-5 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        {language === 'ar' ? 'التالي' : 'Next'}
+                        <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={loading || isUploadingImages}
+                        onClick={(e) => saveProperty(e, 'PUBLISHED')}
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                      >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'ar' ? 'نشر العقار' : 'Publish Property')}
+                      </button>
+                    )}
                   </div>
-                  
-                  {formData.imageUrls.length > 0 && (
-                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                      {formData.imageUrls.map((url, i) => {
-                        const isVideo = url && (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm') || url.endsWith('.avi'));
-                        return (
-                          <div key={i} className="relative aspect-square bg-muted rounded-xl overflow-hidden border border-border group/img">
-                            {isVideo ? (
-                              <video src={url} className="w-full h-full object-cover" muted playsInline />
-                            ) : (
-                              <img src={url} alt="upload preview" className="w-full h-full object-cover" />
-                            )}
-                            
-                            {/* Main Image Badge */}
-                            {i === 0 && (
-                              <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm z-10">
-                                {language === 'ar' ? 'الرئيسية' : 'Main'}
-                              </div>
-                            )}
-
-                            {/* Play overlay for video */}
-                            {isVideo && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
-                                <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white">
-                                  <svg className="w-4 h-4 ml-0.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                                </div>
-                              </div>
-                            )}
-
-                            <button 
-                              type="button" 
-                              onClick={() => removeImage(i)} 
-                              className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md z-10 transition-colors cursor-pointer"
-                              title={language === 'ar' ? 'حذف' : 'Delete'}
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Rearrange Arrows Overlay Bar */}
-                            <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1.5 z-10 opacity-85 hover:opacity-100 transition-opacity">
-                              <button
-                                type="button"
-                                disabled={i === 0}
-                                onClick={() => moveImage(i, 'prev')}
-                                className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                                title={language === 'ar' ? 'تحريك للخلف' : 'Move Left'}
-                              >
-                                <ArrowLeft className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                disabled={i === formData.imageUrls.length - 1}
-                                onClick={() => moveImage(i, 'next')}
-                                className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                                title={language === 'ar' ? 'تحريك للأمام' : 'Move Right'}
-                              >
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
-              
-              <div className="pt-6">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full btn-primary text-white font-bold py-4 px-4 rounded-xl transition-all flex justify-center items-center gap-2 text-base shadow-lg cursor-pointer"
-                >
-                  {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : t('admin.submit')}
-                </button>
-              </div>
-            </form>
+              </form>
             )}
           </div>
         )}
@@ -2183,20 +2369,7 @@ export default function Admin() {
                               <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? 'الحد الأقصى 50MB' : 'Max 50MB'}</p>
                             </div>
                             
-                            {slot.isVideo && (
-                              <div className="w-full mt-4 border-t border-border pt-4">
-                                <label className="cn-label text-[11px] mb-1.5 font-bold text-foreground">
-                                  {language === 'ar' ? 'أو أدخل رابط فيديو مباشر (MP4):' : 'Or enter a direct video URL (MP4):'}
-                                </label>
-                                <input
-                                  type="text"
-                                  value={slot.current && !slot.current.startsWith('data:') ? slot.current : ''}
-                                  onChange={(e) => slot.onUpload(e.target.value)}
-                                  placeholder="https://assets.mixkit.co/.../video.mp4"
-                                  className="cn-input bg-background font-mono h-11 text-xs max-w-xl"
-                                />
-                              </div>
-                            )}
+
                           </div>
                         </div>
                       ))}

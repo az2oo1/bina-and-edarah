@@ -30,6 +30,7 @@ interface Property {
   paymentsCount?: number | null;
   videoUrl?: string;
   createdAt: string;
+  subProperties?: Property[];
 }
 
 const getDetailIcon = (key: string) => {
@@ -289,147 +290,175 @@ export default function PropertyDetails() {
             <div className="shadcn-card p-6">
               
               {/* Price Details */}
-              <div className="mb-6 pb-6 border-b border-border">
-                <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">{t('common.totalCost')}</p>
-                <div className="flex items-end gap-1 mb-4">
-                  <span className="text-3xl font-extrabold text-foreground font-mono tracking-tight">{(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()}</span>
-                  <SrIcon className="w-6 h-6 text-primary pb-0.5" />
-                </div>
-                {property.type === 'RENT' && property.paymentFrequency && (
-                  <div className="flex gap-1.5 mb-4">
-                    <p className="text-xs text-primary bg-primary/10 border border-primary/20 rounded px-2.5 py-1 font-semibold flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5 text-primary" />
-                      {property.paymentFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
-                    </p>
-                    {property.paymentsCount && (
-                      <p className="text-xs text-primary bg-primary/10 border border-primary/20 rounded px-2.5 py-1 font-semibold flex items-center gap-1.5">
-                        <Coins className="w-3.5 h-3.5 text-primary" />
-                        {property.paymentsCount} {language === 'ar' ? (property.paymentsCount === 1 ? 'دفعة' : property.paymentsCount === 2 ? 'دفعتين' : 'دفعات') : 'Payments'}
+              {property.subProperties && property.subProperties.length > 0 ? (
+                <div className="mb-6 pb-6 border-b border-border">
+                  <p className="text-[10px] font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    {language === 'ar' ? 'الوحدات المتاحة' : 'AVAILABLE UNITS'}
+                  </p>
+                  <div className="flex items-center gap-3.5 p-4 bg-[#2563eb]/5 border border-[#2563eb]/10 rounded-xl mb-4">
+                    <Building2 className="w-5 h-5 text-[#2563eb]" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">
+                        {language === 'ar' ? 'عقار يحتوي على وحدات سكنية' : 'Property contains multiple units'}
                       </p>
-                    )}
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {language === 'ar' 
+                          ? `${property.subProperties.length} شقة/مكتب متوفرة`
+                          : `${property.subProperties.length} units available`}
+                      </p>
+                    </div>
                   </div>
-                )}
-                <div className="space-y-2.5 p-4 bg-background rounded-lg border border-border">
-                  <p className="text-xs font-bold text-muted-foreground mb-0.5">{language === 'ar' ? 'التفاصيل المالية' : 'Financial Breakdown'}</p>
-                  
-                  <div className="flex justify-between items-center text-xs font-medium">
-                    <span className="text-muted-foreground">{t('common.basePrice')}</span>
-                    <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
-                      {property.price.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-xs font-medium">
-                    <span className="text-muted-foreground">{t('common.vat')}</span>
-                    <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
-                      {property.vatExempt ? (language === 'ar' ? 'معفى' : 'Exempt') : (property.vat > 0 ? <>{property.vat.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" /></> : (language === 'ar' ? 'شامل' : 'Included'))}
-                    </span>
-                  </div>
-                   {property.type === 'RENT' && (() => {
-                    try {
-                      if (!property.utilityBills || property.utilityBills === 'NONE') {
-                        throw new Error('No utility bills');
-                      }
-                      const parsed = JSON.parse(property.utilityBills);
-                      const rows = [];
-                      if (parsed.electricity && parsed.electricityCost > 0) {
-                        rows.push(
-                          <div key="elec" className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
-                            <span className="text-muted-foreground">{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</span>
-                            <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
-                              {parsed.electricityCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
-                              <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
-                                / {parsed.electricityFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
-                              </span>
-                            </span>
-                          </div>
-                        );
-                      }
-                      if (parsed.water && parsed.waterCost > 0) {
-                        rows.push(
-                          <div key="water" className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
-                            <span className="text-muted-foreground">{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</span>
-                            <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
-                              {parsed.waterCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
-                              <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
-                                / {parsed.waterFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
-                              </span>
-                            </span>
-                          </div>
-                        );
-                      }
-                      return rows;
-                    } catch (_) {
-                      if (property.electricityCost > 0) {
-                        return (
-                          <div className="flex justify-between items-center text-xs font-medium">
-                            <span className="text-muted-foreground">{language === 'ar' ? 'الفواتير الخدمية' : 'Utility Bills'}</span>
-                            <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
-                              {property.electricityCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
-                              {property.electricityFrequency && (
-                                <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
-                                  / {property.electricityFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }
-                  })()}
-                  <div className="flex justify-between items-center text-xs font-medium">
-                    <span className="text-muted-foreground">{t('common.commission')}</span>
-                    <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
-                      {property.commission > 0 ? <>{property.commission.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" /></> : (language === 'ar' ? 'غير محدد' : 'N/A')}
-                    </span>
-                  </div>
-                  {property.type === 'RENT' && (() => {
-                    const allowedPlans = (() => {
-                      if (!property.allowedPaymentPlans) return [];
-                      try {
-                        const parsed = JSON.parse(property.allowedPaymentPlans);
-                        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                      } catch (_) {}
-                      return [];
-                    })();
-
-                    if (allowedPlans.length === 0 && property.paymentsCount) {
-                      allowedPlans.push(String(property.paymentsCount));
-                    }
-
-                    return allowedPlans.map((plan) => {
-                      const planNum = Number(plan);
-                      if (isNaN(planNum)) return null;
-
-                      const label = plan === "1"
-                        ? (language === 'ar' ? 'دفعة سنوية' : '1 Payment / Annual')
-                        : plan === "2"
-                        ? (language === 'ar' ? 'دفعتين' : '2 Payments')
-                        : plan === "3"
-                        ? (language === 'ar' ? '3 دفعات' : '3 Payments')
-                        : plan === "4"
-                        ? (language === 'ar' ? '4 دفعات' : '4 Payments')
-                        : plan === "6"
-                        ? (language === 'ar' ? '6 دفعات' : '6 Payments')
-                        : (language === 'ar' ? '12 دفعة شهري' : '12 Payments / Monthly');
-
-                      return (
-                        <div key={plan} className="flex justify-between items-center text-xs font-bold border-t border-dashed border-border/80 pt-2.5 mt-2.5">
-                          <span className="text-muted-foreground">
-                            {language === 'ar' 
-                              ? `قيمة الدفعة الواحدة (${label}):` 
-                              : `Per Payment (${label}):`}
-                          </span>
-                          <span className="text-primary text-left flex items-center gap-0.5 font-extrabold" dir="ltr">
-                            {Math.round((property.price + (property.vat || 0)) / planNum).toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-primary" />
-                          </span>
-                        </div>
-                      );
-                    });
-                  })()}
+                  <Link 
+                    to={`/properties?parentId=${property.id}`} 
+                    className="w-full inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] h-10 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                  >
+                    <Building2 className="w-4 h-4 text-white" />
+                    <span>{language === 'ar' ? 'تصفح الوحدات المتوفرة' : 'View Available Units'}</span>
+                  </Link>
                 </div>
-              </div>
+              ) : (
+                <div className="mb-6 pb-6 border-b border-border">
+                  <p className="text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">{t('common.totalCost')}</p>
+                  <div className="flex items-end gap-1 mb-4">
+                    <span className="text-3xl font-extrabold text-foreground font-mono tracking-tight">{(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()}</span>
+                    <SrIcon className="w-6 h-6 text-primary pb-0.5" />
+                  </div>
+                  {property.type === 'RENT' && property.paymentFrequency && (
+                    <div className="flex gap-1.5 mb-4">
+                      <p className="text-xs text-primary bg-primary/10 border border-primary/20 rounded px-2.5 py-1 font-semibold flex items-center gap-1.5">
+                        <CalendarDays className="w-3.5 h-3.5 text-primary" />
+                        {property.paymentFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
+                      </p>
+                      {property.paymentsCount && (
+                        <p className="text-xs text-primary bg-primary/10 border border-primary/20 rounded px-2.5 py-1 font-semibold flex items-center gap-1.5">
+                          <Coins className="w-3.5 h-3.5 text-primary" />
+                          {property.paymentsCount} {language === 'ar' ? (property.paymentsCount === 1 ? 'دفعة' : property.paymentsCount === 2 ? 'دفعتين' : 'دفعات') : 'Payments'}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <div className="space-y-2.5 p-4 bg-background rounded-lg border border-border">
+                    <p className="text-xs font-bold text-muted-foreground mb-0.5">{language === 'ar' ? 'التفاصيل المالية' : 'Financial Breakdown'}</p>
+                    
+                    <div className="flex justify-between items-center text-xs font-medium">
+                      <span className="text-muted-foreground">{t('common.basePrice')}</span>
+                      <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                        {property.price.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-xs font-medium">
+                      <span className="text-muted-foreground">{t('common.vat')}</span>
+                      <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                        {property.vatExempt ? (language === 'ar' ? 'معفى' : 'Exempt') : (property.vat > 0 ? <>{property.vat.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" /></> : (language === 'ar' ? 'شامل' : 'Included'))}
+                      </span>
+                    </div>
+                     {property.type === 'RENT' && (() => {
+                      try {
+                        if (!property.utilityBills || property.utilityBills === 'NONE') {
+                          throw new Error('No utility bills');
+                        }
+                        const parsed = JSON.parse(property.utilityBills);
+                        const rows = [];
+                        if (parsed.electricity && parsed.electricityCost > 0) {
+                          rows.push(
+                            <div key="elec" className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
+                              <span className="text-muted-foreground">{language === 'ar' ? 'فاتورة الكهرباء' : 'Electricity Bill'}</span>
+                              <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                                {parsed.electricityCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
+                                <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
+                                  / {parsed.electricityFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
+                                </span>
+                              </span>
+                            </div>
+                          );
+                        }
+                        if (parsed.water && parsed.waterCost > 0) {
+                          rows.push(
+                            <div key="water" className="flex justify-between items-center text-xs font-medium border-t border-border/30 pt-1.5 mt-1.5">
+                              <span className="text-muted-foreground">{language === 'ar' ? 'فاتورة المياه' : 'Water Bill'}</span>
+                              <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                                {parsed.waterCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
+                                <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
+                                  / {parsed.waterFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
+                                </span>
+                              </span>
+                            </div>
+                          );
+                        }
+                        return rows;
+                      } catch (_) {
+                        if (property.electricityCost > 0) {
+                          return (
+                            <div className="flex justify-between items-center text-xs font-medium">
+                              <span className="text-muted-foreground">{language === 'ar' ? 'الفواتير الخدمية' : 'Utility Bills'}</span>
+                              <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                                {property.electricityCost.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
+                                {property.electricityFrequency && (
+                                  <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
+                                    / {property.electricityFrequency === 'YEARLY' ? t('common.yearly') : t('common.monthly')}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }
+                    })()}
+                    <div className="flex justify-between items-center text-xs font-medium">
+                      <span className="text-muted-foreground">{t('common.commission')}</span>
+                      <span className="text-foreground text-left flex items-center gap-0.5" dir="ltr">
+                        {property.commission > 0 ? <>{property.commission.toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-muted-foreground/60" /></> : (language === 'ar' ? 'غير محدد' : 'N/A')}
+                      </span>
+                    </div>
+                    {property.type === 'RENT' && (() => {
+                      const allowedPlans = (() => {
+                        if (!property.allowedPaymentPlans) return [];
+                        try {
+                          const parsed = JSON.parse(property.allowedPaymentPlans);
+                          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                        } catch (_) {}
+                        return [];
+                      })();
+  
+                      if (allowedPlans.length === 0 && property.paymentsCount) {
+                        allowedPlans.push(String(property.paymentsCount));
+                      }
+  
+                      return allowedPlans.map((plan) => {
+                        const planNum = Number(plan);
+                        if (isNaN(planNum)) return null;
+  
+                        const label = plan === "1"
+                          ? (language === 'ar' ? 'دفعة سنوية' : '1 Payment / Annual')
+                          : plan === "2"
+                          ? (language === 'ar' ? 'دفعتين' : '2 Payments')
+                          : plan === "3"
+                          ? (language === 'ar' ? '3 دفعات' : '3 Payments')
+                          : plan === "4"
+                          ? (language === 'ar' ? '4 دفعات' : '4 Payments')
+                          : plan === "6"
+                          ? (language === 'ar' ? '6 دفعات' : '6 Payments')
+                          : (language === 'ar' ? '12 دفعة شهري' : '12 Payments / Monthly');
+  
+                        return (
+                          <div key={plan} className="flex justify-between items-center text-xs font-bold border-t border-dashed border-border/80 pt-2.5 mt-2.5">
+                            <span className="text-muted-foreground">
+                              {language === 'ar' 
+                                ? `قيمة الدفعة الواحدة (${label}):` 
+                                : `Per Payment (${label}):`}
+                            </span>
+                            <span className="text-primary text-left flex items-center gap-0.5 font-extrabold" dir="ltr">
+                              {Math.round((property.price + (property.vat || 0)) / planNum).toLocaleString()} <SrIcon className="w-3.5 h-3.5 text-primary" />
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="grid grid-cols-2 gap-2 pt-2">

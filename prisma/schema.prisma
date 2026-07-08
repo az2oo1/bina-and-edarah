@@ -33,10 +33,15 @@ model Property {
   aqarLink         String?  // Direct link to the Aqar landing page
   allowedPaymentPlans String @default("[\"1\",\"2\",\"4\"]")
   videoUrl         String?  // base64 video string or direct video URL
+  status           String   @default("PUBLISHED") // 'DRAFT' or 'PUBLISHED'
   createdAt        DateTime @default(now())
 
   userId           String?
   user             User?    @relation(fields: [userId], references: [id])
+
+  parentId         String?
+  parent           Property?  @relation("SubProperties", fields: [parentId], references: [id], onDelete: Cascade)
+  subProperties    Property[] @relation("SubProperties")
 }
 
 model Service {

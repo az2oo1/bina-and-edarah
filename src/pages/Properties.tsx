@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { MapPin, Building2, Maximize, CalendarDays, Coins } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { SrIcon } from '../components/SrIcon';
 
 interface Property {
@@ -20,10 +20,14 @@ interface Property {
   vatExempt?: boolean;
   locationText?: string;
   locationLink?: string;
+  parentId?: string | null;
 }
 
 export default function Properties() {
   const { t, language } = useLanguage();
+  const [searchParams] = useSearchParams();
+  const parentIdParam = searchParams.get('parentId');
+
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -122,6 +126,12 @@ export default function Properties() {
   };
 
   const filteredProperties = properties.filter((p) => {
+    if (parentIdParam) {
+      if (p.parentId !== parentIdParam) return false;
+    } else {
+      if (p.parentId) return false;
+    }
+
     if (typeFilter !== 'ALL' && p.type !== typeFilter) return false;
     if (categoryFilter !== 'ALL' && p.propertyCategory !== categoryFilter) return false;
     
@@ -152,14 +162,37 @@ export default function Properties() {
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-4">
-            {t('nav.properties')}
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            {language === 'ar' 
-              ? 'تصفح أحدث العقارات المتاحة للبيع أو الإيجار.'
-              : 'Browse our latest properties available for sale or rent.'}
-          </p>
+          {(() => {
+            const parentProperty = parentIdParam ? properties.find(p => p.id === parentIdParam) : null;
+            return (
+              <>
+                {parentProperty && (
+                  <div className="mb-4 inline-flex items-center">
+                    <Link 
+                      to={`/properties/${parentIdParam}`} 
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563eb] hover:underline bg-[#2563eb]/10 border border-[#2563eb]/20 px-3.5 py-1.5 rounded-full transition-all shadow-sm"
+                    >
+                      {language === 'ar' ? '← العودة لصفحة العقار الرئيسي' : '← Back to Parent Property'}
+                    </Link>
+                  </div>
+                )}
+                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-4">
+                  {parentProperty 
+                    ? (language === 'ar' ? `الوحدات المتاحة في: ${parentProperty.titleAr}` : `Available Units in: ${parentProperty.titleEn}`)
+                    : t('nav.properties')
+                  }
+                </h1>
+                <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                  {parentProperty 
+                    ? (language === 'ar' ? 'استكشف جميع الشقق والوحدات المتوفرة في هذا العقار.' : 'Explore all apartments and units available in this property.')
+                    : (language === 'ar' 
+                        ? 'تصفح أحدث العقارات المتاحة للبيع أو الإيجار.'
+                        : 'Browse our latest properties available for sale or rent.')
+                  }
+                </p>
+              </>
+            );
+          })()}
         </div>
       </div>
 
