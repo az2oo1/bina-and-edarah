@@ -175,23 +175,7 @@ export default function PropertyDetails() {
           {/* Main Content & Gallery */}
           <div className="lg:col-span-2 space-y-6">
             {/* Gallery */}
-            <div className="shadcn-card overflow-hidden flex flex-row">
-              {hasMap && (
-                <button
-                  type="button"
-                  onClick={() => setActiveImage(mapIndex)}
-                  className={`flex-shrink-0 w-14 sm:w-16 h-80 sm:h-[450px] flex flex-col items-center justify-center gap-2 bg-card border-e border-border text-foreground transition-colors cursor-pointer select-none ${
-                    activeImage === mapIndex ? 'bg-primary/5' : 'hover:bg-muted/50'
-                  }`}
-                  title={language === 'ar' ? 'عرض الموقع على الخريطة' : 'Show location on map'}
-                >
-                  <MapPin className={`w-6 h-6 ${activeImage === mapIndex ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <span className="text-[10px] font-bold text-muted-foreground">{language === 'ar' ? 'الخريطة' : 'Map'}</span>
-                </button>
-              )}
-
-              {/* Main image + thumbnail strip */}
-              <div className="flex-1 flex flex-col min-w-0">
+            <div className="shadcn-card overflow-hidden">
               <div 
                 onClick={(e) => {
                   const target = e.target as HTMLElement;
@@ -288,7 +272,7 @@ export default function PropertyDetails() {
                 )}
               </div>
               {galleryItems.length > 1 && (
-                <div className="flex gap-1.5 p-2.5 overflow-x-auto border-t border-border custom-scrollbar">
+                <div className="flex items-center gap-1.5 p-2.5 overflow-x-auto border-t border-border custom-scrollbar">
                   {galleryItems.map((item, i) => {
                     if (item.type === 'map') return null;
                     return (
@@ -308,9 +292,23 @@ export default function PropertyDetails() {
                       </button>
                     );
                   })}
+                  {hasMap && (
+                    <>
+                      <div className="h-10 w-px bg-border/70 flex-shrink-0 mx-0.5"></div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveImage(mapIndex)}
+                        className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center gap-1 bg-slate-950 text-white select-none ${
+                          activeImage === mapIndex ? 'border-2 border-primary opacity-100' : 'border-2 border-transparent opacity-65 hover:opacity-100'
+                        }`}
+                      >
+                        <MapPin className="w-5 h-5 text-primary" />
+                        <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'الخريطة' : 'Map'}</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
-              </div>
             </div>
 
             {/* Description & Features */}
