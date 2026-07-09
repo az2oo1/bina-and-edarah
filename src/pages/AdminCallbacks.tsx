@@ -72,6 +72,21 @@ export default function AdminCallbacks() {
 
   const selectedRequest = requests.find(r => r.id === selectedId);
 
+  const normalizeIdentity = (value?: string | null) => (value || '').trim().toLowerCase();
+
+  const isCustomerNote = (note: CallbackNote, request: CallbackRequest) => {
+    const author = normalizeIdentity(note.authorName);
+    if (!author) return false;
+
+    const customerName = normalizeIdentity(request.name);
+    const customerEmail = normalizeIdentity(request.email || '');
+
+    if (customerEmail && (author === customerEmail || author.includes(customerEmail))) return true;
+    if (customerName && author === customerName) return true;
+
+    return false;
+  };
+
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
       const res = await fetch(`/api/callback-requests/${id}/status`, {
@@ -415,24 +430,61 @@ export default function AdminCallbacks() {
                   </div>
 
                   {/* Bubbles for subsequent replies (CallbackNote) */}
-                  {selectedRequest.notes && selectedRequest.notes.map((note) => (
-                    <div key={note.id} className="flex items-start gap-2.5 max-w-[85%] mr-auto rtl:mr-0 rtl:ml-auto select-text flex-row-reverse">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-xs shrink-0 text-primary">
-                        {note.authorName.charAt(0)}
-                      </div>
-                      <div className="bg-primary/5 border border-primary/10 p-3.5 rounded-2xl rounded-tr-none shadow-xs text-xs space-y-1">
-                        <div className="font-bold text-primary flex items-center gap-1.5">
-                          <span>{note.authorName}</span>
-                          <span className="text-[8px] bg-primary/10 text-primary px-1 rounded-sm">{language === 'ar' ? 'مسؤول' : 'Staff'}</span>
+                  {selectedRequest.notes && selectedRequest.notes.map((note) => {
+                    const customerNote = isCustomerNote(note, selectedRequest);
+
+                    return (
+                      <div
+                        key={note.id}
+                        className={`w-full flex ${customerNote ? 'justify-start' : 'justify-end'} select-text`}
+                      >
+                        <div
+                          className={`flex items-start gap-2.5 max-w-[85%] ${customerNote ? '' : 'flex-row-reverse'}`}
+                        >
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                              customerNote
+                                ? 'bg-slate-200 border border-slate-300 text-slate-700'
+                                : 'bg-primary/10 border border-primary/20 text-primary'
+                            }`}
+                          >
+                            {note.authorName.charAt(0)}
+                          </div>
+                          <div
+                            className={`p-3.5 rounded-2xl shadow-xs text-xs space-y-1 ${
+                              customerNote
+                                ? 'bg-card border border-border rounded-tl-none'
+                                : 'bg-primary/5 border border-primary/10 rounded-tr-none'
+                            }`}
+                          >
+                            <div
+                              className={`font-bold flex items-center gap-1.5 ${
+                                customerNote ? 'text-foreground' : 'text-primary'
+                              }`}
+                            >
+                              <span>{note.authorName}</span>
+                              <span
+                                className={`text-[8px] px-1 rounded-sm ${
+                                  customerNote
+                                    ? 'bg-slate-200 text-slate-700'
+                                    : 'bg-primary/10 text-primary'
+                                }`}
+                              >
+                                {customerNote
+                                  ? (language === 'ar' ? 'عميل' : 'Customer')
+                                  : (language === 'ar' ? 'مسؤول' : 'Staff')}
+                              </span>
+                            </div>
+                            <div
+                              className="text-muted-foreground whitespace-pre-wrap leading-relaxed text-justify text-xs"
+                              dangerouslySetInnerHTML={{ __html: note.text }}
+                            />
+                            <div className="text-[9px] text-muted-foreground text-right">{formatDate(note.createdAt)}</div>
+                          </div>
                         </div>
-                        <div 
-                          className="text-muted-foreground whitespace-pre-wrap leading-relaxed text-justify text-xs" 
-                          dangerouslySetInnerHTML={{ __html: note.text }}
-                        />
-                        <div className="text-[9px] text-muted-foreground text-right">{formatDate(note.createdAt)}</div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* 4. Rich Text Note Editor Area */}

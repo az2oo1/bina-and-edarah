@@ -613,9 +613,12 @@ async function syncInboundEmails() {
             }
           }
 
+          const senderInfo = parsed.from?.value?.[0];
+          const senderEmail = senderInfo?.address?.toLowerCase().trim();
+          const senderDisplayName = senderInfo?.name?.trim();
+
           // Fallback: match by sender's email address if no header matches
-          if (!matchedRequest && parsed.from?.value?.[0]?.address) {
-            const senderEmail = parsed.from.value[0].address.toLowerCase().trim();
+          if (!matchedRequest && senderEmail) {
             const activeRequest = await prisma.callbackRequest.findFirst({
               where: {
                 email: {
@@ -652,11 +655,12 @@ async function syncInboundEmails() {
               });
               
               if (!existingNote) {
+                const inboundAuthorName = senderDisplayName || senderEmail || matchedRequest.name || 'Customer';
                 await prisma.callbackNote.create({
                   data: {
                     callbackRequestId: matchedRequest.id,
                     text: cleanedText,
-                    authorName: matchedRequest.name
+                    authorName: inboundAuthorName
                   }
                 });
                 
@@ -2677,7 +2681,11 @@ async function startServer() {
   });
 
   // POST /api/admin/restore  → accepts multipart upload of a .zip containing a db-data.json file and uploads/ folder
-  const restoreUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
+  const BACKUP_RESTORE_MAX_MB = 1024;
+  const restoreUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: BACKUP_RESTORE_MAX_MB * 1024 * 1024 }
+  });
   app.post("/api/admin/restore", requirePermission('settings'), restoreUpload.single('file'), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -2748,7 +2756,23 @@ async function startServer() {
           await tx.project.createMany({ data: dbData.projects });
         }
         if (dbData.properties && dbData.properties.length > 0) {
-          await tx.property.createMany({ data: dbData.properties });
+          const allProperties = dbData.properties;
+
+          // Insert all properties with parentId null first, then restore parent links.
+          // This prevents foreign-key ordering issues for self-referenced properties.
+          await tx.property.createMany({
+            data: allProperties.map((p: any) => ({ ...p, parentId: null }))
+          });
+
+          const insertedIds = new Set(allProperties.map((p: any) => p.id));
+          for (const p of allProperties) {
+            if (p.parentId && insertedIds.has(p.parentId)) {
+              await tx.property.updateMany({
+                where: { id: p.id },
+                data: { parentId: p.parentId }
+              });
+            }
+          }
         }
         if (dbData.buildings && dbData.buildings.length > 0) {
           await tx.building.createMany({ data: dbData.buildings });
@@ -2772,6 +2796,10 @@ async function startServer() {
           await tx.actionLog.createMany({ data: dbData.actionLogs });
         }
       });
+
+      // Reset API caches so restored data is visible immediately.
+      invalidateCache('properties');
+      invalidateCache('projects');
 
       await logAction(req, "RESTORE_BACKUP", `Restored site database from uploaded backup ZIP: ${req.file.originalname}`);
       res.json({ success: true, message: 'Database and uploads restored successfully. Please refresh the page.' });

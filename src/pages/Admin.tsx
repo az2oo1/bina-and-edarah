@@ -2803,7 +2803,7 @@ export default function Admin() {
                                   : (slot.isVideo ? (language === 'ar' ? 'رفع فيديو' : 'Upload Video') : (language === 'ar' ? 'رفع صورة' : 'Upload Image'))
                                 }
                               </label>
-                              <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? 'الحد الأقصى 50MB' : 'Max 50MB'}</p>
+                              <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? 'الحد الأقصى 250MB' : 'Max 250MB'}</p>
                             </div>
                             
 
@@ -2863,8 +2863,8 @@ export default function Admin() {
                     <h4 className="font-bold text-red-700 mb-1">{language === 'ar' ? 'استعادة نسخة احتياطية' : 'Restore from Backup'}</h4>
                     <p className="text-sm text-red-600 mb-4">
                       {language === 'ar'
-                        ? 'تحذير: ستحل قاعدة البيانات الحالية. ارفع ملف ZIP أو .db من نسخة احتياطية سابقة.'
-                        : 'Warning: This will replace the current database. Upload a .zip or .db file from a previous backup.'}
+                        ? 'تحذير: ستحل قاعدة البيانات الحالية. ارفع ملف ZIP من نسخة احتياطية سابقة.'
+                        : 'Warning: This will replace the current database. Upload a .zip file from a previous backup.'}
                     </p>
                     {restoreMessage && (
                       <div className={`mb-4 p-3 rounded-xl text-sm font-bold ${restoreMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-200 text-red-800'}`}>
@@ -2874,7 +2874,7 @@ export default function Admin() {
                     <input
                       type="file"
                       id="restore-file-input"
-                      accept=".zip,.db"
+                      accept=".zip"
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
