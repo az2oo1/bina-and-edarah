@@ -321,7 +321,7 @@ export default function ProjectDetails() {
       </div>
       <ImageViewer
         isOpen={isViewerOpen}
-        images={images}
+        items={images.map((url: string) => ({ type: 'image', url }))}
         initialIndex={currentImageIndex}
         onClose={() => setIsViewerOpen(false)}
         language={language}

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Video } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Video, MapPin, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+type ViewerItem = { type: 'image' | 'video' | 'map'; url?: string };
 
 interface ImageViewerProps {
   isOpen: boolean;
-  images: string[];
-  videoUrl?: string;
+  items: ViewerItem[];
+  mapInfo?: { lat: number; lng: number; link?: string | null } | null;
   initialIndex: number;
   onClose: () => void;
   language: 'ar' | 'en';
@@ -13,8 +15,8 @@ interface ImageViewerProps {
 
 export function ImageViewer({
   isOpen,
-  images,
-  videoUrl,
+  items,
+  mapInfo,
   initialIndex,
   onClose,
   language
@@ -52,19 +54,11 @@ export function ImageViewer({
 
   if (!isOpen) return null;
 
-  const allMedias = [...images];
-  if (videoUrl && !allMedias.includes(videoUrl)) {
-    allMedias.push(videoUrl);
-  }
-  const totalItems = allMedias.length;
-  const activeUrl = allMedias[activeIndex];
-  const isVideoActive = activeUrl && (
-    activeUrl.startsWith('data:video') || 
-    activeUrl.endsWith('.mp4') || 
-    activeUrl.endsWith('.mov') || 
-    activeUrl.endsWith('.webm') || 
-    activeUrl.endsWith('.avi')
-  );
+  const totalItems = items.length;
+  const activeItem = items[activeIndex];
+  const isMapActive = activeItem?.type === 'map';
+  const isVideoActive = activeItem?.type === 'video';
+  const activeUrl = activeItem?.url;
 
   const handleNext = () => {
     setIsZoomed(false);
@@ -94,7 +88,7 @@ export function ImageViewer({
           </div>
           
           <div className="flex items-center gap-3">
-            {!isVideoActive && (
+            {!isVideoActive && !isMapActive && (
               <button 
                 onClick={() => setIsZoomed(!isZoomed)}
                 className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all cursor-pointer"
@@ -135,9 +129,30 @@ export function ImageViewer({
             </>
           )}
 
-          {/* Active Image or Video */}
+          {/* Active Image, Video or Map */}
           <div className="w-full h-full max-w-7xl max-h-[75vh] flex items-center justify-center overflow-hidden">
-            {isVideoActive ? (
+            {isMapActive && mapInfo ? (
+              <div className="w-full h-full flex flex-col gap-3">
+                <div className="flex items-center justify-center gap-2">
+                  <a
+                    href={mapInfo.link || `https://www.google.com/maps?q=${mapInfo.lat},${mapInfo.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md border border-white/10 transition-colors"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                    <span>{language === 'ar' ? 'فتح في خرائط جوجل' : 'Open in Google Maps'}</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <iframe
+                  src={`https://maps.google.com/maps?q=${mapInfo.lat},${mapInfo.lng}&z=15&output=embed`}
+                  className="w-full flex-grow rounded-lg shadow-2xl border border-white/5"
+                  title={language === 'ar' ? 'موقع العقار' : 'Property Location'}
+                  loading="lazy"
+                />
+              </div>
+            ) : isVideoActive ? (
               <video 
                 src={activeUrl} 
                 controls 
@@ -166,14 +181,8 @@ export function ImageViewer({
         <div className="w-full bg-gradient-to-t from-black/80 to-black/20 py-4 px-6 z-10 flex flex-col items-center gap-3">
           {totalItems > 1 && (
             <div className="flex gap-2.5 overflow-x-auto max-w-full px-2 py-1.5 custom-scrollbar select-none">
-              {allMedias.map((mediaUrl, idx) => {
-                const isItemVideo = mediaUrl && (
-                  mediaUrl.startsWith('data:video') || 
-                  mediaUrl.endsWith('.mp4') || 
-                  mediaUrl.endsWith('.mov') || 
-                  mediaUrl.endsWith('.webm') || 
-                  mediaUrl.endsWith('.avi')
-                );
+              {items.map((item, idx) => {
+                const isItemVideo = item.type === 'video';
                 return (
                   <button
                     key={idx}
@@ -182,13 +191,18 @@ export function ImageViewer({
                       activeIndex === idx ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
                     }`}
                   >
-                    {isItemVideo ? (
+                    {item.type === 'map' ? (
+                      <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center gap-1">
+                        <MapPin className="w-5 h-5 text-primary" />
+                        <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'الخريطة' : 'Map'}</span>
+                      </div>
+                    ) : isItemVideo ? (
                       <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center gap-1">
                         <Video className="w-5 h-5 text-primary" />
                         <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'فيديو' : 'Video'}</span>
                       </div>
                     ) : (
-                      <img src={mediaUrl} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                      <img src={item.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
                     )}
                   </button>
                 );

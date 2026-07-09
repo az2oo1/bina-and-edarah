@@ -15,6 +15,8 @@ interface Property {
   area: number;
   locationLink: string | null;
   locationText: string | null;
+  latitude: number | null;
+  longitude: number | null;
   description: string;
   features: string | null;
   propertyAge: number;
@@ -128,6 +130,20 @@ export default function PropertyDetails() {
     );
   }
 
+  const galleryItems: { type: 'image' | 'video' | 'map'; url?: string }[] = images.map(url => ({ type: 'image', url }));
+  if (property.videoUrl && !images.includes(property.videoUrl)) {
+    galleryItems.push({ type: 'video', url: property.videoUrl });
+  }
+  const hasMap = !!(property.latitude && property.longitude);
+  if (hasMap) {
+    galleryItems.push({ type: 'map' });
+  }
+
+  const goToIndex = (idx: number) => {
+    setActiveImage(idx);
+    setIsViewerOpen(true);
+  };
+
   return (
     <div className="bg-background min-h-screen py-10" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -158,109 +174,130 @@ export default function PropertyDetails() {
           {/* Main Content & Gallery */}
           <div className="lg:col-span-2 space-y-6">
             {/* Gallery */}
-             {(() => {
-               const allMedias = [...images];
-               if (property.videoUrl && !allMedias.includes(property.videoUrl)) {
-                 allMedias.push(property.videoUrl);
-               }
-               const activeUrl = allMedias[activeImage];
-               const isActiveVideo = activeUrl && (
-                 activeUrl.startsWith('data:video') || 
-                 activeUrl.endsWith('.mp4') || 
-                 activeUrl.endsWith('.mov') || 
-                 activeUrl.endsWith('.webm') || 
-                 activeUrl.endsWith('.avi')
-               );
+            <div className="shadcn-card overflow-hidden">
+              <div 
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (
+                    target.tagName === 'VIDEO' || 
+                    target.tagName === 'IFRAME' || 
+                    target.closest('button') ||
+                    target.closest('a')
+                  ) {
+                    return;
+                  }
+                  setIsViewerOpen(true);
+                }}
+                className="relative h-80 sm:h-[450px] w-full bg-slate-100 group/gallery cursor-pointer overflow-hidden"
+              >
+                {(() => {
+                  const active = galleryItems[activeImage];
+                  if (!active) return null;
 
-               return (
-                 <div className="shadcn-card overflow-hidden">
-                   <div 
-                     onClick={(e) => {
-                       const target = e.target as HTMLElement;
-                       if (target.tagName === 'VIDEO' || target.closest('button')) {
-                         return;
-                       }
-                       setIsViewerOpen(true);
-                     }}
-                     className="relative h-80 sm:h-[450px] w-full bg-slate-100 group/gallery cursor-pointer overflow-hidden"
-                   >
-                     {isActiveVideo ? (
-                       <video src={activeUrl} controls className="w-full h-full object-cover relative z-10" />
-                     ) : (
-                       <>
-                         <img 
-                           src={activeUrl} 
-                           alt={language === 'ar' ? property.titleAr : property.titleEn}
-                           className="w-full h-full object-cover transition-opacity duration-300"
-                         />
-                         {/* Hover expand overlay */}
-                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-250 flex items-center justify-center z-20">
-                           <div className="bg-black/75 backdrop-blur-xs text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transform translate-y-2 group-hover/gallery:translate-y-0 transition-all duration-250 shadow-xl border border-white/10">
-                             <Maximize className="w-4 h-4 text-primary" />
-                             <span>{language === 'ar' ? 'عرض الوسائط كاملة' : 'View Full Media'}</span>
-                           </div>
-                         </div>
-                       </>
-                     )}
+                  if (active.type === 'map') {
+                    return (
+                      <>
+                        <iframe
+                          src={`https://maps.google.com/maps?q=${property.latitude},${property.longitude}&z=15&output=embed`}
+                          className="w-full h-full border-0"
+                          title={language === 'ar' ? 'موقع العقار' : 'Property Location'}
+                          loading="lazy"
+                        />
+                        <div className="absolute top-4 inset-x-0 flex justify-center z-20 pointer-events-none">
+                          <a
+                            href={property.locationLink || `https://www.google.com/maps?q=${property.latitude},${property.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="pointer-events-auto inline-flex items-center gap-1.5 bg-card/90 hover:bg-card text-foreground text-xs font-bold px-3 py-1.5 rounded-full shadow-md border border-border transition-colors"
+                          >
+                            <MapPin className="w-3.5 h-3.5 text-primary" />
+                            <span>{language === 'ar' ? 'فتح في خرائط جوجل' : 'Open in Google Maps'}</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </>
+                    );
+                  }
 
-                     {/* Slider Navigation Controls */}
-                     {allMedias.length > 1 && (
-                       <>
-                         <button 
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setActiveImage((prev) => (prev - 1 + allMedias.length) % allMedias.length);
-                           }}
-                           className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
-                           title={language === 'ar' ? 'السابق' : 'Previous'}
-                         >
-                           <ChevronLeft className="w-4 h-4" />
-                         </button>
-                         <button 
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setActiveImage((prev) => (prev + 1) % allMedias.length);
-                           }}
-                           className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
-                           title={language === 'ar' ? 'التالي' : 'Next'}
-                         >
-                           <ChevronRight className="w-4 h-4" />
-                         </button>
-                       </>
-                     )}
-                   </div>
-                   {allMedias.length > 1 && (
-                     <div className="flex gap-2 p-3 overflow-x-auto border-t border-border custom-scrollbar">
-                       {allMedias.map((mediaUrl, i) => {
-                         const isItemVideo = mediaUrl && (
-                           mediaUrl.startsWith('data:video') || 
-                           mediaUrl.endsWith('.mp4') || 
-                           mediaUrl.endsWith('.mov') || 
-                           mediaUrl.endsWith('.webm') || 
-                           mediaUrl.endsWith('.avi')
-                         );
-                         return (
-                           <button 
-                             key={i} 
-                             onClick={() => setActiveImage(i)}
-                             className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all cursor-pointer overflow-hidden ${activeImage === i ? 'border-primary opacity-100' : 'border-transparent opacity-65 hover:opacity-100'}`}
-                           >
-                             {isItemVideo ? (
-                               <div className="w-full h-full bg-slate-950 text-white flex flex-col items-center justify-center gap-1 select-none">
-                                 <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                                 <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'فيديو' : 'Video'}</span>
-                               </div>
-                             ) : (
-                               <img src={mediaUrl} alt={`Thumbnail ${i}`} className="w-full h-full object-cover rounded-[2px]" />
-                             )}
-                           </button>
-                         );
-                       })}
-                     </div>
-                   )}
-                 </div>
-               );
-             })()}
+                  if (active.type === 'video') {
+                    return (
+                      <video src={active.url} controls className="w-full h-full object-cover relative z-10" />
+                    );
+                  }
+
+                  return (
+                    <>
+                      <img 
+                        src={active.url} 
+                        alt={language === 'ar' ? property.titleAr : property.titleEn}
+                        className="w-full h-full object-cover transition-opacity duration-300"
+                      />
+                      {/* Hover expand overlay */}
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-250 flex items-center justify-center z-20">
+                        <div className="bg-black/75 backdrop-blur-xs text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transform translate-y-2 group-hover/gallery:translate-y-0 transition-all duration-250 shadow-xl border border-white/10">
+                          <Maximize className="w-4 h-4 text-primary" />
+                          <span>{language === 'ar' ? 'عرض الوسائط كاملة' : 'View Full Media'}</span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+
+                {/* Slider Navigation Controls - open the picture viewer */}
+                {galleryItems.length > 1 && (
+                  <>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goToIndex((activeImage - 1 + galleryItems.length) % galleryItems.length);
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
+                      title={language === 'ar' ? 'عرض الوسائط (السابق)' : 'View Media (Previous)'}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goToIndex((activeImage + 1) % galleryItems.length);
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
+                      title={language === 'ar' ? 'عرض الوسائط (التالي)' : 'View Media (Next)'}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+              {galleryItems.length > 1 && (
+                <div className="flex gap-2 p-3 overflow-x-auto border-t border-border custom-scrollbar">
+                  {galleryItems.map((item, i) => {
+                    return (
+                      <button 
+                        key={i} 
+                        onClick={() => setActiveImage(i)}
+                        className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all cursor-pointer overflow-hidden ${activeImage === i ? 'border-primary opacity-100' : 'border-transparent opacity-65 hover:opacity-100'}`}
+                      >
+                        {item.type === 'map' ? (
+                          <div className="w-full h-full bg-slate-950 text-white flex flex-col items-center justify-center gap-1 select-none">
+                            <MapPin className="w-5 h-5 text-primary" />
+                            <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'الخريطة' : 'Map'}</span>
+                          </div>
+                        ) : item.type === 'video' ? (
+                          <div className="w-full h-full bg-slate-950 text-white flex flex-col items-center justify-center gap-1 select-none">
+                            <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                            <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'فيديو' : 'Video'}</span>
+                          </div>
+                        ) : (
+                          <img src={item.url} alt={`Thumbnail ${i}`} className="w-full h-full object-cover rounded-[2px]" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Description & Features */}
             <div className="shadcn-card p-6">
@@ -702,8 +739,8 @@ export default function PropertyDetails() {
       </div>
       <ImageViewer 
         isOpen={isViewerOpen}
-        images={images}
-        videoUrl={property.videoUrl}
+        items={galleryItems}
+        mapInfo={hasMap ? { lat: property.latitude!, lng: property.longitude!, link: property.locationLink } : null}
         initialIndex={activeImage}
         onClose={() => setIsViewerOpen(false)}
         language={language}
