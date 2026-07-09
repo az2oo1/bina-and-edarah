@@ -22,3 +22,10 @@ export function emailLogoSvg(width = 66): string {
       `<svg width="${width}" height="${height}" style="display:block; margin:0 auto;" `
     );
 }
+
+// Returns the logo as an inline SVG data URI for use as a browser tab icon
+// (no external image reference). Pass a color to tint it (e.g. white in dark mode).
+export function faviconDataUri(color = "#ffffff"): string {
+  const svg = LOGO_SVG.replace("currentColor", color);
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}

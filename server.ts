@@ -712,11 +712,15 @@ interface CacheStore {
   propertiesAdmin: any | null;
   propertiesPublic: any | null;
   projects: any | null;
+  settings: any | null;
+  settingsCached: boolean;
 }
 const dbCache: CacheStore = {
   propertiesAdmin: null,
   propertiesPublic: null,
-  projects: null
+  projects: null,
+  settings: null,
+  settingsCached: false
 };
 
 function invalidateCache(type: 'properties' | 'projects') {
@@ -2240,27 +2244,43 @@ async function startServer() {
   }
 
   async function getGlobalSettings() {
+    if (dbCache.settingsCached) return dbCache.settings;
+    let result: any = null;
     try {
       const s = await prisma.settings.findUnique({ where: { id: "global" } });
-      if (s) return s;
+      if (s) {
+        dbCache.settings = s;
+        dbCache.settingsCached = true;
+        return s;
+      }
     } catch (err) {
       logger.warn("Prisma Settings query failed, using raw SQL query:", err);
     }
-    
+
     // Raw fallback queries
     try {
       const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "Settings" WHERE id = 'global' LIMIT 1`);
-      if (rows && rows.length > 0) return rows[0];
+      if (rows && rows.length > 0) {
+        dbCache.settings = rows[0];
+        dbCache.settingsCached = true;
+        return rows[0];
+      }
     } catch (_) {}
     try {
       const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM Settings WHERE id = 'global' LIMIT 1`);
-      if (rows && rows.length > 0) return rows[0];
+      if (rows && rows.length > 0) {
+        dbCache.settings = rows[0];
+        dbCache.settingsCached = true;
+        return rows[0];
+      }
     } catch (_) {}
-    
+
     return null;
   }
 
   async function updateGlobalSettings(data: any) {
+    // Invalidate the settings cache so the next read is fresh
+    dbCache.settingsCached = false;
     const fields = Object.keys(data).filter(k => data[k] !== undefined);
     if (fields.length === 0) return getGlobalSettings();
 
@@ -2269,6 +2289,8 @@ async function startServer() {
         where: { id: "global" },
         data
       });
+      dbCache.settings = updated;
+      dbCache.settingsCached = true;
       return updated;
     } catch (err) {
       logger.warn("Prisma client settings update failed, falling back to raw SQL updates:", err);
@@ -3028,30 +3050,27 @@ async function startServer() {
 
   // Analytics
   app.post("/api/analytics", async (req, res) => {
-    try {
-      const { path, propertyId } = req.body;
-      const ipAddress = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip || "").toString();
+    // Respond immediately and record the view asynchronously so navigation
+    // tracking never blocks the request (this fires on every client route change).
+    res.json({ success: true });
+    const { path, propertyId } = req.body || {};
+    const ipAddress = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip || "").toString();
 
-      if (ipAddress) {
-        const existingView = await prisma.pageView.findFirst({
-          where: {
-            path,
-            ipAddress
-          }
-        });
-        if (existingView) {
-          return res.json({ success: true, duplicate: true });
+    (async () => {
+      try {
+        if (ipAddress) {
+          const existingView = await prisma.pageView.findFirst({
+            where: { path, ipAddress }
+          });
+          if (existingView) return;
         }
+        await prisma.pageView.create({
+          data: { path, propertyId, ipAddress }
+        });
+      } catch (error) {
+        logger.error("Analytics Error:", error);
       }
-
-      await prisma.pageView.create({
-        data: { path, propertyId, ipAddress }
-      });
-      res.json({ success: true });
-    } catch (error) {
-      logger.error("Analytics Error:", error);
-      res.status(500).json({ error: "Failed to record view" });
-    }
+    })();
   });
 
   // Callback Requests API

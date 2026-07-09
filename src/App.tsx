@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router';
 import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X, Sun, Moon } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { DialogProvider } from './context/DialogContext';
 import { Logo } from './components/Logo';
+import { faviconDataUri, LOGO_BRAND_COLOR } from './lib/logo';
 import { SocialIconsRow, SocialLinks } from './components/SocialIcons';
-import Home from './pages/Home';
-import Projects from './pages/Projects';
-import ProjectDetails from './pages/ProjectDetails';
-import Properties from './pages/Properties';
-import PropertyDetails from './pages/PropertyDetails';
-import Admin from './pages/Admin';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Contact from './pages/Contact';
-import Services from './pages/Services';
-import About from './pages/About';
+const Home = lazy(() => import('./pages/Home'));
+const Projects = lazy(() => import('./pages/Projects'));
+const ProjectDetails = lazy(() => import('./pages/ProjectDetails'));
+const Properties = lazy(() => import('./pages/Properties'));
+const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
+const Admin = lazy(() => import('./pages/Admin'));
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Services = lazy(() => import('./pages/Services'));
+const About = lazy(() => import('./pages/About'));
 
 function useLogoUrl() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -24,16 +25,7 @@ function useLogoUrl() {
     fetch('/api/settings')
       .then(r => r.json())
       .then(data => {
-        if (data.logoUrl) {
-          setLogoUrl(data.logoUrl);
-          let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-          if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
-            document.head.appendChild(link);
-          }
-          link.href = data.logoUrl;
-        }
+        if (data.logoUrl) setLogoUrl(data.logoUrl);
       })
       .catch(() => {});
     const onStorage = () => {
@@ -382,31 +374,51 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 function AppContent() {
   const { language } = useLanguage();
   const { theme } = useTheme();
+
+  // Tab icon: inline brand SVG (no server fetch). White in dark mode, brand
+  // color in light mode so it stays visible on either background.
+  useEffect(() => {
+    const href = faviconDataUri(theme === 'dark' ? '#ffffff' : LOGO_BRAND_COLOR);
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = href;
+  }, [theme]);
+
   return (
     <div className={`${theme === 'dark' ? 'dark' : ''} min-h-screen bg-background font-sans text-foreground flex flex-col`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <Navbar />
       <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:id" element={<ProjectDetails />} />
-          <Route path="/properties" element={<Properties />} />
-          <Route path="/properties/:id" element={<PropertyDetails />} />
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT']}>
-              <Admin />
-            </ProtectedRoute>
-          } />
-          <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT', 'USER']}>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/contact" element={<Contact />} />
-        </Routes>
+        <Suspense fallback={
+          <div className="flex justify-center items-center py-24">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:id" element={<ProjectDetails />} />
+            <Route path="/properties" element={<Properties />} />
+            <Route path="/properties/:id" element={<PropertyDetails />} />
+            <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT']}>
+                <Admin />
+              </ProtectedRoute>
+            } />
+            <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT', 'USER']}>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/contact" element={<Contact />} />
+          </Routes>
+        </Suspense>
       </main>
       <Footer />
     </div>
