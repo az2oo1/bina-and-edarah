@@ -1747,9 +1747,10 @@ async function startServer() {
       }
 
       const cacheKey = isAdmin ? 'propertiesAdmin' : 'propertiesPublic';
-      if (dbCache[cacheKey]) {
+      const cached = dbCache[cacheKey];
+      if (cached && (!Array.isArray(cached) || cached.length > 0)) {
         logger.info(`Serving properties from cache (${cacheKey})`);
-        return res.json(dbCache[cacheKey]);
+        return res.json(cached);
       }
 
       const properties = await prisma.property.findMany({
