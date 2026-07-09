@@ -88,16 +88,6 @@ function getSiteUrl(req?: any): string {
   return "http://localhost:3000";
 }
 
-function getUmamiProxyBaseUrl(): string {
-  return (process.env.UMAMI_PROXY_BASE_URL || 'https://umami.gassem.me').replace(/\/$/, '');
-}
-
-function rewriteAnalyticsScriptForProxy(scriptHtml: string): string {
-  return scriptHtml
-    .replace(/https:\/\/(?:umami\.gassem\.me|cloud\.umami\.is)(?=\/)/gi, '/umami-proxy')
-    .replace(/http:\/\/(?:umami\.gassem\.me|cloud\.umami\.is)(?=\/)/gi, '/umami-proxy');
-}
-
 async function sendCallbackEmailNotification(req?: any) {
   try {
     const settings = await prisma.settings.findUnique({ where: { id: "global" } });
@@ -899,47 +889,6 @@ async function startServer() {
   // Serve static uploaded files
   app.use('/uploads', express.static(UPLOADS_DIR));
 
-  // Proxy Umami assets through the same origin so the browser treats them as first-party requests.
-  app.all('/umami-proxy/*', async (req, res) => {
-    try {
-      const proxyBaseUrl = getUmamiProxyBaseUrl();
-      const upstreamUrl = `${proxyBaseUrl}${req.originalUrl.replace(/^\/umami-proxy/, '')}`;
-      const headers: Record<string, string> = {};
-
-      for (const [key, value] of Object.entries(req.headers)) {
-        const normalizedKey = key.toLowerCase();
-        if (normalizedKey === 'host' || normalizedKey === 'content-length' || normalizedKey === 'connection') continue;
-        if (Array.isArray(value)) {
-          headers[key] = value.join(', ');
-        } else if (typeof value === 'string') {
-          headers[key] = value;
-        }
-      }
-
-      const method = req.method.toUpperCase();
-      const body = method === 'GET' || method === 'HEAD' ? undefined : (typeof req.body === 'string' ? req.body : (req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : undefined));
-
-      const upstreamResponse = await fetch(upstreamUrl, {
-        method,
-        headers,
-        body,
-      });
-
-      res.status(upstreamResponse.status);
-      upstreamResponse.headers.forEach((value, key) => {
-        const normalizedKey = key.toLowerCase();
-        if (normalizedKey === 'content-length' || normalizedKey === 'transfer-encoding' || normalizedKey === 'connection') return;
-        res.setHeader(key, value);
-      });
-
-      const arrayBuffer = await upstreamResponse.arrayBuffer();
-      return res.send(Buffer.from(arrayBuffer));
-    } catch (error) {
-      logger.error('Umami proxy request failed:', error);
-      return res.status(502).send('Bad Gateway');
-    }
-  });
-
   // Dynamic SEO Open Graph Meta Injection for WhatsApp / Facebook / Twitter crawlers
   // Serves property base64 image as binary JPEG/PNG
   app.get('/property-image/:id/:index.jpg', async (req, res) => {
@@ -1130,7 +1079,7 @@ async function startServer() {
         <meta name="twitter:image" content="${imageUrl}" />
       `;
 
-      const analyticsScript = settings?.analyticsScript?.trim() ? `\n${rewriteAnalyticsScriptForProxy(settings.analyticsScript)}\n` : '';
+      const analyticsScript = settings?.analyticsScript?.trim() ? `\n${settings.analyticsScript}\n` : '';
 
       // Replace existing title and description tags if they exist
       html = html.replace(/<title>.*?<\/title>/gi, '');
