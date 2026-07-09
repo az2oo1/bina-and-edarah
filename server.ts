@@ -1753,15 +1753,29 @@ async function startServer() {
         return res.json(cached);
       }
 
-      const properties = await prisma.property.findMany({
-        where: isAdmin ? undefined : {
-          OR: [
-            { status: { not: 'DRAFT' } },
-            { status: null }
-          ]
-        },
-        orderBy: { createdAt: 'desc' }
-      });
+      let properties;
+      if (isAdmin) {
+        properties = await prisma.property.findMany({
+          orderBy: { createdAt: 'desc' }
+        });
+      } else {
+        try {
+          properties = await prisma.property.findMany({
+            where: {
+              OR: [
+                { status: { not: 'DRAFT' } },
+                { status: null }
+              ]
+            },
+            orderBy: { createdAt: 'desc' }
+          });
+        } catch (whereErr) {
+          logger.warn("Public properties status filter failed (the 'status' column may be missing); returning all properties as a fallback:", whereErr);
+          properties = await prisma.property.findMany({
+            orderBy: { createdAt: 'desc' }
+          });
+        }
+      }
 
       const enrichedProperties = properties.map(property => {
         const coords = extractCoords(property.locationLink);
@@ -2179,8 +2193,12 @@ async function startServer() {
     for (const cmd of alterCommands) {
       try {
         await prisma.$executeRawUnsafe(cmd);
-      } catch (_) {
-        // Ignore errors (column already exists, or wrong provider casing)
+      } catch (e: any) {
+        const msg = String(e?.message || e);
+        // Ignore expected "already exists" errors; surface anything else
+        if (!/already exists/i.test(msg)) {
+          logger.error(`ensureDbColumnsExist: ALTER failed -> ${cmd} | ${msg}`);
+        }
       }
     }
 
