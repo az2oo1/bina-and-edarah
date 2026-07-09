@@ -2254,11 +2254,6 @@ export default function Admin() {
                     <h3 className="text-lg font-bold text-foreground">
                       {language === 'ar' ? 'رابط لوحة Umami' : 'Umami Dashboard Link'}
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-                      {language === 'ar'
-                        ? 'بعض لوحات Umami تمنع العرض داخل iframe، لذلك يتم فتحها كرابط مباشر فقط. البيانات نفسها تأتي من رمز التتبع الذي تضعه في إعدادات التحليلات، وليس من هذا الرابط.'
-                        : 'Some Umami dashboards block iframe embedding, so this panel uses a direct link only. The data comes from the tracking script you saved in analytics settings, not from this URL.'}
-                    </p>
                   </div>
                   <a
                     href={analyticsDashboardUrl}
@@ -2966,7 +2961,7 @@ export default function Admin() {
                         rows={4}
                         value={analyticsScript}
                         onChange={(e) => setAnalyticsScript(e.target.value)}
-                        className="w-full border border-border rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-xs bg-background"
+                        className="cn-textarea"
                         placeholder={'<script defer src="https://cloud.umami.is/script.js" data-website-id="..."></script>'}
                         dir="ltr"
                       />
