@@ -30,6 +30,7 @@ export default function Properties() {
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,6 +52,18 @@ export default function Properties() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    setImageLoading((current) => {
+      const nextState: Record<string, boolean> = {};
+
+      properties.forEach((property) => {
+        nextState[property.id] = current[property.id] ?? false;
+      });
+
+      return nextState;
+    });
+  }, [properties]);
 
   const mapRef = useRef<any>(null);
 
@@ -126,12 +139,15 @@ export default function Properties() {
     return "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop";
   };
 
+  const thumbnailFallback = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop";
+  const hasStandaloneProperties = properties.some((property) => !property.parentId);
+
   const filteredProperties = properties.filter((p) => {
     if (parentIdParam) {
       if (p.parentId !== parentIdParam) return false;
     } else {
       // Hide sub-properties by default unless filter is ON or viewing by parent
-      if (p.parentId && !showIndividualUnits) return false;
+      if (p.parentId && !showIndividualUnits && hasStandaloneProperties) return false;
     }
 
     if (typeFilter !== 'ALL' && p.type !== typeFilter) return false;
@@ -316,13 +332,31 @@ export default function Properties() {
                 {filteredProperties.map((property) => (
                   <Link to={`/properties/${property.id}`} key={property.id} className="shadcn-card hover:shadow-md transition-all duration-200 group flex flex-col overflow-hidden hover:-translate-y-0.5 block">
                     <div className="relative h-48 overflow-hidden bg-muted">
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted transition-opacity duration-300 ${
+                          imageLoading[property.id] ? 'opacity-0' : 'animate-pulse opacity-100'
+                        }`}
+                      />
                       <img 
                         src={getThumbnail(property.imageUrls)} 
                         alt={language === 'ar' ? property.titleAr : property.titleEn} 
-                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500" 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop';
+                        loading="lazy"
+                        decoding="async"
+                        onLoad={() => setImageLoading((current) => ({ ...current, [property.id]: true }))}
+                        onError={(event) => {
+                          const target = event.currentTarget;
+
+                          if (target.dataset.fallbackApplied === 'true') {
+                            setImageLoading((current) => ({ ...current, [property.id]: true }));
+                            return;
+                          }
+
+                          target.dataset.fallbackApplied = 'true';
+                          target.src = thumbnailFallback;
                         }}
+                        className={`relative z-10 w-full h-full object-cover group-hover:scale-[1.02] transition-all duration-500 ${
+                          imageLoading[property.id] ? 'opacity-100 blur-0 scale-100' : 'opacity-70 blur-md scale-105'
+                        }`} 
                       />
                       <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 flex flex-wrap gap-1.5">
                         <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
