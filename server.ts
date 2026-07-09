@@ -1779,8 +1779,16 @@ async function startServer() {
 
       const enrichedProperties = properties.map(property => {
         const coords = extractCoords(property.locationLink);
+        let coverImage = '';
+        try {
+          const imgs = JSON.parse(property.imageUrls || '[]');
+          if (Array.isArray(imgs) && imgs.length > 0) coverImage = imgs[0];
+        } catch (_) {}
         return {
           ...property,
+          // Only send the cover image in the listings payload to keep it light;
+          // full galleries are available via GET /api/properties/:id
+          imageUrls: JSON.stringify(coverImage ? [coverImage] : []),
           latitude: coords?.lat ?? null,
           longitude: coords?.lon ?? null
         };
