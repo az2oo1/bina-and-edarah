@@ -334,8 +334,8 @@ function Footer() {
 
           <p className="text-[10px] leading-relaxed text-center text-muted-foreground/80 border-t border-border pt-3">
             {language === 'ar'
-              ? 'تنويه: قد نقوم بمعالجة بياناتك الشخصية والبيانات المتعلقة بتصفحك للموقع وفقاً لنظام حماية البيانات الشخصية في المملكة العربية السعودية ولأغراض التواصل، التحليلات، وتحسين الخدمة. لا تستخدم هذا الموقع لإرسال بيانات حساسة إلا عند الضرورة.'
-              : 'Disclaimer: We may process your personal data and browsing-related data in accordance with the Saudi Personal Data Protection Law for communication, analytics, and service improvement purposes. Please do not submit sensitive data unless necessary.'}
+              ? 'تنويه: قد نقوم بمعالجة بياناتك الشخصية وبيانات التصفح وملفات تعريف الارتباط (Cookies) وتقنيات التتبع المماثلة وفقاً لنظام حماية البيانات الشخصية في المملكة العربية السعودية ولأغراض التواصل، التحليلات، وتحسين الخدمة. لا تستخدم هذا الموقع لإرسال بيانات حساسة إلا عند الضرورة.'
+              : 'Disclaimer: We may process your personal data, browsing data, cookies, and similar tracking technologies in accordance with the Saudi Personal Data Protection Law for communication, analytics, and service improvement purposes. Please do not submit sensitive data unless necessary.'}
           </p>
         </div>
       </div>
