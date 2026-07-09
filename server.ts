@@ -752,6 +752,17 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
+const homeVideoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.mp4';
+      cb(null, `${crypto.randomUUID()}${ext}`);
+    }
+  }),
+  limits: { fileSize: 500 * 1024 * 1024 }
+});
+
 function saveBase64Image(dataStr: string): string {
   if (!dataStr || typeof dataStr !== 'string') return dataStr;
   
@@ -1004,6 +1015,7 @@ async function startServer() {
     try {
       let title = "بناء وإدارة العقارية | Benaa & Edara Real Estate";
       let description = "شركة بناء وإدارة العقارية - تطوير، تأجير، مبيعات، وإدارة أملاك في المملكة العربية السعودية";
+      const settings = await getGlobalSettings();
       
       const host = req.get('host');
       const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
@@ -1067,13 +1079,15 @@ async function startServer() {
         <meta name="twitter:image" content="${imageUrl}" />
       `;
 
+      const analyticsScript = settings?.analyticsScript?.trim() ? `\n${settings.analyticsScript}\n` : '';
+
       // Replace existing title and description tags if they exist
       html = html.replace(/<title>.*?<\/title>/gi, '');
       html = html.replace(/<meta\s+name="description"\s+content=".*?"\s*\/?>/gi, '');
       html = html.replace(/<meta\s+property="og:.*?"\s+content=".*?"\s*\/?>/gi, '');
       
       // Insert new tags right before </head>
-      html = html.replace('</head>', `${ogTags}\n</head>`);
+      html = html.replace('</head>', `${ogTags}${analyticsScript}</head>`);
       
       res.send(html);
     } catch (err) {
@@ -2435,6 +2449,22 @@ async function startServer() {
               where: { id: existingUnit.id },
               data: {
                 rentAmount: thUnit.price
+              }
+            });
+
+            app.post("/api/admin/upload-home-video", requirePermission('settings'), homeVideoUpload.single('file'), async (req, res) => {
+              try {
+                if (!req.file) {
+                  return res.status(400).json({ error: 'No video file uploaded' });
+                }
+
+                res.json({
+                  success: true,
+                  url: `/uploads/${req.file.filename}`
+                });
+              } catch (error) {
+                logger.error('Failed to upload home video', error);
+                res.status(500).json({ error: 'Failed to upload video' });
               }
             });
           }

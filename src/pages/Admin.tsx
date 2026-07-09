@@ -2246,6 +2246,37 @@ export default function Admin() {
               <div>
                 <h3 className="text-xl font-bold text-foreground mb-6">{language === 'ar' ? 'أكثر الصفحات زيارة' : 'Top Pages'}</h3>
                 <div className="space-y-4">
+
+            {analyticsDashboardUrl && (
+              <div className="mb-10 bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-border flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      {language === 'ar' ? 'لوحة التحليلات المدمجة' : 'Embedded Analytics Dashboard'}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {language === 'ar'
+                        ? 'تُعرض هنا لوحة Umami/التحليلات التي قمت بحفظ رابطها.'
+                        : 'Your saved Umami/analytics dashboard is shown here.'}
+                    </p>
+                  </div>
+                  <a
+                    href={analyticsDashboardUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-bold text-primary hover:underline"
+                  >
+                    {language === 'ar' ? 'فتح في نافذة جديدة' : 'Open in new tab'}
+                  </a>
+                </div>
+                <iframe
+                  src={analyticsDashboardUrl}
+                  title={language === 'ar' ? 'لوحة التحليلات المدمجة' : 'Embedded analytics dashboard'}
+                  className="w-full h-[720px] bg-background"
+                  loading="lazy"
+                />
+              </div>
+            )}
                   {analytics.pathsViews.map((item, idx) => {
                     let displayPath = item.path;
                     if (displayPath === '/') displayPath = language === 'ar' ? 'الصفحة الرئيسية' : 'Home Page';
@@ -2709,20 +2740,37 @@ export default function Admin() {
                 const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, isVideo: boolean, onUpload: (b: string) => void) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  if (file.size > 250 * 1024 * 1024) {
-                    await showAlert(language === 'ar' ? 'حجم الملف يتجاوز 250MB' : 'File exceeds 250MB limit');
+                  const maxSize = isVideo ? 500 * 1024 * 1024 : 250 * 1024 * 1024;
+                  if (file.size > maxSize) {
+                    await showAlert(
+                      language === 'ar'
+                        ? `حجم الملف يتجاوز ${isVideo ? '500MB' : '250MB'}`
+                        : `File exceeds ${isVideo ? '500MB' : '250MB'} limit`
+                    );
                     return;
                   }
                   setImageSlotUploading(slotKey);
                   let base64 = '';
                   if (isVideo) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      onUpload(reader.result as string);
+                    try {
+                      const fd = new FormData();
+                      fd.append('file', file);
+                      const res = await fetch('/api/admin/upload-home-video', {
+                        method: 'POST',
+                        body: fd,
+                      });
+                      const data = await res.json().catch(() => ({}));
+                      if (!res.ok) {
+                        throw new Error(data.error || 'Failed to upload video');
+                      }
+                      onUpload(data.url);
+                    } catch (uploadErr) {
+                      console.error(uploadErr);
+                      await showAlert(language === 'ar' ? 'فشل رفع الفيديو' : 'Failed to upload video');
+                    } finally {
                       setImageSlotUploading(null);
-                    };
-                    reader.readAsDataURL(file);
-                    e.target.value = '';
+                      e.target.value = '';
+                    }
                     return;
                   } else if (slotKey === 'hero') {
                     base64 = await compressImage(file, 2560, 1440, 0.92);
@@ -2803,7 +2851,7 @@ export default function Admin() {
                                   : (slot.isVideo ? (language === 'ar' ? 'رفع فيديو' : 'Upload Video') : (language === 'ar' ? 'رفع صورة' : 'Upload Image'))
                                 }
                               </label>
-                              <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? 'الحد الأقصى 250MB' : 'Max 250MB'}</p>
+                              <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? (slot.isVideo ? 'الحد الأقصى 500MB' : 'الحد الأقصى 250MB') : (slot.isVideo ? 'Max 500MB' : 'Max 250MB')}</p>
                             </div>
                             
 
