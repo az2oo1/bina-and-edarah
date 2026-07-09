@@ -309,34 +309,35 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          {/* Logo & Name */}
-          <div className="flex items-center gap-2">
-            {theme === 'dark' ? (
-              <div className="bg-white rounded-lg p-1 shadow-md">
-                <Logo className="h-6 w-6 text-slate-950" logoUrl={logoUrl} />
-              </div>
-            ) : (
-              <Logo className="h-7 w-7 text-slate-800" logoUrl={logoUrl} />
-            )}
-            <span className="font-bold text-foreground text-xs select-none">{language === 'ar' ? 'شركة بناء وإدارة العقارية' : 'Benaa & Edara'}</span>
-          </div>
+            {/* Logo & Name */}
+            <div className="flex items-center gap-2">
+              {theme === 'dark' ? (
+                <div className="bg-white rounded-lg p-1 shadow-md">
+                  <Logo className="h-6 w-6 text-slate-950" logoUrl={logoUrl} />
+                </div>
+              ) : (
+                <Logo className="h-7 w-7 text-slate-800" logoUrl={logoUrl} />
+              )}
+              <span className="font-bold text-foreground text-xs select-none">{language === 'ar' ? 'شركة بناء وإدارة العقارية' : 'Benaa & Edara'}</span>
+            </div>
 
-          {/* Copyright in Center */}
-          <div className="text-center md:text-center text-[10px] sm:text-xs">
-            &copy; {new Date().getFullYear()} {language === 'ar' ? 'بناء وإدارة العقارية. جميع الحقوق محفوظة.' : 'Benaa and Edara Real Estate. All rights reserved.'}
-          </div>
+            {/* Copyright in Center */}
+            <div className="text-center md:text-center text-[10px] sm:text-xs">
+              &copy; {new Date().getFullYear()} {language === 'ar' ? 'بناء وإدارة العقارية. جميع الحقوق محفوظة.' : 'Benaa and Edara Real Estate. All rights reserved.'}
+            </div>
 
-          {/* Social Icons on Right */}
-          <div className="flex items-center">
-            <SocialIconsRow links={socialLinks} size="sm" />
+            {/* Social Icons on Right */}
+            <div className="flex items-center">
+              <SocialIconsRow links={socialLinks} size="sm" />
+            </div>
           </div>
-        </div>
 
           <p className="text-[10px] leading-relaxed text-center text-muted-foreground/80 border-t border-border pt-3">
             {language === 'ar'
               ? 'تنويه: قد نقوم بمعالجة بياناتك الشخصية والبيانات المتعلقة بتصفحك للموقع وفقاً لنظام حماية البيانات الشخصية في المملكة العربية السعودية ولأغراض التواصل، التحليلات، وتحسين الخدمة. لا تستخدم هذا الموقع لإرسال بيانات حساسة إلا عند الضرورة.'
               : 'Disclaimer: We may process your personal data and browsing-related data in accordance with the Saudi Personal Data Protection Law for communication, analytics, and service improvement purposes. Please do not submit sensitive data unless necessary.'}
           </p>
+        </div>
       </div>
     </footer>
   );
