@@ -273,11 +273,17 @@ export default function PropertyDetails() {
               {galleryItems.length > 1 && (
                 <div className="flex gap-2 p-3 overflow-x-auto border-t border-border custom-scrollbar">
                   {galleryItems.map((item, i) => {
+                    const isMap = item.type === 'map';
                     return (
                       <button 
                         key={i} 
                         onClick={() => setActiveImage(i)}
-                        className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all cursor-pointer overflow-hidden ${activeImage === i ? 'border-primary opacity-100' : 'border-transparent opacity-65 hover:opacity-100'}`}
+                        className={[
+                          'flex-shrink-0 w-16 h-16 rounded-lg transition-all cursor-pointer overflow-hidden',
+                          isMap
+                            ? 'sticky end-0 z-10 bg-card border border-border border-s-2 border-s-primary/60 shadow-sm ms-1'
+                            : activeImage === i ? 'border-2 border-primary opacity-100' : 'border-2 border-transparent opacity-65 hover:opacity-100'
+                        ].join(' ')}
                       >
                         {item.type === 'map' ? (
                           <div className="w-full h-full bg-slate-950 text-white flex flex-col items-center justify-center gap-1 select-none">
@@ -290,7 +296,7 @@ export default function PropertyDetails() {
                             <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'فيديو' : 'Video'}</span>
                           </div>
                         ) : (
-                          <img src={item.url} alt={`Thumbnail ${i}`} className="w-full h-full object-cover rounded-[2px]" />
+                          <img src={item.url} alt={`Thumbnail ${i}`} className="w-full h-full object-cover" />
                         )}
                       </button>
                     );
