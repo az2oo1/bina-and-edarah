@@ -65,17 +65,67 @@ export default function Properties() {
     });
   }, [properties]);
 
-  const [mapFocus, setMapFocus] = useState<{ lat: number; lng: number; id: string } | null>(null);
-  const mapSectionRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
 
-  const focusPropertyOnMap = (property: any, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (property.latitude && property.longitude) {
-      setMapFocus({ lat: property.latitude, lng: property.longitude, id: property.id });
-      mapSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  useEffect(() => {
+    const L = (window as any).L;
+    if (!L || properties.length === 0) return;
+
+    if (mapRef.current) {
+      // Remove all previous markers to redraw dynamically
+      mapRef.current.eachLayer((layer: any) => {
+        if (layer instanceof L.Marker) {
+          mapRef.current.removeLayer(layer);
+        }
+      });
+    } else {
+      // Center at Riyadh
+      mapRef.current = L.map('properties-map', {
+        center: [24.7136, 46.6753],
+        zoom: 11,
+        zoomControl: true
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(mapRef.current);
     }
-  };
+
+    const markers: any[] = [];
+    properties.forEach((p) => {
+      let lat = (p as any).latitude;
+      let lon = (p as any).longitude;
+
+      if (lat && lon) {
+        let firstImg = '';
+        try {
+          const imgs = JSON.parse(p.imageUrls);
+          if (Array.isArray(imgs) && imgs.length > 0) firstImg = imgs[0];
+        } catch (_) {}
+
+        const popupHtml = `
+          <div style="text-align: ${language === 'ar' ? 'right' : 'left'}; font-family: sans-serif; direction: ${language === 'ar' ? 'rtl' : 'ltr'}; padding: 4px; width: 180px;">
+            ${firstImg ? `<img src="${firstImg}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;" />` : ''}
+            <h4 style="margin: 0 0 4px 0; font-size: 12px; font-weight: bold; color: #111;">${language === 'ar' ? p.titleAr : p.titleEn}</h4>
+            <p style="margin: 0 0 6px 0; font-size: 10px; color: #666;">${p.locationText || ''}</p>
+            <div style="font-weight: bold; font-size: 11px; color: #2C4A5E; margin-bottom: 6px;">${p.price.toLocaleString()} SAR</div>
+            <a href="/properties/${p.id}" style="display: inline-block; background-color: #2C4A5E; color: white; padding: 4px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-decoration: none; text-align: center; width: 100%;">
+              ${language === 'ar' ? 'عرض التفاصيل ↗' : 'View Details ↗'}
+            </a>
+          </div>
+        `;
+
+        const marker = L.marker([lat, lon]).addTo(mapRef.current)
+          .bindPopup(popupHtml);
+        markers.push(marker);
+      }
+    });
+
+    if (markers.length > 0) {
+      const group = L.featureGroup(markers);
+      mapRef.current.fitBounds(group.getBounds().pad(0.15));
+    }
+  }, [properties, language]);
 
   const getThumbnail = (imageUrlsStr: string) => {
     try {
@@ -323,19 +373,10 @@ export default function Properties() {
                         {language === 'ar' ? property.titleAr : property.titleEn}
                       </h3>
                       {property.locationText && (
-                        <button
-                          type="button"
-                          onClick={(e) => focusPropertyOnMap(property, e)}
-                          className={`text-xs flex items-center gap-1.5 mb-2 font-medium truncate w-full text-start ${
-                            property.latitude && property.longitude
-                              ? 'text-muted-foreground hover:text-primary transition-colors cursor-pointer'
-                              : 'text-muted-foreground'
-                          }`}
-                          title={property.latitude && property.longitude ? (language === 'ar' ? 'عرض الموقع على الخريطة' : 'Show location on map') : undefined}
-                        >
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2 font-medium">
                           <MapPin className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
                           <span className="truncate">{property.locationText}</span>
-                        </button>
+                        </p>
                       )}
                       
                       <div className="grid grid-cols-3 gap-2 mt-3 mb-4">
@@ -388,50 +429,25 @@ export default function Properties() {
           </>
         )}
 
-        {/* Google Maps Section */}
-        <div className="mt-16 border-t border-border pt-12" ref={mapSectionRef}>
+        {/* OpenStreetMap Section */}
+        <div className="mt-16 border-t border-border pt-12">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-foreground tracking-tight">
               {language === 'ar' ? 'خارطة مواقع العقارات' : 'Properties Location Map'}
             </h2>
             <p className="text-xs text-muted-foreground mt-2 max-w-md mx-auto leading-relaxed">
               {language === 'ar' 
-                ? 'اضغط على أيقونة الموقع في بطاقة العقار لعرض موقعه على الخارطة أدناه مباشرة.' 
-                : 'Press the location pin on any property card to view its location on the map below.'}
+                ? 'خارطة تفاعلية توضح التوزع الجغرافي لعقاراتنا المتاحة للبيع أو الإيجار في أرقى أحياء الرياض.' 
+                : 'An interactive map demonstrating the spatial distribution of our premier properties available for sale or rent.'}
             </p>
           </div>
 
-          {(() => {
-            const focus = mapFocus;
-            const target = focus
-              ? { lat: focus.lat, lng: focus.lng }
-              : (() => {
-                  const first = properties.find((p: any) => p.latitude && p.longitude);
-                  return first ? { lat: first.latitude, lng: first.longitude } : { lat: 24.7136, lng: 46.6753 };
-                })();
-            const mapSrc = `https://maps.google.com/maps?q=${target.lat},${target.lng}&z=${focus ? 15 : 11}&output=embed`;
-            return (
-              <div className="bg-card p-2.5 border border-border rounded-xl shadow-xs overflow-hidden h-[400px] relative">
-                <iframe
-                  key={mapSrc}
-                  src={mapSrc}
-                  title={language === 'ar' ? 'خارطة مواقع العقارات' : 'Properties Location Map'}
-                  loading="lazy"
-                  className="w-full h-full border-0 rounded-lg"
-                  style={{ borderRadius: '8px' }}
-                ></iframe>
-                {mapFocus && (
-                  <button
-                    type="button"
-                    onClick={() => setMapFocus(null)}
-                    className="absolute top-5 right-5 rtl:right-auto rtl:left-5 bg-card/90 hover:bg-card text-foreground text-xs font-bold px-3 py-1.5 rounded-full shadow-md border border-border transition-colors"
-                  >
-                    {language === 'ar' ? 'إعادة تعيين الخريطة' : 'Reset Map'}
-                  </button>
-                )}
-              </div>
-            );
-          })()}
+          <div className="bg-card p-2.5 border border-border rounded-xl shadow-xs overflow-hidden h-[400px]">
+            <div 
+              id="properties-map"
+              style={{ border: 0, borderRadius: '8px', height: '100%', width: '100%', zIndex: 1 }}
+            ></div>
+          </div>
         </div>
 
       </div>
