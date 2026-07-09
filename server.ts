@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
 import { prisma } from "./src/lib/db.js";
 import { fetchTechHubProperties, fetchTechHubContracts } from "./src/lib/techhub.js";
+import { emailLogoSvg } from "./src/lib/logo.js";
 import fs from "fs";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
@@ -118,9 +119,7 @@ async function sendCallbackEmailNotification(req?: any) {
     const formattedFrom = from.includes("<") ? from : `"بناء وإدارة العقارية | Benaa & Edara" <${from}>`;
     const fromDomain = from.includes('@') ? from.split('@')[1].trim().replace('>', '') : 'benaa-edara.com';
 
-    const logoHtml = settings?.logoUrl 
-      ? `<img src="${siteUrl}/settings-logo.png" alt="بناء وإدارة العقارية | Benaa & Edara" style="max-height: 55px; width: auto; display: block; margin: 0 auto;" />`
-      : `<span style="font-size: 22px; font-weight: 800; color: #111827; font-family: 'Cairo', sans-serif; display: block; text-align: center; letter-spacing: -0.5px;">بناء وإدارة <span style="color: #D4AF37;">|</span> Benaa & Edara</span>`;
+    const logoHtml = emailLogoSvg();
 
     const emailSubject = "طلب جديد على المنصة / New Request on Platform";
     const htmlContent = `
@@ -295,9 +294,7 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
       ? `Re: رد على طلبك / Reply to your request - بناء وإدارة`
       : `رد على طلبك / Reply to your request - بناء وإدارة`;
 
-    const logoHtml = settings?.logoUrl 
-      ? `<img src="${siteUrl}/settings-logo.png" alt="بناء وإدارة العقارية | Benaa & Edara" style="max-height: 55px; width: auto; display: block; margin: 0 auto;" />`
-      : `<span style="font-size: 22px; font-weight: 800; color: #111827; font-family: 'Cairo', sans-serif; display: block; text-align: center; letter-spacing: -0.5px;">بناء وإدارة <span style="color: #D4AF37;">|</span> Benaa & Edara</span>`;
+    const logoHtml = emailLogoSvg();
 
     const htmlContent = `
       <!DOCTYPE html>

@@ -105,13 +105,10 @@ function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center gap-2 mr-12 lg:mr-20 sm:rtl:ml-12 sm:rtl:mr-0 lg:rtl:ml-20 group">
-              {theme === 'dark' ? (
-                <div className="bg-white rounded-lg p-1 shadow-md flex-shrink-0">
-                  <Logo className="h-8 w-8 text-slate-950" logoUrl={logoUrl} />
-                </div>
-              ) : (
-                <Logo className="h-9 w-9 flex-shrink-0 text-slate-800" logoUrl={logoUrl} />
-              )}
+              <Logo
+                className={`h-8 w-8 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-[#34505e]'}`}
+                logoUrl={logoUrl}
+              />
               <span className="font-bold text-base text-foreground tracking-wide hidden md:block">{t('hero.title')}</span>
             </Link>
             <div className="hidden sm:flex items-center gap-6 lg:gap-10">
@@ -311,13 +308,10 @@ function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             {/* Logo & Name */}
             <div className="flex items-center gap-2">
-              {theme === 'dark' ? (
-                <div className="bg-white rounded-lg p-1 shadow-md">
-                  <Logo className="h-6 w-6 text-slate-950" logoUrl={logoUrl} />
-                </div>
-              ) : (
-                <Logo className="h-7 w-7 text-slate-800" logoUrl={logoUrl} />
-              )}
+              <Logo
+                className={`h-6 w-6 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-[#34505e]'}`}
+                logoUrl={logoUrl}
+              />
               <span className="font-bold text-foreground text-xs select-none">{language === 'ar' ? 'شركة بناء وإدارة العقارية' : 'Benaa & Edara'}</span>
             </div>
 
