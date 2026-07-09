@@ -307,7 +307,8 @@ function Footer() {
   return (
     <footer className="bg-card border-t border-border py-4 text-muted-foreground text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           {/* Logo & Name */}
           <div className="flex items-center gap-2">
             {theme === 'dark' ? (
@@ -330,6 +331,12 @@ function Footer() {
             <SocialIconsRow links={socialLinks} size="sm" />
           </div>
         </div>
+
+          <p className="text-[10px] leading-relaxed text-center text-muted-foreground/80 border-t border-border pt-3">
+            {language === 'ar'
+              ? 'تنويه: قد نقوم بمعالجة بياناتك الشخصية والبيانات المتعلقة بتصفحك للموقع وفقاً لنظام حماية البيانات الشخصية في المملكة العربية السعودية ولأغراض التواصل، التحليلات، وتحسين الخدمة. لا تستخدم هذا الموقع لإرسال بيانات حساسة إلا عند الضرورة.'
+              : 'Disclaimer: We may process your personal data and browsing-related data in accordance with the Saudi Personal Data Protection Law for communication, analytics, and service improvement purposes. Please do not submit sensitive data unless necessary.'}
+          </p>
       </div>
     </footer>
   );

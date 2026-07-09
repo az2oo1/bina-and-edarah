@@ -2248,33 +2248,27 @@ export default function Admin() {
                 <div className="space-y-4">
 
             {analyticsDashboardUrl && (
-              <div className="mb-10 bg-card border border-border rounded-2xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-border flex items-center justify-between gap-4">
+              <div className="mb-10 bg-card border border-border rounded-2xl p-6">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-foreground">
-                      {language === 'ar' ? 'لوحة التحليلات المدمجة' : 'Embedded Analytics Dashboard'}
+                      {language === 'ar' ? 'رابط لوحة Umami' : 'Umami Dashboard Link'}
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
                       {language === 'ar'
-                        ? 'تُعرض هنا لوحة Umami/التحليلات التي قمت بحفظ رابطها.'
-                        : 'Your saved Umami/analytics dashboard is shown here.'}
+                        ? 'بعض لوحات Umami تمنع العرض داخل iframe، لذلك يتم فتحها كرابط مباشر فقط. البيانات نفسها تأتي من رمز التتبع الذي تضعه في إعدادات التحليلات، وليس من هذا الرابط.'
+                        : 'Some Umami dashboards block iframe embedding, so this panel uses a direct link only. The data comes from the tracking script you saved in analytics settings, not from this URL.'}
                     </p>
                   </div>
                   <a
                     href={analyticsDashboardUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs font-bold text-primary hover:underline"
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
                   >
-                    {language === 'ar' ? 'فتح في نافذة جديدة' : 'Open in new tab'}
+                    {language === 'ar' ? 'فتح لوحة التحليلات' : 'Open Analytics Dashboard'}
                   </a>
                 </div>
-                <iframe
-                  src={analyticsDashboardUrl}
-                  title={language === 'ar' ? 'لوحة التحليلات المدمجة' : 'Embedded analytics dashboard'}
-                  className="w-full h-[720px] bg-background"
-                  loading="lazy"
-                />
               </div>
             )}
                   {analytics.pathsViews.map((item, idx) => {
