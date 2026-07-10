@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { PlusCircle, Loader2, Trash2, Building2, UploadCloud, Users, Settings as SettingsIcon, ImagePlus, X, Save, Phone, History, CheckCircle2, Calendar, Search } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import * as XLSX from 'xlsx';
+import { getRentStatus } from '../utils/rentStatus';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -683,49 +684,16 @@ export default function AdminBuildings() {
                {selectedRenterForHistory.rentHistory && selectedRenterForHistory.rentHistory.length > 0 ? (
                  <div className="space-y-4">
                    {selectedRenterForHistory.rentHistory.map((h, i) => {
-                      const paidDateStr = h.paidDate || '';
                       const amountStr = typeof h.amount === 'string' ? h.amount : (h.amount?.toString() || '');
-                      const isCourt = paidDateStr.includes('محكمة') || paidDateStr.includes('تنفيذ') || paidDateStr.includes('تم الرفع') || amountStr.includes('محكمة') || amountStr.includes('تنفيذ') || amountStr.includes('تم الرفع');
-                      const isLate = paidDateStr.includes('متاخرات') || amountStr.includes('متاخرات');
-                      const isPaid = !!h.receiptUrl || (paidDateStr.trim() !== '' && !isCourt && !isLate) || amountStr.includes('مسدد') || (!isNaN(Number(amountStr)) && Number(amountStr) > 0 && !isCourt && !isLate);
-
-                           let isUnpaidPassed = false;
-                           let isFuture = false;
-                           let actualPaidDate = '';
-                           
-                           const dueDateObj = new Date(h.dueDate);
-                           if (!isNaN(dueDateObj.getTime())) {
-                               const today = new Date();
-                               today.setHours(0,0,0,0);
-                               const d = new Date(dueDateObj);
-                               d.setHours(0,0,0,0);
-                               if (d > today) {
-                                   isFuture = true;
-                               } else {
-                                   isUnpaidPassed = true;
-                               }
-                           }
-
-                           let statusText = language === 'ar' ? 'غير مسدد' : 'Unpaid';
-                           if (isCourt) {
-                              statusText = language === 'ar' ? 'مسار محكمة/تنفيذ' : 'Court/Tanfeeth';
-                              if (paidDateStr.includes('محكمة') || paidDateStr.includes('تم الرفع')) statusText = paidDateStr;
-                              else if (amountStr.includes('محكمة') || amountStr.includes('تم الرفع')) statusText = amountStr;
-                           } else if (isLate) {
-                              statusText = language === 'ar' ? 'متأخرات' : 'Late';
-                              if (paidDateStr.includes('متاخرات')) statusText = paidDateStr;
-                              else if (amountStr.includes('متاخرات')) statusText = amountStr;
-                           } else if (isPaid) {
-                              statusText = language === 'ar' ? 'مسدد' : 'Paid';
-                              if (paidDateStr.trim()) actualPaidDate = paidDateStr;
-                           } else if (isFuture) {
-                              statusText = language === 'ar' ? 'مجدول' : 'Scheduled';
-                           } else {
-                              statusText = language === 'ar' ? 'مستحق الدفع' : 'Payment Due'; 
-                           }
-                           
-                           const isScheduled = !isPaid && !isCourt && !isLate && isFuture;
-                           const isDue = !isPaid && !isCourt && !isLate && isUnpaidPassed;
+                      const {
+                        isCourt,
+                        isLate,
+                        isPaid,
+                        isScheduled,
+                        isDue,
+                        statusText,
+                        actualPaidDate
+                      } = getRentStatus(h, language);
 
                            return (
                              <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-border bg-card'}`}>
