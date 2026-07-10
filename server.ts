@@ -21,7 +21,7 @@ import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
@@ -2933,26 +2933,6 @@ async function startServer() {
          return res.json(userPayload);
        }
  
-       // Hardcoded admin fallback for preview if DB is empty
-       if (username === 'admin' && password === 'admin') {
-         const userPayload = { 
-           id: 'admin-fallback', 
-           username: 'admin', 
-           role: 'ADMIN', 
-           name: 'Administrator',
-           permissions: ROLE_PERMISSIONS['ADMIN']
-         };
-         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-         res.cookie('token', token, {
-           httpOnly: true,
-           secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-           sameSite: 'lax',
-           maxAge: 24 * 60 * 60 * 1000 // 24 hours
-         });
-         logger.info(`Fallback admin login successful`);
-         return res.json(userPayload);
-       }
-
       logger.warn(`Failed login attempt for username: ${username}`);
       res.status(401).json({ error: "Invalid credentials" });
     } catch (error) {
