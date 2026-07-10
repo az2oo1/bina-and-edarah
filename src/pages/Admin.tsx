@@ -14,6 +14,7 @@ import AdminReceipts from './AdminReceipts';
 import AdminUsers from './AdminUsers';
 import AdminLogs from './AdminLogs';
 import { compressImage } from '../lib/image';
+import { PropertyStatus } from '../types/property';
 
 interface Property {
   id: string;
@@ -458,7 +459,7 @@ export default function Admin() {
     setTimeout(() => setSubmitMessage(null), 5000);
   };
 
-  const saveProperty = async (e: React.FormEvent | null, statusVal: 'PUBLISHED' | 'DRAFT') => {
+  const saveProperty = async (e: React.FormEvent | null, statusVal: PropertyStatus) => {
     if (e) e.preventDefault();
     setSubmitMessage(null);
     if (isUploadingImages) {
@@ -520,7 +521,7 @@ export default function Admin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveProperty(e, formData.status as 'PUBLISHED' | 'DRAFT' || 'PUBLISHED');
+    await saveProperty(e, formData.status as PropertyStatus || 'PUBLISHED');
   };
 
 
