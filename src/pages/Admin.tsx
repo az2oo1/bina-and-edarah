@@ -40,6 +40,11 @@ interface AnalyticsData {
   pathsViews: { path: string; _count: { path: number } }[];
 }
 
+interface PropertyDetail {
+  key: string;
+  value: string;
+}
+
 const PREDEFINED_DETAILS = [
   { keyAr: 'الواجهة', keyEn: 'Facade', example: 'شمالية' },
   { keyAr: 'عرض الشارع', keyEn: 'Street Width', example: '36م' },
@@ -615,10 +620,10 @@ export default function Admin() {
     let bathrooms = '';
     let floor = '';
     try {
-      const parsed = JSON.parse(unit.details || '[]');
-      rooms = parsed.find((d: any) => d.key.includes('غرف') || d.key.toLowerCase().includes('room'))?.value || '';
-      bathrooms = parsed.find((d: any) => d.key.includes('مياه') || d.key.toLowerCase().includes('bathroom'))?.value || '';
-      floor = parsed.find((d: any) => d.key.includes('دور') || d.key.toLowerCase().includes('floor'))?.value || '';
+      const parsed: PropertyDetail[] = JSON.parse(unit.details || '[]');
+      rooms = parsed.find((d) => d.key.includes('غرف') || d.key.toLowerCase().includes('room'))?.value || '';
+      bathrooms = parsed.find((d) => d.key.includes('مياه') || d.key.toLowerCase().includes('bathroom'))?.value || '';
+      floor = parsed.find((d) => d.key.includes('دور') || d.key.toLowerCase().includes('floor'))?.value || '';
     } catch (_) {}
 
     setUnitFormData({
