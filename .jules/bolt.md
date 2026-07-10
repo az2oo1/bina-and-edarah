@@ -1,0 +1,1 @@
+## 2024-05-18 - Avoid filtering on every render\n**Learning:** Filtering a large list of properties on every render can cause performance issues.\n**Action:** Use `useMemo` to memoize the filtered list of properties to prevent unnecessary recalculations on re-renders where dependencies haven't changed.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { MapPin, Building2, Maximize, CalendarDays, Coins } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
@@ -140,31 +140,36 @@ export default function Properties() {
   };
 
   const thumbnailFallback = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop";
-  const hasStandaloneProperties = properties.some((property) => !property.parentId);
 
-  const filteredProperties = properties.filter((p) => {
-    if (parentIdParam) {
-      if (p.parentId !== parentIdParam) return false;
-    } else {
-      // Hide sub-properties by default unless filter is ON or viewing by parent
-      if (p.parentId && !showIndividualUnits && hasStandaloneProperties) return false;
-    }
+  const hasStandaloneProperties = useMemo(() => {
+    return properties.some((property) => !property.parentId);
+  }, [properties]);
 
-    if (typeFilter !== 'ALL' && p.type !== typeFilter) return false;
-    if (categoryFilter !== 'ALL' && p.propertyCategory !== categoryFilter) return false;
-    
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      if (!p.titleAr.toLowerCase().includes(term) && !p.titleEn.toLowerCase().includes(term)) {
-        return false;
+  const filteredProperties = useMemo(() => {
+    return properties.filter((p) => {
+      if (parentIdParam) {
+        if (p.parentId !== parentIdParam) return false;
+      } else {
+        // Hide sub-properties by default unless filter is ON or viewing by parent
+        if (p.parentId && !showIndividualUnits && hasStandaloneProperties) return false;
       }
-    }
 
-    if (minPrice && p.price < parseInt(minPrice)) return false;
-    if (maxPrice && p.price > parseInt(maxPrice)) return false;
+      if (typeFilter !== 'ALL' && p.type !== typeFilter) return false;
+      if (categoryFilter !== 'ALL' && p.propertyCategory !== categoryFilter) return false;
 
-    return true;
-  });
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        if (!p.titleAr.toLowerCase().includes(term) && !p.titleEn.toLowerCase().includes(term)) {
+          return false;
+        }
+      }
+
+      if (minPrice && p.price < parseInt(minPrice)) return false;
+      if (maxPrice && p.price > parseInt(maxPrice)) return false;
+
+      return true;
+    });
+  }, [properties, parentIdParam, showIndividualUnits, hasStandaloneProperties, typeFilter, categoryFilter, searchTerm, minPrice, maxPrice]);
 
   return (
     <div className="bg-background min-h-screen pb-16">
