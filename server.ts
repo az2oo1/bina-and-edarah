@@ -1904,39 +1904,39 @@ async function startServer() {
 
       // Create nested subProperties if any
       if (Array.isArray(subPropertiesData) && subPropertiesData.length > 0) {
-        for (const unit of subPropertiesData) {
-          await prisma.property.create({
-            data: {
-              titleAr: unit.titleAr || "وحدة سكنية",
-              titleEn: unit.titleEn || "Unit",
-              type: unit.type || type,
-              propertyCategory: unit.propertyCategory || "APARTMENT",
-              paymentFrequency: unit.paymentFrequency || (type === "RENT" ? "MONTHLY" : null),
-              paymentsCount: safeIntOrNull(unit.paymentsCount),
-              area: safeFloat(unit.area),
-              details: unit.details || null,
-              locationLink: body.locationLink || null,
-              locationText: body.locationText || null,
-              description: unit.description || "",
-              features: unit.features || null,
-              propertyAge: safeInt(body.propertyAge),
-              electricityCost: safeFloat(unit.electricityCost),
-              electricityFrequency: unit.electricityFrequency || null,
-              vat: safeFloat(unit.vat),
-              vatExempt: unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false,
-              utilityBills: unit.utilityBills || "NONE",
-              commission: safeFloat(unit.commission),
-              price: safeFloat(unit.price),
-              imageUrls: processImageUrls(unit.imageUrls),
-              aqarLink: unit.aqarLink || null,
-              allowedPaymentPlans: unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
-              videoUrl: unit.videoUrl || null,
-              userId: body.userId || null,
-              parentId: newProperty.id,
-              status: unit.status || "PUBLISHED",
-            }
-          });
-        }
+        const subPropertiesToCreate = subPropertiesData.map((unit: any) => ({
+          titleAr: unit.titleAr || "وحدة سكنية",
+          titleEn: unit.titleEn || "Unit",
+          type: unit.type || type,
+          propertyCategory: unit.propertyCategory || "APARTMENT",
+          paymentFrequency: unit.paymentFrequency || (type === "RENT" ? "MONTHLY" : null),
+          paymentsCount: safeIntOrNull(unit.paymentsCount),
+          area: safeFloat(unit.area),
+          details: unit.details || null,
+          locationLink: body.locationLink || null,
+          locationText: body.locationText || null,
+          description: unit.description || "",
+          features: unit.features || null,
+          propertyAge: safeInt(body.propertyAge),
+          electricityCost: safeFloat(unit.electricityCost),
+          electricityFrequency: unit.electricityFrequency || null,
+          vat: safeFloat(unit.vat),
+          vatExempt: unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false,
+          utilityBills: unit.utilityBills || "NONE",
+          commission: safeFloat(unit.commission),
+          price: safeFloat(unit.price),
+          imageUrls: processImageUrls(unit.imageUrls),
+          aqarLink: unit.aqarLink || null,
+          allowedPaymentPlans: unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
+          videoUrl: unit.videoUrl || null,
+          userId: body.userId || null,
+          parentId: newProperty.id,
+          status: unit.status || "PUBLISHED",
+        }));
+
+        await prisma.property.createMany({
+          data: subPropertiesToCreate
+        });
       }
 
       invalidateCache('properties');
