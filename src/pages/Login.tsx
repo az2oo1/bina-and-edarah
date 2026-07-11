@@ -4,6 +4,7 @@ import { useLanguage } from '../LanguageContext';
 import { Lock, User, Phone, AlertTriangle, Building2, Calendar, FileText, ChevronLeft, CreditCard, History, Banknote, Landmark, CheckCircle2, UploadCloud, Loader2, Eye } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { useDialog } from '../context/DialogContext';
+import { getRentStatus } from '../utils/rentStatus';
 
 interface RentHistory {
   id: string;
@@ -315,48 +316,21 @@ export default function Login() {
                     {unit.rentHistory && unit.rentHistory.length > 0 ? (
                       <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                         {unit.rentHistory.map((h, hIdx) => {
-                           const paidDateStr = h.paidDate || '';
                            const amountStr = typeof h.amount === 'string' ? h.amount : (h.amount?.toString() || '');
-                           const isLate = paidDateStr.includes('متاخرات') || amountStr.includes('متاخرات');
-                           const isPaid = !!h.receiptUrl || (paidDateStr.trim() !== '' && !isLate) || amountStr.includes('مسدد') || (!isNaN(Number(amountStr)) && Number(amountStr) > 0 && !isLate);
-
-                           let isUnpaidPassed = false;
-                           let isFuture = false;
-                           let actualPaidDate = '';
-                           
-                           const dueDateObj = new Date(h.dueDate);
-                           if (!isNaN(dueDateObj.getTime())) {
-                               const today = new Date();
-                               today.setHours(0,0,0,0);
-                               const d = new Date(dueDateObj);
-                               d.setHours(0,0,0,0);
-                               if (d > today) {
-                                   isFuture = true;
-                               } else {
-                                   isUnpaidPassed = true;
-                               }
-                           }
-
-                           let statusText = language === 'ar' ? 'غير مسدد' : 'Unpaid';
-                           if (isLate) {
-                               statusText = language === 'ar' ? 'متأخرات' : 'Late';
-                               if (paidDateStr.includes('متاخرات')) statusText = paidDateStr;
-                               else if (amountStr.includes('متاخرات')) statusText = amountStr;
-                            } else if (isPaid) {
-                               statusText = language === 'ar' ? 'مسدد' : 'Paid';
-                               if (paidDateStr.trim()) actualPaidDate = paidDateStr;
-                            } else if (isFuture) {
-                               statusText = language === 'ar' ? 'مجدول' : 'Scheduled';
-                              statusText = language === 'ar' ? 'مستحق الدفع' : 'Payment Due'; 
-                           }
-                           
-                           const isScheduled = !isPaid && !isLate && isFuture;
-                           const isDue = !isPaid && !isLate && isUnpaidPassed;
+                           const {
+                             isCourt,
+                             isLate,
+                             isPaid,
+                             isScheduled,
+                             isDue,
+                             statusText,
+                             actualPaidDate
+                           } = getRentStatus(h, language);
 
                            return (
-                             <div key={h.id || hIdx} className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${isPaid ? 'border-green-100 bg-green-50/30' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-background'}`}>
+                             <div key={h.id || hIdx} className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-background'}`}>
                                <div className="flex items-center gap-4">
-                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isCourt ? 'bg-red-100 text-red-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
                                   {isPaid ? <CheckCircle2 className="w-6 h-6" /> : <Calendar className="w-6 h-6" />}
                                 </div>
                                 <div className="space-y-1 mt-1">
@@ -366,17 +340,17 @@ export default function Login() {
                                   <div className="text-sm flex flex-col gap-0.5 text-muted-foreground leading-tight">
                                     <div className="flex items-center gap-1 mt-1">
                                       <span>{language === 'ar' ? 'الحالة:' : 'Payment:'}</span>
-                                      <span className={`font-bold ${isPaid ? 'text-green-600' : isScheduled ? 'text-blue-600' : 'text-orange-600'}`}>
+                                      <span className={`font-bold ${isPaid ? 'text-green-600' : isCourt ? 'text-red-600' : isScheduled ? 'text-blue-600' : 'text-orange-600'}`}>
                                         {statusText}
                                       </span>
                                     </div>
-                                    {isPaid && actualPaidDate && (
+                                    {isPaid && actualPaidDate && !isCourt && actualPaidDate !== statusText && (
                                       <div className="flex items-center gap-1">
                                           <span>{language === 'ar' ? 'تاريخ السداد:' : 'Paid Date:'}</span>
                                           <span className="font-bold text-foreground">{actualPaidDate}</span>
                                       </div>
                                     )}
-                                    {amountStr.trim() !== '' && statusText !== amountStr && actualPaidDate !== amountStr && (
+                                    {amountStr.trim() !== '' && !isCourt && !isLate && statusText !== amountStr && actualPaidDate !== amountStr && (
                                       <div className="flex items-center gap-1">
                                         <span>{language === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
                                         <span className="font-bold text-foreground">{amountStr} {language === 'ar' ? 'ريال' : 'SAR'}</span>
