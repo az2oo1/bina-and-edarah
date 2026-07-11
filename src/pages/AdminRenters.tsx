@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Users, Search, Building2, Phone, Calendar, Wallet, X, CheckCircle2, ArrowRight, Trash2, Eye, Loader2 } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { useDialog } from '../context/DialogContext';
+import { getRentStatus } from '../utils/rentStatus';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -296,50 +297,22 @@ export default function AdminRenters() {
                      {unit.rentHistory && unit.rentHistory.length > 0 ? (
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
                          {unit.rentHistory.map((h, i) => {
-                           const paidDateStr = h.paidDate || '';
                            const amountStr = typeof h.amount === 'string' ? h.amount : (h.amount?.toString() || '');
-                           const isLate = paidDateStr.includes('متاخرات') || amountStr.includes('متاخرات');
-                           const isPaid = !!h.receiptUrl || (paidDateStr.trim() !== '' && !isLate) || amountStr.includes('مسدد') || (!isNaN(Number(amountStr)) && Number(amountStr) > 0 && !isLate);
-
-                           let isUnpaidPassed = false;
-                           let isFuture = false;
-                           let actualPaidDate = '';
-                           
-                           const dueDateObj = new Date(h.dueDate);
-                           if (!isNaN(dueDateObj.getTime())) {
-                               const today = new Date();
-                               today.setHours(0,0,0,0);
-                               const d = new Date(dueDateObj);
-                               d.setHours(0,0,0,0);
-                               if (d > today) {
-                                   isFuture = true;
-                               } else {
-                                   isUnpaidPassed = true;
-                               }
-                           }
-
-                           let statusText = language === 'ar' ? 'غير مسدد' : 'Unpaid';
-                           if (isLate) {
-                              statusText = language === 'ar' ? 'متأخرات' : 'Late';
-                              if (paidDateStr.includes('متاخرات')) statusText = paidDateStr;
-                              else if (amountStr.includes('متاخرات')) statusText = amountStr;
-                           } else if (isPaid) {
-                              statusText = language === 'ar' ? 'مسدد' : 'Paid';
-                              if (paidDateStr.trim()) actualPaidDate = paidDateStr;
-                           } else if (isFuture) {
-                              statusText = language === 'ar' ? 'مجدول' : 'Scheduled';
-                           } else {
-                              statusText = language === 'ar' ? 'مستحق الدفع' : 'Payment Due'; 
-                           }
-                           
-                           const isScheduled = !isPaid && !isLate && isFuture;
-                           const isDue = !isPaid && !isLate && isUnpaidPassed;
+                           const {
+                             isCourt,
+                             isLate,
+                             isPaid,
+                             isScheduled,
+                             isDue,
+                             statusText,
+                             actualPaidDate
+                           } = getRentStatus(h, language);
 
                            return (
-                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-border bg-card'}`}>
+                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-border bg-card'}`}>
                                <div className="flex items-start justify-between gap-2">
                                   <div className="flex items-center gap-2">
-                                     <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                     <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isCourt ? 'bg-red-100 text-red-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
                                         {isPaid ? <CheckCircle2 className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
                                      </div>
                                      <div>
@@ -357,17 +330,17 @@ export default function AdminRenters() {
                                <div className="pt-2 border-t border-border/50 flex flex-col gap-1 text-xs font-medium">
                                  <div className="flex items-center gap-1">
                                    <span className="text-muted-foreground">{language === 'ar' ? 'الحالة:' : 'Status:'}</span>
-                                   <span className={`font-bold ${isPaid ? 'text-green-600' : isScheduled ? 'text-blue-600' : 'text-orange-600'}`}>
+                                   <span className={`font-bold ${isPaid ? 'text-green-600' : isCourt ? 'text-red-600' : isScheduled ? 'text-blue-600' : 'text-orange-600'}`}>
                                      {statusText}
                                    </span>
                                  </div>
-                                 {isPaid && actualPaidDate && actualPaidDate !== statusText && (
+                                 {isPaid && actualPaidDate && !isCourt && actualPaidDate !== statusText && (
                                    <div className="flex items-center gap-1">
                                      <span className="text-muted-foreground">{language === 'ar' ? 'تاريخ السداد / ملاحظات:' : 'Paid / Notes:'}</span>
                                      <span className="text-foreground font-bold">{actualPaidDate}</span>
                                    </div>
                                  )}
-                                 {amountStr.trim() !== '' && statusText !== amountStr && actualPaidDate !== amountStr && (
+                                 {amountStr.trim() !== '' && !isCourt && !isLate && statusText !== amountStr && actualPaidDate !== amountStr && (
                                   <div className="flex items-center gap-1">
                                     <span className="text-muted-foreground">{language === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
                                     <span className="text-foreground font-bold">{amountStr} {language === 'ar' ? 'ريال' : 'SAR'}</span>
