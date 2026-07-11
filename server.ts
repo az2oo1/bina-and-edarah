@@ -6,7 +6,7 @@ import { createServer as createViteServer } from "vite";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./src/lib/db.js";
 import { fetchTechHubProperties, fetchTechHubContracts } from "./src/lib/techhub.js";
-import { emailLogoSvg } from "./src/lib/logo.js";
+import { emailLogoSvg, getEmailLogoAttachment } from "./src/lib/logo.js";
 import fs from "fs";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
@@ -274,7 +274,16 @@ There is a new contact or callback request on the platform. Please log in to the
       subject: emailSubject,
       html: htmlContent,
       text: textContent,
-      messageId: `<new-callback-alert-${Date.now()}@${fromDomain}>`
+      messageId: `<new-callback-alert-${Date.now()}@${fromDomain}>`,
+      attachments: [
+        {
+          filename: 'logo.svg',
+          content: getEmailLogoAttachment(),
+          encoding: 'base64',
+          cid: 'benaa-logo',
+          contentType: 'image/svg+xml'
+        }
+      ]
     });
     logger.info(`[EMAIL PING SUCCESS] Callback email notification sent to employees: ${toEmails}`);
   } catch (error) {
@@ -505,7 +514,16 @@ ${settings?.addressAr ? `الموقع / Location: ${settings.addressAr}` : ''}
       html: htmlContent,
       text: textContent,
       messageId: messageId,
-      headers: mailHeaders
+      headers: mailHeaders,
+      attachments: [
+        {
+          filename: 'logo.svg',
+          content: getEmailLogoAttachment(),
+          encoding: 'base64',
+          cid: 'benaa-logo',
+          contentType: 'image/svg+xml'
+        }
+      ]
     });
     logger.info(`[REPLY EMAIL SUCCESS] Reply email sent to customer: ${callbackRequest.email}`);
   } catch (error) {
