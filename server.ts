@@ -81,7 +81,7 @@ const logger = {
   }
 };
 
-function getSiteUrl(req?: any): string {
+export function getSiteUrl(req?: any): string {
   if (process.env.APP_URL && process.env.APP_URL !== "MY_APP_URL") {
     return process.env.APP_URL.replace(/\/$/, "");
   }
@@ -3468,4 +3468,4 @@ async function startServer() {
   });
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'test') { startServer(); }
