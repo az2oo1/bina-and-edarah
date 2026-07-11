@@ -179,6 +179,8 @@ function Navbar() {
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-slate-400 hover:text-white focus:outline-none p-1.5"
+              aria-label={language === 'ar' ? 'القائمة الرئيسية' : 'Main menu'}
+              aria-expanded={isOpen}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>

@@ -3,6 +3,7 @@ import express from "express";
 import path from "path";
 import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
+import { Prisma } from "@prisma/client";
 import { prisma } from "./src/lib/db.js";
 import { fetchTechHubProperties, fetchTechHubContracts } from "./src/lib/techhub.js";
 import { emailLogoSvg } from "./src/lib/logo.js";
@@ -21,7 +22,10 @@ import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
@@ -1901,39 +1905,39 @@ async function startServer() {
 
       // Create nested subProperties if any
       if (Array.isArray(subPropertiesData) && subPropertiesData.length > 0) {
-        for (const unit of subPropertiesData) {
-          await prisma.property.create({
-            data: {
-              titleAr: unit.titleAr || "وحدة سكنية",
-              titleEn: unit.titleEn || "Unit",
-              type: unit.type || type,
-              propertyCategory: unit.propertyCategory || "APARTMENT",
-              paymentFrequency: unit.paymentFrequency || (type === "RENT" ? "MONTHLY" : null),
-              paymentsCount: safeIntOrNull(unit.paymentsCount),
-              area: safeFloat(unit.area),
-              details: unit.details || null,
-              locationLink: body.locationLink || null,
-              locationText: body.locationText || null,
-              description: unit.description || "",
-              features: unit.features || null,
-              propertyAge: safeInt(body.propertyAge),
-              electricityCost: safeFloat(unit.electricityCost),
-              electricityFrequency: unit.electricityFrequency || null,
-              vat: safeFloat(unit.vat),
-              vatExempt: unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false,
-              utilityBills: unit.utilityBills || "NONE",
-              commission: safeFloat(unit.commission),
-              price: safeFloat(unit.price),
-              imageUrls: processImageUrls(unit.imageUrls),
-              aqarLink: unit.aqarLink || null,
-              allowedPaymentPlans: unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
-              videoUrl: unit.videoUrl || null,
-              userId: body.userId || null,
-              parentId: newProperty.id,
-              status: unit.status || "PUBLISHED",
-            }
-          });
-        }
+        const subPropertiesToCreate = subPropertiesData.map((unit: any) => ({
+          titleAr: unit.titleAr || "وحدة سكنية",
+          titleEn: unit.titleEn || "Unit",
+          type: unit.type || type,
+          propertyCategory: unit.propertyCategory || "APARTMENT",
+          paymentFrequency: unit.paymentFrequency || (type === "RENT" ? "MONTHLY" : null),
+          paymentsCount: safeIntOrNull(unit.paymentsCount),
+          area: safeFloat(unit.area),
+          details: unit.details || null,
+          locationLink: body.locationLink || null,
+          locationText: body.locationText || null,
+          description: unit.description || "",
+          features: unit.features || null,
+          propertyAge: safeInt(body.propertyAge),
+          electricityCost: safeFloat(unit.electricityCost),
+          electricityFrequency: unit.electricityFrequency || null,
+          vat: safeFloat(unit.vat),
+          vatExempt: unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false,
+          utilityBills: unit.utilityBills || "NONE",
+          commission: safeFloat(unit.commission),
+          price: safeFloat(unit.price),
+          imageUrls: processImageUrls(unit.imageUrls),
+          aqarLink: unit.aqarLink || null,
+          allowedPaymentPlans: unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
+          videoUrl: unit.videoUrl || null,
+          userId: body.userId || null,
+          parentId: newProperty.id,
+          status: unit.status || "PUBLISHED",
+        }));
+
+        await prisma.property.createMany({
+          data: subPropertiesToCreate
+        });
       }
 
       invalidateCache('properties');
@@ -2299,17 +2303,20 @@ async function startServer() {
     // Fallback: update fields one-by-one using raw SQL
     for (const field of fields) {
       const val = data[field];
+
+      // Basic validation for column name to prevent injection
+      if (!/^[a-zA-Z0-9_]+$/.test(field)) {
+        logger.warn(`Skipping invalid field name for Settings: ${field}`);
+        continue;
+      }
+
       try {
-        if (typeof val === 'string') {
-          const escaped = val.replace(/'/g, "''");
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = '${escaped}' WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = '${escaped}' WHERE id = 'global'`);
-        } else if (typeof val === 'number') {
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = ${val} WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = ${val} WHERE id = 'global'`);
+        if (typeof val === 'string' || typeof val === 'number') {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = ${val} WHERE id = 'global'`);
+          await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`);
         } else if (val === null) {
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = NULL WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = NULL WHERE id = 'global'`);
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = NULL WHERE id = 'global'`);
+          await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = NULL WHERE id = 'global'`);
         }
       } catch (e) {
         logger.error(`Raw SQL update failed for Settings.${field}:`, e);
@@ -3284,29 +3291,39 @@ async function startServer() {
 
       // Fallback: update using raw SQL
       if (username) {
-        const escaped = username.replace(/'/g, "''");
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET username = '${escaped}' WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET username = '${escaped}' WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw`UPDATE "Admin" SET username = ${username} WHERE id = ${id}`;
+        } catch (_) {
+          await prisma.$executeRaw`UPDATE Admin SET username = ${username} WHERE id = ${id}`;
+        }
       }
       if (password) {
-        const escaped = password.replace(/'/g, "''");
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET password = '${escaped}' WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET password = '${escaped}' WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw`UPDATE "Admin" SET password = ${password} WHERE id = ${id}`;
+        } catch (_) {
+          await prisma.$executeRaw`UPDATE Admin SET password = ${password} WHERE id = ${id}`;
+        }
       }
       if (name) {
-        const escaped = name.replace(/'/g, "''");
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET name = '${escaped}' WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET name = '${escaped}' WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw`UPDATE "Admin" SET name = ${name} WHERE id = ${id}`;
+        } catch (_) {
+          await prisma.$executeRaw`UPDATE Admin SET name = ${name} WHERE id = ${id}`;
+        }
       }
       if (role) {
-        const escaped = role.replace(/'/g, "''");
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET role = '${escaped}' WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET role = '${escaped}' WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw`UPDATE "Admin" SET role = ${role} WHERE id = ${id}`;
+        } catch (_) {
+          await prisma.$executeRaw`UPDATE Admin SET role = ${role} WHERE id = ${id}`;
+        }
       }
       if (email !== undefined) {
-        const escaped = email ? `'${email.replace(/'/g, "''")}'` : 'NULL';
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET email = ${escaped} WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET email = ${escaped} WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw`UPDATE "Admin" SET email = ${email} WHERE id = ${id}`;
+        } catch (_) {
+          await prisma.$executeRaw`UPDATE Admin SET email = ${email} WHERE id = ${id}`;
+        }
       }
 
       await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details (raw SQL): ${username || existing.username}`);
