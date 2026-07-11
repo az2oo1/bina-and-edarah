@@ -14,6 +14,7 @@ import AdminReceipts from './AdminReceipts';
 import AdminUsers from './AdminUsers';
 import AdminLogs from './AdminLogs';
 import { compressImage } from '../lib/image';
+import { PropertyStatus } from '../types/property';
 
 interface Property {
   id: string;
@@ -37,6 +38,11 @@ interface AnalyticsData {
   totalViews: number;
   propertiesViews: { propertyId: string; _count: { propertyId: number } }[];
   pathsViews: { path: string; _count: { path: number } }[];
+}
+
+interface PropertyDetail {
+  key: string;
+  value: string;
 }
 
 const PREDEFINED_DETAILS = [
@@ -458,7 +464,7 @@ export default function Admin() {
     setTimeout(() => setSubmitMessage(null), 5000);
   };
 
-  const saveProperty = async (e: React.FormEvent | null, statusVal: 'PUBLISHED' | 'DRAFT') => {
+  const saveProperty = async (e: React.FormEvent | null, statusVal: PropertyStatus) => {
     if (e) e.preventDefault();
     setSubmitMessage(null);
     if (isUploadingImages) {
@@ -520,7 +526,7 @@ export default function Admin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveProperty(e, formData.status as 'PUBLISHED' | 'DRAFT' || 'PUBLISHED');
+    await saveProperty(e, formData.status as PropertyStatus || 'PUBLISHED');
   };
 
 
@@ -614,10 +620,10 @@ export default function Admin() {
     let bathrooms = '';
     let floor = '';
     try {
-      const parsed = JSON.parse(unit.details || '[]');
-      rooms = parsed.find((d: any) => d.key.includes('غرف') || d.key.toLowerCase().includes('room'))?.value || '';
-      bathrooms = parsed.find((d: any) => d.key.includes('مياه') || d.key.toLowerCase().includes('bathroom'))?.value || '';
-      floor = parsed.find((d: any) => d.key.includes('دور') || d.key.toLowerCase().includes('floor'))?.value || '';
+      const parsed: PropertyDetail[] = JSON.parse(unit.details || '[]');
+      rooms = parsed.find((d) => d.key.includes('غرف') || d.key.toLowerCase().includes('room'))?.value || '';
+      bathrooms = parsed.find((d) => d.key.includes('مياه') || d.key.toLowerCase().includes('bathroom'))?.value || '';
+      floor = parsed.find((d) => d.key.includes('دور') || d.key.toLowerCase().includes('floor'))?.value || '';
     } catch (_) {}
 
     setUnitFormData({
