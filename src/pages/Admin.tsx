@@ -909,6 +909,30 @@ export default function Admin() {
     }
   };
 
+
+  const handleResubmitIndexNow = async () => {
+    if (!indexNowKey) {
+      await showAlert(language === 'ar' ? 'الرجاء إعداد مفتاح IndexNow أولاً.' : 'Please configure an IndexNow key first.');
+      return;
+    }
+
+    setResubmittingIndexNow(true);
+    try {
+      const res = await fetch('/api/admin/indexnow/resubmit', { method: 'POST' });
+      if (res.ok) {
+        await showAlert(language === 'ar' ? 'تم إرسال الروابط بنجاح.' : 'URLs submitted successfully.');
+      } else {
+        const err = await res.json();
+        await showAlert(language === 'ar' ? 'فشل الإرسال: ' + (err.error || 'خطأ غير معروف') : 'Submission failed: ' + (err.error || 'Unknown error'));
+      }
+    } catch (e) {
+      console.error(e);
+      await showAlert(language === 'ar' ? 'حدث خطأ أثناء الاتصال بالخادم.' : 'Server connection error.');
+    } finally {
+      setResubmittingIndexNow(false);
+    }
+  };
+
   const handleTechHubSync = async () => {
     setSyncingTechHub(true);
     try {
@@ -2997,6 +3021,53 @@ export default function Admin() {
                           ? 'رابط المشاركة العام للوحة التحكم لعرضه مباشرة داخل تبويب "تحليلات الموقع" في لوحة الإدارة.' 
                           : 'The public shareable dashboard URL to display directly inside the "Site Analytics" tab in the Admin panel.'}
                       </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+              {activeSettingsSection === 'seo' && (
+                <div>
+                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">
+                    {language === 'ar' ? 'إعدادات SEO و IndexNow' : 'SEO & IndexNow Settings'}
+                  </h3>
+
+                  <div className="space-y-6">
+                    <div className="space-y-1.5">
+                      <label className="cn-label">{language === 'ar' ? 'مفتاح IndexNow' : 'IndexNow Key'}</label>
+                      <input
+                        type="text"
+                        value={indexNowKey}
+                        onChange={(e) => setIndexNowKey(e.target.value)}
+                        className="cn-input bg-background font-mono h-12"
+                        placeholder="e.g. 1a2b3c4d5e6f7g8h9i0j"
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {language === 'ar'
+                          ? 'يستخدم لإشعار محركات البحث (مثل Bing و Yandex) بالتغييرات في الموقع فورياً.'
+                          : 'Used to instantly notify search engines (like Bing and Yandex) about site changes.'}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-border mt-6 font-sans">
+                      <h4 className="text-xs font-bold text-foreground mb-2">
+                        {language === 'ar' ? 'إعادة الإرسال اليدوي' : 'Manual Resubmission'}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground mb-4">
+                        {language === 'ar'
+                          ? 'إرسال جميع روابط المشاريع والعقارات الحالية يدوياً إلى IndexNow.'
+                          : 'Manually submit all current property and project URLs to IndexNow.'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleResubmitIndexNow}
+                        disabled={resubmittingIndexNow || !indexNowKey}
+                        className="btn-primary inline-flex items-center gap-1.5 h-10 px-4 text-xs font-semibold rounded-md shadow-xs bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 cursor-pointer"
+                      >
+                        {resubmittingIndexNow ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        {language === 'ar' ? 'إرسال الروابط الآن' : 'Resubmit URLs Now'}
+                      </button>
                     </div>
                   </div>
                 </div>
