@@ -12,29 +12,20 @@ export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60
 </svg>`;
 
 // Returns the logo as an inline SVG string with an explicit fill color and size,
-// suitable for embedding directly in emails.
-// Uses a CID-based image attachment in emails, avoiding external server
-// requests which are often blocked by email clients.
+// suitable for embedding directly in emails (no external image reference).
 export function emailLogoSvg(width = 66): string {
   const height = Math.round((width * 497) / 600);
-  // Returns an <img> tag with a Content-ID (CID).
-  // The nodemailer transporter in server.ts must include the attachment with cid 'benaa-logo'.
-  return `<img src="cid:benaa-logo" width="${width}" height="${height}" alt="Benaa & Edara Logo" style="display:block; margin:0 auto;" />`;
-}
-
-// Generates the base64 content for the CID attachment.
-export function getEmailLogoAttachment() {
-  const svg = LOGO_SVG.replace("currentColor", LOGO_BRAND_COLOR);
-  return Buffer.from(svg).toString("base64");
+  return LOGO_SVG
+    .replace("currentColor", LOGO_BRAND_COLOR)
+    .replace(
+      "<svg ",
+      `<svg width="${width}" height="${height}" style="display:block; margin:0 auto;" `
+    );
 }
 
 // Returns the logo as an inline SVG data URI for use as a browser tab icon
 // (no external image reference). Pass a color to tint it (e.g. white in dark mode).
 export function faviconDataUri(color = "#ffffff"): string {
   const svg = LOGO_SVG.replace("currentColor", color);
-
-  // Safari and older Chrome sometimes fail on URL-encoded SVGs that lack base64.
-  // We provide a safe base64 encoding that works in both Node (tests/SSR) and the Browser.
-  const b64 = typeof window !== "undefined" ? window.btoa(svg) : Buffer.from(svg).toString("base64");
-  return `data:image/svg+xml;base64,${b64}`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
