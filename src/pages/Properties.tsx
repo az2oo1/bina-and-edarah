@@ -21,7 +21,10 @@ interface Property {
   locationText?: string;
   locationLink?: string;
   parentId?: string | null;
+  thumbnail?: string;
 }
+
+const THUMBNAIL_FALLBACK = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop";
 
 export default function Properties() {
   const { t, language } = useLanguage();
@@ -44,7 +47,23 @@ export default function Properties() {
     fetch('/api/properties')
       .then((res) => res.json())
       .then((data) => {
-        setProperties(Array.isArray(data) ? data : []);
+        if (Array.isArray(data)) {
+          const mapped = data.map(p => {
+            let thumbnail = THUMBNAIL_FALLBACK;
+            try {
+              const parsed = JSON.parse(p.imageUrls);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                thumbnail = parsed[0];
+              }
+            } catch (e) {
+              // ignore
+            }
+            return { ...p, thumbnail };
+          });
+          setProperties(mapped);
+        } else {
+          setProperties([]);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -97,15 +116,9 @@ export default function Properties() {
       let lon = (p as any).longitude;
 
       if (lat && lon) {
-        let firstImg = '';
-        try {
-          const imgs = JSON.parse(p.imageUrls);
-          if (Array.isArray(imgs) && imgs.length > 0) firstImg = imgs[0];
-        } catch (_) {}
-
         const popupHtml = `
           <div style="text-align: ${language === 'ar' ? 'right' : 'left'}; font-family: sans-serif; direction: ${language === 'ar' ? 'rtl' : 'ltr'}; padding: 4px; width: 180px;">
-            ${firstImg ? `<img src="${firstImg}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;" />` : ''}
+            <img src="${p.thumbnail}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;" />
             <h4 style="margin: 0 0 4px 0; font-size: 12px; font-weight: bold; color: #111;">${language === 'ar' ? p.titleAr : p.titleEn}</h4>
             <p style="margin: 0 0 6px 0; font-size: 10px; color: #666;">${p.locationText || ''}</p>
             <div style="font-weight: bold; font-size: 11px; color: #2C4A5E; margin-bottom: 6px;">${p.price.toLocaleString()} SAR</div>
@@ -126,20 +139,6 @@ export default function Properties() {
       mapRef.current.fitBounds(group.getBounds().pad(0.15));
     }
   }, [properties, language]);
-
-  const getThumbnail = (imageUrlsStr: string) => {
-    try {
-      const parsed = JSON.parse(imageUrlsStr);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed[0];
-      }
-    } catch(e) {
-      // ignore
-    }
-    return "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop";
-  };
-
-  const thumbnailFallback = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop";
 
   const hasStandaloneProperties = useMemo(() => {
     return properties.some((property) => !property.parentId);
@@ -343,7 +342,7 @@ export default function Properties() {
                         }`}
                       />
                       <img 
-                        src={getThumbnail(property.imageUrls)} 
+                        src={property.thumbnail}
                         alt={language === 'ar' ? property.titleAr : property.titleEn} 
                         loading="lazy"
                         decoding="async"
@@ -357,7 +356,7 @@ export default function Properties() {
                           }
 
                           target.dataset.fallbackApplied = 'true';
-                          target.src = thumbnailFallback;
+                          target.src = THUMBNAIL_FALLBACK;
                         }}
                         className={`relative z-10 w-full h-full object-cover group-hover:scale-[1.02] transition-all duration-500 ${
                           imageLoading[property.id] ? 'opacity-100 blur-0 scale-100' : 'opacity-70 blur-md scale-105'
