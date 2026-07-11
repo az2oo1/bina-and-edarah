@@ -10,3 +10,7 @@
 **Vulnerability:** SQL Injection in Admin Update via raw SQL fallback using `prisma.$executeRawUnsafe`.
 **Learning:** String concatenation inside `prisma.$executeRawUnsafe` permits attackers to execute arbitrary SQL commands if the parameters aren't strictly sanitized.
 **Prevention:** Always use `prisma.$executeRaw` alongside tagged template literals (e.g. ``prisma.$executeRaw`UPDATE Table SET col = ${val}` ``) for dynamic SQL queries to benefit from Prisma's automatic parameterization, or use Prisma Client operations wherever possible.
+## 2026-07-11 - XSS Vulnerability in dangerouslySetInnerHTML
+**Vulnerability:** XSS vulnerability in AdminCallbacks page due to unsanitized dangerouslySetInnerHTML.
+**Learning:** Raw input being passed to dangerouslySetInnerHTML is a security risk as it executes potentially malicious user inputs directly.
+**Prevention:** Always use a sanitation library like DOMPurify when passing user generated HTML data into dangerouslySetInnerHTML.

@@ -3,6 +3,7 @@ import { useLanguage } from '../LanguageContext';
 import { Phone, Mail, MessageSquare, Trash2, Calendar, Search, Loader2, User, Send, CheckCircle, HelpCircle, Archive, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialog } from '../context/DialogContext';
+import DOMPurify from 'dompurify';
 
 interface CallbackNote {
   id: string;
@@ -477,7 +478,7 @@ export default function AdminCallbacks() {
                             </div>
                             <div
                               className="text-muted-foreground whitespace-pre-wrap leading-relaxed text-justify text-xs"
-                              dangerouslySetInnerHTML={{ __html: note.text }}
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(note.text) }}
                             />
                             <div className="text-[9px] text-muted-foreground text-right">{formatDate(note.createdAt)}</div>
                           </div>
