@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2 } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon, SnapIcon } from '../components/SocialIcons';
@@ -172,8 +172,10 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   // Settings Form State
-  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'images' | 'social' | 'backup' | 'email' | 'analytics' | 'techhub'>('whatsapp');
+  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'images' | 'social' | 'backup' | 'email' | 'analytics' | 'techhub' | 'seo'>('whatsapp');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [indexNowKey, setIndexNowKey] = useState('');
+  const [resubmittingIndexNow, setResubmittingIndexNow] = useState(false);
   const [callingNumber, setCallingNumber] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
   const [otpWebhookUrl, setOtpWebhookUrl] = useState('');
@@ -308,6 +310,7 @@ export default function Admin() {
       if (data.instagramUrl !== undefined) setInstagramUrl(data.instagramUrl || '');
       if (data.twitterUrl !== undefined) setTwitterUrl(data.twitterUrl || '');
       if (data.facebookUrl !== undefined) setFacebookUrl(data.facebookUrl || '');
+      if (data.indexNowKey !== undefined) setIndexNowKey(data.indexNowKey || '');
       if (data.linkedinUrl !== undefined) setLinkedinUrl(data.linkedinUrl || '');
       if (data.youtubeUrl !== undefined) setYoutubeUrl(data.youtubeUrl || '');
       if (data.tiktokUrl !== undefined) setTiktokUrl(data.tiktokUrl || '');
@@ -828,6 +831,7 @@ export default function Admin() {
         tiktokUrl,
         snapchatUrl,
         notificationEmail,
+        indexNowKey,
         smtpHost,
         smtpPort: smtpPort ? Number(smtpPort) : null,
         smtpUser,
@@ -2337,6 +2341,7 @@ export default function Admin() {
                   { section: 'analytics', labelAr: 'إحصائيات الموقع', labelEn: 'Site Analytics', icon: <BarChart3 className="w-4 h-4" /> },
                   { section: 'backup', labelAr: 'نسخة احتياطية', labelEn: 'Database Backup', icon: <Database className="w-4 h-4" /> },
                   { section: 'techhub', labelAr: 'ربط TechHub', labelEn: 'TechHub Sync', icon: <RefreshCw className="w-4 h-4" /> },
+                  { section: 'seo', labelAr: 'إعدادات SEO', labelEn: 'SEO Settings', icon: <Globe className="w-4 h-4" /> },
                 ].map((item) => (
                   <button
                     key={item.section}

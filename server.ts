@@ -92,6 +92,44 @@ function getSiteUrl(req?: any): string {
   return "http://localhost:3000";
 }
 
+async function submitIndexNow(urls: string[], siteUrl: string, apiKey: string) {
+  try {
+    const payload = {
+      host: new URL(siteUrl).hostname,
+      key: apiKey,
+      keyLocation: `${siteUrl}/${apiKey}.txt`,
+      urlList: urls
+    };
+
+    const endpoints = [
+      "https://api.indexnow.org/indexnow",
+      "https://www.bing.com/indexnow",
+      "https://yandex.com/indexnow"
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          logger.info(`IndexNow submission successful to ${endpoint}`);
+        } else {
+          logger.warn(`IndexNow submission failed to ${endpoint} with status: ${res.status}`);
+        }
+      } catch (err) {
+        logger.error(`Error submitting IndexNow to ${endpoint}:`, err);
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to prepare IndexNow submission:", error);
+  }
+}
+
 async function sendCallbackEmailNotification(req?: any) {
   try {
     const settings = await prisma.settings.findUnique({ where: { id: "global" } });
@@ -1085,6 +1123,35 @@ async function startServer() {
 
       const analyticsScript = settings?.analyticsScript?.trim() ? `\n${settings.analyticsScript}\n` : '';
 
+      // Generate crawlable links for SEO
+      const properties = await prisma.property.findMany({
+        where: { OR: [{ status: { not: 'DRAFT' } }, { status: null }] },
+        select: { id: true, titleAr: true, titleEn: true }
+      });
+      const projects = await prisma.project.findMany({
+        select: { id: true, titleAr: true, titleEn: true }
+      });
+
+      let seoLinksHtml = '<div id="seo-links" style="display:none;">';
+      const staticPages = [
+        { path: '/', name: 'الرئيسية' },
+        { path: '/properties', name: 'العقارات' },
+        { path: '/projects', name: 'المشاريع' },
+        { path: '/services', name: 'الخدمات' },
+        { path: '/about', name: 'من نحن' },
+        { path: '/contact', name: 'اتصل بنا' }
+      ];
+      staticPages.forEach(p => {
+        seoLinksHtml += `<a href="${p.path}">${p.name}</a>`;
+      });
+      properties.forEach(p => {
+        seoLinksHtml += `<a href="/properties/${p.id}">${p.titleAr} / ${p.titleEn}</a>`;
+      });
+      projects.forEach(p => {
+        seoLinksHtml += `<a href="/projects/${p.id}">${p.titleAr} / ${p.titleEn}</a>`;
+      });
+      seoLinksHtml += '</div>';
+
       // Replace existing title and description tags if they exist
       html = html.replace(/<title>.*?<\/title>/gi, '');
       html = html.replace(/<meta\s+name="description"\s+content=".*?"\s*\/?>/gi, '');
@@ -1093,6 +1160,9 @@ async function startServer() {
       // Insert new tags right before </head>
       html = html.replace('</head>', `${ogTags}${analyticsScript}</head>`);
       
+      // Insert SEO links right after <body>
+      html = html.replace(/<body[^>]*>/i, (match) => `${match}${seoLinksHtml}`);
+
       res.send(html);
     } catch (err) {
       logger.error("SEO Injection Error:", err);
@@ -1941,6 +2011,19 @@ async function startServer() {
 
       invalidateCache('properties');
       await logAction(req, "ADD_PROPERTY", `Added property: ${newProperty.titleAr} (${newProperty.id}) with ${subPropertiesData.length} units`);
+
+      // IndexNow Trigger
+      if (newProperty.status !== 'DRAFT') {
+        try {
+          const siteUrl = getSiteUrl(req);
+          const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+          const key = settings?.indexNowKey || process.env.INDEXNOW_KEY;
+          if (key) {
+            submitIndexNow([`${siteUrl}/properties/${newProperty.id}`], siteUrl, key);
+          }
+        } catch(e) {}
+      }
+
       res.status(201).json(newProperty);
     } catch (error) {
       logger.error("Error creating property:", error);
@@ -2053,6 +2136,19 @@ async function startServer() {
 
       invalidateCache('properties');
       await logAction(req, "UPDATE_PROPERTY", `Updated property: ${updatedProperty.titleAr} (${req.params.id}) with synced subProperties`);
+
+      // IndexNow Trigger
+      if (updatedProperty.status !== 'DRAFT') {
+        try {
+          const siteUrl = getSiteUrl(req);
+          const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+          const key = settings?.indexNowKey || process.env.INDEXNOW_KEY;
+          if (key) {
+            submitIndexNow([`${siteUrl}/properties/${updatedProperty.id}`], siteUrl, key);
+          }
+        } catch(e) {}
+      }
+
       res.json(updatedProperty);
     } catch (error) {
       logger.error("Error updating property:", error);
@@ -2067,6 +2163,17 @@ async function startServer() {
       });
       invalidateCache('properties');
       await logAction(req, "DELETE_PROPERTY", `Deleted property ID: ${req.params.id}`);
+
+      // IndexNow Trigger
+      try {
+        const siteUrl = getSiteUrl(req);
+        const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+        const key = settings?.indexNowKey || process.env.INDEXNOW_KEY;
+        if (key) {
+          submitIndexNow([`${siteUrl}/properties/${req.params.id}`], siteUrl, key);
+        }
+      } catch(e) {}
+
       res.json({ success: true });
     } catch (error) {
       logger.error(`Error deleting property ${req.params.id}:`, error);
@@ -2127,6 +2234,17 @@ async function startServer() {
       });
       invalidateCache('projects');
       await logAction(req, "ADD_PROJECT", `Added project: ${newProject.titleAr} (${newProject.id})`);
+
+      // IndexNow Trigger
+      try {
+        const siteUrl = getSiteUrl(req);
+        const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+        const key = settings?.indexNowKey || process.env.INDEXNOW_KEY;
+        if (key) {
+          submitIndexNow([`${siteUrl}/projects/${newProject.id}`], siteUrl, key);
+        }
+      } catch(e) {}
+
       res.status(201).json(newProject);
     } catch (error) {
       logger.error("Error creating project:", error);
@@ -2156,6 +2274,17 @@ async function startServer() {
       });
       invalidateCache('projects');
       await logAction(req, "UPDATE_PROJECT", `Updated project: ${updatedProject.titleAr} (${req.params.id})`);
+
+      // IndexNow Trigger
+      try {
+        const siteUrl = getSiteUrl(req);
+        const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+        const key = settings?.indexNowKey || process.env.INDEXNOW_KEY;
+        if (key) {
+          submitIndexNow([`${siteUrl}/projects/${updatedProject.id}`], siteUrl, key);
+        }
+      } catch(e) {}
+
       res.json(updatedProject);
     } catch (error) {
       logger.error("Error updating project:", error);
@@ -2170,6 +2299,17 @@ async function startServer() {
       });
       invalidateCache('projects');
       await logAction(req, "DELETE_PROJECT", `Deleted project ID: ${req.params.id}`);
+
+      // IndexNow Trigger
+      try {
+        const siteUrl = getSiteUrl(req);
+        const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+        const key = settings?.indexNowKey || process.env.INDEXNOW_KEY;
+        if (key) {
+          submitIndexNow([`${siteUrl}/projects/${req.params.id}`], siteUrl, key);
+        }
+      } catch(e) {}
+
       res.json({ success: true });
     } catch (error) {
       logger.error(`Error deleting project ${req.params.id}:`, error);
@@ -2338,6 +2478,19 @@ async function startServer() {
           settings = await getGlobalSettings();
         }
       }
+
+      // Auto-generate indexNowKey if it is missing
+      if (settings && !settings.indexNowKey) {
+        const newKey = crypto.randomUUID().replace(/-/g, '');
+        try {
+          const updatedSettings = await prisma.settings.update({
+            where: { id: "global" },
+            data: { indexNowKey: newKey }
+          });
+          settings = updatedSettings;
+        } catch (_) {}
+      }
+
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch settings" });
@@ -2351,11 +2504,13 @@ async function startServer() {
         homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, 
         notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, imapHost, imapPort, analyticsScript, analyticsDashboardUrl,
         addressAr, addressEn, addressMapLink,
-        techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode
+        techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode, indexNowKey
       } = req.body;
       
       const updateData: any = {};
       
+      if (indexNowKey !== undefined) updateData.indexNowKey = indexNowKey;
+
       if (whatsappNumber !== undefined) updateData.whatsappNumber = whatsappNumber;
       if (callingNumber !== undefined) updateData.callingNumber = callingNumber;
       if (whatsappMessage !== undefined) updateData.whatsappMessage = whatsappMessage;
@@ -3378,6 +3533,127 @@ async function startServer() {
     } catch (error) {
       logger.error("Failed to fetch analytics", error);
       res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  // SEO Endpoints
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      const properties = await prisma.property.findMany({
+        where: { OR: [{ status: { not: 'DRAFT' } }, { status: null }] },
+        select: { id: true, createdAt: true }
+      });
+      const projects = await prisma.project.findMany({
+        select: { id: true, createdAt: true }
+      });
+
+      const siteUrl = getSiteUrl(req);
+      const staticPages = ["", "/properties", "/projects", "/services", "/about", "/contact"];
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+      for (const page of staticPages) {
+        xml += `  <url>\n`;
+        xml += `    <loc>${siteUrl}${page}</loc>\n`;
+        xml += `    <changefreq>daily</changefreq>\n`;
+        xml += `    <priority>${page === "" ? "1.0" : "0.8"}</priority>\n`;
+        xml += `  </url>\n`;
+      }
+
+      for (const p of properties) {
+        xml += `  <url>\n`;
+        xml += `    <loc>${siteUrl}/properties/${p.id}</loc>\n`;
+        xml += `    <lastmod>${p.createdAt.toISOString()}</lastmod>\n`;
+        xml += `    <changefreq>weekly</changefreq>\n`;
+        xml += `    <priority>0.7</priority>\n`;
+        xml += `  </url>\n`;
+      }
+
+      for (const p of projects) {
+        xml += `  <url>\n`;
+        xml += `    <loc>${siteUrl}/projects/${p.id}</loc>\n`;
+        xml += `    <lastmod>${p.createdAt.toISOString()}</lastmod>\n`;
+        xml += `    <changefreq>weekly</changefreq>\n`;
+        xml += `    <priority>0.7</priority>\n`;
+        xml += `  </url>\n`;
+      }
+
+      xml += `</urlset>`;
+
+      res.header('Content-Type', 'application/xml');
+      res.send(xml);
+    } catch (err) {
+      logger.error("Failed to generate sitemap", err);
+      res.status(500).send("Error generating sitemap");
+    }
+  });
+
+  app.get("/robots.txt", (req, res) => {
+    const siteUrl = getSiteUrl(req);
+    const robotsText = `User-agent: *\nDisallow: /admin\nDisallow: /dashboard\nDisallow: /login\nDisallow: /api\n\nSitemap: ${siteUrl}/sitemap.xml`;
+    res.type('text/plain');
+    res.send(robotsText);
+  });
+
+  // Dynamic IndexNow key verification
+  app.get("/:key.txt", async (req, res, next) => {
+    try {
+      const requestedKey = req.params.key;
+      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const indexNowKey = settings?.indexNowKey || process.env.INDEXNOW_KEY;
+      if (indexNowKey && requestedKey === indexNowKey) {
+        res.type("text/plain");
+        return res.send(indexNowKey);
+      }
+    } catch (e) {
+      logger.error("Error serving IndexNow key", e);
+    }
+    next();
+  });
+
+  // Manual IndexNow trigger
+  app.post("/api/admin/indexnow/resubmit", requirePermission('settings'), async (req, res) => {
+    try {
+      const siteUrl = getSiteUrl(req);
+      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const indexNowKey = settings?.indexNowKey || process.env.INDEXNOW_KEY;
+
+      if (!indexNowKey) {
+        return res.status(400).json({ error: "No IndexNow key configured." });
+      }
+
+      const properties = await prisma.property.findMany({
+        where: { OR: [{ status: { not: 'DRAFT' } }, { status: null }] },
+        select: { id: true }
+      });
+      const projects = await prisma.project.findMany({
+        select: { id: true }
+      });
+
+      const urls = [
+        siteUrl,
+        `${siteUrl}/properties`,
+        `${siteUrl}/projects`,
+        `${siteUrl}/services`,
+        `${siteUrl}/about`,
+        `${siteUrl}/contact`
+      ];
+
+      properties.forEach(p => urls.push(`${siteUrl}/properties/${p.id}`));
+      projects.forEach(p => urls.push(`${siteUrl}/projects/${p.id}`));
+
+      // Process in chunks of 10000
+      const chunkSize = 10000;
+      for (let i = 0; i < urls.length; i += chunkSize) {
+        const chunk = urls.slice(i, i + chunkSize);
+        await submitIndexNow(chunk, siteUrl, indexNowKey);
+      }
+
+      res.json({ success: true, count: urls.length });
+    } catch (error) {
+      logger.error("Failed to resubmit IndexNow", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
