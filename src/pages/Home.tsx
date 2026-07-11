@@ -190,11 +190,13 @@ export default function Home() {
 
             {/* Content */}
             <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-8 pb-12 sm:pb-16 w-full animate-fade-in">
-              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-5 select-none">
-                {language === 'ar' ? 'تطوير • تسويق • إدارة أملاك' : 'DEVELOPMENT • LEASING • PROPERTY MANAGEMENT'}
-              </p>
-              <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 leading-tight select-none">
-                {t('hero.title')}
+              <h1 className="flex flex-col items-center w-full">
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-5 select-none">
+                  {language === 'ar' ? 'تطوير • تسويق • إدارة أملاك' : 'DEVELOPMENT • LEASING • PROPERTY MANAGEMENT'}
+                </span>
+                <span className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 leading-tight select-none">
+                  {t('hero.title')}
+                </span>
               </h1>
               <p className="max-w-2xl mx-auto text-sm sm:text-lg font-medium leading-relaxed select-none mb-10 opacity-95 text-muted-foreground">
                 {t('hero.subtitle')}
