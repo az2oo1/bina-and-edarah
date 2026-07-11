@@ -1119,7 +1119,7 @@ async function startServer() {
 
       // Generate crawlable links for SEO
       const properties = await prisma.property.findMany({
-        where: { OR: [{ status: { not: 'DRAFT' } }, { status: null }] },
+        where: { status: { not: 'DRAFT' } },
         select: { id: true, titleAr: true, titleEn: true }
       });
       const projects = await prisma.project.findMany({
@@ -1830,10 +1830,7 @@ async function startServer() {
         try {
           properties = await prisma.property.findMany({
             where: {
-              OR: [
-                { status: { not: 'DRAFT' } },
-                { status: null }
-              ]
+              status: { not: 'DRAFT' }
             },
             orderBy: { createdAt: 'desc' }
           });
@@ -3547,7 +3544,7 @@ async function startServer() {
   app.get("/sitemap.xml", async (req, res) => {
     try {
       const properties = await prisma.property.findMany({
-        where: { OR: [{ status: { not: 'DRAFT' } }, { status: null }] },
+        where: { status: { not: 'DRAFT' } },
         select: { id: true, createdAt: true }
       });
       const projects = await prisma.project.findMany({
@@ -3631,7 +3628,7 @@ async function startServer() {
       }
 
       const properties = await prisma.property.findMany({
-        where: { OR: [{ status: { not: 'DRAFT' } }, { status: null }] },
+        where: { status: { not: 'DRAFT' } },
         select: { id: true }
       });
       const projects = await prisma.project.findMany({
