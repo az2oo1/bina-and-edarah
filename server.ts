@@ -31,21 +31,17 @@ const LOG_FILE = fs.existsSync('/data')
   ? '/data/server.log' 
   : path.resolve(process.cwd(), 'server.log');
 
-function serializeMeta(meta: any[]): string {
-  if (!meta.length) return "";
-  return meta.map(arg => {
-    if (arg instanceof Error) {
-      return `${arg.message}\n${arg.stack}`;
+export function serializeMeta(meta: any[]): string {
+  if (!meta || meta.length === 0) return "";
+  return meta.map(m => {
+    if (m instanceof Error) {
+      return m.stack || m.message;
     }
-    if (typeof arg === 'object') {
-      try {
-        return JSON.stringify(arg);
-      } catch (err) {
-        return String(arg);
-      }
+    if (typeof m === 'object') {
+      try { return JSON.stringify(m); } catch(e) { return '[Circular]'; }
     }
-    return String(arg);
-  }).join(' ');
+    return String(m);
+  }).join(" ");
 }
 
 const logger = {
@@ -3468,4 +3464,7 @@ async function startServer() {
   });
 }
 
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 if (process.env.NODE_ENV !== 'test') { startServer(); }
