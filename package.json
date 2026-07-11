@@ -11,8 +11,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.cjs",
     "lint": "tsc --noEmit",
-    "test": "NODE_ENV=test tsx --test tests/**/*.test.ts"
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "JWT_SECRET=test NODE_ENV=test tsx --test \"src/**/*.test.ts\" \"tests/**/*.test.ts\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
