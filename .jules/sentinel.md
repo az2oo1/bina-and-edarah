@@ -1,3 +1,7 @@
+## Date: $(date +"%Y-%m-%d")
+**Vulnerability:** SQL Injection in Settings Update via raw SQL fallback.
+**Learning:** `prisma.$executeRawUnsafe` interpolates raw strings directly into the query execution, leaving it vulnerable to injection if the strings include unescaped malicious payloads. Even basic replacement `val.replace(/'/g, "''")` is brittle.
+**Prevention:** Use `prisma.$executeRaw` alongside `Prisma.sql` to leverage native database parameterized queries. For column names which cannot be parameterized, strictly validate the name against an alphanumeric whitelist before injection using `Prisma.raw(field)`.
 ## 2025-03-05 - Critical Authentication Bypass and Secret Exposure
 **Vulnerability:** A hardcoded `JWT_SECRET` was present in `server.ts` making all JWTs forgeable if `process.env.JWT_SECRET` wasn't set. Additionally, there was an unconditional hardcoded backdoor for user `admin:admin` that granted full administrator access regardless of the database state.
 **Learning:** Hardcoded credentials and secrets as fallbacks in production-ready files pose an immense risk. The `admin:admin` fallback overrode normal database lookups, providing a permanent backdoor to anyone who checked the source code or guessed default credentials. Using a hardcoded JWT secret is equally dangerous since an attacker could forge tokens with any permission level.
