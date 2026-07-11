@@ -22,10 +22,10 @@ import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 
-if (!process.env.JWT_SECRET) {
+if (process.env.NODE_ENV !== 'test' && !process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
