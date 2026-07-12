@@ -91,16 +91,18 @@ export function ImageViewer({
             {!isVideoActive && !isMapActive && (
               <button 
                 onClick={() => setIsZoomed(!isZoomed)}
-                className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all cursor-pointer"
+                className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
                 title={isZoomed ? (language === 'ar' ? 'ملائمة الشاشة' : 'Fit Screen') : (language === 'ar' ? 'ملء الشاشة' : 'Fill Screen')}
+                aria-label={isZoomed ? (language === 'ar' ? 'ملائمة الشاشة' : 'Fit Screen') : (language === 'ar' ? 'ملء الشاشة' : 'Fill Screen')}
               >
                 {isZoomed ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
               </button>
             )}
             <button 
               onClick={onClose}
-              className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all cursor-pointer"
+              className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
               title={language === 'ar' ? 'إغلاق' : 'Close'}
+              aria-label={language === 'ar' ? 'إغلاق' : 'Close'}
             >
               <X className="w-6 h-6" />
             </button>
@@ -114,15 +116,17 @@ export function ImageViewer({
             <>
               <button 
                 onClick={handlePrev}
-                className="absolute left-6 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 p-3 sm:p-4 rounded-xl transition-all cursor-pointer backdrop-blur-md border border-white/10 z-10 hover:scale-105"
-                title={language === 'ar' ? 'التالي' : 'Previous'}
+                className="absolute left-6 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 p-3 sm:p-4 rounded-xl transition-all cursor-pointer backdrop-blur-md border border-white/10 z-10 hover:scale-105 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+                title={language === 'ar' ? 'السابق' : 'Previous'}
+                aria-label={language === 'ar' ? 'السابق' : 'Previous'}
               >
                 <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
               </button>
               <button 
                 onClick={handleNext}
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 p-3 sm:p-4 rounded-xl transition-all cursor-pointer backdrop-blur-md border border-white/10 z-10 hover:scale-105"
-                title={language === 'ar' ? 'السابق' : 'Next'}
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 p-3 sm:p-4 rounded-xl transition-all cursor-pointer backdrop-blur-md border border-white/10 z-10 hover:scale-105 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+                title={language === 'ar' ? 'التالي' : 'Next'}
+                aria-label={language === 'ar' ? 'التالي' : 'Next'}
               >
                 <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
               </button>
@@ -187,9 +191,10 @@ export function ImageViewer({
                   <button
                     key={idx}
                     onClick={() => handleThumbnailClick(idx)}
-                    className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                    className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                       activeIndex === idx ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
                     }`}
+                    aria-label={`${language === 'ar' ? 'عرض العنصر' : 'View item'} ${idx + 1}`}
                   >
                     {item.type === 'map' ? (
                       <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center gap-1">
