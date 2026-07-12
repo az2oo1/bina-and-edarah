@@ -1016,8 +1016,8 @@ async function startServer() {
 
       if (base64Data.startsWith('/uploads/') || base64Data.startsWith('uploads/')) {
         const fileName = base64Data.replace(/^\/?uploads\//, '');
-        const filePath = path.join(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        const filePath = path.resolve(UPLOADS_DIR, fileName);
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -1028,7 +1028,7 @@ async function startServer() {
       }
 
       const directPath = path.resolve(process.cwd(), base64Data.replace(/^\//, ''));
-      if (fs.existsSync(directPath)) {
+      if (directPath.startsWith(path.resolve(process.cwd()) + path.sep) && fs.existsSync(directPath)) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return res.sendFile(directPath);
       }
@@ -3374,25 +3374,22 @@ async function startServer() {
 
       // Fallback: Create using raw SQL
       const uuid = require('crypto').randomUUID();
-      const escapedUser = username.replace(/'/g, "''");
-      const escapedPass = password.replace(/'/g, "''");
-      const escapedName = name.replace(/'/g, "''");
-      const escapedRole = (role || "ADMIN").replace(/'/g, "''");
-      const escapedEmail = email ? email.replace(/'/g, "''") : null;
+      const rRole = role || "ADMIN";
+      const rEmail = email || null;
 
       try {
-        await prisma.$executeRawUnsafe(`
+        await prisma.$executeRaw(Prisma.sql`
           INSERT INTO "Admin" (id, username, password, name, role, email, "createdAt")
-          VALUES ('${uuid}', '${escapedUser}', '${escapedPass}', '${escapedName}', '${escapedRole}', ${escapedEmail ? `'${escapedEmail}'` : 'NULL'}, NOW())
+          VALUES (${uuid}, ${username}, ${password}, ${name}, ${rRole}, ${rEmail}, NOW())
         `);
       } catch (_) {
-        await prisma.$executeRawUnsafe(`
+        await prisma.$executeRaw(Prisma.sql`
           INSERT INTO Admin (id, username, password, name, role, email, createdAt)
-          VALUES ('${uuid}', '${escapedUser}', '${escapedPass}', '${escapedName}', '${escapedRole}', ${escapedEmail ? `'${escapedEmail}'` : 'NULL'}, datetime('now'))
+          VALUES (${uuid}, ${username}, ${password}, ${name}, ${rRole}, ${rEmail}, datetime('now'))
         `);
       }
 
-      await logAction(req, "ADD_PLATFORM_USER", `Created platform user (raw SQL): ${username} (${role || "ADMIN"})`);
+      await logAction(req, "ADD_PLATFORM_USER", `Created platform user (raw SQL): ${username} (${rRole})`);
       res.status(201).json({ id: uuid, username, name, role: role || "ADMIN", email });
     } catch (error) {
       logger.error("Failed to create platform user", error);
