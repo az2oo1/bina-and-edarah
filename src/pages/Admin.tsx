@@ -2948,7 +2948,7 @@ export default function Admin() {
                 </div>
               )}
 
-              activeSettingsSection === 'techhub' && (
+              {activeSettingsSection === 'techhub' && (
                 <div>
                   <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">
                     {language === 'ar' ? 'إعدادات الربط الإلكتروني (TechHub)' : 'TechHub Integration Settings'}
