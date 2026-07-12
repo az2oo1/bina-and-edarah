@@ -23,6 +23,14 @@ export function emailLogoSvg(width = 66): string {
     );
 }
 
+// Returns an HTML <img> tag pointing to the hosted logo URL.
+// Use this in emails instead of inline SVG — email clients (Gmail, Outlook, etc.)
+// block or strip inline SVGs, but will always load a hosted image URL.
+export function emailLogoImg(siteUrl: string, width = 130): string {
+  const height = Math.round((width * 497) / 600);
+  return `<img src="${siteUrl}/settings-logo.svg" width="${width}" height="${height}" alt="Benaa &amp; Edara" style="display:block; margin:0 auto; border:0;" />`;
+}
+
 // Returns the logo as an inline SVG data URI for use as a browser tab icon
 // (no external image reference). Pass a color to tint it (e.g. white in dark mode).
 export function faviconDataUri(color = "#ffffff"): string {

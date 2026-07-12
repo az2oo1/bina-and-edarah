@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Globe } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon, SnapIcon } from '../components/SocialIcons';
@@ -14,7 +14,6 @@ import AdminReceipts from './AdminReceipts';
 import AdminUsers from './AdminUsers';
 import AdminLogs from './AdminLogs';
 import { compressImage } from '../lib/image';
-import { PropertyStatus } from '../types/property';
 
 interface Property {
   id: string;
@@ -38,11 +37,6 @@ interface AnalyticsData {
   totalViews: number;
   propertiesViews: { propertyId: string; _count: { propertyId: number } }[];
   pathsViews: { path: string; _count: { path: number } }[];
-}
-
-interface PropertyDetail {
-  key: string;
-  value: string;
 }
 
 const PREDEFINED_DETAILS = [
@@ -143,7 +137,7 @@ export default function Admin() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'analytics' | 'settings' | 'callbacks' | 'users' | 'logs'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'settings' | 'callbacks' | 'users' | 'logs'>('manage');
   const [userRole, setUserRole] = useState<string>('ADMIN');
 
   useEffect(() => {
@@ -172,10 +166,8 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
   // Settings Form State
-  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'images' | 'social' | 'backup' | 'email' | 'analytics' | 'techhub' | 'seo'>('whatsapp');
+  const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'images' | 'social' | 'backup' | 'email' | 'analytics' | 'techhub'>('whatsapp');
   const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [indexNowKey, setIndexNowKey] = useState('');
-  const [resubmittingIndexNow, setResubmittingIndexNow] = useState(false);
   const [callingNumber, setCallingNumber] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
   const [otpWebhookUrl, setOtpWebhookUrl] = useState('');
@@ -310,7 +302,6 @@ export default function Admin() {
       if (data.instagramUrl !== undefined) setInstagramUrl(data.instagramUrl || '');
       if (data.twitterUrl !== undefined) setTwitterUrl(data.twitterUrl || '');
       if (data.facebookUrl !== undefined) setFacebookUrl(data.facebookUrl || '');
-      if (data.indexNowKey !== undefined) setIndexNowKey(data.indexNowKey || '');
       if (data.linkedinUrl !== undefined) setLinkedinUrl(data.linkedinUrl || '');
       if (data.youtubeUrl !== undefined) setYoutubeUrl(data.youtubeUrl || '');
       if (data.tiktokUrl !== undefined) setTiktokUrl(data.tiktokUrl || '');
@@ -467,7 +458,7 @@ export default function Admin() {
     setTimeout(() => setSubmitMessage(null), 5000);
   };
 
-  const saveProperty = async (e: React.FormEvent | null, statusVal: PropertyStatus) => {
+  const saveProperty = async (e: React.FormEvent | null, statusVal: 'PUBLISHED' | 'DRAFT') => {
     if (e) e.preventDefault();
     setSubmitMessage(null);
     if (isUploadingImages) {
@@ -529,7 +520,7 @@ export default function Admin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveProperty(e, formData.status as PropertyStatus || 'PUBLISHED');
+    await saveProperty(e, formData.status as 'PUBLISHED' | 'DRAFT' || 'PUBLISHED');
   };
 
 
@@ -623,10 +614,10 @@ export default function Admin() {
     let bathrooms = '';
     let floor = '';
     try {
-      const parsed: PropertyDetail[] = JSON.parse(unit.details || '[]');
-      rooms = parsed.find((d) => d.key.includes('غرف') || d.key.toLowerCase().includes('room'))?.value || '';
-      bathrooms = parsed.find((d) => d.key.includes('مياه') || d.key.toLowerCase().includes('bathroom'))?.value || '';
-      floor = parsed.find((d) => d.key.includes('دور') || d.key.toLowerCase().includes('floor'))?.value || '';
+      const parsed = JSON.parse(unit.details || '[]');
+      rooms = parsed.find((d: any) => d.key.includes('غرف') || d.key.toLowerCase().includes('room'))?.value || '';
+      bathrooms = parsed.find((d: any) => d.key.includes('مياه') || d.key.toLowerCase().includes('bathroom'))?.value || '';
+      floor = parsed.find((d: any) => d.key.includes('دور') || d.key.toLowerCase().includes('floor'))?.value || '';
     } catch (_) {}
 
     setUnitFormData({
@@ -831,7 +822,6 @@ export default function Admin() {
         tiktokUrl,
         snapchatUrl,
         notificationEmail,
-        indexNowKey,
         smtpHost,
         smtpPort: smtpPort ? Number(smtpPort) : null,
         smtpUser,
@@ -2319,7 +2309,7 @@ export default function Admin() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="min-h-[500px] w-full max-w-5xl">
+          <div className="min-h-[500px] w-full">
             <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border">
               <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
                 <SettingsIcon className="w-6 h-6 text-muted-foreground" />
@@ -2337,11 +2327,9 @@ export default function Admin() {
                   { section: 'whatsapp', labelAr: 'التواصل والواتساب', labelEn: 'WhatsApp & Social', icon: <MessageSquare className="w-4 h-4" /> },
                   { section: 'email', labelAr: 'البريد الإلكتروني', labelEn: 'Email Settings', icon: <Mail className="w-4 h-4" /> },
                   { section: 'otp', labelAr: 'رمز التحقق (OTP)', labelEn: 'OTP Verification', icon: <KeyRound className="w-4 h-4" /> },
-                  { section: 'images', labelAr: 'صور الموقع', labelEn: 'Site Images', icon: <ImagePlus className="w-4 h-4" /> },
-                  { section: 'analytics', labelAr: 'إحصائيات الموقع', labelEn: 'Site Analytics', icon: <BarChart3 className="w-4 h-4" /> },
+                  { section: 'images', labelAr: 'صور الموقع', labelEn: 'Site Images', icon: <ImagePlus className="w-4 h-4" /> },
                   { section: 'backup', labelAr: 'نسخة احتياطية', labelEn: 'Database Backup', icon: <Database className="w-4 h-4" /> },
                   { section: 'techhub', labelAr: 'ربط TechHub', labelEn: 'TechHub Sync', icon: <RefreshCw className="w-4 h-4" /> },
-                  { section: 'seo', labelAr: 'إعدادات SEO', labelEn: 'SEO Settings', icon: <Globe className="w-4 h-4" /> },
                 ].map((item) => (
                   <button
                     key={item.section}
@@ -2960,49 +2948,7 @@ export default function Admin() {
                 </div>
               )}
 
-               {activeSettingsSection === 'analytics' && (
-                <div>
-                  <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-5 inline-block">
-                    {language === 'ar' ? 'تحليلات الموقع المفتوحة المصدر' : 'Open-Source Site Analytics Settings'}
-                  </h3>
-                  <div className="space-y-6">
-                    <div className="space-y-1.5">
-                      <label className="cn-label">{language === 'ar' ? 'رمز تتبع التحليلات (Plausible / Umami Script Code)' : 'Analytics Tracking Script HTML Code'}</label>
-                      <textarea
-                        rows={4}
-                        value={analyticsScript}
-                        onChange={(e) => setAnalyticsScript(e.target.value)}
-                        className="cn-textarea"
-                        placeholder={'<script defer src="https://cloud.umami.is/script.js" data-website-id="..."></script>'}
-                        dir="ltr"
-                      />
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {language === 'ar' 
-                          ? 'الصق رمز التتبع (HTML script tag) المقدم من أداة التحليلات (مثل Umami أو Plausible) ليتم إدراجه تلقائياً في جميع صفحات الموقع.' 
-                          : 'Paste the analytics tracking script tag (e.g. from Umami or Plausible) to automatically inject it on all website pages.'}
-                      </p>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="cn-label">{language === 'ar' ? 'رابط لوحة التحليلات المدمجة (Dashboard Share/Embed URL)' : 'Dashboard Embed / Share URL'}</label>
-                      <input
-                        type="text"
-                        value={analyticsDashboardUrl}
-                        onChange={(e) => setAnalyticsDashboardUrl(e.target.value)}
-                        className="cn-input font-mono pl-4 pr-4 h-12 bg-background"
-                        placeholder="https://cloud.umami.is/share/..."
-                        dir="ltr"
-                      />
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {language === 'ar' 
-                          ? 'رابط المشاركة العام للوحة التحكم لعرضه مباشرة داخل تبويب "تحليلات الموقع" في لوحة الإدارة.' 
-                          : 'The public shareable dashboard URL to display directly inside the "Site Analytics" tab in the Admin panel.'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSettingsSection === 'techhub' && (
+              activeSettingsSection === 'techhub' && (
                 <div>
                   <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">
                     {language === 'ar' ? 'إعدادات الربط الإلكتروني (TechHub)' : 'TechHub Integration Settings'}
