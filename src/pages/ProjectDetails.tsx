@@ -145,6 +145,7 @@ export default function ProjectDetails() {
                   }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                   title={language === 'ar' ? 'السابق' : 'Previous'}
+                  aria-label={language === 'ar' ? 'السابق' : 'Previous'}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -160,6 +161,7 @@ export default function ProjectDetails() {
                   }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                   title={language === 'ar' ? 'التالي' : 'Next'}
+                  aria-label={language === 'ar' ? 'التالي' : 'Next'}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -172,6 +174,7 @@ export default function ProjectDetails() {
                       key={idx}
                       onClick={() => setCurrentImageIndex(idx)}
                       className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${idx === currentImageIndex ? 'w-5 bg-card' : 'w-1.5 bg-card/50 hover:bg-card'}`}
+                      aria-label={`${language === 'ar' ? 'صورة' : 'Image'} ${idx + 1}`}
                     />
                   ))}
                 </div>
