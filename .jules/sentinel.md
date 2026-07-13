@@ -1,4 +1,4 @@
-## Date: $(date +"%Y-%m-%d")
+## Date: 2025-03-05
 **Vulnerability:** SQL Injection in Settings Update via raw SQL fallback.
 **Learning:** `prisma.$executeRawUnsafe` interpolates raw strings directly into the query execution, leaving it vulnerable to injection if the strings include unescaped malicious payloads. Even basic replacement `val.replace(/'/g, "''")` is brittle.
 **Prevention:** Use `prisma.$executeRaw` alongside `Prisma.sql` to leverage native database parameterized queries. For column names which cannot be parameterized, strictly validate the name against an alphanumeric whitelist before injection using `Prisma.raw(field)`.
@@ -14,3 +14,7 @@
 **Vulnerability:** XSS vulnerability in AdminCallbacks page due to unsanitized dangerouslySetInnerHTML.
 **Learning:** Raw input being passed to dangerouslySetInnerHTML is a security risk as it executes potentially malicious user inputs directly.
 **Prevention:** Always use a sanitation library like DOMPurify when passing user generated HTML data into dangerouslySetInnerHTML.
+## 2025-03-05 - Path Traversal in Settings Logo Retrieval
+**Vulnerability:** The `/settings-logo.png` endpoint in `server.ts` suffered from a Local File Inclusion / Path Traversal vulnerability because it trusted the `settings.logoUrl` database entry to resolve local file paths using `path.resolve(process.cwd(), base64Data)`. A malicious admin could configure this to `../../../../etc/passwd` to read arbitrary system files.
+**Learning:** Never inherently trust settings derived from the database (even if modified by "admins") when resolving system paths, especially if the app architecture allows administrators to manipulate setting variables freely.
+**Prevention:** Always validate that resolved file paths map strictly within an expected base directory (e.g. `filePath.startsWith(path.resolve(UPLOADS_DIR))`) before exposing them to the filesystem or network responses.
