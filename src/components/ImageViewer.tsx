@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Video, MapPin, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,6 +23,40 @@ export function ImageViewer({
 }: ImageViewerProps) {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
+
+  const thumbnailContainerRef = useRef<HTMLDivElement | null>(null);
+  const isDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+
+  const handleThumbnailMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!thumbnailContainerRef.current) return;
+    isDownRef.current = true;
+    startXRef.current = e.pageX - thumbnailContainerRef.current.offsetLeft;
+    scrollLeftRef.current = thumbnailContainerRef.current.scrollLeft;
+    hasDraggedRef.current = false;
+  };
+
+  const handleThumbnailMouseLeave = () => {
+    isDownRef.current = false;
+  };
+
+  const handleThumbnailMouseUp = () => {
+    isDownRef.current = false;
+  };
+
+  const handleThumbnailMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDownRef.current || !thumbnailContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - thumbnailContainerRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+    if (Math.abs(walk) > 5) {
+      hasDraggedRef.current = true;
+    }
+    thumbnailContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
 
   // Sync initialIndex when viewer opens
   useEffect(() => {
@@ -187,14 +221,24 @@ export function ImageViewer({
         <div className="w-full bg-gradient-to-t from-black/90 to-black/30 py-4 px-6 z-10 flex flex-col items-center gap-3">
           {totalItems > 1 && (
             <div className="flex items-center max-w-full bg-black/40 rounded-xl border border-white/10 overflow-hidden">
-              <div className="flex-1 flex gap-2.5 overflow-x-auto px-4 py-2.5 custom-scrollbar select-none">
+              <div 
+                ref={thumbnailContainerRef}
+                onMouseDown={handleThumbnailMouseDown}
+                onMouseLeave={handleThumbnailMouseLeave}
+                onMouseUp={handleThumbnailMouseUp}
+                onMouseMove={handleThumbnailMouseMove}
+                className="flex-1 flex gap-2.5 overflow-x-auto px-4 py-2.5 custom-scrollbar select-none cursor-grab active:cursor-grabbing"
+              >
                 {items.map((item, idx) => {
                   if (item.type === 'map') return null;
                   const isItemVideo = item.type === 'video';
                   return (
                     <button
                       key={idx}
-                      onClick={() => handleThumbnailClick(idx)}
+                      onClick={() => {
+                        if (hasDraggedRef.current) return;
+                        handleThumbnailClick(idx);
+                      }}
                       className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                         activeIndex === idx ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
                       }`}
@@ -206,7 +250,13 @@ export function ImageViewer({
                           <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'فيديو' : 'Video'}</span>
                         </div>
                       ) : (
-                        <img src={item.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                        <img 
+                          src={item.url} 
+                          alt={`Thumbnail ${idx}`} 
+                          className="w-full h-full object-cover" 
+                          draggable="false"
+                          onDragStart={(e) => e.preventDefault()}
+                        />
                       )}
                     </button>
                   );

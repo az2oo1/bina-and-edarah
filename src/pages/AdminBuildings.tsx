@@ -51,9 +51,10 @@ interface Building {
 export interface AdminBuildingsProps {
   selectedBuildingId?: string;
   inlineMode?: 'renters' | 'details';
+  parentPropertyId?: string;
 }
 
-export default function AdminBuildings({ selectedBuildingId, inlineMode }: AdminBuildingsProps = {}) {
+export default function AdminBuildings({ selectedBuildingId, inlineMode, parentPropertyId }: AdminBuildingsProps = {}) {
   const { language } = useLanguage();
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +69,28 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode }: Admin
   const [editTransferDetails, setEditTransferDetails] = useState('');
   const [editPhotos, setEditPhotos] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const [parentPropertyPhotos, setParentPropertyPhotos] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (parentPropertyId) {
+      const fetchParentPhotos = async () => {
+        try {
+          const res = await fetch(`/api/properties/${parentPropertyId}`);
+          if (res.ok) {
+            const data = await res.json();
+            const urls = typeof data.imageUrls === 'string' ? JSON.parse(data.imageUrls) : (data.imageUrls || []);
+            setParentPropertyPhotos(Array.isArray(urls) ? urls : []);
+          }
+        } catch (err) {
+          console.error("Error fetching parent property photos:", err);
+        }
+      };
+      fetchParentPhotos();
+    } else {
+      setParentPropertyPhotos([]);
+    }
+  }, [parentPropertyId]);
 
   // States for Building Renters Modal
   const [loadingRentersBuilding, setLoadingRentersBuilding] = useState<string | null>(null);
@@ -325,25 +348,16 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode }: Admin
         <div>
           <label className="cn-label mb-2">{language === 'ar' ? 'صور المبنى' : 'Building Photos'}</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {editPhotos.map((url, index) => (
-              <div key={index} className="relative aspect-[4/3] rounded-md overflow-hidden group border border-border shadow-xs">
+            {parentPropertyPhotos.map((url, index) => (
+              <div key={index} className="relative aspect-[4/3] rounded-md overflow-hidden border border-border shadow-xs">
                 <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button 
-                    type="button"
-                    onClick={() => setEditPhotos(editPhotos.filter((_, i) => i !== index))}
-                    className="bg-red-500 text-white p-2 rounded-full hover:scale-110 transition-transform cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
             ))}
-            <label className="aspect-[4/3] flex flex-col items-center justify-center border border-dashed border-border rounded-md cursor-pointer transition-colors bg-muted/10 hover:bg-muted/30">
-              <ImagePlus className="w-8 h-8 text-primary mb-2" />
-              <span className="text-sm font-bold text-primary">{language === 'ar' ? 'إضافة صور' : 'Add Photos'}</span>
-              <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-            </label>
+            {parentPropertyPhotos.length === 0 && (
+              <div className="col-span-full py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-md bg-muted/5">
+                {language === 'ar' ? 'لا يوجد صور مضافة لهذا العقار بعد' : 'No photos added for this property yet'}
+              </div>
+            )}
           </div>
         </div>
 
@@ -732,30 +746,7 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode }: Admin
                 />
               </div>
 
-              <div>
-                <label className="cn-label mb-2">{language === 'ar' ? 'صور المبنى' : 'Building Photos'}</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {editPhotos.map((url, index) => (
-                    <div key={index} className="relative aspect-[4/3] rounded-md overflow-hidden group border border-border shadow-xs">
-                      <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button 
-                          type="button"
-                          onClick={() => setEditPhotos(editPhotos.filter((_, i) => i !== index))}
-                          className="bg-red-500 text-white p-2 rounded-full hover:scale-110 transition-transform cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  <label className="aspect-[4/3] flex flex-col items-center justify-center border border-dashed border-border rounded-md cursor-pointer transition-colors bg-muted/10 hover:bg-muted/30">
-                    <ImagePlus className="w-8 h-8 text-primary mb-2" />
-                    <span className="text-sm font-bold text-primary">{language === 'ar' ? 'إضافة صور' : 'Add Photos'}</span>
-                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                  </label>
-                </div>
-              </div>
+
             </div>
             
             <div className="p-4 bg-card border-t border-border flex justify-end gap-2">

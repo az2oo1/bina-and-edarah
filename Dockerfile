@@ -44,4 +44,4 @@ EXPOSE 3000
 
 # Start script
 # This pushes schema changes to the db before starting the app
-CMD npx prisma db push && npm start
+CMD npm start

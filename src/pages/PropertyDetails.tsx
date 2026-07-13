@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
-import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, Search, LayoutGrid, List, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { ImageViewer } from '../components/ImageViewer';
 
@@ -72,6 +72,39 @@ export default function PropertyDetails() {
   const [expandedUnitId, setExpandedUnitId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'details' | 'units'>('details');
 
+  const thumbnailContainerRef = useRef<HTMLDivElement | null>(null);
+  const isDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+
+  const handleThumbnailMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!thumbnailContainerRef.current) return;
+    isDownRef.current = true;
+    startXRef.current = e.pageX - thumbnailContainerRef.current.offsetLeft;
+    scrollLeftRef.current = thumbnailContainerRef.current.scrollLeft;
+    hasDraggedRef.current = false;
+  };
+
+  const handleThumbnailMouseLeave = () => {
+    isDownRef.current = false;
+  };
+
+  const handleThumbnailMouseUp = () => {
+    isDownRef.current = false;
+  };
+
+  const handleThumbnailMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDownRef.current || !thumbnailContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - thumbnailContainerRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+    if (Math.abs(walk) > 5) {
+      hasDraggedRef.current = true;
+    }
+    thumbnailContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
   useEffect(() => {
     // Fetch Settings
     fetch('/api/settings')
@@ -102,16 +135,23 @@ export default function PropertyDetails() {
         } else if (data.paymentsCount) {
           setSelectedPlan(String(data.paymentsCount));
         }
+        let unitImages: string[] = [];
         try {
           const parsed = JSON.parse(data.imageUrls);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setImages(parsed);
-          } else {
-            setImages(['https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop']);
+            unitImages = parsed;
+          } else if (data.parent && data.parent.imageUrls) {
+            const parentParsed = JSON.parse(data.parent.imageUrls);
+            if (Array.isArray(parentParsed) && parentParsed.length > 0) {
+              unitImages = parentParsed;
+            }
           }
-        } catch (e) {
-          setImages(['https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop']);
+        } catch (_) {}
+
+        if (unitImages.length === 0) {
+          unitImages = ['https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop'];
         }
+        setImages(unitImages);
         setLoading(false);
       })
       .catch(err => {
@@ -189,7 +229,7 @@ export default function PropertyDetails() {
           </div>
 
           {/* Units Grid */}
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {visibleSubProperties.map((unit, idx) => {
               const unitImages = (() => {
                 try {
@@ -214,21 +254,21 @@ export default function PropertyDetails() {
                 <div
                   key={unit.id}
                   style={{ 
-                    animationDelay: `${idx * 50}ms`,
+                    animationDelay: `${idx * 40}ms`,
                     transitionTimingFunction: 'var(--ease-out-expo)' 
                   }}
-                  className="bg-card/45 backdrop-blur-xs border border-border/60 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col md:flex-row gap-5 p-4 group/unit text-foreground animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  className="bg-card/45 backdrop-blur-xs border border-border/60 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col group/unit text-foreground animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
-                  {/* Thumbnail image */}
-                  <div className="relative w-full md:w-56 h-40 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+                  {/* Cover image */}
+                  <div className="relative w-full h-44 bg-muted overflow-hidden">
                     <img 
                       src={cover} 
                       alt={unit.titleAr} 
-                      className="w-full h-full object-cover group-hover/unit:scale-[1.03] transition-transform duration-500" 
+                      className="w-full h-full object-cover group-hover/unit:scale-[1.04] transition-transform duration-500" 
                       style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
                     />
-                    <div className="absolute top-2.5 left-2.5 z-10 select-none">
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-md ${
+                    <div className="absolute top-3 left-3 z-10 select-none">
+                      <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-md ${
                         isAvailable ? 'bg-emerald-600/90 text-white' :
                         isSold ? 'bg-destructive/90 text-white' :
                         isRented ? 'bg-amber-600/90 text-white' :
@@ -243,51 +283,68 @@ export default function PropertyDetails() {
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 flex flex-col justify-between py-1">
+                  <div className="p-4 flex-1 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-start justify-between gap-4 flex-wrap">
-                        <div>
-                          <h3 className="text-base font-extrabold text-foreground leading-snug group-hover/unit:text-primary transition-colors duration-250" style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}>
-                            {language === 'ar' ? unit.titleAr : unit.titleEn}
-                          </h3>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 font-semibold">
-                            {t(`cat.${unit.propertyCategory}`)} • {unit.area} {t('common.sqm')}
-                          </p>
-                        </div>
-                        {unit.price > 0 && (
-                          <div className="text-right">
-                            <span className="text-lg font-black text-primary font-mono tracking-tight">{unit.price.toLocaleString()}</span>
-                            <span className="text-[10px] text-muted-foreground ml-1 font-semibold">{t('common.currency')}</span>
-                          </div>
-                        )}
-                      </div>
+                      {(() => {
+                        const unitName = unitDetails.find(d => d.key === 'رقم الوحدة' || d.key === 'Unit Name')?.value || '';
+                        const filteredTags = unitDetails.filter(d => d.key !== 'رقم الوحدة' && d.key !== 'Unit Name');
+                        return (
+                          <>
+                            <div className="flex items-start justify-between gap-3">
+                              <h3 className="text-sm font-extrabold text-foreground leading-snug group-hover/unit:text-primary transition-colors duration-250 line-clamp-1" style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}>
+                                {unitName ? `${unitName} - ` : ''}{language === 'ar' ? unit.titleAr : unit.titleEn}
+                              </h3>
+                            </div>
 
-                      {/* Specifications tags */}
-                      {unitDetails.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3.5 select-none">
-                          {unitDetails.map((detail, idx) => (
-                            <span 
-                              key={idx} 
-                              className="inline-flex items-center gap-1.5 bg-muted/50 hover:bg-muted border border-border/40 px-2.5 py-1 rounded-lg text-[10.5px] font-bold text-muted-foreground transition-all duration-150"
-                            >
-                              {getDetailIcon(detail.key)}
-                              <span>{detail.key}: {detail.value}</span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-1 font-semibold">
+                              <span>{t(`cat.${unit.propertyCategory}`)}</span>
+                              <span>•</span>
+                              <span>{unit.area} {t('common.sqm')}</span>
+                            </div>
+
+                            {/* Specifications tags */}
+                            {filteredTags.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-3 select-none">
+                                {filteredTags.slice(0, 3).map((detail, idx) => (
+                                  <span 
+                                    key={idx} 
+                                    className="inline-flex items-center gap-1 bg-muted/40 hover:bg-muted/70 border border-border/30 px-2 py-0.5 rounded-lg text-[9.5px] font-bold text-muted-foreground transition-all duration-150"
+                                  >
+                                    {getDetailIcon(detail.key)}
+                                    <span>{detail.value}</span>
+                                  </span>
+                                ))}
+                                {filteredTags.length > 3 && (
+                                  <span className="inline-flex items-center bg-muted/40 border border-border/30 px-2 py-0.5 rounded-lg text-[9.5px] font-bold text-muted-foreground">
+                                    +{filteredTags.length - 3}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
 
                       {unit.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-3.5 leading-relaxed font-normal">
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-3 leading-relaxed font-normal">
                           {unit.description}
                         </p>
                       )}
                     </div>
 
-                    <div className="mt-4 flex items-center justify-end">
+                    <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-3">
+                      {unit.price > 0 ? (
+                        <div>
+                          <span className="text-sm font-black text-primary font-mono tracking-tight">{unit.price.toLocaleString()}</span>
+                          <span className="text-[9px] text-muted-foreground ml-1 font-semibold">{t('common.currency')}</span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground italic font-medium">{language === 'ar' ? 'اتصل لمعرفة السعر' : 'Call for price'}</span>
+                      )}
+
                       <Link
                         to={`/properties/${unit.id}`}
-                        className="inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/95 active:scale-[0.97] text-xs font-extrabold h-9 px-4 rounded-xl transition-all cursor-pointer shadow-xs"
+                        className="inline-flex items-center justify-center gap-1 bg-primary text-primary-foreground hover:bg-primary/95 active:scale-[0.97] text-xs font-extrabold h-8 px-3.5 rounded-xl transition-all cursor-pointer shadow-xs"
                         style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -372,7 +429,7 @@ export default function PropertyDetails() {
                   }
                   setIsViewerOpen(true);
                 }}
-                className="relative h-80 sm:h-[450px] w-full bg-slate-100 group/gallery cursor-pointer overflow-hidden"
+                className="relative h-80 sm:h-[450px] w-full bg-muted group/gallery cursor-pointer overflow-hidden"
               >
                 {(() => {
                   const active = galleryItems[activeImage];
@@ -460,13 +517,26 @@ export default function PropertyDetails() {
               </div>
               {galleryItems.length > 1 && (
                 <div className="flex items-center border-t border-border bg-card">
-                  <div className="flex-1 flex items-center gap-2.5 p-3 overflow-x-auto scrollbar-none">
+                  <div 
+                    ref={thumbnailContainerRef}
+                    onMouseDown={handleThumbnailMouseDown}
+                    onMouseLeave={handleThumbnailMouseLeave}
+                    onMouseUp={handleThumbnailMouseUp}
+                    onMouseMove={handleThumbnailMouseMove}
+                    className="flex-1 flex items-center gap-2.5 p-3 overflow-x-auto scrollbar-none cursor-grab active:cursor-grabbing select-none"
+                  >
                     {galleryItems.map((item, i) => {
                       if (item.type === 'map') return null;
                       return (
                         <button 
                           key={i} 
-                          onClick={() => setActiveImage(i)}
+                          onClick={(e) => {
+                            if (hasDraggedRef.current) {
+                              e.preventDefault();
+                              return;
+                            }
+                            setActiveImage(i);
+                          }}
                           className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl transition-all duration-200 cursor-pointer overflow-hidden relative ${activeImage === i ? 'ring-2 ring-primary ring-offset-1 scale-102 opacity-100' : 'opacity-65 hover:opacity-100 border border-border/50'}`}
                         >
                           {item.type === 'video' ? (
@@ -475,7 +545,13 @@ export default function PropertyDetails() {
                               <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'فيديو' : 'Video'}</span>
                             </div>
                           ) : (
-                            <img src={item.url} alt={`Thumbnail ${i}`} className="w-full h-full object-cover" />
+                            <img 
+                              src={item.url} 
+                              alt={`Thumbnail ${i}`} 
+                              className="w-full h-full object-cover" 
+                              draggable="false"
+                              onDragStart={(e) => e.preventDefault()}
+                            />
                           )}
                         </button>
                       );
@@ -629,6 +705,39 @@ export default function PropertyDetails() {
           {/* Sidebar / Info */}
           <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div className="shadcn-card p-6">
+              
+              {property.parent && (
+                <div className="mb-6 pb-6 border-b border-border animate-in fade-in">
+                  <p className="text-[10px] font-bold text-muted-foreground mb-3.5 uppercase tracking-wider">
+                    {language === 'ar' ? 'العقار الرئيسي' : 'MAIN PROPERTY'}
+                  </p>
+                  <Link
+                    to={`/properties/${property.parent.id}`}
+                    className="w-full text-right rtl:text-right ltr:text-left flex flex-col gap-3.5 p-4 bg-muted/30 border border-border/60 hover:bg-muted/65 rounded-xl transition-all duration-150 ease-out cursor-pointer group/parentLink active:scale-98 shadow-xs text-foreground block"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                          <Building2 className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-foreground group-hover/parentLink:text-primary transition-colors">
+                            {language === 'ar' ? 'عرض تفاصيل المبنى' : 'View Building Details'}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 max-w-[170px]">
+                            {language === 'ar' ? property.parent.titleAr : property.parent.titleEn}
+                          </p>
+                        </div>
+                      </div>
+                      {language === 'ar' ? (
+                        <ChevronLeft className="w-4 h-4 text-muted-foreground group-hover/parentLink:text-primary transition-colors group-hover/parentLink:-translate-x-0.5 transition-transform" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover/parentLink:text-primary transition-colors group-hover/parentLink:translate-x-0.5 transition-transform" />
+                      )}
+                    </div>
+                  </Link>
+                </div>
+              )}
               
               {/* Available Residential Units or Price Details */}
               {visibleSubProperties.length > 0 ? (

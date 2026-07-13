@@ -1822,57 +1822,234 @@ async function startServer() {
         } catch (_) {}
       }
 
-      const cacheKey = isAdmin ? 'propertiesAdmin' : 'propertiesPublic';
-      const cached = dbCache[cacheKey];
-      if (cached && (!Array.isArray(cached) || cached.length > 0)) {
-        logger.info(`Serving properties from cache (${cacheKey})`);
-        return res.json(cached);
-      }
+      const isMapRequest = req.query.map === 'true';
+      const isPaginationRequest = req.query.page !== undefined || req.query.limit !== undefined;
 
-      let properties;
-      if (isAdmin) {
-        properties = await prisma.property.findMany({
-          orderBy: { createdAt: 'desc' }
-        });
-      } else {
-        try {
-          properties = await prisma.property.findMany({
-            where: {
-              OR: [
-                { status: { not: 'DRAFT' } },
-                { status: null }
-              ]
-            },
-            orderBy: { createdAt: 'desc' }
-          });
-        } catch (whereErr) {
-          logger.warn("Public properties status filter failed (the 'status' column may be missing); returning all properties as a fallback:", whereErr);
-          properties = await prisma.property.findMany({
-            orderBy: { createdAt: 'desc' }
-          });
+      const hasQueryParams = Object.keys(req.query).length > 0;
+      const cacheKey = isAdmin ? 'propertiesAdmin' : 'propertiesPublic';
+      
+      if (!hasQueryParams) {
+        const cached = dbCache[cacheKey];
+        if (cached && (!Array.isArray(cached) || cached.length > 0)) {
+          logger.info(`Serving properties from cache (${cacheKey})`);
+          return res.json(cached);
         }
       }
 
-      const enrichedProperties = properties.map(property => {
-        const coords = extractCoords(property.locationLink);
+      // Build Prisma Filters
+      const andFilters: any[] = [];
+
+      // Public status filter
+      if (!isAdmin) {
+        andFilters.push({
+          OR: [
+            { status: { not: 'DRAFT' } },
+            { status: null }
+          ]
+        });
+      }
+
+      // Parent ID Param
+      const parentIdParam = req.query.parentId as string;
+      if (parentIdParam) {
+        andFilters.push({ parentId: parentIdParam });
+      } else {
+        const showIndividualUnits = req.query.showIndividualUnits === 'true';
+        if (!showIndividualUnits && !isMapRequest) {
+          andFilters.push({ parentId: null });
+        }
+      }
+
+      // Search term
+      const search = req.query.search as string;
+      if (search) {
+        andFilters.push({
+          OR: [
+            { titleAr: { contains: search, mode: 'insensitive' } },
+            { titleEn: { contains: search, mode: 'insensitive' } }
+          ]
+        });
+      }
+
+      // Type Filter
+      const type = req.query.type as string;
+      if (type && type !== 'ALL') {
+        andFilters.push({ type: type });
+      }
+
+      // Category Filter
+      const category = req.query.category as string;
+      if (category && category !== 'ALL') {
+        andFilters.push({ propertyCategory: category });
+      }
+
+      // Price Filters
+      const minPrice = parseFloat(req.query.minPrice as string);
+      const maxPrice = parseFloat(req.query.maxPrice as string);
+      if (!isNaN(minPrice) || !isNaN(maxPrice)) {
+        const priceRange: any = {};
+        if (!isNaN(minPrice)) priceRange.gte = minPrice;
+        if (!isNaN(maxPrice)) priceRange.lte = maxPrice;
+
+        andFilters.push({
+          OR: [
+            { price: priceRange },
+            {
+              subProperties: {
+                some: {
+                  price: priceRange,
+                  status: { not: 'DRAFT' }
+                }
+              }
+            }
+          ]
+        });
+      }
+
+      const where = andFilters.length > 0 ? { AND: andFilters } : {};
+
+      // If it's a map request, return lightweight markers list
+      if (isMapRequest) {
+        const mapProperties = await prisma.property.findMany({
+          where,
+          select: {
+            id: true,
+            titleAr: true,
+            titleEn: true,
+            type: true,
+            price: true,
+            locationText: true,
+            locationLink: true,
+            parentId: true,
+            status: true,
+            propertyCategory: true,
+            area: true,
+            propertyAge: true,
+            imageUrls: true
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        const enrichedMap = mapProperties.map(p => {
+          const coords = extractCoords(p.locationLink);
+          let coverImage = '';
+          try {
+            const imgs = JSON.parse(p.imageUrls || '[]');
+            if (Array.isArray(imgs) && imgs.length > 0) coverImage = imgs[0];
+          } catch (_) {}
+          return {
+            id: p.id,
+            titleAr: p.titleAr,
+            titleEn: p.titleEn,
+            type: p.type,
+            price: p.price,
+            locationText: p.locationText,
+            latitude: coords?.lat ?? null,
+            longitude: coords?.lon ?? null,
+            parentId: p.parentId,
+            status: p.status,
+            propertyCategory: p.propertyCategory,
+            area: p.area,
+            propertyAge: p.propertyAge,
+            thumbnail: coverImage || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop'
+          };
+        });
+
+        return res.json(enrichedMap);
+      }
+
+      // Base64 auto-saving helper
+      const saveBase64ImageOnRead = async (property: any) => {
         let coverImage = '';
         try {
           const imgs = JSON.parse(property.imageUrls || '[]');
-          if (Array.isArray(imgs) && imgs.length > 0) coverImage = imgs[0];
+          if (Array.isArray(imgs) && imgs.length > 0) {
+            coverImage = imgs[0];
+            let needsUpdate = false;
+            const updatedImgs = imgs.map(img => {
+              if (img && (img.startsWith('data:image/') || img.startsWith('data:application/'))) {
+                needsUpdate = true;
+                return saveBase64Image(img);
+              }
+              return img;
+            });
+            if (needsUpdate) {
+              coverImage = updatedImgs[0];
+              await prisma.property.update({
+                where: { id: property.id },
+                data: { imageUrls: JSON.stringify(updatedImgs) }
+              });
+            }
+          }
         } catch (_) {}
+        return coverImage;
+      };
+
+      const enrichProperty = async (property: any) => {
+        const coords = extractCoords(property.locationLink);
+        const coverImage = await saveBase64ImageOnRead(property);
+
+        // Subunits calculation
+        const subUnits = await prisma.property.findMany({
+          where: {
+            parentId: property.id,
+            status: 'PUBLISHED'
+          },
+          select: { price: true }
+        });
+
+        const availableUnitsCount = subUnits.length;
+        const prices = subUnits.map(u => u.price).filter(p => p > 0);
+        const minUnitPrice = prices.length > 0 ? Math.min(...prices) : 0;
+        const maxUnitPrice = prices.length > 0 ? Math.max(...prices) : 0;
+
         return {
           ...property,
-          // Only send the cover image in the listings payload to keep it light;
-          // full galleries are available via GET /api/properties/:id
           imageUrls: JSON.stringify(coverImage ? [coverImage] : []),
           latitude: coords?.lat ?? null,
-          longitude: coords?.lon ?? null
+          longitude: coords?.lon ?? null,
+          availableUnitsCount,
+          minUnitPrice,
+          maxUnitPrice
         };
-      });
+      };
 
-      dbCache[cacheKey] = enrichedProperties;
-      logger.info(`Serving enriched properties from database & saving to cache (${cacheKey})`);
-      res.json(enrichedProperties);
+      if (isPaginationRequest) {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 9;
+        const skip = (page - 1) * limit;
+
+        const [properties, totalCount] = await Promise.all([
+          prisma.property.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' }
+          }),
+          prisma.property.count({ where })
+        ]);
+
+        const enriched = await Promise.all(properties.map(enrichProperty));
+        return res.json({
+          properties: enriched,
+          totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        });
+      } else {
+        // Standard full list request (backward compatible for Admin and Dashboard)
+        const properties = await prisma.property.findMany({
+          where,
+          orderBy: { createdAt: 'desc' }
+        });
+        const enriched = await Promise.all(properties.map(enrichProperty));
+        
+        if (!hasQueryParams) {
+          dbCache[cacheKey] = enriched;
+        }
+        return res.json(enriched);
+      }
     } catch (error) {
       logger.error("Failed to fetch properties", error);
       res.status(500).json({ error: "Failed to fetch properties" });
@@ -2080,6 +2257,61 @@ async function startServer() {
       // 2. Create or Update the rest
       if (Array.isArray(subPropertiesData)) {
         for (const unit of subPropertiesData) {
+          const existingUnit = dbSubProperties.find(p => p.id === unit.id);
+          
+          let finalImageUrls = processImageUrls(unit.imageUrls);
+          let finalFeatures = unit.features || null;
+          let finalUtilityBills = unit.utilityBills || "NONE";
+          let finalAllowedPaymentPlans = unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]";
+          let finalVideoUrl = unit.videoUrl || null;
+          let finalElectricityCost = safeFloat(unit.electricityCost);
+          let finalElectricityFrequency = unit.electricityFrequency || null;
+          let finalVat = safeFloat(unit.vat);
+          let finalVatExempt = unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false;
+          let finalCommission = safeFloat(unit.commission);
+          let finalAqarLink = unit.aqarLink || null;
+          let finalAttachments = unit.attachments ? (typeof unit.attachments === 'string' ? unit.attachments : JSON.stringify(unit.attachments)) : "[]";
+
+          if (existingUnit) {
+            // Preserve fields not edited in simplified inline step 5 form
+            if (!unit.imageUrls || unit.imageUrls === '[]' || (Array.isArray(unit.imageUrls) && unit.imageUrls.length === 0)) {
+              finalImageUrls = existingUnit.imageUrls || '[]';
+            }
+            if (!unit.features && existingUnit.features) {
+              finalFeatures = existingUnit.features;
+            }
+            if ((!unit.utilityBills || unit.utilityBills === 'NONE') && existingUnit.utilityBills && existingUnit.utilityBills !== 'NONE') {
+              finalUtilityBills = existingUnit.utilityBills;
+            }
+            if ((!unit.allowedPaymentPlans || unit.allowedPaymentPlans === '[]' || JSON.stringify(unit.allowedPaymentPlans) === '["1","2","4"]') && existingUnit.allowedPaymentPlans && existingUnit.allowedPaymentPlans !== '["1","2","4"]') {
+              finalAllowedPaymentPlans = existingUnit.allowedPaymentPlans;
+            }
+            if (!unit.videoUrl && existingUnit.videoUrl) {
+              finalVideoUrl = existingUnit.videoUrl;
+            }
+            if (!unit.electricityCost && existingUnit.electricityCost) {
+              finalElectricityCost = existingUnit.electricityCost;
+            }
+            if (!unit.electricityFrequency && existingUnit.electricityFrequency) {
+              finalElectricityFrequency = existingUnit.electricityFrequency;
+            }
+            if (!unit.vat && existingUnit.vat) {
+              finalVat = existingUnit.vat;
+            }
+            if (unit.vatExempt === undefined && existingUnit.vatExempt) {
+              finalVatExempt = existingUnit.vatExempt;
+            }
+            if (!unit.commission && existingUnit.commission) {
+              finalCommission = existingUnit.commission;
+            }
+            if (!unit.aqarLink && existingUnit.aqarLink) {
+              finalAqarLink = existingUnit.aqarLink;
+            }
+            if ((!unit.attachments || unit.attachments === '[]') && existingUnit.attachments && existingUnit.attachments !== '[]') {
+              finalAttachments = existingUnit.attachments;
+            }
+          }
+
           const unitData = {
             titleAr: unit.titleAr || "وحدة سكنية",
             titleEn: unit.titleEn || "Unit",
@@ -2092,19 +2324,20 @@ async function startServer() {
             locationLink: body.locationLink || null,
             locationText: body.locationText || null,
             description: unit.description || "",
-            features: unit.features || null,
+            features: finalFeatures,
             propertyAge: safeInt(body.propertyAge),
-            electricityCost: safeFloat(unit.electricityCost),
-            electricityFrequency: unit.electricityFrequency || null,
-            vat: safeFloat(unit.vat),
-            vatExempt: unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false,
-            utilityBills: unit.utilityBills || "NONE",
-            commission: safeFloat(unit.commission),
+            electricityCost: finalElectricityCost,
+            electricityFrequency: finalElectricityFrequency,
+            vat: finalVat,
+            vatExempt: finalVatExempt,
+            utilityBills: finalUtilityBills,
+            commission: finalCommission,
             price: safeFloat(unit.price),
-            imageUrls: processImageUrls(unit.imageUrls),
-            aqarLink: unit.aqarLink || null,
-            allowedPaymentPlans: unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
-            videoUrl: unit.videoUrl || null,
+            imageUrls: finalImageUrls,
+            aqarLink: finalAqarLink,
+            allowedPaymentPlans: finalAllowedPaymentPlans,
+            videoUrl: finalVideoUrl,
+            attachments: finalAttachments,
             userId: body.userId || null,
             parentId: updatedProperty.id,
             status: unit.status || "PUBLISHED",
@@ -2254,6 +2487,27 @@ async function startServer() {
   // Settings
   // ---- Settings SQL Fallbacks & Database Auto-Correction ----
   async function ensureDbColumnsExist() {
+    async function columnExists(tableName: string, columnName: string): Promise<boolean> {
+      try {
+        const dbUrl = process.env.DATABASE_URL || "";
+        const isPostgres = dbUrl.startsWith("postgresql://") || dbUrl.startsWith("postgres://");
+        if (isPostgres) {
+          const result = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT EXISTS (
+              SELECT 1 FROM information_schema.columns 
+              WHERE LOWER(table_name) = LOWER('${tableName}') AND LOWER(column_name) = LOWER('${columnName}')
+            ) as "exists"`
+          );
+          return result[0]?.exists || false;
+        } else {
+          const columns = await prisma.$queryRawUnsafe<any[]>(`PRAGMA table_info("${tableName}")`);
+          return Array.isArray(columns) && columns.some(c => c.name.toLowerCase() === columnName.toLowerCase());
+        }
+      } catch (err) {
+        return false;
+      }
+    }
+
     const alterCommands = [
       `ALTER TABLE "Settings" ADD COLUMN "analyticsDashboardUrl" text`,
       `ALTER TABLE Settings ADD COLUMN analyticsDashboardUrl text`,
@@ -2278,11 +2532,20 @@ async function startServer() {
     ];
     for (const cmd of alterCommands) {
       try {
+        const match = cmd.match(/ALTER\s+TABLE\s+["']?([a-zA-Z0-9_]+)["']?\s+ADD\s+COLUMN\s+["']?([a-zA-Z0-9_]+)["']?/i);
+        if (match) {
+          const tableName = match[1];
+          const columnName = match[2];
+          const exists = await columnExists(tableName, columnName);
+          if (exists) {
+            continue;
+          }
+        }
         await prisma.$executeRawUnsafe(cmd);
       } catch (e: any) {
         const msg = String(e?.message || e);
-        // Ignore expected "already exists" errors; surface anything else
-        if (!/already exists/i.test(msg)) {
+        // Ignore expected "already exists" or "duplicate column" errors; surface anything else
+        if (!/already exists|duplicate column/i.test(msg)) {
           logger.error(`ensureDbColumnsExist: ALTER failed -> ${cmd} | ${msg}`);
         }
       }
@@ -2875,22 +3138,22 @@ async function startServer() {
 
       // 2. Perform DB restore in a transaction
       await prisma.$transaction(async (tx) => {
-        // Clear tables in reverse dependency order
-        await tx.actionLog.deleteMany();
-        await tx.callbackNote.deleteMany();
-        await tx.callbackRequest.deleteMany();
+        // Clear tables in reverse dependency order (only if they are present in the backup data)
+        if (dbData.actionLogs !== undefined) await tx.actionLog.deleteMany();
+        if (dbData.callbackNotes !== undefined) await tx.callbackNote.deleteMany();
+        if (dbData.callbackRequests !== undefined) await tx.callbackRequest.deleteMany();
         await tx.pageView.deleteMany();
         await tx.otpSession.deleteMany();
-        await tx.receipt.deleteMany();
-        await tx.rentHistory.deleteMany();
-        await tx.renterUnit.deleteMany();
-        await tx.building.deleteMany();
-        await tx.property.deleteMany();
-        await tx.project.deleteMany();
-        await tx.settings.deleteMany();
-        await tx.service.deleteMany();
-        await tx.user.deleteMany();
-        await tx.admin.deleteMany();
+        if (dbData.receipts !== undefined) await tx.receipt.deleteMany();
+        if (dbData.rentHistory !== undefined) await tx.rentHistory.deleteMany();
+        if (dbData.renterUnits !== undefined) await tx.renterUnit.deleteMany();
+        if (dbData.buildings !== undefined) await tx.building.deleteMany();
+        if (dbData.properties !== undefined) await tx.property.deleteMany();
+        if (dbData.projects !== undefined) await tx.project.deleteMany();
+        if (dbData.settings !== undefined) await tx.settings.deleteMany();
+        if (dbData.services !== undefined) await tx.service.deleteMany();
+        if (dbData.users !== undefined) await tx.user.deleteMany();
+        if (dbData.admins !== undefined) await tx.admin.deleteMany();
 
         // Restore tables
         if (dbData.admins && dbData.admins.length > 0) {
@@ -3507,14 +3770,7 @@ async function startServer() {
     });
   });
 
-  // Synchronize DB schema and generate client dynamically (especially in production PostgreSQL environments)
-  try {
-    console.log("Synchronizing database schema and generating client via Prisma...");
-    execSync("npx prisma db push && npx prisma generate", { stdio: 'inherit' });
-    console.log("Database schema synchronized and client regenerated successfully.");
-  } catch (dbError) {
-    console.error("Prisma schema sync or client generation skipped/failed:", dbError);
-  }
+  // Database schema synchronization is handled dynamically on-demand inside src/lib/db.ts
 
   // Dynamically check and add missing columns directly in the SQL database (failsafe)
   try {

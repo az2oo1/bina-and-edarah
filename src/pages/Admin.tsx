@@ -540,6 +540,18 @@ export default function Admin() {
       waterFrequency: formData.includeWater ? formData.waterFrequencyVal : 'YEARLY'
     });
 
+    const finalDetailsList = [...formData.detailsList.map(({key, value}) => ({key, value}))];
+    if (buildingFloors.length > 0) {
+      const existingIdx = finalDetailsList.findIndex(d => d.key === 'أدوار المبنى' || d.key === 'Building Floors');
+      const floorsKey = language === 'ar' ? 'أدوار المبنى' : 'Building Floors';
+      const floorsValue = buildingFloors.join(',');
+      if (existingIdx > -1) {
+        finalDetailsList[existingIdx].value = floorsValue;
+      } else {
+        finalDetailsList.push({ key: floorsKey, value: floorsValue });
+      }
+    }
+
     const payload = {
       ...formData,
       status: statusVal,
@@ -549,7 +561,7 @@ export default function Admin() {
       features: formData.featuresList.map(f => f.value).filter(Boolean).join(','),
       imageUrls: JSON.stringify(formData.imageUrls),
       attachments: JSON.stringify(formData.attachments),
-      details: JSON.stringify(formData.detailsList.map(({key, value}) => ({key, value})))
+      details: JSON.stringify(finalDetailsList)
     };
 
     try {
@@ -631,6 +643,8 @@ export default function Admin() {
     setCurrentStep(1);
     setShowUnitForm(false);
     setEditingUnitIndex(null);
+    setBuildingFloors([]);
+    setNewFloorInput('');
   };
 
   // Expanded parents table state
@@ -643,6 +657,8 @@ export default function Admin() {
     id: '',
     titleAr: '',
     titleEn: '',
+    unitNameAr: '',
+    unitNameEn: '',
     type: 'RENT',
     propertyCategory: 'APARTMENT',
     price: '',
@@ -654,11 +670,16 @@ export default function Admin() {
     floor: ''
   });
 
+  const [buildingFloors, setBuildingFloors] = useState<string[]>([]);
+  const [newFloorInput, setNewFloorInput] = useState('');
+
   const handleNewUnitClick = () => {
     setUnitFormData({
       id: '',
       titleAr: '',
       titleEn: '',
+      unitNameAr: '',
+      unitNameEn: '',
       type: 'RENT',
       propertyCategory: 'APARTMENT',
       price: '',
@@ -678,17 +699,23 @@ export default function Admin() {
     let rooms = '';
     let bathrooms = '';
     let floor = '';
+    let unitNameAr = '';
+    let unitNameEn = '';
     try {
       const parsed = JSON.parse(unit.details || '[]');
       rooms = parsed.find((d: any) => d.key.includes('غرف') || d.key.toLowerCase().includes('room'))?.value || '';
       bathrooms = parsed.find((d: any) => d.key.includes('مياه') || d.key.toLowerCase().includes('bathroom'))?.value || '';
       floor = parsed.find((d: any) => d.key.includes('دور') || d.key.toLowerCase().includes('floor'))?.value || '';
+      unitNameAr = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key.includes('اسم الوحدة'))?.value || '';
+      unitNameEn = parsed.find((d: any) => d.key === 'Unit Name' || d.key.toLowerCase().includes('unit name'))?.value || '';
     } catch (_) {}
 
     setUnitFormData({
       id: unit.id || '',
       titleAr: unit.titleAr || '',
       titleEn: unit.titleEn || '',
+      unitNameAr,
+      unitNameEn,
       type: unit.type || 'RENT',
       propertyCategory: unit.propertyCategory || 'APARTMENT',
       price: unit.price ? String(unit.price) : '',
@@ -715,13 +742,19 @@ export default function Admin() {
 
   const handleSaveUnit = async () => {
     if (!unitFormData.titleAr) {
-      await showAlert(language === 'ar' ? 'الرجاء إدخال اسم الوحدة بالعربية' : 'Please enter the unit title in Arabic.');
+      await showAlert(language === 'ar' ? 'الرجاء إدخال عنوان الوحدة بالعربية' : 'Please enter the unit title in Arabic.');
+      return;
+    }
+    if (!unitFormData.unitNameAr) {
+      await showAlert(language === 'ar' ? 'الرجاء إدخال اسم/رقم الوحدة بالعربية' : 'Please enter the unit name/number in Arabic.');
       return;
     }
     const detailsArray = [];
     if (unitFormData.rooms) detailsArray.push({ key: language === 'ar' ? 'عدد الغرف' : 'Rooms Count', value: unitFormData.rooms });
     if (unitFormData.bathrooms) detailsArray.push({ key: language === 'ar' ? 'دورات المياه' : 'Bathrooms', value: unitFormData.bathrooms });
     if (unitFormData.floor) detailsArray.push({ key: language === 'ar' ? 'الدور' : 'Floor', value: unitFormData.floor });
+    if (unitFormData.unitNameAr) detailsArray.push({ key: 'رقم الوحدة', value: unitFormData.unitNameAr });
+    if (unitFormData.unitNameEn) detailsArray.push({ key: 'Unit Name', value: unitFormData.unitNameEn });
 
     const newUnit = {
       id: unitFormData.id || undefined,
@@ -747,6 +780,19 @@ export default function Admin() {
       return { ...prev, subProperties: currentList };
     });
     setShowUnitForm(false);
+  };
+
+  const handleAddFloor = () => {
+    if (!newFloorInput.trim()) return;
+    const flr = newFloorInput.trim();
+    if (!buildingFloors.includes(flr)) {
+      setBuildingFloors(prev => [...prev, flr]);
+    }
+    setNewFloorInput('');
+  };
+
+  const handleRemoveFloor = (index: number) => {
+    setBuildingFloors(prev => prev.filter((_, idx) => idx !== index));
   };
 
   const handleEditClick = async (property: Property) => {
@@ -821,6 +867,20 @@ export default function Admin() {
       } else if (propData.paymentsCount) {
         parsedPaymentPlans = [String(propData.paymentsCount)];
       }
+
+      let initialFloors: string[] = [];
+      try {
+        if (propData.details) {
+          const arr = typeof propData.details === 'string' ? JSON.parse(propData.details) : propData.details;
+          const floorsDetail = arr.find((item: any) => item.key === 'أدوار المبنى' || item.key === 'Building Floors');
+          if (floorsDetail) {
+            initialFloors = floorsDetail.value.split(',').map((f: string) => f.trim()).filter(Boolean);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      setBuildingFloors(initialFloors);
 
       setFormData({
         titleAr: propData.titleAr || '',
@@ -1331,7 +1391,7 @@ export default function Admin() {
                           <tbody className="divide-y divide-border/60 text-foreground">
                             {properties.filter(p => p.parentId === selectedParentProperty.id).map((unit, index) => {
                               return (
-                                <tr key={unit.id} className="hover:bg-slate-50/30 transition-colors">
+                                <tr key={unit.id} className="hover:bg-muted/30 transition-colors">
                                   <td className="p-3 text-muted-foreground">{index + 1}</td>
                                   <td className="p-3 font-semibold">
                                     <p>{unit.titleAr}</p>
@@ -1407,7 +1467,11 @@ export default function Admin() {
 
                   {selectedParentTab === 'details' && (
                     <div className="animate-in fade-in duration-300">
-                      <AdminBuildings selectedBuildingId={matchingBuilding?.id} inlineMode="details" />
+                      <AdminBuildings 
+                        selectedBuildingId={matchingBuilding?.id} 
+                        inlineMode="details" 
+                        parentPropertyId={selectedParentProperty?.id} 
+                      />
                     </div>
                   )}
                 </div>
@@ -1434,7 +1498,7 @@ export default function Admin() {
                         const subUnits = properties.filter(p => p.parentId === property.id);
                         return (
                           <React.Fragment key={property.id}>
-                            <tr className="border-b border-border hover:bg-slate-50/40 transition-colors">
+                            <tr className="border-b border-border hover:bg-muted/40 transition-colors">
                               <td className="px-4 py-3 text-xs text-muted-foreground">{index + 1}</td>
                               <td className="p-4">
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -1510,12 +1574,12 @@ export default function Admin() {
                               </td>
                             </tr>
                             {isExpanded && subUnits.length > 0 && (
-                              <tr className="bg-slate-50/20">
+                              <tr className="bg-muted/20">
                                 <td colSpan={5} className="px-8 py-3">
                                   <div className="border border-border rounded-xl overflow-hidden shadow-xs bg-card/40">
                                     <table className="w-full text-xs">
                                       <thead>
-                                        <tr className="bg-slate-100/50 border-b border-border text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                                        <tr className="bg-muted/50 border-b border-border text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
                                           <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'اسم الوحدة' : 'Unit Title'}</th>
                                           <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
                                           <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
@@ -1525,7 +1589,7 @@ export default function Admin() {
                                       </thead>
                                       <tbody className="divide-y divide-border/65">
                                         {subUnits.map(unit => (
-                                          <tr key={unit.id} className="hover:bg-slate-100/30 transition-colors">
+                                          <tr key={unit.id} className="hover:bg-muted/30 transition-colors">
                                             <td className="p-2.5 font-medium text-foreground">{unit.titleAr}</td>
                                             <td className="p-2.5 text-muted-foreground">{t(`cat.${unit.propertyCategory}`)}</td>
                                             <td className="p-2.5 font-mono text-foreground font-semibold">
@@ -2281,43 +2345,123 @@ export default function Admin() {
                         <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">
                           {language === 'ar' ? 'إدارة وحدات العقار (الشقق / المكاتب / المحلات)' : 'Manage Building Units (Apartments / Offices / Shops)'}
                         </h3>
+
+                        {/* Building Floors Manager */}
+                        <div className="bg-muted/35 border border-border p-4 rounded-xl space-y-4 mb-6">
+                          <div>
+                            <h4 className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
+                              <Building2 className="w-4 h-4 text-primary" />
+                              <span>{language === 'ar' ? 'تحديد طوابق وأدوار المبنى' : 'Define Building Floors'}</span>
+                            </h4>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {language === 'ar' 
+                                ? 'أضف أدوار المبنى هنا أولاً لتتمكن من اختيارها عند إضافة أو تعديل الوحدات' 
+                                : 'Add building floors here first to select them when adding or editing units'}
+                            </p>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newFloorInput}
+                              onChange={(e) => setNewFloorInput(e.target.value)}
+                              placeholder={language === 'ar' ? 'مثال: الدور 1، الدور 2، الدور الأرضي' : 'e.g. Floor 1, Floor 2, Ground Floor'}
+                              className="cn-input text-xs h-9 flex-1 bg-background"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddFloor();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddFloor}
+                              className="px-4 h-9 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>{language === 'ar' ? 'إضافة دور' : 'Add Floor'}</span>
+                            </button>
+                          </div>
+
+                          {buildingFloors.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 pt-1.5">
+                              {buildingFloors.map((flr, idx) => (
+                                <span 
+                                  key={idx}
+                                  className="inline-flex items-center gap-1 bg-card border border-border/80 px-2.5 py-1 rounded-lg text-xs font-bold text-foreground select-none"
+                                >
+                                  <span>{flr}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveFloor(idx)}
+                                    className="text-muted-foreground hover:text-red-500 rounded p-0.5 cursor-pointer"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground italic">
+                              {language === 'ar' 
+                                ? 'لم يتم إضافة أدوار بعد. الرجاء إضافة الأدوار لتصنيف شقق ووحدات المبنى.' 
+                                : 'No floors defined yet. Please add floors to classify the units.'}
+                            </p>
+                          )}
+                        </div>
                         
                         {/* Units list */}
                         <div className="space-y-4">
                           {formData.subProperties && formData.subProperties.length > 0 ? (
                             <div className="border border-border rounded-xl overflow-hidden divide-y divide-border bg-card/30">
-                              {formData.subProperties.map((unit, index) => (
-                                <div key={index} className="p-4 flex items-center justify-between text-xs hover:bg-slate-50/50 transition-colors">
-                                  <div>
-                                    <span className="font-bold text-foreground">{language === 'ar' ? unit.titleAr : unit.titleEn}</span>
-                                    <div className="flex gap-2.5 text-muted-foreground mt-1 text-[11px] font-semibold">
-                                      <span>{t(`cat.${unit.propertyCategory}`)}</span>
-                                      <span>•</span>
-                                      <span>{unit.price > 0 ? `${unit.price.toLocaleString()} SAR` : (language === 'ar' ? 'غير محدد' : 'N/A')}</span>
-                                      <span>•</span>
-                                      <span>{unit.area} {t('common.sqm')}</span>
-                                      <span>•</span>
-                                      <span className="text-primary font-bold uppercase">{unit.status}</span>
+                              {formData.subProperties.map((unit, index) => {
+                                let unitName = '';
+                                try {
+                                  const parsed = JSON.parse(unit.details || '[]');
+                                  const match = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key === 'Unit Name');
+                                  unitName = match ? match.value : '';
+                                } catch (_) {}
+                                return (
+                                  <div key={index} className="p-4 flex items-center justify-between text-xs hover:bg-muted/40 transition-colors">
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-black text-foreground">{language === 'ar' ? unit.titleAr : unit.titleEn}</span>
+                                        {unitName && (
+                                          <span className="bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                            {unitName}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex gap-2.5 text-muted-foreground mt-1.5 text-[11px] font-semibold">
+                                        <span>{t(`cat.${unit.propertyCategory}`)}</span>
+                                        <span>•</span>
+                                        <span>{unit.price > 0 ? `${unit.price.toLocaleString()} SAR` : (language === 'ar' ? 'غير محدد' : 'N/A')}</span>
+                                        <span>•</span>
+                                        <span>{unit.area} {t('common.sqm')}</span>
+                                        <span>•</span>
+                                        <span className="text-primary font-bold uppercase">{unit.status}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEditUnit(index)}
+                                        className="p-1.5 text-muted-foreground hover:text-[#2563eb] hover:border-[#2563eb]/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteUnit(index)}
+                                        className="p-1.5 text-red-500 hover:text-red-400 hover:border-red-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEditUnit(index)}
-                                      className="p-1.5 text-muted-foreground hover:text-[#2563eb] hover:border-[#2563eb]/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
-                                    >
-                                      <Pencil className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteUnit(index)}
-                                      className="p-1.5 text-red-500 hover:text-red-400 hover:border-red-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           ) : (
                             <div className="text-center py-10 border border-dashed border-border rounded-xl text-muted-foreground">
@@ -2345,31 +2489,53 @@ export default function Admin() {
                               
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'اسم الوحدة بالعربية' : 'Unit Title (Ar)'}</label>
+                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'عنوان الإعلان للوحدة (عربي)' : 'Unit Title (Ar)'}</label>
                                   <input
                                     type="text"
                                     value={unitFormData.titleAr}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, titleAr: e.target.value })}
-                                    placeholder="مثال: شقة 101"
-                                    className="cn-input text-xs h-9"
+                                    placeholder={language === 'ar' ? 'مثال: شقة فاخرة للإيجار' : 'e.g. Luxury Apartment for Rent'}
+                                    className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>
                                 <div>
-                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'اسم الوحدة بالإنجليزية' : 'Unit Title (En)'}</label>
+                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'عنوان الإعلان للوحدة (إنجليزي)' : 'Unit Title (En)'}</label>
                                   <input
                                     type="text"
                                     value={unitFormData.titleEn}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, titleEn: e.target.value })}
-                                    placeholder="e.g. Apartment 101"
-                                    className="cn-input text-xs h-9"
+                                    placeholder={language === 'ar' ? 'مثال: Luxury Apartment for Rent' : 'e.g. Luxury Apartment for Rent'}
+                                    className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>
+                                
+                                <div>
+                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي (عربي)' : 'Unit Name/Number (Ar)'}</label>
+                                  <input
+                                    type="text"
+                                    value={unitFormData.unitNameAr}
+                                    onChange={(e) => setUnitFormData({ ...unitFormData, unitNameAr: e.target.value })}
+                                    placeholder="مثال: شقة 101"
+                                    className="cn-input text-xs h-9 bg-background"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي (إنجليزي)' : 'Unit Name/Number (En)'}</label>
+                                  <input
+                                    type="text"
+                                    value={unitFormData.unitNameEn}
+                                    onChange={(e) => setUnitFormData({ ...unitFormData, unitNameEn: e.target.value })}
+                                    placeholder="e.g. Apt 101"
+                                    className="cn-input text-xs h-9 bg-background"
+                                  />
+                                </div>
+
                                 <div>
                                   <label className="cn-label mb-1.5">{language === 'ar' ? 'الفئة' : 'Category'}</label>
                                   <select
                                     value={unitFormData.propertyCategory}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, propertyCategory: e.target.value })}
-                                    className="cn-input text-xs h-9"
+                                    className="cn-input text-xs h-9 bg-background"
                                   >
                                     <option value="APARTMENT">{t('cat.APARTMENT')}</option>
                                     <option value="SHOP">{t('cat.SHOP')}</option>
@@ -2382,7 +2548,7 @@ export default function Admin() {
                                   <select
                                     value={unitFormData.type}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, type: e.target.value })}
-                                    className="cn-input text-xs h-9"
+                                    className="cn-input text-xs h-9 bg-background"
                                   >
                                     <option value="RENT">{t('common.rent')}</option>
                                     <option value="SALE">{t('common.sale')}</option>
@@ -2395,7 +2561,7 @@ export default function Admin() {
                                     value={unitFormData.price}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, price: e.target.value })}
                                     placeholder="0"
-                                    className="cn-input text-xs h-9"
+                                    className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>
                                 <div>
@@ -2405,7 +2571,7 @@ export default function Admin() {
                                     value={unitFormData.area}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, area: e.target.value })}
                                     placeholder="0"
-                                    className="cn-input text-xs h-9"
+                                    className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>
                                 <div>
@@ -2415,7 +2581,7 @@ export default function Admin() {
                                     value={unitFormData.rooms}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, rooms: e.target.value })}
                                     placeholder="3"
-                                    className="cn-input text-xs h-9"
+                                    className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>
                                 <div>
@@ -2425,25 +2591,34 @@ export default function Admin() {
                                     value={unitFormData.bathrooms}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, bathrooms: e.target.value })}
                                     placeholder="2"
-                                    className="cn-input text-xs h-9"
+                                    className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>
                                 <div>
                                   <label className="cn-label mb-1.5">{language === 'ar' ? 'الدور' : 'Floor'}</label>
-                                  <input
-                                    type="text"
-                                    value={unitFormData.floor}
-                                    onChange={(e) => setUnitFormData({ ...unitFormData, floor: e.target.value })}
-                                    placeholder="1"
-                                    className="cn-input text-xs h-9"
-                                  />
+                                  {buildingFloors.length > 0 ? (
+                                    <select
+                                      value={unitFormData.floor}
+                                      onChange={(e) => setUnitFormData({ ...unitFormData, floor: e.target.value })}
+                                      className="cn-input text-xs h-9 bg-background"
+                                    >
+                                      <option value="">{language === 'ar' ? 'اختر الدور' : 'Select Floor'}</option>
+                                      {buildingFloors.map((flr) => (
+                                        <option key={flr} value={flr}>{flr}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <select disabled className="cn-input text-xs h-9 opacity-60 bg-muted/20">
+                                      <option>{language === 'ar' ? 'الرجاء إضافة أدوار أولاً أعلاه' : 'Please add floors first above'}</option>
+                                    </select>
+                                  )}
                                 </div>
                                 <div>
                                   <label className="cn-label mb-1.5">{language === 'ar' ? 'الحالة' : 'Status'}</label>
                                   <select
                                     value={unitFormData.status}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, status: e.target.value })}
-                                    className="cn-input text-xs h-9"
+                                    className="cn-input text-xs h-9 bg-background"
                                   >
                                     <option value="PUBLISHED">{language === 'ar' ? 'متاح / منشور' : 'Available / Published'}</option>
                                     <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
@@ -2464,7 +2639,7 @@ export default function Admin() {
                                 <button
                                   type="button"
                                   onClick={() => setShowUnitForm(false)}
-                                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all cursor-pointer"
+                                  className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-lg transition-all cursor-pointer"
                                 >
                                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                                 </button>
@@ -2491,7 +2666,7 @@ export default function Admin() {
                           <button
                             type="button"
                             onClick={() => setCurrentStep(currentStep - 1)}
-                            className="px-5 py-2.5 border border-border text-foreground hover:bg-muted bg-card rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 active:scale-97 shadow-xs"
+                            className="btn-outline text-xs flex items-center gap-1.5"
                           >
                             {language === 'ar' ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
                             {language === 'ar' ? 'السابق' : 'Previous'}
@@ -2500,7 +2675,7 @@ export default function Admin() {
                           <button
                             type="button"
                             onClick={() => setShowAddForm(false)}
-                            className="px-5 py-2.5 border border-border text-foreground hover:bg-muted bg-card rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 active:scale-97 shadow-xs"
+                            className="btn-outline text-xs flex items-center gap-1.5"
                           >
                             {language === 'ar' ? 'إلغاء' : 'Cancel'}
                           </button>
@@ -2519,7 +2694,7 @@ export default function Admin() {
                               }
                               setCurrentStep(currentStep + 1);
                             }}
-                            className="px-5 py-2.5 bg-primary hover:opacity-95 text-white rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm active:scale-97 border border-transparent"
+                            className="btn-primary text-xs flex items-center gap-1.5"
                           >
                             {language === 'ar' ? 'التالي' : 'Next'}
                             {language === 'ar' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
@@ -2529,7 +2704,7 @@ export default function Admin() {
                             type="button"
                             disabled={loading || isUploadingImages}
                             onClick={(e) => saveProperty(e, 'PUBLISHED')}
-                            className="px-6 py-2.5 bg-primary hover:opacity-95 text-white rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50 active:scale-97 border border-transparent"
+                            className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-50"
                           >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'ar' ? 'نشر العقار' : 'Publish Property')}
                           </button>
