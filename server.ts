@@ -1155,6 +1155,20 @@ async function startServer() {
         <meta name="twitter:image" content="${imageUrl}" />
       `;
 
+      // Structured data so Google uses the brand name (بناء وإدارة) as the site
+      // name in search results instead of the auto-detected domain (rbmc).
+      const jsonLd = `
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "بناء وإدارة العقارية",
+          "alternateName": "Benaa & Edara Real Estate",
+          "url": "${siteUrl}"
+        }
+        </script>
+      `;
+
       const analyticsScript = settings?.analyticsScript?.trim() ? `\n${settings.analyticsScript}\n` : '';
 
       // Replace existing title and description tags if they exist
@@ -1163,7 +1177,7 @@ async function startServer() {
       html = html.replace(/<meta\s+property="og:.*?"\s+content=".*?"\s*\/?>/gi, '');
       
       // Insert new tags right before </head>
-      html = html.replace('</head>', `${ogTags}${analyticsScript}</head>`);
+      html = html.replace('</head>', `${ogTags}${jsonLd}${analyticsScript}</head>`);
       
       res.send(html);
     } catch (err) {
