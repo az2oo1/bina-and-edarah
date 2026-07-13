@@ -1155,20 +1155,6 @@ async function startServer() {
         <meta name="twitter:image" content="${imageUrl}" />
       `;
 
-      // Structured data so Google uses the brand name (بناء وإدارة) as the site
-      // name in search results instead of the auto-detected domain (rbmc).
-      const jsonLd = `
-        <script type="application/ld+json">
-        {
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          "name": "بناء وإدارة العقارية",
-          "alternateName": "Benaa & Edara Real Estate",
-          "url": "${siteUrl}"
-        }
-        </script>
-      `;
-
       const analyticsScript = settings?.analyticsScript?.trim() ? `\n${settings.analyticsScript}\n` : '';
 
       // Replace existing title and description tags if they exist
@@ -1177,7 +1163,7 @@ async function startServer() {
       html = html.replace(/<meta\s+property="og:.*?"\s+content=".*?"\s*\/?>/gi, '');
       
       // Insert new tags right before </head>
-      html = html.replace('</head>', `${ogTags}${jsonLd}${analyticsScript}</head>`);
+      html = html.replace('</head>', `${ogTags}${analyticsScript}</head>`);
       
       res.send(html);
     } catch (err) {
@@ -2501,27 +2487,6 @@ async function startServer() {
   // Settings
   // ---- Settings SQL Fallbacks & Database Auto-Correction ----
   async function ensureDbColumnsExist() {
-    async function columnExists(tableName: string, columnName: string): Promise<boolean> {
-      try {
-        const dbUrl = process.env.DATABASE_URL || "";
-        const isPostgres = dbUrl.startsWith("postgresql://") || dbUrl.startsWith("postgres://");
-        if (isPostgres) {
-          const result = await prisma.$queryRawUnsafe<any[]>(
-            `SELECT EXISTS (
-              SELECT 1 FROM information_schema.columns 
-              WHERE LOWER(table_name) = LOWER('${tableName}') AND LOWER(column_name) = LOWER('${columnName}')
-            ) as "exists"`
-          );
-          return result[0]?.exists || false;
-        } else {
-          const columns = await prisma.$queryRawUnsafe<any[]>(`PRAGMA table_info("${tableName}")`);
-          return Array.isArray(columns) && columns.some(c => c.name.toLowerCase() === columnName.toLowerCase());
-        }
-      } catch (err) {
-        return false;
-      }
-    }
-
     const alterCommands = [
       `ALTER TABLE "Settings" ADD COLUMN "analyticsDashboardUrl" text`,
       `ALTER TABLE Settings ADD COLUMN analyticsDashboardUrl text`,
@@ -2546,20 +2511,11 @@ async function startServer() {
     ];
     for (const cmd of alterCommands) {
       try {
-        const match = cmd.match(/ALTER\s+TABLE\s+["']?([a-zA-Z0-9_]+)["']?\s+ADD\s+COLUMN\s+["']?([a-zA-Z0-9_]+)["']?/i);
-        if (match) {
-          const tableName = match[1];
-          const columnName = match[2];
-          const exists = await columnExists(tableName, columnName);
-          if (exists) {
-            continue;
-          }
-        }
         await prisma.$executeRawUnsafe(cmd);
       } catch (e: any) {
         const msg = String(e?.message || e);
-        // Ignore expected "already exists" or "duplicate column" errors; surface anything else
-        if (!/already exists|duplicate column/i.test(msg)) {
+        // Ignore expected "already exists" errors; surface anything else
+        if (!/already exists/i.test(msg)) {
           logger.error(`ensureDbColumnsExist: ALTER failed -> ${cmd} | ${msg}`);
         }
       }
@@ -3152,22 +3108,22 @@ async function startServer() {
 
       // 2. Perform DB restore in a transaction
       await prisma.$transaction(async (tx) => {
-        // Clear tables in reverse dependency order (only if they are present in the backup data)
-        if (dbData.actionLogs !== undefined) await tx.actionLog.deleteMany();
-        if (dbData.callbackNotes !== undefined) await tx.callbackNote.deleteMany();
-        if (dbData.callbackRequests !== undefined) await tx.callbackRequest.deleteMany();
+        // Clear tables in reverse dependency order
+        await tx.actionLog.deleteMany();
+        await tx.callbackNote.deleteMany();
+        await tx.callbackRequest.deleteMany();
         await tx.pageView.deleteMany();
         await tx.otpSession.deleteMany();
-        if (dbData.receipts !== undefined) await tx.receipt.deleteMany();
-        if (dbData.rentHistory !== undefined) await tx.rentHistory.deleteMany();
-        if (dbData.renterUnits !== undefined) await tx.renterUnit.deleteMany();
-        if (dbData.buildings !== undefined) await tx.building.deleteMany();
-        if (dbData.properties !== undefined) await tx.property.deleteMany();
-        if (dbData.projects !== undefined) await tx.project.deleteMany();
-        if (dbData.settings !== undefined) await tx.settings.deleteMany();
-        if (dbData.services !== undefined) await tx.service.deleteMany();
-        if (dbData.users !== undefined) await tx.user.deleteMany();
-        if (dbData.admins !== undefined) await tx.admin.deleteMany();
+        await tx.receipt.deleteMany();
+        await tx.rentHistory.deleteMany();
+        await tx.renterUnit.deleteMany();
+        await tx.building.deleteMany();
+        await tx.property.deleteMany();
+        await tx.project.deleteMany();
+        await tx.settings.deleteMany();
+        await tx.service.deleteMany();
+        await tx.user.deleteMany();
+        await tx.admin.deleteMany();
 
         // Restore tables
         if (dbData.admins && dbData.admins.length > 0) {
@@ -3784,7 +3740,14 @@ async function startServer() {
     });
   });
 
-  // Database schema synchronization is handled dynamically on-demand inside src/lib/db.ts
+  // Synchronize DB schema and generate client dynamically (especially in production PostgreSQL environments)
+  try {
+    console.log("Synchronizing database schema and generating client via Prisma...");
+    execSync("npx prisma db push && npx prisma generate", { stdio: 'inherit' });
+    console.log("Database schema synchronized and client regenerated successfully.");
+  } catch (dbError) {
+    console.error("Prisma schema sync or client generation skipped/failed:", dbError);
+  }
 
   // Dynamically check and add missing columns directly in the SQL database (failsafe)
   try {
