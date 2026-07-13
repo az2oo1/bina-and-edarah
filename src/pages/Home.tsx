@@ -57,11 +57,14 @@ export default function Home() {
 
   useEffect(() => {
     const sections = ['hero', 'solutions', 'video-tour', 'featured-projects', 'features', 'contact-cta'];
-    const handleScroll = () => {
+    let ticking = false;
+
+    const updateActiveSection = () => {
       // Detect if user has scrolled to the absolute bottom of the page
       const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60;
       if (isAtBottom) {
         setActiveSection('contact-cta');
+        ticking = false;
         return;
       }
 
@@ -78,10 +81,18 @@ export default function Home() {
           }
         }
       }
+      ticking = false;
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateActiveSection);
+        ticking = true;
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
+    updateActiveSection();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
