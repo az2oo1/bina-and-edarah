@@ -29,21 +29,22 @@ function initializeDatabase() {
   let databaseUrl = process.env.DATABASE_URL || "";
   let usePostgres = false;
 
-  // Determine if we should attempt PostgreSQL
   if (databaseUrl.startsWith("postgresql://") || databaseUrl.startsWith("postgres://")) {
+    // A PostgreSQL DATABASE_URL is configured: always honor it. The connectivity
+    // check below is informational only — we never silently fall back to SQLite
+    // when PostgreSQL is explicitly requested (that would corrupt the schema).
+    usePostgres = true;
     try {
       const parsed = new URL(databaseUrl);
       const host = parsed.hostname;
       const port = parsed.port ? parseInt(parsed.port, 10) : 5432;
 
       console.log(`Checking PostgreSQL connectivity at ${host}:${port}...`);
-      // Check TCP connection synchronously with a 2-second timeout using a Node helper
       execSync(`node -e "const net = require('net'); const client = net.createConnection({ host: '${host}', port: ${port}, timeout: 2000 }, () => { client.end(); process.exit(0); }); client.on('error', () => process.exit(1)); client.on('timeout', () => process.exit(1));"`, { stdio: 'ignore' });
-      
+
       console.log("PostgreSQL is reachable.");
-      usePostgres = true;
     } catch (err) {
-      console.warn("PostgreSQL connection check failed. Falling back to SQLite.");
+      console.warn("PostgreSQL is not reachable yet — will still use the configured PostgreSQL DATABASE_URL.");
     }
   } else if (!databaseUrl) {
     // If no DATABASE_URL, check local postgres port 5432
@@ -114,12 +115,10 @@ function initializeDatabase() {
     console.log("Database initialized successfully.");
   } catch (err) {
     console.error("Database schema sync or client generation failed:", err);
-    // If postgres push failed, try fallback to SQLite as a safety net
     if (usePostgres) {
-      console.warn("PostgreSQL push failed! Falling back to SQLite as backup.");
-      isInitialized = false; // allow re-init for SQLite
-      process.env.DATABASE_URL = ""; // reset to trigger SQLite fallback path
-      initializeDatabase();
+      // PostgreSQL was explicitly requested — never silently switch to SQLite.
+      // Surface the error so the misconfiguration is obvious.
+      console.error("PostgreSQL is configured but schema sync failed. Check DATABASE_URL and that the database is running.");
     }
   }
 }
