@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
 
-const require = createRequire(import.meta.url);
+const require = createRequire(import.meta.url || __filename);
 
 let client: any = null;
 let isInitialized = false;
