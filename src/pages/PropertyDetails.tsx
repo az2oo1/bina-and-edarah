@@ -37,8 +37,8 @@ interface Property {
   subProperties?: Property[];
   details?: string;
   utilityBills?: string;
-  attachments?: string;
   status?: string;
+  attachments?: string;
 }
 
 const getDetailIcon = (key: string) => {
@@ -153,18 +153,20 @@ export default function PropertyDetails() {
     setActiveImage(idx);
   };
 
+  const visibleSubProperties = property.subProperties?.filter(unit => unit.status !== 'DRAFT') || [];
+
   if (viewMode === 'units') {
     return (
       <div className="bg-background min-h-screen py-10" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-in fade-in duration-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-in fade-in duration-300 ease-out-expo">
           
           {/* Back Link */}
           <div className="mb-6 select-none">
             <button
               onClick={() => setViewMode('details')}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card hover:bg-muted border border-border px-3.5 py-1.5 rounded-full shadow-xs active:scale-97"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97]"
             >
-              {language === 'ar' ? <ArrowRight className="w-4 h-4 text-primary" /> : <ArrowLeft className="w-4 h-4 text-primary" />}
+              {language === 'ar' ? <ArrowRight className="w-3.5 h-3.5 text-primary" /> : <ArrowLeft className="w-3.5 h-3.5 text-primary" />}
               <span>{language === 'ar' ? 'العودة لتفاصيل العقار' : 'Back to Property Details'}</span>
             </button>
           </div>
@@ -172,23 +174,23 @@ export default function PropertyDetails() {
           {/* Title Section */}
           <div className="mb-8">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight flex items-center gap-2.5">
-              <Building2 className="w-7 h-7 text-primary" />
+              <Building2 className="w-7 h-7 text-primary animate-pulse" />
               <span>
                 {language === 'ar' 
                   ? `الوحدات السكنية في: ${property.titleAr}` 
                   : `Residential Units in: ${property.titleEn}`}
               </span>
             </h1>
-            <p className="text-xs text-muted-foreground mt-1.5">
+            <p className="text-xs text-muted-foreground mt-1.5 font-medium">
               {language === 'ar'
-                ? `يحتوي هذا العقار على ${property.subProperties?.length || 0} وحدة سكنية مدرجة.`
-                : `This property contains ${property.subProperties?.length || 0} listed units.`}
+                ? `يحتوي هذا العقار على ${visibleSubProperties.length} وحدة سكنية مدرجة.`
+                : `This property contains ${visibleSubProperties.length} listed units.`}
             </p>
           </div>
 
           {/* Units Grid */}
           <div className="space-y-4">
-            {property.subProperties?.map((unit) => {
+            {visibleSubProperties.map((unit, idx) => {
               const unitImages = (() => {
                 try {
                   const p = JSON.parse(unit.imageUrls || '[]');
@@ -209,16 +211,28 @@ export default function PropertyDetails() {
               const isRented = unit.status === 'RENTED';
 
               return (
-                <div key={unit.id} className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col md:flex-row gap-5 p-4 group/unit text-foreground">
+                <div
+                  key={unit.id}
+                  style={{ 
+                    animationDelay: `${idx * 50}ms`,
+                    transitionTimingFunction: 'var(--ease-out-expo)' 
+                  }}
+                  className="bg-card/45 backdrop-blur-xs border border-border/60 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col md:flex-row gap-5 p-4 group/unit text-foreground animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
                   {/* Thumbnail image */}
-                  <div className="relative w-full md:w-48 h-36 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-                    <img src={cover} alt={unit.titleAr} className="w-full h-full object-cover group-hover/unit:scale-105 transition-transform duration-500" />
+                  <div className="relative w-full md:w-56 h-40 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+                    <img 
+                      src={cover} 
+                      alt={unit.titleAr} 
+                      className="w-full h-full object-cover group-hover/unit:scale-[1.03] transition-transform duration-500" 
+                      style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
+                    />
                     <div className="absolute top-2.5 left-2.5 z-10 select-none">
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded shadow-xs ${
-                        isAvailable ? 'bg-emerald-600 text-white' :
-                        isSold ? 'bg-red-600 text-white' :
-                        isRented ? 'bg-amber-600 text-white' :
-                        'bg-slate-600 text-white'
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-md ${
+                        isAvailable ? 'bg-emerald-600/90 text-white' :
+                        isSold ? 'bg-destructive/90 text-white' :
+                        isRented ? 'bg-amber-600/90 text-white' :
+                        'bg-slate-600/90 text-white'
                       }`}>
                         {isAvailable ? (language === 'ar' ? 'متاح' : 'Available') :
                          isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
@@ -233,34 +247,38 @@ export default function PropertyDetails() {
                     <div>
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
-                          <h3 className="text-sm font-extrabold text-foreground leading-snug">
+                          <h3 className="text-base font-extrabold text-foreground leading-snug group-hover/unit:text-primary transition-colors duration-250" style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}>
                             {language === 'ar' ? unit.titleAr : unit.titleEn}
                           </h3>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                          <p className="text-[11px] text-muted-foreground mt-0.5 font-semibold">
                             {t(`cat.${unit.propertyCategory}`)} • {unit.area} {t('common.sqm')}
                           </p>
                         </div>
                         {unit.price > 0 && (
                           <div className="text-right">
-                            <span className="text-base font-black text-primary font-mono">{unit.price.toLocaleString()}</span>
-                            <span className="text-[10px] text-muted-foreground ml-1">{t('common.currency')}</span>
+                            <span className="text-lg font-black text-primary font-mono tracking-tight">{unit.price.toLocaleString()}</span>
+                            <span className="text-[10px] text-muted-foreground ml-1 font-semibold">{t('common.currency')}</span>
                           </div>
                         )}
                       </div>
 
                       {/* Specifications tags */}
                       {unitDetails.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-3 select-none">
+                        <div className="flex flex-wrap gap-2 mt-3.5 select-none">
                           {unitDetails.map((detail, idx) => (
-                            <span key={idx} className="inline-flex items-center gap-1 bg-background border border-border px-2 py-1 rounded-md text-[10px] font-semibold text-muted-foreground">
-                              {detail.key}: {detail.value}
+                            <span 
+                              key={idx} 
+                              className="inline-flex items-center gap-1.5 bg-muted/50 hover:bg-muted border border-border/40 px-2.5 py-1 rounded-lg text-[10.5px] font-bold text-muted-foreground transition-all duration-150"
+                            >
+                              {getDetailIcon(detail.key)}
+                              <span>{detail.key}: {detail.value}</span>
                             </span>
                           ))}
                         </div>
                       )}
 
                       {unit.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-3 leading-relaxed">
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-3.5 leading-relaxed font-normal">
                           {unit.description}
                         </p>
                       )}
@@ -269,7 +287,8 @@ export default function PropertyDetails() {
                     <div className="mt-4 flex items-center justify-end">
                       <Link
                         to={`/properties/${unit.id}`}
-                        className="inline-flex items-center justify-center gap-1.5 bg-[#2563eb] text-white hover:bg-[#1d4ed8] text-xs font-bold h-8 px-4 rounded-lg transition-all cursor-pointer shadow-sm active:scale-97"
+                        className="inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/95 active:scale-[0.97] text-xs font-extrabold h-9 px-4 rounded-xl transition-all cursor-pointer shadow-xs"
+                        style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>{language === 'ar' ? 'عرض التفاصيل' : 'View Details'}</span>
@@ -399,7 +418,7 @@ export default function PropertyDetails() {
                         className="w-full h-full object-cover transition-opacity duration-300"
                       />
                       {/* Hover expand overlay */}
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-250 flex items-center justify-center z-20">
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-250 flex items-center justify-center z-20 pointer-events-none">
                         <div className="bg-black/75 backdrop-blur-xs text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transform translate-y-2 group-hover/gallery:translate-y-0 transition-all duration-250 shadow-xl border border-white/10">
                           <Maximize className="w-4 h-4 text-primary" />
                           <span>{language === 'ar' ? 'عرض الوسائط كاملة' : 'View Full Media'}</span>
@@ -416,9 +435,10 @@ export default function PropertyDetails() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        goToIndex((activeImage - 1 + galleryItems.length) % galleryItems.length);
+                        const isRtl = language === 'ar';
+                        goToIndex(isRtl ? (activeImage + 1) % galleryItems.length : (activeImage - 1 + galleryItems.length) % galleryItems.length);
                       }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
                       title={language === 'ar' ? 'عرض الوسائط (السابق)' : 'View Media (Previous)'}
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -427,9 +447,10 @@ export default function PropertyDetails() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        goToIndex((activeImage + 1) % galleryItems.length);
+                        const isRtl = language === 'ar';
+                        goToIndex(isRtl ? (activeImage - 1 + galleryItems.length) % galleryItems.length : (activeImage + 1) % galleryItems.length);
                       }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
                       title={language === 'ar' ? 'عرض الوسائط (التالي)' : 'View Media (Next)'}
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -610,7 +631,7 @@ export default function PropertyDetails() {
             <div className="shadcn-card p-6">
               
               {/* Available Residential Units or Price Details */}
-              {property.subProperties && property.subProperties.length > 0 ? (
+              {visibleSubProperties.length > 0 ? (
                 <div className="mb-6 pb-6 border-b border-border">
                   <p className="text-[10px] font-bold text-muted-foreground mb-3.5 uppercase tracking-wider">
                     {language === 'ar' ? 'الوحدات السكنية المتاحة' : 'AVAILABLE RESIDENTIAL UNITS'}
@@ -630,17 +651,17 @@ export default function PropertyDetails() {
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">
                             {(() => {
-                              const counts: Record<string, number> = {};
-                              property.subProperties.forEach(sub => {
-                                const cat = sub.propertyCategory;
-                                counts[cat] = (counts[cat] || 0) + 1;
-                              });
-                              const parts = Object.entries(counts).map(([cat, count]) => {
-                                const catLabel = t(`cat.${cat}`);
-                                return `${count} ${catLabel}`;
-                              });
-                              return parts.join(language === 'ar' ? ' و ' : ' and ');
-                            })()}
+                               const counts: Record<string, number> = {};
+                               visibleSubProperties.forEach(sub => {
+                                 const cat = sub.propertyCategory;
+                                 counts[cat] = (counts[cat] || 0) + 1;
+                               });
+                               const parts = Object.entries(counts).map(([cat, count]) => {
+                                 const catLabel = t(`cat.${cat}`);
+                                 return `${count} ${catLabel}`;
+                               });
+                               return parts.join(language === 'ar' ? ' و ' : ' and ');
+                             })()}
                           </p>
                         </div>
                       </div>
@@ -648,7 +669,7 @@ export default function PropertyDetails() {
                     </div>
     
                     {(() => {
-                      const validPrices = property.subProperties
+                      const validPrices = visibleSubProperties
                         .map(p => p.price)
                         .filter(price => price > 0);
                       if (validPrices.length === 0) return null;
@@ -907,15 +928,16 @@ export default function PropertyDetails() {
 
             {/* Documents & Files Card */}
             {(() => {
-              let parsedFiles: { name: string; url: string; size?: number }[] = [];
-              if (property.attachments) {
-                try {
-                  parsedFiles = typeof property.attachments === 'string' 
-                    ? JSON.parse(property.attachments) 
+              let attachmentsList: { name: string; url: string; size?: number }[] = [];
+              try {
+                if (property.attachments) {
+                  attachmentsList = typeof property.attachments === 'string'
+                    ? JSON.parse(property.attachments)
                     : property.attachments;
-                } catch (_) {}
-              }
-              if (!Array.isArray(parsedFiles) || parsedFiles.length === 0) return null;
+                }
+              } catch (_) {}
+
+              if (!Array.isArray(attachmentsList) || attachmentsList.length === 0) return null;
 
               return (
                 <div className="shadcn-card p-6">
@@ -925,12 +947,13 @@ export default function PropertyDetails() {
                   </h3>
                   
                   <div className="space-y-3">
-                    {parsedFiles.map((file, idx) => (
+                    {attachmentsList.map((doc, idx) => (
                       <a
                         key={idx}
-                        href={file.url}
-                        download={file.name}
-                        className="flex items-center justify-between p-3 rounded-xl bg-background border border-border hover:bg-muted/30 transition-all duration-150 active:scale-98 group/file cursor-pointer"
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 rounded-xl bg-background border border-border hover:bg-muted/30 transition-all duration-150 active:scale-98 group/file"
                       >
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-red-500/10 text-red-500 rounded-lg group-hover/file:bg-red-500/20 transition-colors">
@@ -939,14 +962,12 @@ export default function PropertyDetails() {
                             </svg>
                           </div>
                           <div className="text-right rtl:text-right ltr:text-left">
-                            <p className="text-xs font-bold text-foreground group-hover/file:text-primary transition-colors">
-                              {file.name}
+                            <p className="text-xs font-bold text-foreground group-hover/file:text-primary transition-colors line-clamp-1">
+                              {doc.name}
                             </p>
-                            {file.size && (
-                              <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                                {(file.size / (1024 * 1024)).toFixed(2)} MB · PDF
-                              </p>
-                            )}
+                            <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                              {doc.size ? `${(doc.size / (1024 * 1024)).toFixed(1)} MB` : ''} · PDF
+                            </p>
                           </div>
                         </div>
                         {language === 'ar' ? (

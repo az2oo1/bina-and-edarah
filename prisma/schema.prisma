@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -31,10 +31,10 @@ model Property {
   commission       Float    @default(0)
   price            Float
   imageUrls        String   @default("[]") // JSON stringified array of base64 images
+  attachments      String   @default("[]") // JSON stringified array of attachments: {name, url, size}
   aqarLink         String?  // Direct link to the Aqar landing page
   allowedPaymentPlans String @default("[\"1\",\"2\",\"4\"]")
   videoUrl         String?  // base64 video string or direct video URL
-  attachments      String   @default("[]") // JSON stringified array of pdf attachments ({name, url, size})
   status           String   @default("PUBLISHED") // 'DRAFT' or 'PUBLISHED'
   createdAt        DateTime @default(now())
 

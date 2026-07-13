@@ -328,7 +328,7 @@ export default function AdminUsers() {
               </div>
             ) : (
               <div className="admin-card overflow-hidden shadow-xs">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-hidden">
                   <table className="w-full text-right rtl:text-right ltr:text-left border-collapse">
                     <thead>
                       <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold">

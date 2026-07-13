@@ -39,7 +39,12 @@ interface Renter {
   rentHistory: RentHistory[];
 }
 
-export default function AdminRenters() {
+export interface AdminRentersProps {
+  selectedBuildingId?: string;
+  selectedBuildingName?: string;
+}
+
+export default function AdminRenters({ selectedBuildingId, selectedBuildingName }: AdminRentersProps = {}) {
   const { language } = useLanguage();
   const { showAlert } = useDialog();
   const [renters, setRenters] = useState<Renter[]>([]);
@@ -96,14 +101,22 @@ export default function AdminRenters() {
     fetch('/api/admin/renters')
       .then(res => res.json())
       .then(data => {
-        setRenters(Array.isArray(data) ? data : []);
+        if (Array.isArray(data)) {
+          if (selectedBuildingId) {
+            setRenters(data.filter((r: any) => r.buildingId === selectedBuildingId));
+          } else {
+            setRenters(data);
+          }
+        } else {
+          setRenters([]);
+        }
         setLoading(false);
       });
   };
 
   useEffect(() => {
     fetchRenters();
-  }, []);
+  }, [selectedBuildingId]);
 
   const executeDeleteUnit = async (id: string) => {
     try {
@@ -368,34 +381,42 @@ export default function AdminRenters() {
         </div>
       ) : (
         <>
-          <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-8 pb-6 border-b border-border">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
+          <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-6 pb-4 border-b border-border">
+            {!selectedBuildingId ? (
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {language === 'ar' ? 'المستأجرين' : 'Renters'}
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {language === 'ar' ? 'عرض والبحث في جميع المستأجرين' : 'View and search all renters'}
+                  </p>
+                </div>
               </div>
+            ) : (
               <div>
-                <h2 className="text-2xl font-bold text-foreground">
-                  {language === 'ar' ? 'المستأجرين' : 'Renters'}
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {language === 'ar' ? 'عرض والبحث في جميع المستأجرين' : 'View and search all renters'}
-                </p>
+                <h3 className="font-bold text-sm text-foreground">
+                  {language === 'ar' ? 'مستأجري العقار والعقود' : 'Property Renters & Contracts'}
+                </h3>
               </div>
-            </div>
+            )}
 
-        <div className="relative w-full md:w-72">
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none text-gray-400">
-            <Search className="w-5 h-5" />
+            <div className="relative w-full md:w-72">
+              <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none text-gray-400">
+                <Search className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="cn-input !ps-10 bg-background"
+                placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
+              />
+            </div>
           </div>
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="cn-input !ps-10"
-            placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
-          />
-        </div>
-      </div>
 
       <div className="bg-card rounded-lg border border-border shadow-xs overflow-hidden">
         {loading ? (
@@ -405,7 +426,7 @@ export default function AdminRenters() {
             {language === 'ar' ? 'لا يوجد مستأجرين' : 'No renters found'}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-hidden">
             <table className="w-full ltr:text-left rtl:text-right border-collapse">
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground text-xs border-b border-border">

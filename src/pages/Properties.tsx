@@ -362,7 +362,7 @@ export default function Properties() {
                           imageLoading[property.id] ? 'opacity-100 blur-0 scale-100' : 'opacity-70 blur-md scale-105'
                         }`} 
                       />
-                      <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 flex flex-wrap gap-1.5">
+                      <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-20 flex flex-wrap gap-1.5">
                         <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
                           {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                         </span>

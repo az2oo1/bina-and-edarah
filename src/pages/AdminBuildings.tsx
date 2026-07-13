@@ -48,7 +48,12 @@ interface Building {
   _count: { units: number };
 }
 
-export default function AdminBuildings() {
+export interface AdminBuildingsProps {
+  selectedBuildingId?: string;
+  inlineMode?: 'renters' | 'details';
+}
+
+export default function AdminBuildings({ selectedBuildingId, inlineMode }: AdminBuildingsProps = {}) {
   const { language } = useLanguage();
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +81,21 @@ export default function AdminBuildings() {
   useEffect(() => {
     fetchBuildings();
   }, []);
+
+  useEffect(() => {
+    if (selectedBuildingId && buildings.length > 0) {
+      const b = buildings.find(x => x.id === selectedBuildingId);
+      if (b) {
+        setEditingBuildingId(b.id);
+        setEditTransferDetails(b.transferDetails || '');
+        try {
+          setEditPhotos(b.photos ? JSON.parse(b.photos) : []);
+        } catch (e) {
+          setEditPhotos([]);
+        }
+      }
+    }
+  }, [selectedBuildingId, buildings]);
 
   const fetchBuildings = async () => {
     try {
@@ -285,7 +305,294 @@ export default function AdminBuildings() {
   };
 
   if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
+
+  if (selectedBuildingId && inlineMode === 'details') {
+    return (
+      <div className="bg-card border border-border rounded-xl p-5 space-y-5 shadow-xs">
+        <div>
+          <label className="cn-label mb-2">{language === 'ar' ? 'تفاصيل التحويل البنكي' : 'Bank Transfer Details'}</label>
+          <textarea 
+            value={editTransferDetails}
+            onChange={e => setEditTransferDetails(e.target.value)}
+            placeholder={language === 'ar' ? 'أدخل تفاصيل ومشتملات الحساب البنكي، والآيبان...' : 'Enter bank account details, IBAN...'}
+            rows={4}
+            className="cn-input min-h-[100px] resize-y bg-background"
+          />
+        </div>
+
+        <div>
+          <label className="cn-label mb-2">{language === 'ar' ? 'صور المبنى' : 'Building Photos'}</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {editPhotos.map((url, index) => (
+              <div key={index} className="relative aspect-[4/3] rounded-md overflow-hidden group border border-border shadow-xs">
+                <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button 
+                    type="button"
+                    onClick={() => setEditPhotos(editPhotos.filter((_, i) => i !== index))}
+                    className="bg-red-500 text-white p-2 rounded-full hover:scale-110 transition-transform cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <label className="aspect-[4/3] flex flex-col items-center justify-center border border-dashed border-border rounded-md cursor-pointer transition-colors bg-muted/10 hover:bg-muted/30">
+              <ImagePlus className="w-8 h-8 text-primary mb-2" />
+              <span className="text-sm font-bold text-primary">{language === 'ar' ? 'إضافة صور' : 'Add Photos'}</span>
+              <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
+            </label>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-border flex justify-end gap-2">
+           <button onClick={executeSaveEdit} disabled={savingEdit} className="btn-primary px-4 h-9 text-xs font-semibold rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer">
+              {savingEdit ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+              {language === 'ar' ? 'حفظ التعديلات' : 'Save Changes'}
+           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedBuildingId && inlineMode === 'renters') {
+    const b = buildings.find(x => x.id === selectedBuildingId);
+    if (!b) return <div className="p-4 text-center text-muted-foreground">{language === 'ar' ? 'جاري تحميل المبنى...' : 'Loading building...'}</div>;
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        {/* XLSX Upload for this building */}
+        <div className="bg-card border border-border rounded-xl p-5 flex items-center justify-between gap-4 flex-wrap shadow-xs">
+          <div>
+            <h3 className="font-bold text-sm text-foreground">{language === 'ar' ? 'استيراد مستأجرين من ملف Excel' : 'Import Renters from Excel'}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{language === 'ar' ? 'يدعم ملفات Excel و CSV لتحديث المستأجرين والعقود لهذا العقار' : 'Supports Excel and CSV files to update renters and contracts for this property'}</p>
+          </div>
+          <label className="relative cursor-pointer bg-primary text-primary-foreground hover:opacity-90 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-transform active:scale-[0.97] shadow-xs">
+             <input 
+               type="file" 
+               accept=".csv,.xlsx,.xls,.numbers"
+               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+               onChange={(e) => {
+                 const f = e.target.files?.[0];
+                 if(f) handleFileUpload(b.id, f);
+                 e.target.value = '';
+               }}
+               disabled={uploadingFor === b.id}
+             />
+             {uploadingFor === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+             <span>{language === 'ar' ? 'رفع ملف المستأجرين (Excel)' : 'Upload Renters (Excel)'}</span>
+          </label>
+        </div>
+
+        {uploadMessage && (
+          <div className={`p-4 rounded-xl font-bold border flex items-center gap-3 ${uploadMessage.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+             {uploadMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <Loader2 className="w-5 h-5 flex-shrink-0" />}
+             {uploadMessage.text}
+          </div>
+        )}
+
+        {/* Renters list table (inline) */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-border flex items-center justify-between gap-4 flex-wrap bg-muted/10">
+            <h3 className="font-bold text-sm text-foreground">{language === 'ar' ? 'قائمة مستأجري المبنى والعقود' : 'Building Renters & Contracts'}</h3>
+            <div className="relative w-64">
+              <Search className="absolute inset-y-0 start-3 my-auto w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder={language === 'ar' ? 'بحث بالاسم، رقم الوحدة...' : 'Search name, unit...'}
+                value={searchRenters}
+                onChange={e => setSearchRenters(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 bg-background border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+              />
+            </div>
+          </div>
+          
+          <div className="p-5 overflow-y-auto bg-slate-50/30">
+             {(() => {
+               const grouped = new Map<string, Renter & { allUnitNumbers: string[], totalRent: number, history?: any[] }>();
+               for (const r of buildingRenters) {
+                  const isAvail = !r.renterPhone && (r.renterName.includes('متاح') || r.renterName.includes('فاضي') || r.renterName.includes('شاغر') || r.renterName.includes('غيرمؤجر') || r.renterName.includes('غير مؤجر'));
+                  
+                  if (isAvail || !r.renterPhone) {
+                      grouped.set(r.id, { ...r, allUnitNumbers: [r.unitNumber], totalRent: r.rentAmount || 0 });
+                      continue;
+                  }
+                  if (!grouped.has(r.renterPhone)) {
+                      grouped.set(r.renterPhone, { ...r, allUnitNumbers: [r.unitNumber], totalRent: r.rentAmount || 0 });
+                  } else {
+                      const existing = grouped.get(r.renterPhone)!;
+                      if (!existing.allUnitNumbers.includes(r.unitNumber)) {
+                          existing.allUnitNumbers.push(r.unitNumber);
+                      }
+                      if (r.history && (!existing.history || existing.history.length < r.history.length)) {
+                          existing.history = r.history;
+                      }
+                      if (r.rentAmount) {
+                          existing.totalRent += r.rentAmount;
+                      }
+                  }
+               }
+               const unifiedRenters = Array.from(grouped.values());
+
+               const filtered = unifiedRenters.filter(r => 
+                 r.renterName.includes(searchRenters) || 
+                 r.renterPhone.includes(searchRenters) || 
+                 r.unitNumber.includes(searchRenters) ||
+                 (r.allUnitNumbers && r.allUnitNumbers.some(u => u.includes(searchRenters)))
+               );
+
+               if (filtered.length === 0) {
+                 return <div className="text-center text-muted-foreground py-12">{language === 'ar' ? 'لا يوجد مستأجرين' : 'No renters found'}</div>;
+               }
+               return (
+                 <div className="overflow-x-auto overflow-y-hidden bg-card rounded-lg border border-border">
+                   <table className="w-full ltr:text-left rtl:text-right border-collapse">
+                     <thead>
+                       <tr className="bg-muted/40 text-muted-foreground text-xs border-b border-border">
+                         <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
+                         <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'التواصل' : 'Contact'}</th>
+                         <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'الوحدة' : 'Unit'}</th>
+                         <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</th>
+                         <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'التاريخ/التفاصيل' : 'History'}</th>
+                       </tr>
+                     </thead>
+                     <tbody className="divide-y divide-border text-xs text-foreground">
+                       {filtered.map((r) => {
+                          const isAvailable = !r.renterPhone && (r.renterName.includes('متاح') || r.renterName.includes('فاضي') || r.renterName.includes('شاغر') || r.renterName.includes('غيرمؤجر') || r.renterName.includes('غير مؤجر'));
+                          return (
+                            <tr key={r.id} className="hover:bg-slate-50/20 transition-colors">
+                              <td className="p-4 font-semibold text-foreground">
+                                {r.renterName}
+                              </td>
+                              <td className="p-4">
+                                {r.renterPhone ? (
+                                  <div className="flex items-center gap-2">
+                                    <span dir="ltr" className="font-mono text-muted-foreground">{r.renterPhone}</span>
+                                    <button 
+                                      onClick={() => openWhatsApp(r.renterPhone, r.renterName)}
+                                      className="p-1 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100/50 cursor-pointer"
+                                    >
+                                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400 font-bold">{language === 'ar' ? 'شاغر' : 'Vacant'}</span>
+                                )}
+                              </td>
+                              <td className="p-4 font-bold text-foreground">
+                                {r.allUnitNumbers ? r.allUnitNumbers.join(' , ') : r.unitNumber}
+                              </td>
+                              <td className="p-4 font-mono font-bold text-foreground">
+                                {r.totalRent ? `${r.totalRent.toLocaleString()} SAR` : (language === 'ar' ? 'غير مسجل' : 'N/A')}
+                              </td>
+                              <td className="p-4">
+                                {!isAvailable && (
+                                  <button 
+                                    onClick={() => setSelectedRenterForHistory(r)}
+                                    className="btn-secondary px-3 py-1.5 text-xs rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer"
+                                  >
+                                    <History className="w-4 h-4" />
+                                    {language === 'ar' ? 'عرض السجل والمدفوعات' : 'History / Payments'}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                       })}
+                     </tbody>
+                   </table>
+                 </div>
+               );
+             })()}
+          </div>
+        </div>
+
+        {selectedRenterForHistory && (
+          <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+            <div className="bg-card rounded-lg border border-border w-full max-w-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
+              <div className="bg-muted/40 p-6 border-b border-border flex items-center justify-between">
+                 <div>
+                   <h3 className="text-2xl font-black text-foreground">{selectedRenterForHistory.renterName}</h3>
+                   <div className="text-muted-foreground font-medium flex items-center gap-2 mt-2">
+                     <Building2 className="w-4 h-4" />
+                     {selectedRenterForHistory.building?.name || b.name} — {language === 'ar' ? 'وحدة' : 'Unit'} {selectedRenterForHistory.unitNumber}
+                   </div>
+                 </div>
+                 <button onClick={() => setSelectedRenterForHistory(null)} className="w-7 h-7 bg-card rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                    <X className="w-5 h-5" />
+                 </button>
+              </div>
+              
+              <div className="p-5 overflow-y-auto bg-slate-50/30 flex-1">
+                {selectedRenterForHistory.rentHistory && selectedRenterForHistory.rentHistory.length > 0 ? (
+                  <div className="space-y-4">
+                    {selectedRenterForHistory.rentHistory.map((h, i) => {
+                       const amountStr = typeof h.amount === 'string' ? h.amount : (h.amount?.toString() || '');
+                       const {
+                         isCourt,
+                         isLate,
+                         isPaid,
+                         isScheduled,
+                         isDue,
+                         statusText,
+                         actualPaidDate
+                       } = getRentStatus(h, language);
+
+                       return (
+                         <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-border bg-card'}`}>
+                           <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                 <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isCourt ? 'bg-red-100 text-red-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                    {isPaid ? <CheckCircle2 className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
+                                 </div>
+                                 <div>
+                                    <p className="font-bold text-foreground text-sm whitespace-nowrap">{language === 'ar' ? `الدفعة (${i + 1})` : `Payment (${i + 1})`}</p>
+                                    <p className="text-sm text-muted-foreground" dir="ltr">{h.dueDate}</p>
+                                 </div>
+                              </div>
+                              {h.receiptUrl && (
+                                 <a href={h.receiptUrl} target="_blank" rel="noreferrer" className="btn-outline h-7 px-2.5 text-[10px] rounded-md shadow-xs shrink-0 inline-flex items-center justify-center">
+                                   {language === 'ar' ? 'عرض الإيصال' : 'Receipt'}
+                                 </a>
+                              )}
+                           </div>
+                           
+                           <div className="pt-2 border-t border-border/50 flex flex-col gap-1 text-xs font-medium">
+                             <div className="flex items-center justify-between">
+                               <span className="text-muted-foreground">{language === 'ar' ? 'الحالة:' : 'Status:'}</span>
+                               <span className={`font-bold ${isPaid ? 'text-green-600' : isCourt ? 'text-red-600' : isScheduled ? 'text-blue-600' : 'text-orange-600'}`}>
+                                 {statusText}
+                               </span>
+                             </div>
+                             {isPaid && actualPaidDate && !isCourt && actualPaidDate !== statusText && (
+                               <div className="flex items-center justify-between">
+                                 <span className="text-muted-foreground">{language === 'ar' ? 'تاريخ السداد:' : 'Paid Date:'}</span>
+                                 <span className="text-foreground font-bold">{actualPaidDate}</span>
+                               </div>
+                             )}
+                             {amountStr.trim() !== '' && !isCourt && !isLate && statusText !== amountStr && actualPaidDate !== amountStr && (
+                               <div className="flex items-center justify-between">
+                                 <span className="text-muted-foreground">{language === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
+                                 <span className="text-foreground font-bold">{amountStr}</span>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                       );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 py-12">
+                     {language === 'ar' ? 'لا يوجد سجلات تأجير' : 'No rent history available'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -563,7 +870,7 @@ export default function AdminBuildings() {
                    return <div className="text-center text-muted-foreground py-12">{language === 'ar' ? 'لا يوجد مستأجرين' : 'No renters found'}</div>;
                  }
                  return (
-                   <div className="overflow-x-auto bg-card rounded-lg border border-border">
+                   <div className="overflow-x-auto overflow-y-hidden bg-card rounded-lg border border-border">
                      <table className="w-full ltr:text-left rtl:text-right border-collapse">
                        <thead>
                          <tr className="bg-muted/40 text-muted-foreground text-xs border-b border-border">

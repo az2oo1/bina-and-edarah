@@ -128,7 +128,7 @@ export default function Dashboard() {
                       (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80";
                     }}
                   />
-                  <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4 flex flex-wrap gap-2">
+                  <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4 z-20 flex flex-wrap gap-2">
                     <span className="bg-card/90 backdrop-blur-xs text-foreground px-2 py-0.5 rounded text-[10px] font-semibold border border-border">
                       {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                     </span>

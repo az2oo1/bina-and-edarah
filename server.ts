@@ -4,12 +4,12 @@ import path from "path";
 import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
 import { prisma } from "./src/lib/db.js";
-import { Prisma } from "@prisma/client";
 import { fetchTechHubProperties, fetchTechHubContracts } from "./src/lib/techhub.js";
 import { emailLogoSvg, emailLogoImg, LOGO_SVG, LOGO_BRAND_COLOR } from "./src/lib/logo.js";
 import fs from "fs";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
+import { execSync } from "child_process";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
 import { createRequire } from "module";
@@ -823,6 +823,36 @@ function processImageUrls(urlsInput: string | string[] | null | undefined): stri
   return JSON.stringify([]);
 }
 
+function processDocumentUrls(docsInput: any): string {
+  if (!docsInput) return JSON.stringify([]);
+  try {
+    const docs = typeof docsInput === 'string' ? JSON.parse(docsInput) : docsInput;
+    if (Array.isArray(docs)) {
+      const processed = docs.map((doc: any) => {
+        if (doc && typeof doc === 'object') {
+          return {
+            name: doc.name || 'Document.pdf',
+            url: saveBase64Image(doc.url),
+            size: doc.size || null
+          };
+        }
+        return {
+          name: 'Document.pdf',
+          url: saveBase64Image(String(doc)),
+          size: null
+        };
+      });
+      return JSON.stringify(processed);
+    }
+  } catch (e) {
+    // fallback
+  }
+  if (typeof docsInput === 'string') {
+    return JSON.stringify([{ name: 'Document.pdf', url: saveBase64Image(docsInput), size: null }]);
+  }
+  return JSON.stringify([]);
+}
+
 function adminAuthMiddleware(req: any, res: any, next: any) {
   const token = req.cookies?.token;
   if (!token) {
@@ -1026,8 +1056,8 @@ async function startServer() {
 
       if (base64Data.startsWith('/uploads/') || base64Data.startsWith('uploads/')) {
         const fileName = base64Data.replace(/^\/?uploads\//, '');
-        const filePath = path.resolve(UPLOADS_DIR, fileName);
-        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        if (fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -1038,7 +1068,7 @@ async function startServer() {
       }
 
       const directPath = path.resolve(process.cwd(), base64Data.replace(/^\//, ''));
-      if (directPath.startsWith(path.resolve(process.cwd()) + path.sep) && fs.existsSync(directPath)) {
+      if (fs.existsSync(directPath)) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return res.sendFile(directPath);
       }
@@ -1935,10 +1965,10 @@ async function startServer() {
           commission: safeFloat(body.commission),
           price: safeFloat(body.price),
           imageUrls: processImageUrls(body.imageUrls),
+          attachments: processDocumentUrls(body.attachments),
           aqarLink: body.aqarLink || null,
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
           videoUrl: body.videoUrl || null,
-          attachments: body.attachments || "[]",
           userId: body.userId || null,
           parentId: body.parentId || null,
           status: body.status || "PUBLISHED",
@@ -2021,10 +2051,10 @@ async function startServer() {
           commission: safeFloat(body.commission),
           price: safeFloat(body.price),
           imageUrls: processImageUrls(body.imageUrls),
+          attachments: processDocumentUrls(body.attachments),
           aqarLink: body.aqarLink || null,
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
           videoUrl: body.videoUrl || null,
-          attachments: body.attachments || "[]",
           userId: body.userId || null,
           parentId: body.parentId || null,
           status: body.status || "PUBLISHED",
@@ -2475,6 +2505,22 @@ async function startServer() {
     }
   });
 
+  app.post("/api/admin/upload-home-video", requirePermission('settings'), homeVideoUpload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No video file uploaded' });
+      }
+
+      res.json({
+        success: true,
+        url: `/uploads/${req.file.filename}`
+      });
+    } catch (error) {
+      logger.error('Failed to upload home video', error);
+      res.status(500).json({ error: 'Failed to upload video' });
+    }
+  });
+
   // --- TechHub Integration Endpoints ---
   app.get("/api/admin/techhub/status", requirePermission('settings'), async (req, res) => {
     try {
@@ -2542,22 +2588,6 @@ async function startServer() {
               where: { id: existingUnit.id },
               data: {
                 rentAmount: thUnit.price
-              }
-            });
-
-            app.post("/api/admin/upload-home-video", requirePermission('settings'), homeVideoUpload.single('file'), async (req, res) => {
-              try {
-                if (!req.file) {
-                  return res.status(400).json({ error: 'No video file uploaded' });
-                }
-
-                res.json({
-                  success: true,
-                  url: `/uploads/${req.file.filename}`
-                });
-              } catch (error) {
-                logger.error('Failed to upload home video', error);
-                res.status(500).json({ error: 'Failed to upload video' });
               }
             });
           }
@@ -3289,22 +3319,25 @@ async function startServer() {
 
       // Fallback: Create using raw SQL
       const uuid = require('crypto').randomUUID();
-      const rRole = role || "ADMIN";
-      const rEmail = email || null;
+      const escapedUser = username.replace(/'/g, "''");
+      const escapedPass = password.replace(/'/g, "''");
+      const escapedName = name.replace(/'/g, "''");
+      const escapedRole = (role || "ADMIN").replace(/'/g, "''");
+      const escapedEmail = email ? email.replace(/'/g, "''") : null;
 
       try {
-        await prisma.$executeRaw(Prisma.sql`
+        await prisma.$executeRawUnsafe(`
           INSERT INTO "Admin" (id, username, password, name, role, email, "createdAt")
-          VALUES (${uuid}, ${username}, ${password}, ${name}, ${rRole}, ${rEmail}, NOW())
+          VALUES ('${uuid}', '${escapedUser}', '${escapedPass}', '${escapedName}', '${escapedRole}', ${escapedEmail ? `'${escapedEmail}'` : 'NULL'}, NOW())
         `);
       } catch (_) {
-        await prisma.$executeRaw(Prisma.sql`
+        await prisma.$executeRawUnsafe(`
           INSERT INTO Admin (id, username, password, name, role, email, createdAt)
-          VALUES (${uuid}, ${username}, ${password}, ${name}, ${rRole}, ${rEmail}, datetime('now'))
+          VALUES ('${uuid}', '${escapedUser}', '${escapedPass}', '${escapedName}', '${escapedRole}', ${escapedEmail ? `'${escapedEmail}'` : 'NULL'}, datetime('now'))
         `);
       }
 
-      await logAction(req, "ADD_PLATFORM_USER", `Created platform user (raw SQL): ${username} (${rRole})`);
+      await logAction(req, "ADD_PLATFORM_USER", `Created platform user (raw SQL): ${username} (${role || "ADMIN"})`);
       res.status(201).json({ id: uuid, username, name, role: role || "ADMIN", email });
     } catch (error) {
       logger.error("Failed to create platform user", error);
@@ -3348,39 +3381,29 @@ async function startServer() {
 
       // Fallback: update using raw SQL
       if (username) {
-        try {
-          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET username = ${username} WHERE id = ${id}`);
-        } catch (_) {
-          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET username = ${username} WHERE id = ${id}`);
-        }
+        const escaped = username.replace(/'/g, "''");
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET username = '${escaped}' WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET username = '${escaped}' WHERE id = '${id}'`);
       }
       if (password) {
-        try {
-          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET password = ${password} WHERE id = ${id}`);
-        } catch (_) {
-          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET password = ${password} WHERE id = ${id}`);
-        }
+        const escaped = password.replace(/'/g, "''");
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET password = '${escaped}' WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET password = '${escaped}' WHERE id = '${id}'`);
       }
       if (name) {
-        try {
-          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET name = ${name} WHERE id = ${id}`);
-        } catch (_) {
-          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET name = ${name} WHERE id = ${id}`);
-        }
+        const escaped = name.replace(/'/g, "''");
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET name = '${escaped}' WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET name = '${escaped}' WHERE id = '${id}'`);
       }
       if (role) {
-        try {
-          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET role = ${role} WHERE id = ${id}`);
-        } catch (_) {
-          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET role = ${role} WHERE id = ${id}`);
-        }
+        const escaped = role.replace(/'/g, "''");
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET role = '${escaped}' WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET role = '${escaped}' WHERE id = '${id}'`);
       }
       if (email !== undefined) {
-        try {
-          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET email = ${email || null} WHERE id = ${id}`);
-        } catch (_) {
-          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET email = ${email || null} WHERE id = ${id}`);
-        }
+        const escaped = email ? `'${email.replace(/'/g, "''")}'` : 'NULL';
+        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET email = ${escaped} WHERE id = '${id}'`);
+        await prisma.$executeRawUnsafe(`UPDATE Admin SET email = ${escaped} WHERE id = '${id}'`);
       }
 
       await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details (raw SQL): ${username || existing.username}`);
@@ -3487,7 +3510,6 @@ async function startServer() {
   // Synchronize DB schema and generate client dynamically (especially in production PostgreSQL environments)
   try {
     console.log("Synchronizing database schema and generating client via Prisma...");
-    const { execSync } = require('child_process');
     execSync("npx prisma db push && npx prisma generate", { stdio: 'inherit' });
     console.log("Database schema synchronized and client regenerated successfully.");
   } catch (dbError) {

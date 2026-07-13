@@ -141,9 +141,11 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'settings' | 'callbacks' | 'users' | 'logs'>('manage');
   const [userRole, setUserRole] = useState<string>('ADMIN');
   const [selectedParentProperty, setSelectedParentProperty] = useState<Property | null>(null);
+  const [selectedParentTab, setSelectedParentTab] = useState<'units' | 'renters' | 'details'>('units');
 
   useEffect(() => {
     setSelectedParentProperty(null);
+    setSelectedParentTab('units');
   }, [activeTab]);
 
   useEffect(() => {
@@ -164,6 +166,54 @@ export default function Admin() {
       }
     }
   }, [activeTab]);
+
+  const [adminBuildings, setAdminBuildings] = useState<any[]>([]);
+  const [matchingBuilding, setMatchingBuilding] = useState<any | null>(null);
+
+  const fetchAdminBuildings = async () => {
+    try {
+      const res = await fetch('/api/admin/buildings');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminBuildings(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminBuildings();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedParentProperty) {
+      const match = adminBuildings.find((b: any) => b.name === selectedParentProperty.titleAr || b.name === selectedParentProperty.titleEn);
+      if (match) {
+        setMatchingBuilding(match);
+      } else {
+        // Automatically create building in DB so that Excel imports and renter history can work!
+        (async () => {
+          try {
+            const res = await fetch('/api/admin/buildings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: selectedParentProperty.titleAr })
+            });
+            if (res.ok) {
+              const newB = await res.json();
+              setAdminBuildings(prev => [newB, ...prev]);
+              setMatchingBuilding(newB);
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        })();
+      }
+    } else {
+      setMatchingBuilding(null);
+    }
+  }, [selectedParentProperty, adminBuildings]);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1004,30 +1054,7 @@ export default function Admin() {
               {language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects'}
             </button>
           )}
-          {hasTabPermission('buildings', userRole) && (
-            <button 
-              onClick={() => setActiveTab('buildings')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'buildings' 
-                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              {language === 'ar' ? 'إدارة المباني' : 'Buildings'}
-            </button>
-          )}
-          {hasTabPermission('renters', userRole) && (
-            <button 
-              onClick={() => setActiveTab('renters')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'renters' 
-                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              {language === 'ar' ? 'المستأجرين' : 'Renters'}
-            </button>
-          )}
+
           {hasTabPermission('receipts', userRole) && (
             <button 
               onClick={() => setActiveTab('receipts')}
@@ -1130,30 +1157,32 @@ export default function Admin() {
                         : t('admin.propertiesList'))}
                 </h2>
               </div>
-              <button 
-                onClick={() => {
-                  if (showAddForm) {
-                    resetForm();
-                  } else {
-                    resetForm();
-                    if (selectedParentProperty) {
-                      setFormData(prev => ({
-                        ...prev,
-                        parentId: selectedParentProperty.id,
-                        type: selectedParentProperty.type,
-                        propertyCategory: selectedParentProperty.propertyCategory === 'BUILDING' || selectedParentProperty.propertyCategory === 'COMPOUND' || selectedParentProperty.propertyCategory === 'TOWER' || selectedParentProperty.propertyCategory === 'MALL' ? 'APARTMENT' : selectedParentProperty.propertyCategory
-                      }));
+              {(!selectedParentProperty || selectedParentTab === 'units') && (
+                <button 
+                  onClick={() => {
+                    if (showAddForm) {
+                      resetForm();
+                    } else {
+                      resetForm();
+                      if (selectedParentProperty) {
+                        setFormData(prev => ({
+                          ...prev,
+                          parentId: selectedParentProperty.id,
+                          type: selectedParentProperty.type,
+                          propertyCategory: selectedParentProperty.propertyCategory === 'BUILDING' || selectedParentProperty.propertyCategory === 'COMPOUND' || selectedParentProperty.propertyCategory === 'TOWER' || selectedParentProperty.propertyCategory === 'MALL' ? 'APARTMENT' : selectedParentProperty.propertyCategory
+                        }));
+                      }
+                      setShowAddForm(true);
                     }
-                    setShowAddForm(true);
-                  }
-                }}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md shadow-xs bg-[#2563eb] text-white hover:bg-[#1d4ed8] cursor-pointer transition-colors"
-              >
-                {showAddForm ? <X className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
-                {showAddForm 
-                  ? (language === 'ar' ? 'إلغاء' : 'Cancel') 
-                  : (selectedParentProperty ? (language === 'ar' ? 'إضافة وحدة' : 'Add Unit') : t('admin.addProperty'))}
-              </button>
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md shadow-xs bg-primary text-white hover:opacity-90 cursor-pointer transition-colors"
+                >
+                  {showAddForm ? <X className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
+                  {showAddForm 
+                    ? (language === 'ar' ? 'إلغاء' : 'Cancel') 
+                    : (selectedParentProperty ? (language === 'ar' ? 'إضافة وحدة' : 'Add Unit') : t('admin.addProperty'))}
+                </button>
+              )}
             </div>
             
             {!showAddForm ? (
@@ -1185,97 +1214,200 @@ export default function Admin() {
                         </p>
                       </div>
                     </div>
+
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedParentProperty.status || 'PUBLISHED'}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          try {
+                            const updateRes = await fetch(`/api/properties/${selectedParentProperty.id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ ...selectedParentProperty, status: newStatus })
+                            });
+                            if (updateRes.ok) {
+                              setSelectedParentProperty(prev => prev ? { ...prev, status: newStatus } : null);
+                              fetchProperties();
+                            }
+                          } catch (err) {
+                            console.error("Failed to update status:", err);
+                          }
+                        }}
+                        className="bg-background border border-border text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground h-9"
+                      >
+                        <option value="PUBLISHED">{language === 'ar' ? 'منشور' : 'Published'}</option>
+                        <option value="DRAFT">{language === 'ar' ? 'مسودة' : 'Draft'}</option>
+                      </select>
+                      <button
+                        onClick={() => handleEditClick(selectedParentProperty)}
+                        className="p-2 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-background cursor-pointer transition-all inline-flex items-center justify-center h-9 w-9"
+                        title={language === 'ar' ? 'تعديل العقار' : 'Edit Property'}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا العقار بالكامل؟' : 'Are you sure you want to delete this property entirely?')) {
+                            try {
+                              const res = await fetch(`/api/properties/${selectedParentProperty.id}`, { method: 'DELETE' });
+                              if (res.ok) {
+                                setSelectedParentProperty(null);
+                                fetchProperties();
+                              }
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }
+                        }}
+                        className="p-2 text-red-500 hover:text-red-400 hover:border-red-500/30 rounded-lg border border-border bg-background hover:bg-red-950/20 cursor-pointer transition-all inline-flex items-center justify-center h-9 w-9"
+                        title={t('admin.deleteProperty')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
-                  {properties.filter(p => p.parentId === selectedParentProperty.id).length === 0 ? (
-                    <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground bg-card/20">
-                      <Building2 className="w-12 h-12 mx-auto mb-3 opacity-45 text-[#2563eb]" />
-                      <p className="text-sm font-bold">{language === 'ar' ? 'لا يوجد وحدات سكنية مضافة لهذا العقار بعد.' : 'No units added for this listing yet.'}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {language === 'ar' ? 'اضغط على زر "إضافة وحدة" بالأعلى للبدء.' : 'Click "Add Unit" button above to get started.'}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto border border-border rounded-xl bg-card/25 shadow-xs">
-                      <table className="w-full ltr:text-left rtl:text-right border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-card text-muted-foreground text-[11px] font-bold border-b border-border uppercase tracking-wider">
-                            <th className="p-3 font-bold">#</th>
-                            <th className="p-3 font-bold">{language === 'ar' ? 'اسم الوحدة' : 'Unit Title'}</th>
-                            <th className="p-3 font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
-                            <th className="p-3 font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
-                            <th className="p-3 font-bold">{language === 'ar' ? 'المساحة' : 'Area'}</th>
-                            <th className="p-3 font-bold text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
-                            <th className="p-3 font-bold text-center">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/60 text-foreground">
-                          {properties.filter(p => p.parentId === selectedParentProperty.id).map((unit, index) => {
-                            return (
-                              <tr key={unit.id} className="hover:bg-slate-50/30 transition-colors">
-                                <td className="p-3 text-muted-foreground">{index + 1}</td>
-                                <td className="p-3 font-semibold">
-                                  <p>{unit.titleAr}</p>
-                                  <p className="text-[10px] text-muted-foreground mt-0.5 font-sans font-normal" dir="ltr">{unit.titleEn}</p>
-                                </td>
-                                <td className="p-3 text-muted-foreground">{t(`cat.${unit.propertyCategory}`)}</td>
-                                <td className="p-3 font-semibold font-mono">
-                                  {unit.price ? `${unit.price.toLocaleString()} SAR` : (language === 'ar' ? 'غير محدد' : 'N/A')}
-                                </td>
-                                <td className="p-3 font-mono text-muted-foreground">
-                                  {unit.area} {t('common.sqm')}
-                                </td>
-                                <td className="p-3 text-center">
-                                  <select
-                                    value={unit.status || 'PUBLISHED'}
-                                    onChange={async (e) => {
-                                      const newStatus = e.target.value;
-                                      try {
-                                        const updateRes = await fetch(`/api/properties/${unit.id}`, {
-                                          method: 'PUT',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ ...unit, status: newStatus })
-                                        });
-                                        if (updateRes.ok) {
-                                          fetchProperties();
+                  {/* Sub-property details tabs */}
+                  <div className="flex border-b border-border gap-2 select-none">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedParentTab('units')}
+                      className={`px-4 py-2 text-xs font-bold transition-all cursor-pointer border-b-2 -mb-px ${
+                        selectedParentTab === 'units'
+                          ? 'border-primary text-primary font-black'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {language === 'ar' ? 'الوحدات السكنية' : 'Units'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedParentTab('renters')}
+                      className={`px-4 py-2 text-xs font-bold transition-all cursor-pointer border-b-2 -mb-px ${
+                        selectedParentTab === 'renters'
+                          ? 'border-primary text-primary font-black'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {language === 'ar' ? 'المستأجرين والعقود' : 'Renters & Contracts'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedParentTab('details')}
+                      className={`px-4 py-2 text-xs font-bold transition-all cursor-pointer border-b-2 -mb-px ${
+                        selectedParentTab === 'details'
+                          ? 'border-primary text-primary font-black'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {language === 'ar' ? 'تفاصيل الحساب والصور' : 'Bank Transfer & Photos'}
+                    </button>
+                  </div>
+
+                  {selectedParentTab === 'units' && (
+                    properties.filter(p => p.parentId === selectedParentProperty.id).length === 0 ? (
+                      <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground bg-card/20 animate-in fade-in">
+                        <Building2 className="w-12 h-12 mx-auto mb-3 opacity-45 text-primary" />
+                        <p className="text-sm font-bold">{language === 'ar' ? 'لا يوجد وحدات سكنية مضافة لهذا العقار بعد.' : 'No units added for this listing yet.'}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {language === 'ar' ? 'اضغط على زر "إضافة وحدة" بالأعلى للبدء.' : 'Click "Add Unit" button above to get started.'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto overflow-y-hidden border border-border rounded-xl bg-card/25 shadow-xs animate-in fade-in">
+                        <table className="w-full ltr:text-left rtl:text-right border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-card text-muted-foreground text-[11px] font-bold border-b border-border uppercase tracking-wider">
+                              <th className="p-3 font-bold">#</th>
+                              <th className="p-3 font-bold">{language === 'ar' ? 'اسم الوحدة' : 'Unit Title'}</th>
+                              <th className="p-3 font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
+                              <th className="p-3 font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
+                              <th className="p-3 font-bold">{language === 'ar' ? 'المساحة' : 'Area'}</th>
+                              <th className="p-3 font-bold text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                              <th className="p-3 font-bold text-center">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/60 text-foreground">
+                            {properties.filter(p => p.parentId === selectedParentProperty.id).map((unit, index) => {
+                              return (
+                                <tr key={unit.id} className="hover:bg-slate-50/30 transition-colors">
+                                  <td className="p-3 text-muted-foreground">{index + 1}</td>
+                                  <td className="p-3 font-semibold">
+                                    <p>{unit.titleAr}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5 font-sans font-normal" dir="ltr">{unit.titleEn}</p>
+                                  </td>
+                                  <td className="p-3 text-muted-foreground">{t(`cat.${unit.propertyCategory}`)}</td>
+                                  <td className="p-3 font-semibold font-mono">
+                                    {unit.price ? `${unit.price.toLocaleString()} SAR` : (language === 'ar' ? 'غير محدد' : 'N/A')}
+                                  </td>
+                                  <td className="p-3 font-mono text-muted-foreground">
+                                    {unit.area} {t('common.sqm')}
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <select
+                                      value={unit.status || 'PUBLISHED'}
+                                      onChange={async (e) => {
+                                        const newStatus = e.target.value;
+                                        try {
+                                          const updateRes = await fetch(`/api/properties/${unit.id}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ ...unit, status: newStatus })
+                                          });
+                                          if (updateRes.ok) {
+                                            fetchProperties();
+                                          }
+                                        } catch (err) {
+                                          console.error("Failed to update unit status:", err);
                                         }
-                                      } catch (err) {
-                                        console.error("Failed to update unit status:", err);
-                                      }
-                                    }}
-                                    className="bg-background border border-border text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground"
-                                  >
-                                    <option value="PUBLISHED">{language === 'ar' ? 'متاح' : 'Available'}</option>
-                                    <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
-                                    <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
-                                    <option value="DRAFT">{language === 'ar' ? 'مخفي (مسودة)' : 'Hidden (Draft)'}</option>
-                                  </select>
-                                </td>
-                                <td className="p-3 text-center">
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEditClick(unit)}
-                                      className="p-1.5 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
-                                      title={language === 'ar' ? 'تعديل' : 'Edit'}
+                                      }}
+                                      className="bg-background border border-border text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground"
                                     >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDelete(unit.id)}
-                                      className="p-1.5 text-red-500 hover:text-red-400 hover:border-red-500/30 rounded-lg border border-border bg-card/50 hover:bg-red-950/20 cursor-pointer transition-all inline-flex items-center justify-center"
-                                      title={t('admin.deleteProperty')}
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                      <option value="PUBLISHED">{language === 'ar' ? 'متاح' : 'Available'}</option>
+                                      <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
+                                      <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
+                                      <option value="DRAFT">{language === 'ar' ? 'مخفي (مسودة)' : 'Hidden (Draft)'}</option>
+                                    </select>
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEditClick(unit)}
+                                        className="p-1.5 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
+                                        title={language === 'ar' ? 'تعديل' : 'Edit'}
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDelete(unit.id)}
+                                        className="p-1.5 text-red-500 hover:text-red-400 hover:border-red-500/30 rounded-lg border border-border bg-card/50 hover:bg-red-950/20 cursor-pointer transition-all inline-flex items-center justify-center"
+                                        title={t('admin.deleteProperty')}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                  )}
+
+                  {selectedParentTab === 'renters' && (
+                    <div className="animate-in fade-in duration-300">
+                      <AdminBuildings selectedBuildingId={matchingBuilding?.id} inlineMode="renters" />
+                    </div>
+                  )}
+
+                  {selectedParentTab === 'details' && (
+                    <div className="animate-in fade-in duration-300">
+                      <AdminBuildings selectedBuildingId={matchingBuilding?.id} inlineMode="details" />
                     </div>
                   )}
                 </div>
@@ -1285,7 +1417,7 @@ export default function Admin() {
                   <p className="text-lg">{t('admin.propertiesEmpty')}</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-hidden">
                   <table className="w-full ltr:text-left rtl:text-right border-collapse">
                     <thead>
                       <tr className="bg-card text-muted-foreground text-xs border-b border-border">
@@ -1308,7 +1440,7 @@ export default function Admin() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <p 
                                     onClick={() => setSelectedParentProperty(property)} 
-                                    className="font-semibold text-xs text-[#2563eb] hover:text-[#1d4ed8] hover:underline cursor-pointer transition-colors"
+                                    className="font-semibold text-xs text-foreground hover:text-primary hover:underline cursor-pointer transition-colors"
                                     title={language === 'ar' ? 'عرض وإدارة الوحدات' : 'View & Manage Units'}
                                   >
                                     {property.titleAr}
@@ -1324,7 +1456,7 @@ export default function Admin() {
                                   <button
                                     type="button"
                                     onClick={() => setSelectedParentProperty(property)}
-                                    className="inline-flex items-center gap-1.5 text-[#2563eb] text-[10px] font-bold mt-1 bg-[#2563eb]/10 border border-[#2563eb]/20 px-2 py-0.5 rounded-full hover:bg-[#2563eb]/15 transition-all cursor-pointer font-sans"
+                                    className="inline-flex items-center gap-1.5 text-primary text-[10px] font-bold mt-1 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full hover:bg-primary/15 transition-all cursor-pointer font-sans"
                                   >
                                     <Building2 className="w-3 h-3" />
                                     <span>
@@ -1340,7 +1472,7 @@ export default function Admin() {
                                   {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 font-semibold text-xs text-foreground font-mono flex items-center gap-1.5 justify-end">
+                              <td className="px-4 py-3 font-semibold text-xs text-foreground font-mono flex items-center gap-1.5 justify-start">
                                 {property.price > 0 ? (
                                   <>
                                     {property.price.toLocaleString()} <SrIcon className="w-4 h-4 text-muted-foreground" />
@@ -1507,7 +1639,7 @@ export default function Admin() {
                                     key={step}
                                     type="button"
                                     onClick={() => {
-                                      if (step < currentStep || (formData.titleAr && (isBuildingCategory || formData.price))) {
+                                      if (step < currentStep || formData.titleAr) {
                                         setCurrentStep(step);
                                       }
                                     }}
@@ -2374,22 +2506,6 @@ export default function Admin() {
                           </button>
                         )}
 
-                        {/* Save as Draft Button */}
-                        <button
-                          type="button"
-                          disabled={loading || isUploadingImages}
-                          onClick={async (e) => {
-                            if (!formData.titleAr) {
-                              await showAlert(language === 'ar' ? 'الرجاء إدخال عنوان العقار بالعربية على الأقل لحفظ المسودة' : 'Please enter at least the Arabic Title to save a draft.');
-                              return;
-                            }
-                            await saveProperty(e, 'DRAFT');
-                          }}
-                          className="px-5 py-2.5 border border-border text-foreground hover:bg-muted bg-card rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50 active:scale-97 shadow-xs"
-                        >
-                          {language === 'ar' ? 'حفظ كمسودة' : 'Save as Draft'}
-                        </button>
-
                         {/* Next or Publish Button */}
                         {currentStep < totalSteps ? (
                           <button
@@ -2398,12 +2514,6 @@ export default function Admin() {
                               if (currentStep === 1) {
                                   if (!formData.titleAr) {
                                     await showAlert(language === 'ar' ? 'الرجاء إدخال عنوان العقار بالعربية' : 'Please enter the Arabic Title.');
-                                    return;
-                                  }
-                              }
-                              if (currentStep === 2) {
-                                  if (!isBuildingCategory && !formData.price) {
-                                    await showAlert(language === 'ar' ? 'الرجاء إدخال السعر' : 'Please enter the price.');
                                     return;
                                   }
                               }

@@ -136,9 +136,14 @@ export default function ProjectDetails() {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    prevImage();
+                    const isRtl = language === 'ar';
+                    if (isRtl) {
+                      nextImage();
+                    } else {
+                      prevImage();
+                    }
                   }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                   title={language === 'ar' ? 'السابق' : 'Previous'}
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -146,16 +151,21 @@ export default function ProjectDetails() {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    nextImage();
+                    const isRtl = language === 'ar';
+                    if (isRtl) {
+                      prevImage();
+                    } else {
+                      nextImage();
+                    }
                   }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-10 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                   title={language === 'ar' ? 'التالي' : 'Next'}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-xs"
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-xs"
                 >
                   {images.map((_, idx) => (
                     <button 
