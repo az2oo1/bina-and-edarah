@@ -11,7 +11,7 @@ COPY patch-xlsx.cjs ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 # Copy application code
 COPY . .
