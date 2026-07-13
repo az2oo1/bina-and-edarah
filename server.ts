@@ -4,6 +4,7 @@ import path from "path";
 import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
 import { prisma } from "./src/lib/db.js";
+import { Prisma } from "@prisma/client";
 import { fetchTechHubProperties, fetchTechHubContracts } from "./src/lib/techhub.js";
 import { emailLogoSvg, emailLogoImg, LOGO_SVG, LOGO_BRAND_COLOR } from "./src/lib/logo.js";
 import fs from "fs";
@@ -3347,29 +3348,39 @@ async function startServer() {
 
       // Fallback: update using raw SQL
       if (username) {
-        const escaped = username.replace(/'/g, "''");
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET username = '${escaped}' WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET username = '${escaped}' WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET username = ${username} WHERE id = ${id}`);
+        } catch (_) {
+          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET username = ${username} WHERE id = ${id}`);
+        }
       }
       if (password) {
-        const escaped = password.replace(/'/g, "''");
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET password = '${escaped}' WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET password = '${escaped}' WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET password = ${password} WHERE id = ${id}`);
+        } catch (_) {
+          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET password = ${password} WHERE id = ${id}`);
+        }
       }
       if (name) {
-        const escaped = name.replace(/'/g, "''");
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET name = '${escaped}' WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET name = '${escaped}' WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET name = ${name} WHERE id = ${id}`);
+        } catch (_) {
+          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET name = ${name} WHERE id = ${id}`);
+        }
       }
       if (role) {
-        const escaped = role.replace(/'/g, "''");
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET role = '${escaped}' WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET role = '${escaped}' WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET role = ${role} WHERE id = ${id}`);
+        } catch (_) {
+          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET role = ${role} WHERE id = ${id}`);
+        }
       }
       if (email !== undefined) {
-        const escaped = email ? `'${email.replace(/'/g, "''")}'` : 'NULL';
-        await prisma.$executeRawUnsafe(`UPDATE "Admin" SET email = ${escaped} WHERE id = '${id}'`);
-        await prisma.$executeRawUnsafe(`UPDATE Admin SET email = ${escaped} WHERE id = '${id}'`);
+        try {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET email = ${email || null} WHERE id = ${id}`);
+        } catch (_) {
+          await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET email = ${email || null} WHERE id = ${id}`);
+        }
       }
 
       await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details (raw SQL): ${username || existing.username}`);
