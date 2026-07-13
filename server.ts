@@ -7,6 +7,8 @@ import { prisma } from "./src/lib/db.js";
 import { fetchTechHubProperties, fetchTechHubContracts } from "./src/lib/techhub.js";
 import { emailLogoSvg, emailLogoImg, LOGO_SVG, LOGO_BRAND_COLOR } from "./src/lib/logo.js";
 import fs from "fs";
+import { ImapFlow } from "imapflow";
+import { simpleParser } from "mailparser";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
 import { createRequire } from "module";
@@ -27,7 +29,7 @@ const LOG_FILE = fs.existsSync('/data')
   ? '/data/server.log' 
   : path.resolve(process.cwd(), 'server.log');
 
-function serializeMeta(meta: any[]): string {
+export function serializeMeta(meta: any[]): string {
   if (!meta.length) return "";
   return meta.map(arg => {
     if (arg instanceof Error) {
@@ -77,7 +79,7 @@ const logger = {
   }
 };
 
-function getSiteUrl(req?: any): string {
+export function getSiteUrl(req?: any): string {
   if (process.env.APP_URL && process.env.APP_URL !== "MY_APP_URL") {
     return process.env.APP_URL.replace(/\/$/, "");
   }
@@ -119,7 +121,7 @@ async function sendCallbackEmailNotification(req?: any) {
     const formattedFrom = from.includes("<") ? from : `"بناء وإدارة العقارية | Benaa & Edara" <${from}>`;
     const fromDomain = from.includes('@') ? from.split('@')[1].trim().replace('>', '') : 'benaa-edara.com';
 
-    const logoHtml = emailLogoImg(siteUrl);
+    const logoHtml = emailLogoImg(siteUrl, 80);
 
     const emailSubject = "طلب جديد على المنصة / New Request on Platform";
     const htmlContent = `
@@ -133,9 +135,12 @@ async function sendCallbackEmailNotification(req?: any) {
       <body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Cairo', 'Inter', sans-serif; -webkit-font-smoothing: antialiased;">
         
         <!-- Full-Width Header -->
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 1px solid #E5E7EB; direction: rtl;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 4px solid #34505e; direction: rtl;">
           <tr>
-            <td style="padding: 30px 20px; text-align: center;">
+            <td style="padding: 25px 20px; text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: #34505e; margin-bottom: 12px; font-family: 'Cairo', sans-serif; letter-spacing: 0.5px;">
+                بناء وإدارة العقارية &nbsp;|&nbsp; Benaa & Edara Real Estate
+              </div>
               ${logoHtml}
             </td>
           </tr>
@@ -148,7 +153,7 @@ async function sendCallbackEmailNotification(req?: any) {
               <!-- Content wrapper -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width: 800px; margin: 0 auto;">
                 <tr>
-                  <td style="padding: 50px 30px; text-align: right;">
+                  <td style="padding: 20px 30px; text-align: right;">
                     
                     <!-- Title -->
                     <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 700; color: #111827; font-family: 'Cairo', sans-serif;">
@@ -294,7 +299,7 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
       ? `Re: رد على طلبك / Reply to your request - بناء وإدارة`
       : `رد على طلبك / Reply to your request - بناء وإدارة`;
 
-    const logoHtml = emailLogoImg(siteUrl);
+    const logoHtml = emailLogoImg(siteUrl, 80);
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -307,9 +312,12 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
       <body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Cairo', 'Inter', sans-serif; -webkit-font-smoothing: antialiased;">
         
         <!-- Full-Width Header -->
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 1px solid #E5E7EB; direction: rtl;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 4px solid #34505e; direction: rtl;">
           <tr>
-            <td style="padding: 30px 20px; text-align: center;">
+            <td style="padding: 25px 20px; text-align: center;">
+              <div style="font-size: 16px; font-weight: 700; color: #34505e; margin-bottom: 12px; font-family: 'Cairo', sans-serif; letter-spacing: 0.5px;">
+                بناء وإدارة العقارية &nbsp;|&nbsp; Benaa & Edara Real Estate
+              </div>
               ${logoHtml}
             </td>
           </tr>
@@ -322,7 +330,7 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
               <!-- Content wrapper -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width: 800px; margin: 0 auto;">
                 <tr>
-                  <td style="padding: 50px 30px; text-align: right;">
+                  <td style="padding: 20px 30px; text-align: right;">
                     
                     <!-- Greeting -->
                     <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 700; color: #111827; font-family: 'Cairo', sans-serif;">
@@ -532,9 +540,6 @@ async function syncInboundEmails() {
       return;
     }
     
-    const { ImapFlow } = require('imapflow');
-    const { simpleParser } = require('mailparser');
-    
     const client = new ImapFlow({
       host,
       port,
@@ -553,11 +558,11 @@ async function syncInboundEmails() {
     const lock = await client.getMailboxLock('INBOX');
     
     try {
-      const unseenMessages = await client.search({ seen: false });
+      const unseenMessages = (await client.search({ seen: false })) || [];
       
       const sinceDate = new Date();
       sinceDate.setDate(sinceDate.getDate() - 3);
-      const recentMessages = await client.search({ since: sinceDate });
+      const recentMessages = (await client.search({ since: sinceDate })) || [];
       
       const messages = Array.from(new Set([...unseenMessages, ...recentMessages])).sort((a, b) => a - b);
       
@@ -618,10 +623,7 @@ async function syncInboundEmails() {
           if (!matchedRequest && senderEmail) {
             const activeRequest = await prisma.callbackRequest.findFirst({
               where: {
-                email: {
-                  equals: senderEmail,
-                  mode: 'insensitive'
-                },
+                email: senderEmail,
                 status: {
                   not: 'CLOSED'
                 }

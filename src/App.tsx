@@ -5,6 +5,7 @@ import { LanguageProvider, useLanguage } from './LanguageContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { DialogProvider } from './context/DialogContext';
 import { Logo } from './components/Logo';
+import { PrivacyConsent } from './components/PrivacyConsent';
 import { faviconDataUri, LOGO_BRAND_COLOR } from './lib/logo';
 import { SocialIconsRow, SocialLinks } from './components/SocialIcons';
 const Home = lazy(() => import('./pages/Home'));
@@ -319,12 +320,6 @@ function Footer() {
               <SocialIconsRow links={socialLinks} size="sm" />
             </div>
           </div>
-
-          <p className="text-[10px] leading-relaxed text-center text-muted-foreground/80 border-t border-border pt-3">
-            {language === 'ar'
-              ? 'تنويه: قد نقوم بمعالجة بياناتك الشخصية والبيانات المتعلقة بتصفحك للموقع وفقاً لنظام حماية البيانات الشخصية في المملكة العربية السعودية ولأغراض التواصل، التحليلات، وتحسين الخدمة. لا تستخدم هذا الموقع لإرسال بيانات حساسة إلا عند الضرورة.'
-              : 'Disclaimer: We may process your personal data and browsing-related data in accordance with the Saudi Personal Data Protection Law for communication, analytics, and service improvement purposes. Please do not submit sensitive data unless necessary.'}
-          </p>
         </div>
       </div>
     </footer>
@@ -423,6 +418,7 @@ function AppContent() {
         </Suspense>
       </main>
       <Footer />
+      <PrivacyConsent />
     </div>
   );
 }

@@ -162,7 +162,7 @@ export default function AdminLogs() {
           </p>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs">
+        <div className="admin-card overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-right rtl:text-right ltr:text-left border-collapse">
               <thead>
@@ -174,8 +174,12 @@ export default function AdminLogs() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-xs">
-                {filteredLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-muted/10 transition-colors">
+                {filteredLogs.map((log, idx) => (
+                  <tr 
+                    key={log.id} 
+                    className="hover:bg-muted/10 transition-colors admin-stagger-item"
+                    style={{ animationDelay: `${idx * 15}ms` }}
+                  >
                     <td className="px-6 py-4 font-bold text-foreground">
                       <div>{log.userName}</div>
                       <div className="text-[10px] text-muted-foreground font-normal mt-0.5 flex items-center gap-1">

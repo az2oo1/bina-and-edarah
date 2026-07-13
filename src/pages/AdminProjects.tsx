@@ -292,7 +292,7 @@ export default function AdminProjects() {
       </div>
 
       {showAddForm ? (
-        <form onSubmit={handleSubmit} className="shadcn-card p-6">
+        <form onSubmit={handleSubmit} className="admin-card p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Info'}</h3>
@@ -541,7 +541,7 @@ export default function AdminProjects() {
           </div>
 
           <div className="mt-10 border-t pt-8">
-            <button type="submit" disabled={loading} className="btn-primary w-full h-10 text-sm rounded-md shadow-xs cursor-pointer">
+            <button type="submit" disabled={loading} className="btn-primary w-full h-10 text-sm rounded-md shadow-xs cursor-pointer active:scale-[0.97]">
               {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (editingId ? (language === 'ar' ? 'حفظ التعديلات' : 'Save Changes') : (language === 'ar' ? 'حفظ المشروع' : 'Save Project'))}
             </button>
           </div>
@@ -555,8 +555,12 @@ export default function AdminProjects() {
               {language === 'ar' ? 'لا توجد مشاريع مضافة' : 'No projects added yet'}
             </div>
           ) : (
-            projects.map((project) => (
-              <div key={project.id} className="shadcn-card group overflow-hidden block flex flex-col hover:shadow-sm transition-shadow">
+            projects.map((project, idx) => (
+              <div 
+                key={project.id} 
+                className="admin-card group overflow-hidden block flex flex-col admin-stagger-item"
+                style={{ animationDelay: `${idx * 40}ms` }}
+              >
                 <div className="p-6 flex-1">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -570,10 +574,10 @@ export default function AdminProjects() {
                   </div>
                 </div>
                 <div className="px-4 py-3 bg-muted/40 border-t border-border flex justify-between items-center">
-                  <button onClick={() => handleDelete(project.id)} className="text-red-500 hover:text-red-600 p-2 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer">
+                  <button onClick={() => handleDelete(project.id)} className="text-red-500 hover:text-red-600 p-2 hover:bg-red-500/10 rounded-lg transition-transform active:scale-[0.97] cursor-pointer">
                     <Trash2 className="w-5 h-5" />
                   </button>
-                  <button onClick={() => handleEdit(project.id)} className="btn-primary px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
+                  <button onClick={() => handleEdit(project.id)} className="btn-primary px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer active:scale-[0.97]">
                     {language === 'ar' ? 'تعديل' : 'Edit'}
                   </button>
                 </div>

@@ -327,7 +327,7 @@ export default function AdminUsers() {
                 </p>
               </div>
             ) : (
-              <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs">
+              <div className="admin-card overflow-hidden shadow-xs">
                 <div className="overflow-x-auto">
                   <table className="w-full text-right rtl:text-right ltr:text-left border-collapse">
                     <thead>
@@ -340,8 +340,12 @@ export default function AdminUsers() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-xs">
-                      {users.map(u => (
-                        <tr key={u.id} className="hover:bg-muted/10 transition-colors">
+                      {users.map((u, idx) => (
+                        <tr 
+                          key={u.id} 
+                          className="hover:bg-muted/10 transition-colors admin-stagger-item"
+                          style={{ animationDelay: `${idx * 25}ms` }}
+                        >
                           <td className="px-6 py-4 font-bold text-foreground flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-primary">
                               {u.name.charAt(0)}
@@ -369,7 +373,7 @@ export default function AdminUsers() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => handleEdit(u)}
-                                className="w-8 h-8 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-colors cursor-pointer"
+                                className="w-8 h-8 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-transform active:scale-[0.97] cursor-pointer"
                                 title={language === 'ar' ? 'تعديل' : 'Edit'}
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -378,7 +382,7 @@ export default function AdminUsers() {
                               <button
                                 onClick={() => handleDelete(u.id, u.name)}
                                 disabled={u.id === currentUserId}
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${u.id === currentUserId ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-destructive/10 hover:bg-destructive/20 text-destructive cursor-pointer'}`}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-transform active:scale-[0.97] ${u.id === currentUserId ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-destructive/10 hover:bg-destructive/20 text-destructive cursor-pointer'}`}
                                 title={language === 'ar' ? 'حذف' : 'Delete'}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

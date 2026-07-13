@@ -244,7 +244,11 @@ export default function AdminRenters() {
              
              <div className="p-5 bg-slate-50/30 flex-1 space-y-5">
                {customerUnits.map((unit, idx) => (
-                 <div key={unit.id || idx} className="shadcn-card overflow-hidden">
+                 <div 
+                   key={unit.id || idx} 
+                   className="admin-card overflow-hidden admin-stagger-item"
+                   style={{ animationDelay: `${idx * 40}ms` }}
+                 >
                    <div className="bg-slate-50 p-3 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
                      <div>
                        <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">

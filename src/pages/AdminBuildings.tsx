@@ -309,7 +309,7 @@ export default function AdminBuildings() {
         </div>
       </div>
 
-      <div className="shadcn-card p-5 mb-6">
+      <div className="admin-card p-5 mb-6">
         <h3 className="text-sm font-bold text-foreground mb-3">{language === 'ar' ? 'إضافة مبنى جديد' : 'Add New Building'}</h3>
         <form onSubmit={handleAddBuilding} className="flex gap-4">
           <input 
@@ -318,12 +318,12 @@ export default function AdminBuildings() {
             value={newBuildingName}
             onChange={e => setNewBuildingName(e.target.value)}
             placeholder={language === 'ar' ? 'اسم المبنى (مثال: عمارة الشدي الوادي)' : 'Building Name'}
-            className="flex-1 cn-input"
+            className="flex-1 cn-input bg-card"
           />
           <button 
             type="submit" 
             disabled={addingBuilding}
-            className="btn-primary h-9 px-4 text-xs font-semibold rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="btn-primary h-9 px-4 text-xs font-semibold rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-[0.97]"
           >
             {addingBuilding ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlusCircle className="w-5 h-5" />}
             {language === 'ar' ? 'إضافة' : 'Add'}
@@ -339,8 +339,12 @@ export default function AdminBuildings() {
       )}
 
       <div className="grid grid-cols-1 gap-6">
-        {buildings.map(b => (
-          <div key={b.id} className="shadcn-card p-4 flex flex-col md:flex-row gap-4 md:items-center justify-between">
+        {buildings.map((b, idx) => (
+          <div 
+            key={b.id} 
+            className="admin-card p-4 flex flex-col md:flex-row gap-4 md:items-center justify-between admin-stagger-item"
+            style={{ animationDelay: `${idx * 40}ms` }}
+          >
             <div>
               <h3 className="font-bold text-sm text-foreground mb-1">{b.name}</h3>
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -349,7 +353,7 @@ export default function AdminBuildings() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4 items-center">
-              <label className="relative cursor-pointer bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5">
+              <label className="relative cursor-pointer bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-transform active:scale-[0.97]">
                  <input 
                    type="file" 
                    accept=".csv,.xlsx,.xls,.numbers"
@@ -368,7 +372,7 @@ export default function AdminBuildings() {
               <button 
                 onClick={() => openBuildingRenters(b)}
                 disabled={loadingRentersBuilding === b.id}
-                className="btn-secondary px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="btn-secondary px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 cursor-pointer active:scale-[0.97]"
                 title={language === 'ar' ? 'عرض المستأجرين' : 'View Renters'}
               >
                 {loadingRentersBuilding === b.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
@@ -377,7 +381,7 @@ export default function AdminBuildings() {
 
               <button 
                 onClick={() => openEditModal(b)}
-                className="p-2 text-muted-foreground hover:text-foreground rounded border border-border bg-card cursor-pointer"
+                className="p-2 text-muted-foreground hover:text-foreground rounded border border-border bg-card cursor-pointer transition-transform active:scale-[0.97]"
                 title={language === 'ar' ? 'تعديل بيانات المبنى' : 'Edit Building Details'}
               >
                 <SettingsIcon className="w-5 h-5" />

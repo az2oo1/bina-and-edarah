@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2 } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, EyeOff, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Check, DollarSign, FileText, Image, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SrIcon } from '../components/SrIcon';
 import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon, SnapIcon } from '../components/SocialIcons';
@@ -147,8 +147,8 @@ export default function Admin() {
       const roleVal = u.role || 'ADMIN';
       setUserRole(roleVal);
       
-      const tabKeys: ('manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'analytics' | 'settings' | 'callbacks' | 'users' | 'logs')[] = [
-        'manage', 'projects', 'buildings', 'renters', 'receipts', 'analytics', 'settings', 'callbacks', 'users', 'logs'
+      const tabKeys: ('manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'analytics' | 'callbacks' | 'users' | 'logs' | 'settings')[] = [
+        'manage', 'projects', 'buildings', 'renters', 'receipts', 'analytics', 'callbacks', 'users', 'logs', 'settings'
       ];
       if (!hasTabPermission(activeTab, roleVal)) {
         const firstPermitted = tabKeys.find(tk => hasTabPermission(tk, roleVal));
@@ -164,6 +164,7 @@ export default function Admin() {
   
   // Analytics
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [refreshingAnalytics, setRefreshingAnalytics] = useState(false);
 
   // Settings Form State
   const [activeSettingsSection, setActiveSettingsSection] = useState<'whatsapp' | 'otp' | 'images' | 'social' | 'backup' | 'email' | 'analytics' | 'techhub'>('whatsapp');
@@ -174,6 +175,7 @@ export default function Admin() {
   const [otpMessageTemplate, setOtpMessageTemplate] = useState('رمز التحقق الخاص بك هو: {otp}');
   const [otpWebhookPayload, setOtpWebhookPayload] = useState('{\n  "phone": "{phone}",\n  "otp": "{otp}",\n  "type": "template",\n  "message": "رمز التحقق الخاص بك هو: {otp}"\n}');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [showSmtpPass, setShowSmtpPass] = useState(false);
 
   // TechHub Settings State
   const [techhubEnabled, setTechhubEnabled] = useState(false);
@@ -340,12 +342,17 @@ export default function Admin() {
   };
 
   const fetchAnalytics = async () => {
+    setRefreshingAnalytics(true);
     try {
       const res = await fetch('/api/analytics');
       const data = await res.json();
       setAnalytics(data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setTimeout(() => {
+        setRefreshingAnalytics(false);
+      }, 600);
     }
   };
 
@@ -944,7 +951,7 @@ export default function Admin() {
 
   return (
     <div className="bg-background text-foreground min-h-screen pt-4 pb-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className={`${activeTab === 'callbacks' ? 'max-w-[1440px]' : 'max-w-6xl'} mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-300`}>
         
         {/* Header Title & Logout */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-border select-none">
@@ -964,7 +971,7 @@ export default function Admin() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="inline-flex w-full items-center justify-start rounded-xl bg-card border border-border p-1 text-muted-foreground mb-8 overflow-x-auto select-none scrollbar-none gap-1">
+        <div className="inline-flex items-center justify-start rounded-xl bg-card border border-border p-1 text-muted-foreground mb-8 overflow-x-auto select-none scrollbar-none gap-1 w-max max-w-full">
           {hasTabPermission('manage', userRole) && (
             <button 
               onClick={() => setActiveTab('manage')}
@@ -1037,18 +1044,6 @@ export default function Admin() {
               {language === 'ar' ? 'الإحصائيات' : 'Analytics'}
             </button>
           )}
-          {hasTabPermission('settings', userRole) && (
-            <button 
-              onClick={() => setActiveTab('settings')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'settings' 
-                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              {t('admin.settings')}
-            </button>
-          )}
           {hasTabPermission('callbacks', userRole) && (
             <button 
               onClick={() => setActiveTab('callbacks')}
@@ -1083,6 +1078,18 @@ export default function Admin() {
               }`}
             >
               {language === 'ar' ? 'السجلات' : 'Audit Logs'}
+            </button>
+          )}
+          {hasTabPermission('settings', userRole) && (
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'settings' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {t('admin.settings')}
             </button>
           )}
         </div>
@@ -1308,56 +1315,111 @@ export default function Admin() {
                   </div>
                 )}
 
-                 {/* Step Indicator */}
-                {(() => {
-                  const isBuildingCategory = formData.propertyCategory === 'BUILDING' || formData.propertyCategory === 'COMPOUND' || formData.propertyCategory === 'TOWER' || formData.propertyCategory === 'MALL';
-                  const totalSteps = isBuildingCategory ? 5 : 4;
-                  return (
-                    <>
-                      <div className="flex items-center justify-between max-w-lg mx-auto mb-10 select-none">
-                        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
-                          <React.Fragment key={step}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (step < currentStep || (formData.titleAr && (isBuildingCategory || formData.price))) {
-                                  setCurrentStep(step);
-                                }
+                                   {/* Step Indicator */}
+                  {(() => {
+                    const isBuildingCategory = formData.propertyCategory === 'BUILDING' || formData.propertyCategory === 'COMPOUND' || formData.propertyCategory === 'TOWER' || formData.propertyCategory === 'MALL';
+                    const totalSteps = isBuildingCategory ? 5 : 4;
+                    const fillPercentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
+                    return (
+                      <div className="mb-12 max-w-xl mx-auto w-full select-none animate-in fade-in duration-300">
+                        <div className="relative py-4">
+                          {/* Progress Line Track */}
+                          <div className="absolute top-1/2 -translate-y-1/2 left-6 right-6 h-0.5 bg-muted rounded-full z-0">
+                            {/* Active filled line */}
+                            <div 
+                              className="h-full bg-primary transition-all duration-500 ease-out rounded-full shadow-xs"
+                              style={{
+                                width: `${fillPercentage}%`,
+                                // In RTL (Arabic), progress bar fills from right to left
+                                transformOrigin: language === 'ar' ? 'right' : 'left'
                               }}
-                              className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border transition-all cursor-pointer ${
-                                currentStep === step
-                                  ? 'bg-[#2563eb] text-white border-[#2563eb] shadow-md ring-2 ring-primary/20 scale-105'
-                                  : currentStep > step
-                                  ? 'bg-emerald-500 text-white border-emerald-500'
-                                  : 'bg-card text-muted-foreground border-border hover:bg-muted/50'
-                              }`}
-                            >
-                              {currentStep > step ? '✓' : step}
-                            </button>
-                            {step < totalSteps && (
-                              <div className={`flex-1 h-[2px] transition-colors ${currentStep > step ? 'bg-emerald-500' : 'bg-border'}`} />
-                            )}
-                          </React.Fragment>
-                        ))}
-                      </div>
+                            />
+                          </div>
 
-                      <div className="text-center mb-8">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                          {language === 'ar' ? `الخطوة ${currentStep} من ${totalSteps}` : `Step ${currentStep} of ${totalSteps}`}
-                        </p>
-                        <h3 className="text-lg font-bold text-foreground mt-1">
-                          {currentStep === 1 && (language === 'ar' ? 'المعلومات الأساسية والموقع' : 'Basic Info & Location')}
-                          {currentStep === 2 && (language === 'ar' ? 'التفاصيل المالية والخدمات' : 'Financials & Utilities')}
-                          {currentStep === 3 && (language === 'ar' ? 'الوصف والتفاصيل الإضافية' : 'Description & Custom Details')}
-                          {currentStep === 4 && (language === 'ar' ? 'الصور ومقاطع الفيديو' : 'Photos & Videos')}
-                          {currentStep === 5 && (language === 'ar' ? 'إدارة الوحدات السكنية' : 'Manage Units')}
-                        </h3>
-                      </div>
-                    </>
-                  );
-                })()}
+                          {/* Step Circles Row */}
+                          <div className="relative flex justify-between items-center z-10 w-full">
+                            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => {
+                              const isActive = currentStep === step;
+                              const isCompleted = currentStep > step;
+                              
+                              // Select step icon dynamically
+                              let StepIcon = Info;
+                              if (step === 2) StepIcon = DollarSign;
+                              if (step === 3) StepIcon = FileText;
+                              if (step === 4) StepIcon = Image;
+                              if (step === 5) StepIcon = LayoutGrid;
 
-                {/* STEP 1: Basic & Location Info */}
+                              return (
+                                <div key={step} className="flex flex-col items-center">
+                                  <button
+                                    key={step}
+                                    type="button"
+                                    onClick={() => {
+                                      if (step < currentStep || (formData.titleAr && (isBuildingCategory || formData.price))) {
+                                        setCurrentStep(step);
+                                      }
+                                    }}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-350 cursor-pointer border shadow-xs ${
+                                      isActive 
+                                        ? 'bg-primary border-primary text-white ring-4 ring-primary/20 scale-110 shadow-md shadow-primary/20' 
+                                        : isCompleted 
+                                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10' 
+                                        : 'bg-card border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                                    }`}
+                                  >
+                                    {isCompleted ? (
+                                      <Check className="w-4 h-4 stroke-[3]" />
+                                    ) : (
+                                      <StepIcon className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                  
+                                  {/* Step Label */}
+                                  <span className={`text-[10px] font-bold mt-2.5 transition-colors duration-200 hidden xs:block ${
+                                    isActive 
+                                      ? 'text-primary' 
+                                      : isCompleted 
+                                      ? 'text-emerald-600 dark:text-emerald-400' 
+                                      : 'text-muted-foreground'
+                                  }`}>
+                                    {step === 1 && (language === 'ar' ? 'الموقع' : 'Location')}
+                                    {step === 2 && (language === 'ar' ? 'المالية' : 'Financials')}
+                                    {step === 3 && (language === 'ar' ? 'الوصف' : 'Description')}
+                                    {step === 4 && (language === 'ar' ? 'الوسائط' : 'Media')}
+                                    {step === 5 && (language === 'ar' ? 'الوحدات' : 'Units')}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="text-center mt-3">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+                            {language === 'ar' ? `الخطوة ${currentStep} من ${totalSteps}` : `Step ${currentStep} of ${totalSteps}`}
+                          </p>
+                          <h3 className="text-lg font-bold text-foreground mt-0.5">
+                            {currentStep === 1 && (language === 'ar' ? 'المعلومات الأساسية والموقع' : 'Basic Info & Location')}
+                            {currentStep === 2 && (language === 'ar' ? 'التفاصيل المالية والخدمات' : 'Financials & Utilities')}
+                            {currentStep === 3 && (language === 'ar' ? 'الوصف والتفاصيل الإضافية' : 'Description & Custom Details')}
+                            {currentStep === 4 && (language === 'ar' ? 'الصور ومقاطع الفيديو' : 'Photos & Videos')}
+                            {currentStep === 5 && (language === 'ar' ? 'إدارة الوحدات السكنية' : 'Manage Units')}
+                          </h3>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentStep}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                  >
+                    {/* STEP 1: Basic & Location Info */}
                 {currentStep === 1 && (
                   <div className="space-y-8 animate-in fade-in duration-350">
                     <div>
@@ -1401,26 +1463,7 @@ export default function Admin() {
                           </select>
                         </div>
 
-                        {formData.propertyCategory !== 'BUILDING' && formData.propertyCategory !== 'COMPOUND' && formData.propertyCategory !== 'TOWER' && formData.propertyCategory !== 'MALL' && (
-                          <div>
-                            <label className="cn-label mb-2">{language === 'ar' ? 'المبنى/المجمع التابع له (اختياري)' : 'Belongs to Building/Compound (Optional)'}</label>
-                            <select 
-                              value={formData.parentId || ''} 
-                              onChange={(e) => setFormData({ ...formData, parentId: e.target.value || null })} 
-                              className="cn-input"
-                            >
-                              <option value="">{language === 'ar' ? '— لا يوجد (عقار مستقل) —' : '— None (Standalone) —'}</option>
-                              {properties
-                                .filter(p => p.id !== editingId && (p.propertyCategory === 'BUILDING' || p.propertyCategory === 'COMPOUND' || p.propertyCategory === 'TOWER' || p.propertyCategory === 'MALL'))
-                                .map(p => (
-                                  <option key={p.id} value={p.id}>
-                                    {language === 'ar' ? p.titleAr : p.titleEn}
-                                  </option>
-                                ))
-                              }
-                            </select>
-                          </div>
-                        )}
+
 
                         <div>
                           <label className="cn-label mb-2">{t('admin.placeholder.area')}</label>
@@ -1462,14 +1505,14 @@ export default function Admin() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className={formData.type === 'RENT' ? "md:col-span-2" : ""}>
                           <label className="cn-label mb-2">{t('admin.placeholder.price')}</label>
-                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border bg-background focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                             <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
                               <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                             </div>
-                            <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0" placeholder="2500000" />
+                            <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" placeholder="2500000" />
                             {formData.type === 'RENT' && (
                               <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
-                                <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card w-36 px-4 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer">
+                                <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card w-36 px-4 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer text-foreground">
                                   <option value="YEARLY">{t('common.yearly')}</option>
                                   <option value="MONTHLY">{t('common.monthly')}</option>
                                 </select>
@@ -1635,7 +1678,7 @@ export default function Admin() {
                               {formData.vatExempt ? (language === 'ar' ? 'معفى من الضريبة ✓' : 'VAT Exempt ✓') : (language === 'ar' ? 'معفى؟' : 'Exempt?')}
                             </button>
                           </div>
-                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border bg-background focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                             <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
                               <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                             </div>
@@ -1644,7 +1687,7 @@ export default function Admin() {
                               disabled={formData.vatExempt}
                               value={formData.vatExempt ? '0' : formData.vat} 
                               onChange={(e) => setFormData({ ...formData, vat: e.target.value })} 
-                              className="cn-input disabled:opacity-50" 
+                              className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground disabled:opacity-50" 
                               placeholder="0" 
                             />
                           </div>
@@ -1652,11 +1695,11 @@ export default function Admin() {
 
                         <div>
                           <label className="cn-label mb-2">{t('admin.placeholder.commission')}</label>
-                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                          <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border bg-background focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                             <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
                               <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                             </div>
-                            <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="cn-input" placeholder="0" />
+                            <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" placeholder="0" />
                           </div>
                         </div>
                       </div>
@@ -1669,7 +1712,7 @@ export default function Admin() {
                   <div className="space-y-8 animate-in fade-in duration-350">
                     <div>
                       <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-6">{language === 'ar' ? 'الوصف' : 'Description'}</h3>
-                      <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="cn-input resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
+                      <textarea required rows={5} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="cn-textarea resize-none" placeholder={language === 'ar' ? 'أضف وصفاً مفصلاً للعقار...' : 'Add a detailed description...'} />
                     </div>
 
                     <div className="space-y-8">
@@ -1873,11 +1916,11 @@ export default function Admin() {
                       </div>
                       
                       {formData.imageUrls.length > 0 && (
-                        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                           {formData.imageUrls.map((url, i) => {
                             const isVideo = url && (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm') || url.endsWith('.avi'));
                             return (
-                              <div key={i} className="relative aspect-square bg-muted rounded-xl overflow-hidden border border-border group/img">
+                              <div key={i} className="relative aspect-square bg-muted rounded-2xl overflow-hidden border border-border group shadow-sm hover:shadow-md transition-all duration-300">
                                 {isVideo ? (
                                   <video src={url} className="w-full h-full object-cover" muted playsInline />
                                 ) : (
@@ -1900,36 +1943,44 @@ export default function Admin() {
                                   </div>
                                 )}
 
+                                {/* Delete Glass button */}
                                 <button 
                                   type="button" 
                                   onClick={() => removeImage(i)} 
-                                  className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md z-10 transition-colors cursor-pointer"
+                                  className="absolute top-2 right-2 p-1.5 bg-black/60 backdrop-blur-md hover:bg-red-600 text-white rounded-full transition-all z-10 cursor-pointer shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                                   title={language === 'ar' ? 'حذف' : 'Delete'}
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
 
-                                {/* Rearrange Arrows Overlay Bar */}
-                                <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1.5 z-10 opacity-85 hover:opacity-100 transition-opacity">
-                                  <button
-                                    type="button"
-                                    disabled={i === 0}
-                                    onClick={() => moveImage(i, 'prev')}
-                                    className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                                    title={language === 'ar' ? 'تحريك للخلف' : 'Move Left'}
-                                  >
-                                    <ArrowLeft className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={i === formData.imageUrls.length - 1}
-                                    onClick={() => moveImage(i, 'next')}
-                                    className="p-1.5 bg-background/95 hover:bg-background text-foreground rounded-lg shadow-sm border border-border disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                                    title={language === 'ar' ? 'تحريك للأمام' : 'Move Right'}
-                                  >
-                                    <ArrowRight className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                                {/* Rearrange Arrows Centered Glass Capsule */}
+                                {(() => {
+                                  const isRtl = language === 'ar';
+                                  const leftDisabled = isRtl ? (i === formData.imageUrls.length - 1) : (i === 0);
+                                  const rightDisabled = isRtl ? (i === 0) : (i === formData.imageUrls.length - 1);
+                                  return (
+                                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 bg-black/60 backdrop-blur-md p-1 rounded-xl z-10 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shadow-sm">
+                                      <button
+                                        type="button"
+                                        disabled={leftDisabled}
+                                        onClick={() => moveImage(i, isRtl ? 'next' : 'prev')}
+                                        className="p-1 hover:bg-white/20 text-white rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
+                                        title={language === 'ar' ? 'تحريك لليسار' : 'Move Left'}
+                                      >
+                                        <ArrowLeft className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={rightDisabled}
+                                        onClick={() => moveImage(i, isRtl ? 'prev' : 'next')}
+                                        className="p-1 hover:bg-white/20 text-white rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
+                                        title={language === 'ar' ? 'تحريك لليمين' : 'Move Right'}
+                                      >
+                                        <ArrowRight className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             );
                           })}
@@ -2145,26 +2196,36 @@ export default function Admin() {
                   );
                 })()}
 
-                {/* Wizard Navigation & Submission Panel */}
+                
+                  </motion.div>
+                </AnimatePresence>
+{/* Wizard Navigation & Submission Panel */}
                 {(() => {
                   const isBuildingCategory = formData.propertyCategory === 'BUILDING' || formData.propertyCategory === 'COMPOUND' || formData.propertyCategory === 'TOWER' || formData.propertyCategory === 'MALL';
                   const totalSteps = isBuildingCategory ? 5 : 4;
                   return (
-                    <div className="flex items-center justify-between gap-4 pt-6 border-t border-border mt-8 flex-wrap">
-                      {currentStep > 1 ? (
-                        <button
-                          type="button"
-                          onClick={() => setCurrentStep(currentStep - 1)}
-                          className="px-5 py-2.5 border border-border text-foreground hover:bg-muted rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5"
-                        >
-                          <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
-                          {language === 'ar' ? 'السابق' : 'Previous'}
-                        </button>
-                      ) : (
-                        <div />
-                      )}
+                    <div className="sticky bottom-0 left-0 right-0 z-30 bg-background/90 backdrop-blur-md border-t border-border py-4 mt-12 -mx-4 sm:-mx-6 lg:-mx-8 shadow-md select-none">
+                      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3 flex-wrap">
+                        {/* Cancel or Previous Button */}
+                        {currentStep > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => setCurrentStep(currentStep - 1)}
+                            className="px-5 py-2.5 border border-border text-foreground hover:bg-muted bg-card rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 active:scale-97 shadow-xs"
+                          >
+                            {language === 'ar' ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+                            {language === 'ar' ? 'السابق' : 'Previous'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowAddForm(false)}
+                            className="px-5 py-2.5 border border-border text-foreground hover:bg-muted bg-card rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 active:scale-97 shadow-xs"
+                          >
+                            {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                          </button>
+                        )}
 
-                      <div className="flex items-center gap-3">
                         {/* Save as Draft Button */}
                         <button
                           type="button"
@@ -2176,40 +2237,41 @@ export default function Admin() {
                             }
                             await saveProperty(e, 'DRAFT');
                           }}
-                          className="px-5 py-2.5 border border-amber-300 bg-amber-50/50 hover:bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-400 rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                          className="px-5 py-2.5 border border-border text-foreground hover:bg-muted bg-card rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50 active:scale-97 shadow-xs"
                         >
                           {language === 'ar' ? 'حفظ كمسودة' : 'Save as Draft'}
                         </button>
 
+                        {/* Next or Publish Button */}
                         {currentStep < totalSteps ? (
                           <button
                             type="button"
                             onClick={async () => {
                               if (currentStep === 1) {
-                                if (!formData.titleAr) {
-                                  await showAlert(language === 'ar' ? 'الرجاء إدخال عنوان العقار بالعربية' : 'Please enter the Arabic Title.');
-                                  return;
-                                }
+                                  if (!formData.titleAr) {
+                                    await showAlert(language === 'ar' ? 'الرجاء إدخال عنوان العقار بالعربية' : 'Please enter the Arabic Title.');
+                                    return;
+                                  }
                               }
                               if (currentStep === 2) {
-                                if (!isBuildingCategory && !formData.price) {
-                                  await showAlert(language === 'ar' ? 'الرجاء إدخال السعر' : 'Please enter the price.');
-                                  return;
-                                }
+                                  if (!isBuildingCategory && !formData.price) {
+                                    await showAlert(language === 'ar' ? 'الرجاء إدخال السعر' : 'Please enter the price.');
+                                    return;
+                                  }
                               }
                               setCurrentStep(currentStep + 1);
                             }}
-                            className="px-5 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5"
+                            className="px-5 py-2.5 bg-primary hover:opacity-95 text-white rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm active:scale-97 border border-transparent"
                           >
                             {language === 'ar' ? 'التالي' : 'Next'}
-                            <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                            {language === 'ar' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                           </button>
                         ) : (
                           <button
                             type="button"
                             disabled={loading || isUploadingImages}
                             onClick={(e) => saveProperty(e, 'PUBLISHED')}
-                            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                            className="px-6 py-2.5 bg-primary hover:opacity-95 text-white rounded-xl transition-all font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50 active:scale-97 border border-transparent"
                           >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'ar' ? 'نشر العقار' : 'Publish Property')}
                           </button>
@@ -2223,842 +2285,1071 @@ export default function Admin() {
           </div>
         )}
 
-        {activeTab === 'analytics' && analytics && (
-          <div className="min-h-[500px]">
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border">
-              <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-indigo-600" />
-              </div>
-              <h2 className="text-3xl font-bold text-foreground">{language === 'ar' ? 'تحليلات الموقع' : 'Site Analytics'}</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-              <div className="bg-card p-6 rounded-2xl border border-border">
-                <div className="flex items-center gap-4 mb-4 text-muted-foreground">
-                  <Eye className="w-6 h-6" />
-                  <h3 className="text-lg font-bold">{language === 'ar' ? 'إجمالي المشاهدات' : 'Total Views'}</h3>
-                </div>
-                <p className="text-4xl font-black text-foreground">{analytics.totalViews}</p>
-              </div>
-            </div>
+        {activeTab === 'analytics' && analytics && (() => {
+          const computedTopPage = (() => {
+            if (!analytics.pathsViews || analytics.pathsViews.length === 0) return null;
+            const top = analytics.pathsViews[0];
+            let name = top.path;
+            if (name === '/') name = language === 'ar' ? 'الصفحة الرئيسية' : 'Home Page';
+            else if (name === '/properties') name = language === 'ar' ? 'تصفح العقارات' : 'Properties Page';
+            else if (name === '/about') name = language === 'ar' ? 'من نحن' : 'About Us';
+            else if (name === '/contact') name = language === 'ar' ? 'تواصل معنا' : 'Contact Us';
+            else if (name === '/services') name = language === 'ar' ? 'خدماتنا' : 'Services';
+            else if (name.startsWith('/properties/')) name = language === 'ar' ? 'صفحة عقار' : 'Property Record';
+            return { name, count: top._count.path };
+          })();
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div>
-                <h3 className="text-xl font-bold text-foreground mb-6">{language === 'ar' ? 'أكثر الصفحات زيارة' : 'Top Pages'}</h3>
-                <div className="space-y-4">
+          const computedTopProperty = (() => {
+            if (!analytics.propertiesViews || analytics.propertiesViews.length === 0) return null;
+            const top = analytics.propertiesViews[0];
+            const prop = properties.find(p => p.id === top.propertyId);
+            const name = prop ? (language === 'ar' ? prop.titleAr : prop.titleEn) : (language === 'ar' ? 'عقار تم حذفه' : 'Deleted Property');
+            return { name, count: top._count.propertyId };
+          })();
 
-            {analyticsDashboardUrl && (
-              <div className="mb-10 bg-card border border-border rounded-2xl p-6">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">
-                      {language === 'ar' ? 'رابط لوحة Umami' : 'Umami Dashboard Link'}
-                    </h3>
+          return (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }}
+              className="min-h-[500px] space-y-8 pb-12"
+            >
+              {/* Header Section */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/40 pb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl flex items-center justify-center border border-indigo-100/50 dark:border-indigo-900/30 shadow-xs">
+                    <BarChart3 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                  <a
-                    href={analyticsDashboardUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
-                  >
-                    {language === 'ar' ? 'فتح لوحة التحليلات' : 'Open Analytics Dashboard'}
-                  </a>
+                  <div>
+                    <h2 className="text-3xl font-extrabold text-foreground tracking-tight">{language === 'ar' ? 'تحليلات الموقع' : 'Site Analytics'}</h2>
+                    <p className="text-muted-foreground text-sm mt-1">{language === 'ar' ? 'رصد الزيارات، الصفحات النشطة، وأداء العقارات' : 'Monitor traffic, active pages, and property performance'}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-                  {analytics.pathsViews.map((item, idx) => {
-                    let displayPath = item.path;
-                    if (displayPath === '/') displayPath = language === 'ar' ? 'الصفحة الرئيسية' : 'Home Page';
-                    else if (displayPath === '/properties') displayPath = language === 'ar' ? 'تصفح العقارات' : 'Properties Page';
-                    else if (displayPath === '/about') displayPath = language === 'ar' ? 'من نحن' : 'About Us';
-                    else if (displayPath === '/contact') displayPath = language === 'ar' ? 'تواصل معنا' : 'Contact Us';
-                    else if (displayPath === '/services') displayPath = language === 'ar' ? 'خدماتنا' : 'Services';
-                    else if (displayPath.startsWith('/properties/')) {
-                       displayPath = language === 'ar' ? 'صفحة عقار' : 'Property Record';
-                    }
 
-                    return (
-                    <div key={idx} className="flex justify-between items-center p-4 bg-card rounded-xl border border-border hover:border-primary/20 hover:shadow-sm transition-all group">
-                      <span className="font-bold text-foreground text-sm truncate">{displayPath} <span className="text-gray-400 font-mono text-xs hidden sm:inline ml-2">({item.path})</span></span>
-                      <span className="font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg text-sm flex-shrink-0 group-hover:bg-yellow-100 transition-colors">{item._count.path} {language === 'ar' ? 'م' : 'v'}</span>
-                    </div>
-                  )})}
-                  {analytics.pathsViews.length === 0 && <p className="text-muted-foreground">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>}
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={fetchAnalytics}
+                  disabled={refreshingAnalytics}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-card hover:bg-muted border border-border shadow-xs text-sm font-bold text-foreground cursor-pointer transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 text-muted-foreground ${refreshingAnalytics ? 'animate-spin' : ''}`} />
+                  <span>{language === 'ar' ? 'تحديث البيانات' : 'Refresh Data'}</span>
+                </motion.button>
               </div>
 
-              <div>
-                <h3 className="text-xl font-bold text-foreground mb-6">{language === 'ar' ? 'أكثر العقارات زيارة' : 'Top Properties'}</h3>
-                <div className="space-y-4">
-                  {analytics.propertiesViews.map((item, idx) => {
-                    const prop = properties.find(p => p.id === item.propertyId);
-                    const title = prop ? (language === 'ar' ? prop.titleAr : prop.titleEn) : (language === 'ar' ? 'عقار تم حذفه' : 'Deleted Property');
-                    return (
-                    <div key={idx} className="flex justify-between items-center p-4 bg-card rounded-xl border border-border hover:border-primary/20 hover:shadow-sm transition-all group">
-                      <span className="font-bold text-foreground truncate pr-4">{title}</span>
-                      <span className="font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-sm flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
-                        {item._count.propertyId} {language === 'ar' ? 'مشاهدة' : 'Views'}
-                      </span>
+              {/* Umami Banner */}
+              {analyticsDashboardUrl && (
+                <div className="bg-card dark:bg-card/40 backdrop-blur-md border border-border/60 rounded-2xl p-6 shadow-xs relative overflow-hidden group">
+                  <div className="absolute -right-20 -top-20 w-48 h-48 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10 duration-500 pointer-events-none" />
+                  
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative z-10">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <BarChart3 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-foreground">
+                          {language === 'ar' ? 'رابط لوحة Umami المتقدمة' : 'Umami Advanced Analytics'}
+                        </h3>
+                        <p className="text-muted-foreground text-sm mt-1">
+                          {language === 'ar' 
+                            ? 'استكشف إحصائيات تفصيلية حول الأجهزة، المتصفحات، المصادر الجغرافية، والمسارات المفصلة للزوار.' 
+                            : 'Explore deep analytics about visitor devices, browsers, geographic sources, and detailed user paths.'}
+                        </p>
+                      </div>
                     </div>
-                  )})}
-                  {analytics.propertiesViews.length === 0 && <p className="text-muted-foreground">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>}
+                    
+                    <motion.a
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      href={analyticsDashboardUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-sm shadow-xs transition-all text-center"
+                    >
+                      <span>{language === 'ar' ? 'فتح لوحة التحليلات' : 'Open Analytics Dashboard'}</span>
+                    </motion.a>
+                  </div>
+                </div>
+              )}
+
+              {/* KPI Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Total Views Card */}
+                <div className="bg-card dark:bg-card/40 backdrop-blur-md p-6 rounded-2xl border border-border/60 hover:border-indigo-500/20 dark:hover:border-indigo-400/20 hover:shadow-md transition-all duration-300 group">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-semibold text-muted-foreground">{language === 'ar' ? 'إجمالي المشاهدات' : 'Total Views'}</span>
+                    <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <Eye className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <p className="text-3xl font-black text-foreground tracking-tight">{analytics.totalViews.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{language === 'ar' ? 'إجمالي الزيارات لكافة الصفحات' : 'Total traffic registered across all paths'}</p>
+                </div>
+
+                {/* Top Page Card */}
+                <div className="bg-card dark:bg-card/40 backdrop-blur-md p-6 rounded-2xl border border-border/60 hover:border-emerald-500/20 dark:hover:border-emerald-400/20 hover:shadow-md transition-all duration-300 group">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-semibold text-muted-foreground">{language === 'ar' ? 'الصفحة الأكثر نشاطاً' : 'Most Active Page'}</span>
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <p className="text-xl font-bold text-foreground truncate">{computedTopPage ? computedTopPage.name : '—'}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {computedTopPage 
+                      ? (language === 'ar' ? `حصدت ${computedTopPage.count} زيارة` : `Received ${computedTopPage.count} visits`)
+                      : (language === 'ar' ? 'لا توجد بيانات' : 'No data available')}
+                  </p>
+                </div>
+
+                {/* Top Property Card */}
+                <div className="bg-card dark:bg-card/40 backdrop-blur-md p-6 rounded-2xl border border-border/60 hover:border-amber-500/20 dark:hover:border-amber-400/20 hover:shadow-md transition-all duration-300 group">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-semibold text-muted-foreground">{language === 'ar' ? 'العقار الأكثر زيارة' : 'Most Visited Property'}</span>
+                    <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <Home className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <p className="text-xl font-bold text-foreground truncate">{computedTopProperty ? computedTopProperty.name : '—'}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {computedTopProperty 
+                      ? (language === 'ar' ? `حصد ${computedTopProperty.count} مشاهدة` : `Received ${computedTopProperty.count} views`)
+                      : (language === 'ar' ? 'لا توجد بيانات' : 'No data available')}
+                  </p>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+
+              {/* Lists Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Top Pages Column */}
+                <div className="bg-card dark:bg-card/40 border border-border/60 rounded-2xl p-6 shadow-xs">
+                  <h3 className="text-xl font-bold text-foreground mb-6 tracking-tight flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-primary rounded-full" />
+                    {language === 'ar' ? 'أكثر الصفحات زيارة' : 'Top Pages'}
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {analytics.pathsViews.map((item, idx) => {
+                      let displayPath = item.path;
+                      if (displayPath === '/') displayPath = language === 'ar' ? 'الصفحة الرئيسية' : 'Home Page';
+                      else if (displayPath === '/properties') displayPath = language === 'ar' ? 'تصفح العقارات' : 'Properties Page';
+                      else if (displayPath === '/about') displayPath = language === 'ar' ? 'من نحن' : 'About Us';
+                      else if (displayPath === '/contact') displayPath = language === 'ar' ? 'تواصل معنا' : 'Contact Us';
+                      else if (displayPath === '/services') displayPath = language === 'ar' ? 'خدماتنا' : 'Services';
+                      else if (displayPath.startsWith('/properties/')) {
+                         displayPath = language === 'ar' ? 'صفحة عقار' : 'Property Record';
+                      }
+
+                      return (
+                        <motion.a
+                          href={item.path}
+                          target="_blank"
+                          rel="noreferrer"
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1], delay: idx * 0.04 }}
+                          key={idx}
+                          className="flex justify-between items-center p-4 bg-card hover:bg-muted/40 rounded-xl border border-border/40 hover:border-primary/20 dark:hover:border-primary/30 transition-all duration-200 group active:scale-[0.99] cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3 truncate min-w-0 pr-4">
+                            <span className="font-bold text-foreground text-sm truncate">{displayPath}</span>
+                            <span className="text-muted-foreground/60 font-mono text-xs hidden sm:inline truncate">({item.path})</span>
+                          </div>
+                          <span className="font-bold text-primary bg-primary/5 border border-primary/10 px-3 py-1 rounded-full text-xs flex-shrink-0 group-hover:bg-primary/10 transition-colors">
+                            {item._count.path} {language === 'ar' ? 'زيارة' : 'visits'}
+                          </span>
+                        </motion.a>
+                      );
+                    })}
+                    {analytics.pathsViews.length === 0 && (
+                      <p className="text-muted-foreground text-sm text-center py-6">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Top Properties Column */}
+                <div className="bg-card dark:bg-card/40 border border-border/60 rounded-2xl p-6 shadow-xs">
+                  <h3 className="text-xl font-bold text-foreground mb-6 tracking-tight flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                    {language === 'ar' ? 'أكثر العقارات زيارة' : 'Top Properties'}
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {analytics.propertiesViews.map((item, idx) => {
+                      const prop = properties.find(p => p.id === item.propertyId);
+                      const title = prop ? (language === 'ar' ? prop.titleAr : prop.titleEn) : (language === 'ar' ? 'عقار تم حذفه' : 'Deleted Property');
+                      
+                      return (
+                        <motion.a
+                          href={prop ? `/properties/${prop.id}` : '#'}
+                          target="_blank"
+                          rel="noreferrer"
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1], delay: idx * 0.04 }}
+                          key={idx}
+                          className={`flex justify-between items-center p-4 bg-card hover:bg-muted/40 rounded-xl border border-border/40 hover:border-indigo-500/20 dark:hover:border-indigo-500/30 transition-all duration-200 group active:scale-[0.99] ${prop ? 'cursor-pointer' : 'pointer-events-none'}`}
+                        >
+                          <span className="font-bold text-foreground truncate pr-4 text-sm">{title}</span>
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1 rounded-full text-xs flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-950 transition-colors">
+                            {item._count.propertyId} {language === 'ar' ? 'مشاهدة' : 'views'}
+                          </span>
+                        </motion.a>
+                      );
+                    })}
+                    {analytics.propertiesViews.length === 0 && (
+                      <p className="text-muted-foreground text-sm text-center py-6">{language === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {activeTab === 'settings' && (
-          <div className="min-h-[500px] w-full">
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border">
-              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                <SettingsIcon className="w-6 h-6 text-muted-foreground" />
+          <div className="min-h-[500px] w-full animate-in fade-in duration-300">
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border/80 group">
+              <div className="w-12 h-12 bg-primary/10 dark:bg-primary/5 text-primary border border-primary/20 rounded-2xl flex items-center justify-center shadow-xs transition-all duration-300 group-hover:scale-105 group-hover:-rotate-12">
+                <SettingsIcon className="w-6 h-6 text-primary animate-[spin_20s_linear_infinite]" />
               </div>
               <div>
-                <h2 className="text-3xl font-extrabold text-foreground leading-none">{t('admin.settings')}</h2>
-                <p className="text-muted-foreground font-medium mt-2 leading-none">{language === 'ar' ? 'إدارة إعدادات الموقع والتواصل' : 'Manage site and contact settings'}</p>
+                <h2 className="text-3xl font-black text-foreground tracking-tight select-none leading-none">
+                  {t('admin.settings')}
+                </h2>
+                <p className="text-muted-foreground font-medium text-xs mt-2 select-none leading-none">
+                  {language === 'ar' ? 'إدارة إعدادات الموقع والتواصل' : 'Manage site and contact settings'}
+                </p>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
-              {/* Settings Sidebar */}
-              <div className="col-span-1 flex flex-col gap-1.5 bg-card border border-border p-2 rounded-xl">
-                {[
-                  { section: 'whatsapp', labelAr: 'التواصل والواتساب', labelEn: 'WhatsApp & Social', icon: <MessageSquare className="w-4 h-4" /> },
-                  { section: 'email', labelAr: 'البريد الإلكتروني', labelEn: 'Email Settings', icon: <Mail className="w-4 h-4" /> },
-                  { section: 'otp', labelAr: 'رمز التحقق (OTP)', labelEn: 'OTP Verification', icon: <KeyRound className="w-4 h-4" /> },
-                  { section: 'images', labelAr: 'صور الموقع', labelEn: 'Site Images', icon: <ImagePlus className="w-4 h-4" /> },
-                  { section: 'backup', labelAr: 'نسخة احتياطية', labelEn: 'Database Backup', icon: <Database className="w-4 h-4" /> },
-                  { section: 'techhub', labelAr: 'ربط TechHub', labelEn: 'TechHub Sync', icon: <RefreshCw className="w-4 h-4" /> },
-                ].map((item) => (
+            {/* Horizontal Settings Tabs (Next to each other) */}
+            <div className="flex flex-wrap gap-1.5 bg-card/65 backdrop-blur-md border border-border/80 p-2 rounded-2xl shadow-xs mb-6 max-w-full overflow-x-auto">
+              {[
+                { section: 'whatsapp', labelAr: 'التواصل والواتساب', labelEn: 'WhatsApp & Social', icon: <MessageSquare className="w-4 h-4" /> },
+                { section: 'email', labelAr: 'البريد الإلكتروني', labelEn: 'Email Settings', icon: <Mail className="w-4 h-4" /> },
+                { section: 'otp', labelAr: 'رمز التحقق (OTP)', labelEn: 'OTP Verification', icon: <KeyRound className="w-4 h-4" /> },
+                { section: 'images', labelAr: 'صور الموقع', labelEn: 'Site Images', icon: <ImagePlus className="w-4 h-4" /> },
+                { section: 'backup', labelAr: 'نسخة احتياطية', labelEn: 'Database Backup', icon: <Database className="w-4 h-4" /> },
+                { section: 'techhub', labelAr: 'ربط TechHub', labelEn: 'TechHub Sync', icon: <RefreshCw className="w-4 h-4" /> },
+              ].map((item) => {
+                const isActive = activeSettingsSection === item.section;
+                return (
                   <button
                     key={item.section}
                     type="button"
                     onClick={() => setActiveSettingsSection(item.section as any)}
-                    className={`flex items-center gap-3 w-full py-2.5 px-3 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                      activeSettingsSection === item.section 
-                        ? 'bg-primary text-primary-foreground shadow-sm' 
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    className={`relative flex items-center gap-2 py-2.5 px-4 text-xs font-bold rounded-xl transition-all cursor-pointer select-none active:scale-[0.97] duration-150 ${
+                      isActive 
+                        ? 'text-primary-foreground font-extrabold shadow-xs' 
+                        : 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
                     }`}
                   >
-                    {item.icon}
-                    <span>{language === 'ar' ? item.labelAr : item.labelEn}</span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeSettingsSectionBg"
+                        className="absolute inset-0 bg-primary rounded-xl -z-10"
+                        transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {item.icon}
+                      <span>{language === 'ar' ? item.labelAr : item.labelEn}</span>
+                    </span>
                   </button>
-                ))}
-              </div>
-              
-              {/* Settings Form Content */}
-              <form onSubmit={handleSaveSettings} className="col-span-1 md:col-span-3 space-y-6 bg-card border border-border p-6 rounded-xl">
-              
-              {activeSettingsSection === 'whatsapp' && (
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">{language === 'ar' ? 'إعدادات الواتساب والتواصل والموقع' : 'WhatsApp, Social & Location Settings'}</h3>
-                  
-                  {/* WhatsApp Fields */}
-                  <div className="space-y-6">
-                    <div>
-                      <label className="cn-label mb-2">{t('admin.placeholder.whatsapp')}</label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pe-2.5 pointer-events-none text-gray-400">
-                          <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                        </div>
-                        <input
-                          required
-                          type="text"
-                          value={whatsappNumber}
-                          onChange={(e) => setWhatsappNumber(e.target.value)}
-                          className="cn-input font-mono !ps-12 pe-4 h-12 bg-background transition-all"
-                          placeholder="966500000000"
-                          dir="ltr"
-                        />
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-sm">
-                        {language === 'ar' ? 'أدخل الرقم مع رمز الدولة بدون (+) أو (00). مثال: ' : 'Include country code without + or 00. Example: '}
-                        <span className="font-mono text-xs bg-muted px-1 rounded block mt-1 w-max">966500000000</span>
-                      </p>
-                    </div>
+                );
+              })}
+            </div>
 
-                    <div>
-                      <label className="cn-label mb-2">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pe-2.5 pointer-events-none text-gray-400">
-                          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                        </div>
-                        <input
-                          required
-                          type="text"
-                          value={callingNumber}
-                          onChange={(e) => setCallingNumber(e.target.value)}
-                          className="cn-input font-mono !ps-12 pe-4 h-12 bg-background transition-all"
-                          placeholder="966500000000"
-                          dir="ltr"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="cn-label mb-2">{language === 'ar' ? 'نص رسالة الواتساب الافتراضي' : 'Default WhatsApp Message'}</label>
-                      <textarea
-                        required
-                        rows={3}
-                        value={whatsappMessage}
-                        onChange={(e) => setWhatsappMessage(e.target.value)}
-                        className="cn-input resize-none min-h-[100px] font-medium"
-                        placeholder={language === 'ar' ? 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}' : 'Hello, I am interested in this property: {title} - {link}'}
-                      />
-                      <div className="mt-3 text-sm text-muted-foreground bg-card p-3 rounded-lg border border-border">
-                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-muted-foreground">
-                          <Info className="w-4 h-4" />
-                          {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
-                        </p>
-                        <ul className="list-disc list-inside space-y-1 font-mono text-xs">
-                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{title}'}</span> - {language === 'ar' ? 'عنوان العقار' : 'Property Title'}</li>
-                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{link}'}</span> - {language === 'ar' ? 'رابط صفحة العقار' : 'Property Page Link'}</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Social Media & Contact Section */}
-                  <div className="border-t border-border pt-6 mt-6">
-                    <h4 className="text-sm font-bold text-foreground mb-4">
-                      {language === 'ar' ? 'وسائل التواصل الاجتماعي والبريد الإلكتروني' : 'Social Media & Email'}
-                    </h4>
-                    <p className="text-xs text-muted-foreground mb-4">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
-                    <div className="space-y-4">
-                      {[
-                        { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: <Mail className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                        { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: <IgIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                        { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: <XIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                        { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: <FbIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                        { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                        { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                        { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                        { label: 'Snapchat', value: snapchatUrl, setter: setSnapchatUrl, placeholder: 'https://snapchat.com/add/benaandedara', type: 'url', icon: <SnapIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                      ].map(field => (
-                        <div key={field.label}>
-                          <label className="block text-sm font-bold text-muted-foreground mb-1 flex items-center">
-                            {field.icon} <span>{field.label}</span>
-                          </label>
-                          <input
-                            type={field.type}
-                            value={field.value}
-                            onChange={e => field.setter(e.target.value)}
-                            className="cn-input text-sm h-11 bg-background"
-                            placeholder={field.placeholder}
-                            dir="ltr"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Headquarters Location Section */}
-                  <div className="border-t border-border pt-6 mt-6 space-y-4">
-                    <h4 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-primary" />
-                      <span>{language === 'ar' ? 'موقع المقر الرئيسي للمنشأة' : 'Headquarters Physical Location'}</span>
-                    </h4>
-                    
-                    <div>
-                      <label className="block text-sm font-bold text-muted-foreground mb-1">
-                        {language === 'ar' ? 'العنوان (بالعربية)' : 'Address (Arabic)'}
-                      </label>
-                      <input
-                        type="text"
-                        value={addressAr}
-                        onChange={e => setAddressAr(e.target.value)}
-                        className="cn-input text-sm h-11 bg-background"
-                        placeholder={language === 'ar' ? 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز...' : 'Saudi Arabia, Riyadh, King Abdul Aziz Road...'}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-muted-foreground mb-1">
-                        {language === 'ar' ? 'العنوان (بالإنجليزي)' : 'Address (English)'}
-                      </label>
-                      <input
-                        type="text"
-                        value={addressEn}
-                        onChange={e => setAddressEn(e.target.value)}
-                        className="cn-input text-sm h-11 bg-background"
-                        placeholder="King Abdul Aziz Road, Al Yasmin district, Riyadh..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-muted-foreground mb-1">
-                        {language === 'ar' ? 'رابط خريطة جوجل' : 'Google Maps Location Link'}
-                      </label>
-                      <input
-                        type="text"
-                        value={addressMapLink}
-                        onChange={e => setAddressMapLink(e.target.value)}
-                        className="cn-input text-sm h-11 bg-background"
-                        placeholder="https://maps.google.com/?q=..."
-                        dir="ltr"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSettingsSection === 'email' && (
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">{language === 'ar' ? 'إعدادات البريد الإلكتروني للطلبات' : 'Callback Notification Email Settings'}</h3>
-                  <div className="space-y-6">
-
-
-                    <div className="border-t border-border/60 pt-6 mt-6 space-y-4">
-                      <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم SMTP' : 'SMTP Server Settings'}</h4>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'خادم SMTP (Host)' : 'SMTP Host'}</label>
-                          <input
-                            type="text"
-                            value={smtpHost}
-                            onChange={(e) => setSmtpHost(e.target.value)}
-                            className="cn-input font-mono text-xs bg-background"
-                            placeholder="smtp.gmail.com"
-                            dir="ltr"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'منفذ SMTP (Port)' : 'SMTP Port'}</label>
-                          <input
-                            type="number"
-                            value={smtpPort}
-                            onChange={(e) => setSmtpPort(e.target.value)}
-                            className="cn-input font-mono text-xs bg-background"
-                            placeholder="587"
-                            dir="ltr"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'اسم المستخدم (User)' : 'SMTP Username'}</label>
-                          <input
-                            type="text"
-                            value={smtpUser}
-                            onChange={(e) => setSmtpUser(e.target.value)}
-                            className="cn-input font-mono text-xs bg-background"
-                            placeholder="user@example.com"
-                            dir="ltr"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'كلمة المرور (Password)' : 'SMTP Password'}</label>
-                          <input
-                            type="password"
-                            value={smtpPass}
-                            onChange={(e) => setSmtpPass(e.target.value)}
-                            className="cn-input font-mono text-xs bg-background"
-                            placeholder="••••••••"
-                            dir="ltr"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'بريد المرسل (From)' : 'Sender Email (From)'}</label>
-                        <input
-                          type="email"
-                          value={smtpFrom}
-                          onChange={(e) => setSmtpFrom(e.target.value)}
-                          className="cn-input font-mono text-xs bg-background"
-                          placeholder="no-reply@yourdomain.com"
-                          dir="ltr"
-                        />
-                      </div>
-
-                      <div className="border-t border-border/60 pt-6 mt-6 space-y-4">
-                        <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم البريد الوارد IMAP (لاستلام الردود)' : 'IMAP Inbound Mail Settings (For replies)'}</h4>
+            {/* Settings Form Content */}
+            <form onSubmit={handleSaveSettings} className="w-full min-w-0 bg-card/40 backdrop-blur-md border border-border/80 p-6 rounded-2xl shadow-xs relative flex flex-col min-h-[450px] justify-between">
+              <div className="flex-1 min-w-0">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSettingsSection}
+                    initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
+                    transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                    className="space-y-6 min-w-0"
+                  >
+                    {activeSettingsSection === 'whatsapp' && (
+                      <div className="space-y-6">
+                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">{language === 'ar' ? 'إعدادات الواتساب والتواصل والموقع' : 'WhatsApp, Social & Location Settings'}</h3>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* WhatsApp Fields Group (Side-by-Side) */}
+                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
+                          <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">{language === 'ar' ? 'أرقام التواصل والرسائل' : 'Contact Numbers & Templates'}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="cn-label">{t('admin.placeholder.whatsapp')}</label>
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
+                                  <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                </div>
+                                <input
+                                  required
+                                  type="text"
+                                  value={whatsappNumber}
+                                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                                  className="cn-input font-mono pl-12 pr-4 h-11 bg-background transition-all"
+                                  placeholder="966500000000"
+                                  dir="ltr"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="cn-label">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
+                                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                </div>
+                                <input
+                                  required
+                                  type="text"
+                                  value={callingNumber}
+                                  onChange={(e) => setCallingNumber(e.target.value)}
+                                  className="cn-input font-mono pl-12 pr-4 h-11 bg-background transition-all"
+                                  placeholder="966500000000"
+                                  dir="ltr"
+                                />
+                              </div>
+                            </div>
+                          </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'خادم IMAP (Host)' : 'IMAP Host'}</label>
+                            <label className="cn-label">{language === 'ar' ? 'نص رسالة الواتساب الافتراضي' : 'Default WhatsApp Message'}</label>
+                            <textarea
+                              required
+                              rows={3}
+                              value={whatsappMessage}
+                              onChange={(e) => setWhatsappMessage(e.target.value)}
+                              className="cn-input resize-none min-h-[90px] font-medium"
+                              placeholder={language === 'ar' ? 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}' : 'Hello, I am interested in this property: {title} - {link}'}
+                            />
+                            <div className="mt-2 text-xs text-muted-foreground bg-muted/40 p-3 rounded-xl border border-border/50">
+                              <p className="font-bold flex items-center gap-1.5 mb-1.5 text-foreground">
+                                <Info className="w-3.5 h-3.5 text-primary" />
+                                {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
+                              </p>
+                              <div className="flex gap-2 font-mono text-[10px]">
+                                <span className="text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{'{title}'}</span>
+                                <span className="text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{'{link}'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Social Networks Group (Side-by-Side Grid) */}
+                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
+                          <div>
+                            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                              {language === 'ar' ? 'وسائل التواصل الاجتماعي والبريد الإلكتروني' : 'Social Media & Email'}
+                            </h4>
+                            <p className="text-[11px] text-muted-foreground mt-1">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[
+                              { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: <Mail className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                              { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: <IgIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                              { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: <XIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                              { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: <FbIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                              { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                              { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                              { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                              { label: 'Snapchat', value: snapchatUrl, setter: setSnapchatUrl, placeholder: 'https://snapchat.com/add/benaandedara', type: 'url', icon: <SnapIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
+                            ].map(field => (
+                              <div key={field.label} className="space-y-1.5">
+                                <label className="block text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                                  {field.icon} <span>{field.label}</span>
+                                </label>
+                                <input
+                                  type={field.type}
+                                  value={field.value}
+                                  onChange={e => field.setter(e.target.value)}
+                                  className="cn-input text-xs h-10 bg-background"
+                                  placeholder={field.placeholder}
+                                  dir="ltr"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Headquarters Location Group (Side-by-Side Address) */}
+                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
+                          <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">{language === 'ar' ? 'مقر الشركة وعنوانها' : 'Company HQ & Address'}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="block text-xs font-bold text-muted-foreground">
+                                {language === 'ar' ? 'العنوان (بالعربية)' : 'Address (Arabic)'}
+                              </label>
+                              <input
+                                type="text"
+                                value={addressAr}
+                                onChange={e => setAddressAr(e.target.value)}
+                                className="cn-input text-xs h-10 bg-background"
+                                placeholder={language === 'ar' ? 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز...' : 'Saudi Arabia, Riyadh, King Abdul Aziz Road...'}
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="block text-xs font-bold text-muted-foreground">
+                                {language === 'ar' ? 'العنوان (بالإنجليزي)' : 'Address (English)'}
+                              </label>
+                              <input
+                                type="text"
+                                value={addressEn}
+                                onChange={e => setAddressEn(e.target.value)}
+                                className="cn-input text-xs h-10 bg-background"
+                                placeholder="King Abdul Aziz Road, Al Yasmin district, Riyadh..."
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="block text-xs font-bold text-muted-foreground">
+                              {language === 'ar' ? 'رابط خريطة جوجل' : 'Google Maps Location Link'}
+                            </label>
                             <input
                               type="text"
-                              value={imapHost}
-                              onChange={(e) => setImapHost(e.target.value)}
-                              className="cn-input font-mono text-xs bg-background"
-                              placeholder="imap.gmail.com"
-                              dir="ltr"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'منفذ IMAP (Port)' : 'IMAP Port'}</label>
-                            <input
-                              type="number"
-                              value={imapPort}
-                              onChange={(e) => setImapPort(e.target.value)}
-                              className="cn-input font-mono text-xs bg-background"
-                              placeholder="993"
+                              value={addressMapLink}
+                              onChange={e => setAddressMapLink(e.target.value)}
+                              className="cn-input text-xs h-10 bg-background"
+                              placeholder="https://maps.google.com/?q=..."
                               dir="ltr"
                             />
                           </div>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          {language === 'ar' 
-                            ? 'سيتم استخدام اسم المستخدم وكلمة المرور الخاصة بخادم SMTP تلقائياً لتسجيل الدخول إلى خادم IMAP.' 
-                            : 'The SMTP Username and Password will be automatically used to authenticate with the IMAP server.'}
-                        </p>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                    )}
 
-              {activeSettingsSection === 'otp' && (
-                <div>
-                  <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-5 inline-block">
-                    {language === 'ar' ? 'إعدادات تسجيل المستأجرين (OTP Webhook)' : 'Renter Login Settings (OTP Webhook)'}
-                  </h3>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <label className="cn-label mb-2">
-                         {language === 'ar' ? 'رابط الويب هوك (Whatomate URL)' : 'Webhook URL (Whatomate)'}
-                      </label>
-                      <input
-                        type="url"
-                        value={otpWebhookUrl}
-                        onChange={(e) => setOtpWebhookUrl(e.target.value)}
-                        className="cn-input font-medium dir-ltr"
-                        placeholder="https://hook.us2.make.com/..."
-                      />
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {language === 'ar' ? 'اتركه فارغاً لتعطيل إرسال الرسائل عبر الويب هوك.' : 'Leave empty to disable sending webhooks.'}
-                      </p>
-                    </div>
+                    {activeSettingsSection === 'email' && (
+                      <div className="space-y-6">
+                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">{language === 'ar' ? 'إعدادات البريد الإلكتروني للطلبات' : 'Callback Notification Email Settings'}</h3>
+                        
+                        {/* SMTP Config Group (Side-by-Side columns) */}
+                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
+                          <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم SMTP' : 'SMTP Server Settings'}</h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'خادم SMTP (Host)' : 'SMTP Host'}</label>
+                              <input
+                                type="text"
+                                value={smtpHost}
+                                onChange={(e) => setSmtpHost(e.target.value)}
+                                className="cn-input font-mono text-xs bg-background"
+                                placeholder="smtp.gmail.com"
+                                dir="ltr"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'منفذ SMTP (Port)' : 'SMTP Port'}</label>
+                              <input
+                                type="number"
+                                value={smtpPort}
+                                onChange={(e) => setSmtpPort(e.target.value)}
+                                className="cn-input font-mono text-xs bg-background"
+                                placeholder="587"
+                                dir="ltr"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'بريد المرسل (From)' : 'Sender Email (From)'}</label>
+                              <input
+                                type="email"
+                                value={smtpFrom}
+                                onChange={(e) => setSmtpFrom(e.target.value)}
+                                className="cn-input font-mono text-xs bg-background"
+                                placeholder="no-reply@yourdomain.com"
+                                dir="ltr"
+                              />
+                            </div>
+                          </div>
 
-                    <div>
-                      <label className="cn-label mb-2">
-                        {language === 'ar' ? 'قالب رسالة رمز التحقق' : 'OTP Message Template'}
-                      </label>
-                      <textarea
-                        required
-                        rows={2}
-                        value={otpMessageTemplate}
-                        onChange={(e) => setOtpMessageTemplate(e.target.value)}
-                        className="cn-input resize-none min-h-[100px] font-medium"
-                        placeholder={language === 'ar' ? 'رمز التحقق الخاص بك هو: {otp}' : 'Your verification code is: {otp}'}
-                      />
-                      <div className="mt-3 text-sm text-muted-foreground bg-card p-3 rounded-lg border border-border">
-                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-muted-foreground">
-                          <Info className="w-4 h-4" />
-                          {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
-                        </p>
-                        <ul className="list-disc list-inside space-y-1 font-mono text-xs">
-                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{otp}'}</span> - {language === 'ar' ? 'رمز التحقق المكون من 4 أرقام' : 'The 4-digit verification code'}</li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="cn-label mb-2">
-                         {language === 'ar' ? 'قالب JSON لإرسال الويب هوك (Whatomate JSON)' : 'Webhook JSON Payload Template'}
-                      </label>
-                      <textarea
-                        required
-                        rows={6}
-                        value={otpWebhookPayload}
-                        onChange={(e) => setOtpWebhookPayload(e.target.value)}
-                        className="w-full border border-border rounded-xl p-3 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all font-mono text-xs dir-ltr bg-card"
-                        placeholder={'{\n  "phone": "{phone}",\n  "type": "template"\n}'}
-                      />
-                      <div className="mt-3 text-sm text-muted-foreground bg-card p-3 rounded-lg border border-border">
-                        <p className="font-bold flex items-center gap-1.5 mb-1.5 text-muted-foreground">
-                          <Info className="w-4 h-4" />
-                          {language === 'ar' ? 'المتغيرات المدعومة في قالب JSON:' : 'Supported Variables in JSON:'}
-                        </p>
-                        <ul className="list-disc list-inside space-y-1 font-mono text-xs mb-2">
-                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{phone}'}</span> - {language === 'ar' ? 'رقم جوال المستأجر' : 'Renter phone number'}</li>
-                          <li><span className="text-blue-600 bg-blue-50 px-1 rounded">{'{otp}'}</span> - {language === 'ar' ? 'رمز التحقق' : 'Verification code'}</li>
-                        </ul>
-                        <p className="text-xs">
-                          {language === 'ar' 
-                             ? 'يمكنك وضع صيغة JSON المطلوبة من Whatomate (مثلاً الرسائل القالبية WhatsApp Templates)، وسيتم استبدال المتغيرات قبل الإرسال.' 
-                             : 'You can define the exact JSON payload expected by Whatomate (e.g. WhatsApp Templates) and variables will be replaced before sending.'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSettingsSection === 'images' && (() => {
-                const imageSlots = [
-                  {
-                    key: 'logo' as const,
-                    labelAr: 'شعار الموقع (Logo)',
-                    labelEn: 'Site Logo',
-                    hintAr: 'يظهر في شريط التنقل والتذييل. يفضل PNG بخلفية شفافة.',
-                    hintEn: 'Appears in navbar & footer. PNG with transparent background preferred.',
-                    current: logoUrl,
-                    onUpload: (base64: string) => setLogoUrl(base64),
-                    onRemove: () => setLogoUrl(null),
-                  },
-                  {
-                    key: 'hero' as const,
-                    labelAr: 'صورة الخلفية الرئيسية (Hero)',
-                    labelEn: 'Hero Background Image',
-                    hintAr: 'الصورة الكبيرة خلف عنوان الصفحة الرئيسية.',
-                    hintEn: 'The large background image behind the main page title.',
-                    current: homeImages.hero,
-                    onUpload: (base64: string) => setHomeImages(p => ({ ...p, hero: base64 })),
-                    onRemove: () => setHomeImages(p => ({ ...p, hero: null })),
-                  },
-                  {
-                    key: 'promoVideo' as const,
-                    labelAr: 'فيديو العرض التعريفي في الصفحة الرئيسية',
-                    labelEn: 'Promotional Video for Home Page',
-                    hintAr: 'يمكنك رفع ملف فيديو (MP4) أو إدخال رابط فيديو مباشر في الحقل أدناه.',
-                    hintEn: 'You can upload a video file (MP4) or enter a direct video URL in the field below.',
-                    current: homeImages.promoVideo,
-                    isVideo: true,
-                    onUpload: (val: string) => setHomeImages(p => ({ ...p, promoVideo: val })),
-                    onRemove: () => setHomeImages(p => ({ ...p, promoVideo: null })),
-                  },
-                ];
-
-                const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, isVideo: boolean, onUpload: (b: string) => void) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const maxSize = isVideo ? 500 * 1024 * 1024 : 250 * 1024 * 1024;
-                  if (file.size > maxSize) {
-                    await showAlert(
-                      language === 'ar'
-                        ? `حجم الملف يتجاوز ${isVideo ? '500MB' : '250MB'}`
-                        : `File exceeds ${isVideo ? '500MB' : '250MB'} limit`
-                    );
-                    return;
-                  }
-                  setImageSlotUploading(slotKey);
-                  let base64 = '';
-                  if (isVideo) {
-                    try {
-                      const fd = new FormData();
-                      fd.append('file', file);
-                      const res = await fetch('/api/admin/upload-home-video', {
-                        method: 'POST',
-                        body: fd,
-                      });
-                      const data = await res.json().catch(() => ({}));
-                      if (!res.ok) {
-                        throw new Error(data.error || 'Failed to upload video');
-                      }
-                      onUpload(data.url);
-                    } catch (uploadErr) {
-                      console.error(uploadErr);
-                      await showAlert(language === 'ar' ? 'فشل رفع الفيديو' : 'Failed to upload video');
-                    } finally {
-                      setImageSlotUploading(null);
-                      e.target.value = '';
-                    }
-                    return;
-                  } else if (slotKey === 'hero') {
-                    base64 = await compressImage(file, 2560, 1440, 0.92);
-                  } else if (slotKey === 'logo') {
-                    base64 = await compressImage(file, 512, 512, 0.95);
-                  }
-                  onUpload(base64);
-                  setImageSlotUploading(null);
-                  e.target.value = '';
-                };
-
-                return (
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">
-                      {language === 'ar' ? 'وسائط الصفحة الرئيسية والشعار' : 'Home Page Media & Logo'}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      {language === 'ar'
-                        ? 'ارفع شعار الموقع، صورة الخلفية الرئيسية، وفيديو العرض التعريفي.'
-                        : 'Upload site logo, hero background image, and homepage video.'}
-                    </p>
-                    <div className="space-y-6">
-                      {imageSlots.map(slot => (
-                        <div key={slot.key} className="border border-border rounded-2xl p-5 bg-muted/20 hover:bg-muted/40 transition-colors">
-                          <p className="font-bold text-foreground text-sm mb-1">
-                            {language === 'ar' ? slot.labelAr : slot.labelEn}
-                          </p>
-                          {(slot.hintAr || slot.hintEn) && (
-                            <p className="text-xs text-muted-foreground mb-3">
-                              {language === 'ar' ? slot.hintAr : slot.hintEn}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-4 flex-wrap mt-3">
-                            {slot.current ? (
-                              <div className="relative w-28 h-20 rounded-xl overflow-hidden border-2 border-primary bg-muted flex-shrink-0 flex items-center justify-center">
-                                {slot.isVideo ? (
-                                  <video src={slot.current} className="w-full h-full object-cover" muted />
-                                ) : (
-                                  <img src={slot.current} alt="preview" className="w-full h-full object-cover" />
-                                )}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'اسم المستخدم (User)' : 'SMTP Username'}</label>
+                              <input
+                                type="text"
+                                value={smtpUser}
+                                onChange={(e) => setSmtpUser(e.target.value)}
+                                className="cn-input font-mono text-xs bg-background"
+                                placeholder="user@example.com"
+                                dir="ltr"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'كلمة المرور (Password)' : 'SMTP Password'}</label>
+                              <div className="relative">
+                                <input
+                                  type={showSmtpPass ? 'text' : 'password'}
+                                  value={smtpPass}
+                                  onChange={(e) => setSmtpPass(e.target.value)}
+                                  className="cn-input font-mono text-xs bg-background pe-10"
+                                  placeholder="••••••••"
+                                  dir="ltr"
+                                />
                                 <button
                                   type="button"
-                                  onClick={slot.onRemove}
-                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow cursor-pointer"
-                                  title={language === 'ar' ? (slot.isVideo ? 'حذف الفيديو' : 'حذف الصورة') : (slot.isVideo ? 'Remove video' : 'Remove image')}
+                                  onClick={() => setShowSmtpPass(!showSmtpPass)}
+                                  className="absolute inset-y-0 end-0 flex items-center pe-3 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                                 >
-                                  <X className="w-3 h-3" />
+                                  {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                               </div>
-                            ) : (
-                              <div className="w-28 h-20 rounded-xl border-2 border-dashed border-border bg-card flex flex-col items-center justify-center flex-shrink-0">
-                                <ImagePlus className="w-6 h-6 text-muted-foreground/60" />
-                                <span className="text-xs text-muted-foreground/80 mt-1">{language === 'ar' ? 'افتراضية' : 'Default'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* IMAP Config Group (Side-by-Side columns) */}
+                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
+                          <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم البريد الوارد IMAP (لاستلام الردود)' : 'IMAP Inbound Mail Settings (For replies)'}</h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'خادم IMAP (Host)' : 'IMAP Host'}</label>
+                              <input
+                                type="text"
+                                value={imapHost}
+                                onChange={(e) => setImapHost(e.target.value)}
+                                className="cn-input font-mono text-xs bg-background"
+                                placeholder="imap.gmail.com"
+                                dir="ltr"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'منفذ IMAP (Port)' : 'IMAP Port'}</label>
+                              <input
+                                type="number"
+                                value={imapPort}
+                                onChange={(e) => setImapPort(e.target.value)}
+                                className="cn-input font-mono text-xs bg-background"
+                                placeholder="993"
+                                dir="ltr"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground bg-muted/30 p-2.5 rounded-xl border border-border/55 leading-relaxed">
+                            {language === 'ar' 
+                              ? 'سيتم استخدام اسم المستخدم وكلمة المرور الخاصة بخادم SMTP تلقائياً لتسجيل الدخول إلى خادم IMAP.' 
+                              : 'The SMTP Username and Password will be automatically used to authenticate with the IMAP server.'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeSettingsSection === 'otp' && (
+                      <div className="space-y-6">
+                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">
+                          {language === 'ar' ? 'إعدادات تسجيل المستأجرين (OTP Webhook)' : 'Renter Login Settings (OTP Webhook)'}
+                        </h3>
+                        
+                        {/* 2-Column Split: Webhook & template left, Code editor right */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-5 bg-muted/10 p-5 rounded-2xl flex flex-col justify-between">
+                            <div className="space-y-4">
+                              <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات الويب هوك والقالب' : 'Webhook & Template Settings'}</h4>
+                              
+                              <div className="space-y-1.5">
+                                <label className="cn-label">
+                                   {language === 'ar' ? 'رابط الويب هوك (Whatomate URL)' : 'Webhook URL (Whatomate)'}
+                                </label>
+                                <input
+                                  type="url"
+                                  value={otpWebhookUrl}
+                                  onChange={(e) => setOtpWebhookUrl(e.target.value)}
+                                  className="cn-input font-medium h-11 dir-ltr"
+                                  placeholder="https://hook.us2.make.com/..."
+                                />
+                                <p className="text-[10px] text-muted-foreground leading-none">
+                                  {language === 'ar' ? 'اتركه فارغاً لتعطيل إرسال الرسائل عبر الويب هوك.' : 'Leave empty to disable sending webhooks.'}
+                                </p>
                               </div>
-                            )}
+
+                              <div className="space-y-1.5">
+                                <label className="cn-label">
+                                  {language === 'ar' ? 'قالب رسالة رمز التحقق' : 'OTP Message Template'}
+                                </label>
+                                <textarea
+                                  required
+                                  rows={3}
+                                  value={otpMessageTemplate}
+                                  onChange={(e) => setOtpMessageTemplate(e.target.value)}
+                                  className="cn-input resize-none min-h-[90px] font-medium"
+                                  placeholder={language === 'ar' ? 'رمز التحقق الخاص بك هو: {otp}' : 'Your verification code is: {otp}'}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4 text-[11px] text-muted-foreground bg-muted/30 p-3 rounded-xl border border-border/55">
+                              <p className="font-bold flex items-center gap-1.5 mb-1 text-foreground">
+                                <Info className="w-3.5 h-3.5 text-primary" />
+                                {language === 'ar' ? 'المتغيرات المدعومة في القالب:' : 'Supported Variables in Template:'}
+                              </p>
+                              <span className="font-mono text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/10 inline-block">{'{otp}'}</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5 bg-muted/10 p-5 rounded-2xl flex flex-col justify-between">
+                            <div className="space-y-4">
+                              <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'قالب حزمة البيانات (JSON Payload)' : 'JSON Webhook Payload'}</h4>
+                              <textarea
+                                required
+                                rows={6}
+                                value={otpWebhookPayload}
+                                onChange={(e) => setOtpWebhookPayload(e.target.value)}
+                                className="w-full border border-border/80 rounded-2xl p-4 transition-all font-mono text-xs dir-ltr bg-zinc-950 text-emerald-400 focus:ring-2 focus:ring-primary focus:border-primary shadow-inner min-h-[160px]"
+                                placeholder={'{\n  "phone": "{phone}",\n  "type": "template"\n}'}
+                              />
+                            </div>
+                            <div className="mt-4 text-xs text-muted-foreground bg-muted/30 p-3.5 rounded-2xl border border-border/60">
+                              <p className="font-bold flex items-center gap-1.5 mb-2 text-foreground">
+                                <Info className="w-4 h-4 text-primary" />
+                                {language === 'ar' ? 'المتغيرات المدعومة في قالب JSON:' : 'Supported Variables in JSON:'}
+                              </p>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                <span className="font-mono text-[10px] bg-primary/10 text-primary border border-primary/25 px-2 py-0.5 rounded-lg select-all cursor-pointer" title={language === 'ar' ? 'انقر للنسخ' : 'Click to copy'}>{'{phone}'}</span>
+                                <span className="font-mono text-[10px] bg-primary/10 text-primary border border-primary/25 px-2 py-0.5 rounded-lg select-all cursor-pointer" title={language === 'ar' ? 'انقر للنسخ' : 'Click to copy'}>{'{otp}'}</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed">
+                                {language === 'ar' 
+                                   ? 'يمكنك وضع صيغة JSON المطلوبة من Whatomate (مثلاً الرسائل القالبية WhatsApp Templates)، وسيتم استبدال المتغيرات قبل الإرسال.' 
+                                   : 'You can define the exact JSON payload expected by Whatomate (e.g. WhatsApp Templates) and variables will be replaced before sending.'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeSettingsSection === 'images' && (() => {
+                      const imageSlots = [
+                        {
+                          key: 'logo' as const,
+                          labelAr: 'شعار الموقع (Logo)',
+                          labelEn: 'Site Logo',
+                          hintAr: 'يظهر في شريط التنقل والتذييل. يفضل PNG بخلفية شفافة.',
+                          hintEn: 'Appears in navbar & footer. PNG with transparent background preferred.',
+                          current: logoUrl,
+                          onUpload: (base64: string) => setLogoUrl(base64),
+                          onRemove: () => setLogoUrl(null),
+                        },
+                        {
+                          key: 'hero' as const,
+                          labelAr: 'صورة الخلفية الرئيسية (Hero)',
+                          labelEn: 'Hero Background Image',
+                          hintAr: 'الصورة الكبيرة خلف عنوان الصفحة الرئيسية.',
+                          hintEn: 'The large background image behind the main page title.',
+                          current: homeImages.hero,
+                          onUpload: (base64: string) => setHomeImages(p => ({ ...p, hero: base64 })),
+                          onRemove: () => setHomeImages(p => ({ ...p, hero: null })),
+                        },
+                        {
+                          key: 'promoVideo' as const,
+                          labelAr: 'فيديو العرض التعريفي في الصفحة الرئيسية',
+                          labelEn: 'Promotional Video for Home Page',
+                          hintAr: 'يمكنك رفع ملف فيديو (MP4) أو إدخال رابط فيديو مباشر في الحقل أدناه.',
+                          hintEn: 'You can upload a video file (MP4) or enter a direct video URL in the field below.',
+                          current: homeImages.promoVideo,
+                          isVideo: true,
+                          onUpload: (val: string) => setHomeImages(p => ({ ...p, promoVideo: val })),
+                          onRemove: () => setHomeImages(p => ({ ...p, promoVideo: null })),
+                        },
+                      ];
+
+                      const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, isVideo: boolean, onUpload: (b: string) => void) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const maxSize = isVideo ? 500 * 1024 * 1024 : 250 * 1024 * 1024;
+                        if (file.size > maxSize) {
+                          await showAlert(
+                            language === 'ar'
+                              ? `حجم الملف يتجاوز ${isVideo ? '500MB' : '250MB'}`
+                              : `File exceeds ${isVideo ? '500MB' : '250MB'} limit`
+                          );
+                          return;
+                        }
+                        setImageSlotUploading(slotKey);
+                        let base64 = '';
+                        if (isVideo) {
+                          try {
+                            const fd = new FormData();
+                            fd.append('file', file);
+                            const res = await fetch('/api/admin/upload-home-video', {
+                              method: 'POST',
+                              body: fd,
+                            });
+                            const data = await res.json().catch(() => ({}));
+                            if (!res.ok) {
+                              throw new Error(data.error || 'Failed to upload video');
+                            }
+                            onUpload(data.url);
+                          } catch (uploadErr) {
+                            console.error(uploadErr);
+                            await showAlert(language === 'ar' ? 'فشل رفع الفيديو' : 'Failed to upload video');
+                          } finally {
+                            setImageSlotUploading(null);
+                            e.target.value = '';
+                          }
+                          return;
+                        } else if (slotKey === 'hero') {
+                          base64 = await compressImage(file, 2560, 1440, 0.92);
+                        } else if (slotKey === 'logo') {
+                          base64 = await compressImage(file, 512, 512, 0.95);
+                        }
+                        onUpload(base64);
+                        setImageSlotUploading(null);
+                        e.target.value = '';
+                      };
+
+                      return (
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">
+                              {language === 'ar' ? 'وسائط الصفحة الرئيسية والشعار' : 'Home Page Media & Logo'}
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {language === 'ar'
+                                ? 'ارفع شعار الموقع، صورة الخلفية الرئيسية، وفيديو العرض التعريفي لتهيئة المظهر البصري للموقع.'
+                                : 'Upload site logo, hero background image, and homepage video to set up your visual branding.'}
+                            </p>
+                          </div>
+                          
+                          {/* 3-Column side-by-side Layout */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {imageSlots.map(slot => { return (
+                              <div key={slot.key} className="rounded-2xl p-5 bg-muted/10 hover:bg-card/50 transition-all duration-300 shadow-xs flex flex-col justify-between h-full">
+                                <div>
+                                  <p className="font-bold text-foreground text-sm mb-1">
+                                    {language === 'ar' ? slot.labelAr : slot.labelEn}
+                                  </p>
+                                  {(slot.hintAr || slot.hintEn) && (
+                                    <p className="text-xs text-muted-foreground leading-relaxed mb-4 min-h-[48px]">
+                                      {language === 'ar' ? slot.hintAr : slot.hintEn}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex flex-col items-center gap-4 mt-2">
+                                  {slot.current ? (
+                                    <div className="relative w-full h-32 rounded-2xl overflow-hidden border-2 border-primary/85 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center shadow-xs transition-transform duration-300 hover:scale-[1.02] group/preview">
+                                      {slot.isVideo ? (
+                                        <video src={slot.current} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                                      ) : (
+                                        <img src={slot.current} alt="preview" className="w-full h-full object-cover" />
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={slot.onRemove}
+                                        className="absolute top-1.5 end-1.5 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-all duration-200 cursor-pointer shadow-md backdrop-blur-xs"
+                                        title={language === 'ar' ? (slot.isVideo ? 'حذف الفيديو' : 'حذف الصورة') : (slot.isVideo ? 'Remove video' : 'Remove image')}
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="w-full h-32 rounded-2xl border-2 border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center">
+                                      <ImagePlus className="w-8 h-8 text-muted-foreground/50" />
+                                      <span className="text-xs text-muted-foreground/60 mt-1.5 font-bold">{language === 'ar' ? 'افتراضية' : 'Default'}</span>
+                                    </div>
+                                  )}
+                                  <div className="w-full space-y-2 text-center">
+                                    <input
+                                      type="file"
+                                      accept={slot.isVideo ? "video/*" : "image/*"}
+                                      id={`img-slot-${slot.key}`}
+                                      className="hidden"
+                                      onChange={(e) => handleSlotUpload(e, slot.key, Boolean(slot.isVideo), slot.onUpload)}
+                                      disabled={imageSlotUploading === slot.key}
+                                    />
+                                    <label
+                                      htmlFor={`img-slot-${slot.key}`}
+                                      className={`inline-flex items-center justify-center gap-2 w-full py-2.5 border border-border/80 hover:border-primary/30 bg-card hover:bg-muted/40 text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-97 select-none ${
+                                        imageSlotUploading === slot.key ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                                      }`}
+                                    >
+                                      {imageSlotUploading === slot.key ? (
+                                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                      ) : (
+                                        <ImagePlus className="w-4 h-4 text-muted-foreground" />
+                                      )}
+                                      {slot.current
+                                        ? (slot.isVideo ? (language === 'ar' ? 'تغيير الفيديو' : 'Change Video') : (language === 'ar' ? 'تغيير الصورة' : 'Change Image'))
+                                        : (slot.isVideo ? (language === 'ar' ? 'رفع فيديو' : 'Upload Video') : (language === 'ar' ? 'رفع صورة' : 'Upload Image'))
+                                      }
+                                    </label>
+                                    <p className="text-[10px] text-muted-foreground leading-none">{language === 'ar' ? (slot.isVideo ? 'الحد الأقصى 500MB' : 'الحد الأقصى 250MB') : (slot.isVideo ? 'Max 500MB' : 'Max 250MB')}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ); })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {activeSettingsSection === 'backup' && (
+                      <div className="space-y-6">
+                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">
+                          {language === 'ar' ? 'نسخة احتياطية واستعادة' : 'Backup & Restore'}
+                        </h3>
+
+                        {/* 2-Column side-by-side Layout */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Download Backup */}
+                          <div className="rounded-2xl p-5 bg-muted/10 hover:bg-card/50 transition-all duration-300 shadow-xs flex flex-col justify-between gap-5">
+                            <div className="space-y-1">
+                              <h4 className="font-bold text-foreground text-sm">{language === 'ar' ? 'تنزيل نسخة احتياطية' : 'Download Backup'}</h4>
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                {language === 'ar'
+                                  ? 'تحميل ملف ZIP يحتوي على قاعدة البيانات كاملة (مع جميع الصور) وملفات الصور كملفات حقيقية.'
+                                  : 'Downloads a ZIP containing the full database (with all images embedded) plus extracted image files for convenience.'}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={backupLoading}
+                              onClick={async () => {
+                                setBackupLoading(true);
+                                try {
+                                  const res = await fetch('/api/admin/backup');
+                                  if (!res.ok) throw new Error('Failed');
+                                  const blob = await res.blob();
+                                  const cd = res.headers.get('Content-Disposition') || '';
+                                  const match = cd.match(/filename="(.+?)"/);
+                                  const filename = match ? match[1] : 'backup.zip';
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url; a.download = filename; a.click();
+                                  URL.revokeObjectURL(url);
+                                } catch(e) {
+                                  await showAlert(language === 'ar' ? 'فشل تنزيل النسخة.' : 'Backup download failed.');
+                                } finally { setBackupLoading(false); }
+                              }}
+                              className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-primary hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-xs transition-all duration-150 disabled:opacity-50 active:scale-[0.97] cursor-pointer"
+                            >
+                              {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                              {language === 'ar' ? 'تنزيل ZIP' : 'Download ZIP'}
+                            </button>
+                          </div>
+
+                          {/* Restore */}
+                          <div className="rounded-2xl p-5 bg-red-50/40 dark:bg-red-950/10 backdrop-blur-md shadow-xs flex flex-col justify-between gap-5">
+                            <div className="space-y-4">
+                              <div className="flex gap-3">
+                                <div className="w-10 h-10 bg-red-100 dark:bg-red-950/60 rounded-xl flex items-center justify-center flex-shrink-0 text-red-600 dark:text-red-400">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                </div>
+                                <div className="space-y-1 flex-1">
+                                  <h4 className="font-bold text-red-700 dark:text-red-400 text-sm">{language === 'ar' ? 'استعادة نسخة احتياطية' : 'Restore from Backup'}</h4>
+                                  <p className="text-xs text-red-600 dark:text-red-400/80 leading-relaxed">
+                                    {language === 'ar'
+                                      ? 'تحذير: سيتم مسح واستبدال قاعدة البيانات الحالية بالكامل. يرجى التأكد من رفع ملف ZIP صحيح تم تنزيله من نسخة احتياطية سابقة.'
+                                      : 'Warning: This will overwrite and completely replace the current database. Make sure you upload a valid .zip file.'}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {restoreMessage && (
+                                <div className={`p-3 rounded-xl text-xs font-bold ${restoreMessage.type === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'}`}>
+                                  {restoreMessage.text}
+                                </div>
+                              )}
+                            </div>
+                            
                             <div>
                               <input
                                 type="file"
-                                accept={slot.isVideo ? "video/*" : "image/*"}
-                                id={`img-slot-${slot.key}`}
+                                id="restore-file-input"
+                                accept=".zip"
                                 className="hidden"
-                                onChange={(e) => handleSlotUpload(e, slot.key, Boolean(slot.isVideo), slot.onUpload)}
-                                disabled={imageSlotUploading === slot.key}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const confirmed = await showConfirm(language === 'ar' ? 'هل أنت متأكد؟ سيتم استبدال قاعدة البيانات الحالية.' : 'Are you sure? This will replace the current database.');
+                                  if (!confirmed) return;
+                                  setRestoreLoading(true);
+                                  setRestoreMessage(null);
+                                  try {
+                                    const fd = new FormData();
+                                    fd.append('file', file);
+                                    const res = await fetch('/api/admin/restore', { method: 'POST', body: fd });
+                                    const data = await res.json();
+                                    if (res.ok) {
+                                      setRestoreMessage({ type: 'success', text: language === 'ar' ? 'تمت الاستعادة بنجاح. أعد تحميل الصفحة.' : 'Restore successful! Please reload the page.' });
+                                    } else {
+                                      setRestoreMessage({ type: 'error', text: data.error || 'Restore failed' });
+                                    }
+                                  } catch(err) {
+                                    setRestoreMessage({ type: 'error', text: 'Network error' });
+                                  } finally {
+                                    setRestoreLoading(false);
+                                    e.target.value = '';
+                                  }
+                                }}
                               />
                               <label
-                                htmlFor={`img-slot-${slot.key}`}
-                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-foreground text-sm font-bold cursor-pointer hover:bg-muted/40 transition-colors ${
-                                  imageSlotUploading === slot.key ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
+                                htmlFor="restore-file-input"
+                                className={`inline-flex items-center justify-center gap-2 w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors shadow-xs active:scale-[0.97] select-none ${restoreLoading ? 'opacity-50 pointer-events-none' : ''}`}
                               >
-                                {imageSlotUploading === slot.key ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <ImagePlus className="w-4 h-4 text-muted-foreground" />
-                                )}
-                                {slot.current
-                                  ? (slot.isVideo ? (language === 'ar' ? 'تغيير الفيديو' : 'Change Video') : (language === 'ar' ? 'تغيير الصورة' : 'Change Image'))
-                                  : (slot.isVideo ? (language === 'ar' ? 'رفع فيديو' : 'Upload Video') : (language === 'ar' ? 'رفع صورة' : 'Upload Image'))
-                                }
+                                {restoreLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                {language === 'ar' ? 'اختر ملف للاستعادة' : 'Choose File to Restore'}
                               </label>
-                              <p className="text-[10px] text-muted-foreground mt-2">{language === 'ar' ? (slot.isVideo ? 'الحد الأقصى 500MB' : 'الحد الأقصى 250MB') : (slot.isVideo ? 'Max 500MB' : 'Max 250MB')}</p>
                             </div>
-                            
-
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-
-
-
-              {activeSettingsSection === 'backup' && (
-                <div>
-                  <h3 className="text-lg font-bold text-foreground border-b border-border pb-3 mb-6">
-                    {language === 'ar' ? 'نسخة احتياطية واستعادة' : 'Backup & Restore'}
-                  </h3>
-
-                  {/* Download Backup */}
-                  <div className="border border-border rounded-2xl p-6 bg-card mb-6">
-                    <h4 className="font-bold text-foreground mb-1">{language === 'ar' ? 'تنزيل نسخة احتياطية' : 'Download Backup'}</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {language === 'ar'
-                        ? 'تحميل ملف ZIP يحتوي على قاعدة البيانات كاملة (مع جميع الصور) وملفات الصور كملفات حقيقية.'
-                        : 'Downloads a ZIP containing the full database (with all images embedded) plus extracted image files for convenience.'}
-                    </p>
-                    <button
-                      type="button"
-                      disabled={backupLoading}
-                      onClick={async () => {
-                        setBackupLoading(true);
-                        try {
-                          const res = await fetch('/api/admin/backup');
-                          if (!res.ok) throw new Error('Failed');
-                          const blob = await res.blob();
-                          const cd = res.headers.get('Content-Disposition') || '';
-                          const match = cd.match(/filename="(.+?)"/);
-                          const filename = match ? match[1] : 'backup.zip';
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url; a.download = filename; a.click();
-                          URL.revokeObjectURL(url);
-                        } catch(e) {
-                          await showAlert(language === 'ar' ? 'فشل تنزيل النسخة.' : 'Backup download failed.');
-                        } finally { setBackupLoading(false); }
-                      }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 btn-primary text-white font-bold rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50"
-                    >
-                      {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      {language === 'ar' ? 'تنزيل ZIP' : 'Download ZIP'}
-                    </button>
-                  </div>
-
-                  {/* Restore */}
-                  <div className="border border-red-100 rounded-2xl p-6 bg-red-50">
-                    <h4 className="font-bold text-red-700 mb-1">{language === 'ar' ? 'استعادة نسخة احتياطية' : 'Restore from Backup'}</h4>
-                    <p className="text-sm text-red-600 mb-4">
-                      {language === 'ar'
-                        ? 'تحذير: ستحل قاعدة البيانات الحالية. ارفع ملف ZIP من نسخة احتياطية سابقة.'
-                        : 'Warning: This will replace the current database. Upload a .zip file from a previous backup.'}
-                    </p>
-                    {restoreMessage && (
-                      <div className={`mb-4 p-3 rounded-xl text-sm font-bold ${restoreMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-200 text-red-800'}`}>
-                        {restoreMessage.text}
                       </div>
                     )}
-                    <input
-                      type="file"
-                      id="restore-file-input"
-                      accept=".zip"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const confirmed = await showConfirm(language === 'ar' ? 'هل أنت متأكد؟ سيتم استبدال قاعدة البيانات الحالية.' : 'Are you sure? This will replace the current database.');
-                        if (!confirmed) return;
-                        setRestoreLoading(true);
-                        setRestoreMessage(null);
-                        try {
-                          const fd = new FormData();
-                          fd.append('file', file);
-                          const res = await fetch('/api/admin/restore', { method: 'POST', body: fd });
-                          const data = await res.json();
-                          if (res.ok) {
-                            setRestoreMessage({ type: 'success', text: language === 'ar' ? 'تمت الاستعادة بنجاح. أعد تحميل الصفحة.' : 'Restore successful! Please reload the page.' });
-                          } else {
-                            setRestoreMessage({ type: 'error', text: data.error || 'Restore failed' });
-                          }
-                        } catch(err) {
-                          setRestoreMessage({ type: 'error', text: 'Network error' });
-                        } finally {
-                          setRestoreLoading(false);
-                          e.target.value = '';
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor="restore-file-input"
-                      className={`inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl cursor-pointer transition-colors ${restoreLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                    >
-                      {restoreLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                      {language === 'ar' ? 'اختر ملف للاستعادة' : 'Choose File to Restore'}
-                    </label>
-                  </div>
+
+                    {activeSettingsSection === 'techhub' && (
+                      <div className="space-y-6">
+                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">{language === 'ar' ? 'إعدادات ربط ومزامنة TechHub API' : 'TechHub API Integration Settings'}</h3>
+                        
+                        <div className="bg-muted/10 p-5 rounded-2xl space-y-6">
+                          {/* 2-Column side-by-side Status Toggles */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/60 hover:bg-muted/30 transition-colors rounded-2xl shadow-xs">
+                              <div className="flex flex-col gap-1 pr-4">
+                                <span className="text-sm font-bold text-foreground">
+                                  {language === 'ar' ? 'تفعيل ربط TechHub' : 'Enable TechHub Integration'}
+                                </span>
+                                <span className="text-xs text-muted-foreground leading-none">
+                                  {language === 'ar' ? 'تمكين استيراد ومزامنة البيانات.' : 'Enable API integration and data syncing.'}
+                                </span>
+                              </div>
+                              <label className="relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer flex-shrink-0 select-none" dir="ltr">
+                                <input
+                                  type="checkbox"
+                                  checked={techhubEnabled}
+                                  onChange={() => setTechhubEnabled(!techhubEnabled)}
+                                  className="sr-only"
+                                />
+                                <span className={`absolute inset-0 rounded-full transition-colors duration-200 ${
+                                  techhubEnabled ? 'bg-primary' : 'bg-gray-200 dark:bg-zinc-800'
+                                }`} />
+                                <span
+                                  className={`absolute left-0 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                                    techhubEnabled ? 'translate-x-6' : 'translate-x-1'
+                                  }`}
+                                />
+                              </label>
+                            </div>
+                            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/60 hover:bg-muted/30 transition-colors rounded-2xl shadow-xs">
+                              <div className="flex flex-col gap-1 pr-4">
+                                <span className="text-sm font-bold text-foreground">
+                                  {language === 'ar' ? 'تفعيل وضع التجربة (Sandbox Mode)' : 'Enable Sandbox / Test Mode'}
+                                </span>
+                                <span className="text-xs text-muted-foreground leading-none">
+                                  {language === 'ar' 
+                                    ? 'استخدام بيانات تجريبية وهمية دون استهلاك رصيد واجهة التطبيق.' 
+                                    : 'Use simulated test data instead of hitting production.'}
+                                </span>
+                              </div>
+                              <label className="relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer flex-shrink-0 select-none" dir="ltr">
+                                <input
+                                  type="checkbox"
+                                  checked={techhubSandboxMode}
+                                  onChange={() => setTechhubSandboxMode(!techhubSandboxMode)}
+                                  className="sr-only"
+                                />
+                                <span className={`absolute inset-0 rounded-full transition-colors duration-200 ${
+                                  techhubSandboxMode ? 'bg-primary' : 'bg-gray-200 dark:bg-zinc-800'
+                                }`} />
+                                <span
+                                  className={`absolute left-0 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                                    techhubSandboxMode ? 'translate-x-6' : 'translate-x-1'
+                                  }`}
+                                />
+                              </label>
+                          </div>
+                        </div>
+
+                          {/* Credentials inputs with smooth lock transition (3-Column side-by-side layout) */}
+                          <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 transition-all duration-350 ${
+                            techhubSandboxMode ? 'opacity-40 pointer-events-none filter blur-[0.4px]' : 'opacity-100'
+                          }`}>
+                            <div className="space-y-1.5">
+                              <label className="cn-label">{language === 'ar' ? 'معرف العميل (Client ID)' : 'Client ID'}</label>
+                              <input
+                                type="text"
+                                value={techhubClientId}
+                                onChange={(e) => setTechhubClientId(e.target.value)}
+                                className="cn-input bg-background font-mono h-11"
+                                placeholder="e.g. client_abc123"
+                                disabled={techhubSandboxMode}
+                                required={techhubEnabled && !techhubSandboxMode}
+                              />
+                            </div>
+
+                              <div className="space-y-1.5">
+                                <label className="cn-label">{language === 'ar' ? 'الرمز السري للعميل (Client Secret)' : 'Client Secret'}</label>
+                                <input
+                                  type="password"
+                                  value={techhubClientSecret}
+                                  onChange={(e) => setTechhubClientSecret(e.target.value)}
+                                  className="cn-input bg-background font-mono h-11"
+                                  placeholder="••••••••••••••••"
+                                  disabled={techhubSandboxMode}
+                                  required={techhubEnabled && !techhubSandboxMode}
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="cn-label">{language === 'ar' ? 'مفتاح واجهة التطبيق (API Key)' : 'API Key'}</label>
+                                <input
+                                  type="password"
+                                  value={techhubApiKey}
+                                  onChange={(e) => setTechhubApiKey(e.target.value)}
+                                  className="cn-input bg-background font-mono h-11"
+                                  placeholder="••••••••••••••••"
+                                  disabled={techhubSandboxMode}
+                                  required={techhubEnabled && !techhubSandboxMode}
+                                />
+                              </div>
+                            </div>
+
+                            {techhubEnabled && (
+                              <div className="pt-5 border-t border-border mt-6 bg-muted/15 p-5 rounded-2xl border border-border/60">
+                                <h4 className="text-xs font-bold text-foreground mb-1.5">
+                                  {language === 'ar' ? 'مزامنة البيانات الفورية' : 'Instant Data Synchronization'}
+                                </h4>
+                                <p className="text-[11px] text-muted-foreground leading-relaxed mb-4">
+                                  {language === 'ar' 
+                                    ? 'جلب العقارات والمستأجرين (عقود إيجار) من TechHub ومزامنتهم مباشرة مع قاعدة بيانات التطبيق.' 
+                                    : 'Fetch properties and contract renters from TechHub and sync them with your database.'}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={handleTechHubSync}
+                                  disabled={syncingTechHub}
+                                  className="inline-flex items-center gap-2 h-10 px-5 text-xs font-bold rounded-xl shadow-xs bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 cursor-pointer active:scale-[0.97] transition-all"
+                                >
+                                  {syncingTechHub ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                  {language === 'ar' ? 'ابدأ المزامنة الآن' : 'Start Sync Now'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
-              )}
 
-              {activeSettingsSection === 'techhub' && (
-                <div>
-                  <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4 inline-block">
-                    {language === 'ar' ? 'إعدادات الربط الإلكتروني (TechHub)' : 'TechHub Integration Settings'}
-                  </h3>
-                  
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="techhubEnabled"
-                        checked={techhubEnabled}
-                        onChange={(e) => setTechhubEnabled(e.target.checked)}
-                        className="rounded border-gray-300 text-black focus:ring-black h-4 w-4"
-                      />
-                      <label htmlFor="techhubEnabled" className="text-xs font-bold text-foreground cursor-pointer select-none">
-                        {language === 'ar' ? 'تفعيل الربط مع TechHub' : 'Enable TechHub Integration'}
-                      </label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="techhubSandboxMode"
-                        checked={techhubSandboxMode}
-                        onChange={(e) => setTechhubSandboxMode(e.target.checked)}
-                        className="rounded border-gray-300 text-black focus:ring-black h-4 w-4"
-                      />
-                      <label htmlFor="techhubSandboxMode" className="text-xs font-bold text-foreground cursor-pointer select-none">
-                        {language === 'ar' ? 'تفعيل وضع التجربة (Sandbox Mode)' : 'Enable Sandbox / Test Mode'}
-                      </label>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="cn-label">{language === 'ar' ? 'معرف العميل (Client ID)' : 'Client ID'}</label>
-                      <input
-                        type="text"
-                        value={techhubClientId}
-                        onChange={(e) => setTechhubClientId(e.target.value)}
-                        className="cn-input bg-background font-mono h-12"
-                        placeholder="e.g. client_abc123"
-                        disabled={techhubSandboxMode}
-                        required={techhubEnabled && !techhubSandboxMode}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="cn-label">{language === 'ar' ? 'الرمز السري للعميل (Client Secret)' : 'Client Secret'}</label>
-                      <input
-                        type="password"
-                        value={techhubClientSecret}
-                        onChange={(e) => setTechhubClientSecret(e.target.value)}
-                        className="cn-input bg-background font-mono h-12"
-                        placeholder="••••••••••••••••"
-                        disabled={techhubSandboxMode}
-                        required={techhubEnabled && !techhubSandboxMode}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="cn-label">{language === 'ar' ? 'مفتاح واجهة التطبيق (API Key)' : 'API Key'}</label>
-                      <input
-                        type="password"
-                        value={techhubApiKey}
-                        onChange={(e) => setTechhubApiKey(e.target.value)}
-                        className="cn-input bg-background font-mono h-12"
-                        placeholder="••••••••••••••••"
-                        disabled={techhubSandboxMode}
-                        required={techhubEnabled && !techhubSandboxMode}
-                      />
-                    </div>
-
-                    {techhubEnabled && (
-                      <div className="pt-4 border-t border-border mt-6 font-sans">
-                        <h4 className="text-xs font-bold text-foreground mb-2">
-                          {language === 'ar' ? 'مزامنة البيانات الفورية' : 'Instant Data Synchronization'}
-                        </h4>
-                        <p className="text-[11px] text-muted-foreground mb-4">
-                          {language === 'ar' 
-                            ? 'جلب العقارات والمستأجرين (عقود إيجار) من TechHub ومزامنتهم مباشرة مع قاعدة بيانات التطبيق.' 
-                            : 'Fetch properties and contract renters from TechHub and sync them with your database.'}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={handleTechHubSync}
-                          disabled={syncingTechHub}
-                          className="btn-primary inline-flex items-center gap-1.5 h-10 px-4 text-xs font-semibold rounded-md shadow-xs bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 cursor-pointer"
-                        >
-                          {syncingTechHub ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                          {language === 'ar' ? 'ابدأ المزامنة الآن' : 'Start Sync Now'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4 border-t border-border pt-8">
+              <div className="pt-6 border-t border-border">
                 <button
                   type="submit"
                   disabled={savingSettings}
-                  className="bg-black text-white font-bold py-3.5 px-8 rounded-xl hover:bg-gray-800 transition-all active:scale-95 focus:ring-4 focus:ring-gray-300 flex items-center gap-2 text-base shadow-md disabled:bg-gray-400 disabled:active:scale-100"
+                  className="px-6 py-2.5 bg-primary hover:opacity-95 text-white rounded-xl transition-all font-bold text-sm cursor-pointer inline-flex items-center gap-2 shadow-sm disabled:opacity-50 active:scale-97 border border-transparent"
                 >
-                  {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                  {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   {t('admin.submit')}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
+        )}
 
         {activeTab === 'callbacks' && <AdminCallbacks />}
         {activeTab === 'users' && <AdminUsers />}

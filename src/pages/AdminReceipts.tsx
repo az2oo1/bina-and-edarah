@@ -67,8 +67,12 @@ export default function AdminReceipts() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredReceipts.map(r => (
-            <div key={r.id} className="shadcn-card group overflow-hidden block flex flex-col hover:shadow-xs transition-shadow">
+          {filteredReceipts.map((r, idx) => (
+            <div 
+              key={r.id} 
+              className="admin-card group overflow-hidden block flex flex-col admin-stagger-item"
+              style={{ animationDelay: `${idx * 40}ms` }}
+            >
                {r.receiptUrl ? (
                  <a href={r.receiptUrl} target="_blank" rel="noreferrer" className="block aspect-[4/3] bg-muted/30 overflow-hidden relative cursor-pointer border-b border-border">
                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10"></div>
