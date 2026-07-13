@@ -59,6 +59,8 @@ export function ImageViewer({
   const isMapActive = activeItem?.type === 'map';
   const isVideoActive = activeItem?.type === 'video';
   const activeUrl = activeItem?.url;
+  const mapItemIndex = items.findIndex(item => item.type === 'map');
+  const hasMapItem = mapItemIndex !== -1;
 
   const handleNext = () => {
     setIsZoomed(false);
@@ -182,36 +184,50 @@ export function ImageViewer({
         </div>
 
         {/* Bottom Thumbnail Strip */}
-        <div className="w-full bg-gradient-to-t from-black/80 to-black/20 py-4 px-6 z-10 flex flex-col items-center gap-3">
+        <div className="w-full bg-gradient-to-t from-black/90 to-black/30 py-4 px-6 z-10 flex flex-col items-center gap-3">
           {totalItems > 1 && (
-            <div className="flex gap-2.5 overflow-x-auto max-w-full px-2 py-1.5 custom-scrollbar select-none">
-              {items.map((item, idx) => {
-                const isItemVideo = item.type === 'video';
-                return (
+            <div className="flex items-center max-w-full bg-black/40 rounded-xl border border-white/10 overflow-hidden">
+              <div className="flex-1 flex gap-2.5 overflow-x-auto px-4 py-2.5 custom-scrollbar select-none">
+                {items.map((item, idx) => {
+                  if (item.type === 'map') return null;
+                  const isItemVideo = item.type === 'video';
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleThumbnailClick(idx)}
+                      className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                        activeIndex === idx ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
+                      }`}
+                      aria-label={`${language === 'ar' ? 'عرض العنصر' : 'View item'} ${idx + 1}`}
+                    >
+                      {isItemVideo ? (
+                        <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center gap-1">
+                          <Video className="w-5 h-5 text-primary" />
+                          <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'فيديو' : 'Video'}</span>
+                        </div>
+                      ) : (
+                        <img src={item.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {hasMapItem && (
+                <div className="flex items-center flex-shrink-0 px-4 py-2.5 border-s border-white/15">
                   <button
-                    key={idx}
-                    onClick={() => handleThumbnailClick(idx)}
+                    onClick={() => handleThumbnailClick(mapItemIndex)}
                     className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                      activeIndex === idx ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
+                      activeIndex === mapItemIndex ? 'border-primary scale-105 shadow-lg shadow-primary/20' : 'border-transparent opacity-50 hover:opacity-95'
                     }`}
-                    aria-label={`${language === 'ar' ? 'عرض العنصر' : 'View item'} ${idx + 1}`}
+                    aria-label={language === 'ar' ? 'عرض الخريطة' : 'View Map'}
                   >
-                    {item.type === 'map' ? (
-                      <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center gap-1">
-                        <MapPin className="w-5 h-5 text-primary" />
-                        <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'الخريطة' : 'Map'}</span>
-                      </div>
-                    ) : isItemVideo ? (
-                      <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center gap-1">
-                        <Video className="w-5 h-5 text-primary" />
-                        <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'فيديو' : 'Video'}</span>
-                      </div>
-                    ) : (
-                      <img src={item.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
-                    )}
+                    <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center gap-1">
+                      <MapPin className="w-5 h-5 text-primary" />
+                      <span className="text-[9px] font-bold text-gray-300">{language === 'ar' ? 'الخريطة' : 'Map'}</span>
+                    </div>
                   </button>
-                );
-              })}
+                </div>
+              )}
             </div>
           )}
         </div>

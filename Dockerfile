@@ -1,5 +1,8 @@
 FROM node:20-alpine AS builder
 
+# Install system dependencies required by Prisma and other native modules
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
 # Copy package files
@@ -19,6 +22,9 @@ RUN npm run build
 
 # Production image
 FROM node:20-alpine AS runner
+
+# Install system dependencies required by Prisma and other native modules
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 

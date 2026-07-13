@@ -1852,7 +1852,7 @@ async function startServer() {
     try {
       const property = await prisma.property.findUnique({
         where: { id: req.params.id },
-        include: { subProperties: true }
+        include: { subProperties: true, parent: true }
       });
       if (!property) return res.status(404).json({ error: "Property not found" });
 
@@ -1937,6 +1937,7 @@ async function startServer() {
           aqarLink: body.aqarLink || null,
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
           videoUrl: body.videoUrl || null,
+          attachments: body.attachments || "[]",
           userId: body.userId || null,
           parentId: body.parentId || null,
           status: body.status || "PUBLISHED",
@@ -2022,6 +2023,7 @@ async function startServer() {
           aqarLink: body.aqarLink || null,
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
           videoUrl: body.videoUrl || null,
+          attachments: body.attachments || "[]",
           userId: body.userId || null,
           parentId: body.parentId || null,
           status: body.status || "PUBLISHED",

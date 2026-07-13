@@ -751,3 +751,24 @@ html {
   color: var(--primary-foreground) !important;
 }
 
+/* Custom styles for completed steps in Admin wizard */
+.wizard-step-completed {
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+  color: #ffffff !important;
+}
+
+.wizard-step-label-completed {
+  color: #059669 !important;
+}
+
+/* Custom utility to hide scrollbars */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+
