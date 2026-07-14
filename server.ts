@@ -1842,10 +1842,7 @@ async function startServer() {
       // Public status filter
       if (!isAdmin) {
         andFilters.push({
-          OR: [
-            { status: { not: 'DRAFT' } },
-            { status: null }
-          ]
+          status: { not: 'DRAFT' }
         });
       }
 
