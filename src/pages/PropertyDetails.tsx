@@ -499,6 +499,7 @@ export default function PropertyDetails() {
                       }}
                       className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
                       title={language === 'ar' ? 'عرض الوسائط (السابق)' : 'View Media (Previous)'}
+                      aria-label={language === 'ar' ? 'عرض الوسائط (السابق)' : 'View Media (Previous)'}
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -511,6 +512,7 @@ export default function PropertyDetails() {
                       }}
                       className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
                       title={language === 'ar' ? 'عرض الوسائط (التالي)' : 'View Media (Next)'}
+                      aria-label={language === 'ar' ? 'عرض الوسائط (التالي)' : 'View Media (Next)'}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -540,6 +542,7 @@ export default function PropertyDetails() {
                             setActiveImage(i);
                           }}
                           className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl transition-all duration-200 cursor-pointer overflow-hidden relative ${activeImage === i ? 'ring-2 ring-primary ring-offset-1 scale-102 opacity-100' : 'opacity-65 hover:opacity-100 border border-border/50'}`}
+                          aria-label={`${language === 'ar' ? 'عرض العنصر' : 'View item'} ${i + 1}`}
                         >
                           {item.type === 'video' ? (
                             <div className="w-full h-full bg-slate-950 text-white flex flex-col items-center justify-center gap-1 select-none">
@@ -567,6 +570,7 @@ export default function PropertyDetails() {
                         className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl transition-all duration-200 cursor-pointer overflow-hidden flex flex-col items-center justify-center gap-1 bg-slate-950 text-white select-none ${
                           activeImage === mapIndex ? 'ring-2 ring-primary ring-offset-1 scale-102 opacity-100' : 'opacity-65 hover:opacity-100 border border-border/50'
                         }`}
+                        aria-label={language === 'ar' ? 'عرض الخريطة' : 'View Map'}
                       >
                         <MapPin className="w-5 h-5 text-primary" />
                         <span className="text-[8px] font-bold text-gray-400">{language === 'ar' ? 'الخريطة' : 'Map'}</span>

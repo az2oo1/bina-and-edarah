@@ -272,6 +272,7 @@ export default function Home() {
               <button 
                 onClick={() => document.getElementById('solutions')?.scrollIntoView({ behavior: 'smooth' })}
                 className="flex flex-col items-center text-slate-500 hover:text-slate-955 dark:text-white/60 dark:hover:text-white transition-colors cursor-pointer group"
+                aria-label={language === 'ar' ? 'التمرير لأسفل' : 'Scroll down'}
               >
                 <ChevronDown className="w-6 h-6 animate-bounce" />
               </button>
