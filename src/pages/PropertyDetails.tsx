@@ -4,6 +4,7 @@ import { useLanguage } from '../LanguageContext';
 import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, Search, LayoutGrid, List, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { ImageViewer } from '../components/ImageViewer';
+import { formatExternalLink } from '../utils/link';
 
 interface Property {
   id: string;
@@ -43,17 +44,18 @@ interface Property {
 
 const getDetailIcon = (key: string) => {
   const lowerKey = key.toLowerCase();
-  if (lowerKey.includes('مطبخ') || lowerKey.includes('kitchen')) return <ChefHat className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) return <Compass className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('شارع') || lowerKey.includes('street')) return <Ruler className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('غرف النوم') || lowerKey.includes('bedroom')) return <BedDouble className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('غرف') || lowerKey.includes('room')) return <DoorOpen className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('صالة') || lowerKey.includes('صالات') || lowerKey.includes('hall')) return <Armchair className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('مياه') || lowerKey.includes('حمام') || lowerKey.includes('bathroom') || lowerKey.includes('دورات')) return <Bath className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('دور') || lowerKey.includes('floor')) return <Layers className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('عمر') || lowerKey.includes('age')) return <CalendarDays className="w-5 h-5 text-muted-foreground" />;
-  if (lowerKey.includes('فئة') || lowerKey.includes('category')) return <Users className="w-5 h-5 text-muted-foreground" />;
-  return <Info className="w-5 h-5 text-muted-foreground" />;
+  const iconClass = "w-5 h-5";
+  if (lowerKey.includes('مطبخ') || lowerKey.includes('kitchen')) return <ChefHat className={iconClass} />;
+  if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) return <Compass className={iconClass} />;
+  if (lowerKey.includes('شارع') || lowerKey.includes('street')) return <Ruler className={iconClass} />;
+  if (lowerKey.includes('غرف النوم') || lowerKey.includes('bedroom')) return <BedDouble className={iconClass} />;
+  if (lowerKey.includes('غرف') || lowerKey.includes('room')) return <DoorOpen className={iconClass} />;
+  if (lowerKey.includes('صالة') || lowerKey.includes('صالات') || lowerKey.includes('hall')) return <Armchair className={iconClass} />;
+  if (lowerKey.includes('مياه') || lowerKey.includes('حمام') || lowerKey.includes('bathroom') || lowerKey.includes('دورات')) return <Bath className={iconClass} />;
+  if (lowerKey.includes('دور') || lowerKey.includes('floor')) return <Layers className={iconClass} />;
+  if (lowerKey.includes('عمر') || lowerKey.includes('age')) return <CalendarDays className={iconClass} />;
+  if (lowerKey.includes('فئة') || lowerKey.includes('category')) return <Users className={iconClass} />;
+  return <Info className={iconClass} />;
 };
 
 export default function PropertyDetails() {
@@ -446,7 +448,7 @@ export default function PropertyDetails() {
                         />
                         <div className="absolute top-4 inset-x-0 flex justify-center z-20 pointer-events-none">
                           <a
-                            href={property.locationLink || `https://www.google.com/maps?q=${property.latitude},${property.longitude}`}
+                            href={formatExternalLink(property.locationLink) || `https://www.google.com/maps?q=${property.latitude},${property.longitude}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
@@ -589,13 +591,13 @@ export default function PropertyDetails() {
 
                   // 1. Category
                   specItems.push(
-                    <div key="category" className="flex items-center gap-3.5 p-3 rounded-xl bg-background border border-border transition-colors hover:bg-muted/30 w-full h-full animate-in fade-in duration-150">
-                      <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
-                        <Building2 className="w-4 h-4" />
+                    <div key="category" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                      <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Building2 className="w-5 h-5" />
                       </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground mb-0.5">{t('admin.placeholder.category')}</p>
-                        <p className="text-sm font-semibold text-foreground">{t(`cat.${property.propertyCategory}`)}</p>
+                      <div className="flex flex-col text-start min-w-0">
+                        <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('admin.placeholder.category')}</p>
+                        <p className="text-sm font-extrabold text-foreground truncate">{t(`cat.${property.propertyCategory}`)}</p>
                       </div>
                     </div>
                   );
@@ -603,13 +605,13 @@ export default function PropertyDetails() {
                   // 2. Area
                   if (property.area > 0) {
                     specItems.push(
-                      <div key="area" className="flex items-center gap-3.5 p-3 rounded-xl bg-background border border-border transition-colors hover:bg-muted/30 w-full h-full animate-in fade-in duration-150">
-                        <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
-                          <Maximize className="w-4 h-4" />
+                      <div key="area" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Maximize className="w-5 h-5" />
                         </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-muted-foreground mb-0.5">{t('common.area')}</p>
-                          <p className="text-sm font-semibold text-foreground">{property.area} {t('common.sqm')}</p>
+                        <div className="flex flex-col text-start min-w-0">
+                          <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.area')}</p>
+                          <p className="text-sm font-extrabold text-foreground truncate">{property.area} {t('common.sqm')}</p>
                         </div>
                       </div>
                     );
@@ -618,13 +620,13 @@ export default function PropertyDetails() {
                   // 3. Property Age
                   if (property.propertyAge > 0) {
                     specItems.push(
-                      <div key="age" className="flex items-center gap-3.5 p-3 rounded-xl bg-background border border-border transition-colors hover:bg-muted/30 w-full h-full animate-in fade-in duration-150">
-                        <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
-                          <CalendarDays className="w-4 h-4" />
+                      <div key="age" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                          <CalendarDays className="w-5 h-5" />
                         </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-muted-foreground mb-0.5">{t('common.propertyAge')}</p>
-                          <p className="text-sm font-semibold text-foreground">{property.propertyAge} {language === 'ar' ? 'سنة' : 'Years'}</p>
+                        <div className="flex flex-col text-start min-w-0">
+                          <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.propertyAge')}</p>
+                          <p className="text-sm font-extrabold text-foreground truncate">{property.propertyAge} {language === 'ar' ? 'سنة' : 'Years'}</p>
                         </div>
                       </div>
                     );
@@ -633,13 +635,13 @@ export default function PropertyDetails() {
                   // 4. Location Text
                   if (property.locationText) {
                     specItems.push(
-                      <div key="locationText" className="flex items-center gap-3.5 p-3 rounded-xl bg-background border border-border transition-colors hover:bg-muted/30 w-full h-full animate-in fade-in duration-150">
-                        <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
-                          <MapPin className="w-4 h-4" />
+                      <div key="locationText" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                          <MapPin className="w-5 h-5" />
                         </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-muted-foreground mb-0.5">{t('common.locationText')}</p>
-                          <p className="text-sm font-semibold text-foreground">{property.locationText}</p>
+                        <div className="flex flex-col text-start min-w-0">
+                          <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.locationText')}</p>
+                          <p className="text-sm font-extrabold text-foreground truncate">{property.locationText}</p>
                         </div>
                       </div>
                     );
@@ -652,13 +654,13 @@ export default function PropertyDetails() {
                       if (Array.isArray(parsed)) {
                         parsed.forEach((item: any, idx: number) => {
                           specItems.push(
-                            <div key={`detail-${idx}`} className="flex items-center gap-3.5 p-3 rounded-xl bg-background border border-border transition-colors hover:bg-muted/30 w-full h-full animate-in fade-in duration-150">
-                              <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
+                            <div key={`detail-${idx}`} className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                              <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
                                 {getDetailIcon(item.key)}
                               </div>
-                              <div>
-                                <p className="text-[10px] font-bold text-muted-foreground mb-0.5">{item.key}</p>
-                                <p className="text-sm font-semibold text-foreground">{item.value}</p>
+                              <div className="flex flex-col text-start min-w-0">
+                                <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{item.key}</p>
+                                <p className="text-sm font-extrabold text-foreground truncate">{item.value}</p>
                               </div>
                             </div>
                           );
@@ -996,7 +998,7 @@ export default function PropertyDetails() {
                 <div className="flex flex-col gap-2 mt-3.5 border-t border-border/60 pt-3.5">
                   {property.locationLink && (
                     <a
-                      href={property.locationLink}
+                      href={formatExternalLink(property.locationLink)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full flex items-center justify-between border border-border rounded-xl px-4 py-2 text-xs font-semibold hover:bg-background shadow-xs transition-colors"
@@ -1015,7 +1017,7 @@ export default function PropertyDetails() {
     
                   {property.aqarLink && (
                     <a
-                      href={property.aqarLink}
+                      href={formatExternalLink(property.aqarLink)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full flex items-center justify-between border border-border rounded-xl px-4 py-2 text-xs font-semibold hover:bg-background shadow-xs transition-colors"
@@ -1098,7 +1100,7 @@ export default function PropertyDetails() {
       <ImageViewer 
         isOpen={isViewerOpen}
         items={galleryItems}
-        mapInfo={hasMap ? { lat: property.latitude!, lng: property.longitude!, link: property.locationLink } : null}
+        mapInfo={hasMap ? { lat: property.latitude!, lng: property.longitude!, link: formatExternalLink(property.locationLink) } : null}
         initialIndex={activeImage}
         onClose={() => setIsViewerOpen(false)}
         language={language}

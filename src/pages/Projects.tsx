@@ -157,13 +157,119 @@ export default function Projects() {
                       {language === 'ar' ? 'مشاريعنا الريادية' : 'Flagship Projects'}
                     </h2>
                   </div>
+                </div>
+
+                {/* Main Carousel Wrapper - Full bleed modern design */}
+                <div className="relative overflow-hidden rounded-3xl border border-border bg-neutral-950 shadow-2xl h-[500px] sm:h-[560px]">
+                  <AnimatePresence mode="wait" custom={direction}>
+                    <motion.div
+                      key={activeBigIndex}
+                      custom={direction}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="absolute inset-0 w-full h-full"
+                    >
+                      {/* Full Background Image */}
+                      <img 
+                        src={getFirstImage(bigProjects[activeBigIndex].imageUrls)} 
+                        alt={language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
+                        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-700 ease-out"
+                      />
+                      
+                      {/* Dark Elegant Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent"></div>
+                      <div className="absolute inset-0 bg-neutral-950/20 backdrop-blur-[0.5px]"></div>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Spotlight background lights */}
+                  <div className="absolute -right-20 -top-20 w-80 h-80 bg-primary/10 rounded-full blur-[90px] pointer-events-none z-10"></div>
+                  <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-[90px] pointer-events-none z-10"></div>
+
+                  {/* Foreground Content Overlay */}
+                  <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-10 lg:p-14 text-right rtl:text-right ltr:text-left z-20">
+                    <AnimatePresence mode="wait" custom={direction}>
+                      <motion.div
+                        key={activeBigIndex}
+                        custom={direction}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -30 }}
+                        transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+                        className="max-w-3xl"
+                      >
+                        {/* Featured Badge */}
+                        <div className="mb-4">
+                          <span className="bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/10 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase inline-flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 fill-current" />
+                            {language === 'ar' ? 'مشروع ريادي متميز' : 'Featured Masterpiece'}
+                          </span>
+                        </div>
+
+                        {/* Title & Location */}
+                        <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight Cairo mb-3 drop-shadow-md">
+                          {language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
+                        </h3>
+
+                        <div className="flex items-center justify-start lg:justify-start gap-1.5 text-white/90 text-xs sm:text-sm mb-4 font-semibold drop-shadow-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                          <MapPin className="w-4 h-4 text-amber-400" />
+                          <span>{bigProjects[activeBigIndex].locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}</span>
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-2xl mb-6 line-clamp-3 drop-shadow-sm font-medium">
+                          {bigProjects[activeBigIndex].description}
+                        </p>
+
+                        {/* Specs & Button Row */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-5 pt-5 border-t border-white/10">
+                          {/* Translucent Glassmorphic Specs */}
+                          <div className="flex flex-wrap items-center gap-2.5" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white flex items-center gap-2 shadow-sm">
+                              <Maximize2 className="w-4 h-4 text-amber-400" />
+                              <span className="text-xs font-bold">{bigProjects[activeBigIndex].area} م²</span>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white flex items-center gap-2 shadow-sm">
+                              <Building2 className="w-4 h-4 text-amber-400" />
+                              <span className="text-xs font-bold truncate max-w-[120px]">
+                                {t(`cat.${bigProjects[activeBigIndex].propertyCategory}`) || bigProjects[activeBigIndex].propertyCategory}
+                              </span>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white flex items-center gap-2 shadow-sm">
+                              <Calendar className="w-4 h-4 text-amber-400" />
+                              <span className="text-xs font-bold">
+                                {bigProjects[activeBigIndex].propertyAge > 0 
+                                  ? `${bigProjects[activeBigIndex].propertyAge} ${language === 'ar' ? 'سنوات' : 'Years'}`
+                                  : (language === 'ar' ? 'جديد' : 'New')}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="flex-shrink-0">
+                            <Link
+                              to={`/projects/${bigProjects[activeBigIndex].id}`}
+                              className="inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-100 text-neutral-950 h-11 px-5 rounded-2xl text-xs font-black transition-all duration-150 ease-out active:scale-97 cursor-pointer shadow-lg hover:shadow-xl hover:scale-[1.02]"
+                            >
+                              <span>{language === 'ar' ? 'استكشف المشروع بالكامل' : 'Explore Full Project'}</span>
+                              {language === 'ar' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </Link>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Navigation Arrows for Carousel */}
                   {bigProjects.length > 1 && (
-                    <div className="flex items-center gap-1.5" dir="ltr">
+                    <div className="absolute top-6 left-6 sm:top-10 sm:left-10 z-30 flex items-center gap-2" dir="ltr">
                       <motion.button 
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={handlePrevBig}
-                        className="p-1.5 rounded-lg border border-border bg-card/50 text-foreground hover:bg-accent transition-colors cursor-pointer flex items-center justify-center"
+                        className="p-2 rounded-xl border border-white/15 bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all cursor-pointer flex items-center justify-center"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </motion.button>
@@ -171,152 +277,10 @@ export default function Projects() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={handleNextBig}
-                        className="p-1.5 rounded-lg border border-border bg-card/50 text-foreground hover:bg-accent transition-colors cursor-pointer flex items-center justify-center"
+                        className="p-2 rounded-xl border border-white/15 bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all cursor-pointer flex items-center justify-center"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </motion.button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Main Carousel Wrapper */}
-                <div className="relative overflow-hidden rounded-3xl border border-border bg-card/30 backdrop-blur-md shadow-2xl p-4 sm:p-6 lg:p-8">
-                  {/* Spotlight background lights */}
-                  <div className="absolute -right-20 -top-20 w-80 h-80 bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
-                  <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none"></div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-                    {/* Carousel Left/Right Media Panel (7 cols) */}
-                    <div className="lg:col-span-7 h-[260px] sm:h-[400px] rounded-2xl overflow-hidden relative shadow-lg group bg-muted border border-border/40">
-                      <AnimatePresence mode="wait" custom={direction}>
-                        <motion.div
-                          key={activeBigIndex}
-                          custom={direction}
-                          initial={{ opacity: 0, scale: 1.02 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.98 }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                          className="absolute inset-0 w-full h-full"
-                        >
-                          <img 
-                            src={getFirstImage(bigProjects[activeBigIndex].imageUrls)} 
-                            alt={language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
-                            className="w-full h-full object-cover select-none pointer-events-none"
-                          />
-                        </motion.div>
-                      </AnimatePresence>
-
-                      {/* Glassmorphic Project Title Card Overlay for Mobile */}
-                      <div className="absolute bottom-4 left-4 right-4 bg-card/75 backdrop-blur-md border border-border/50 rounded-xl p-4 block lg:hidden shadow-lg">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-amber-500 mb-1 block">
-                          {language === 'ar' ? 'مشروع ريادي متميز' : 'Featured Masterpiece'}
-                        </span>
-                        <h3 className="text-lg font-bold text-foreground line-clamp-1 mb-1">
-                          {language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
-                        </h3>
-                        <p className="text-xs text-muted-foreground/90 font-medium line-clamp-1 mb-2">
-                          {bigProjects[activeBigIndex].locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}
-                        </p>
-                        <Link 
-                          to={`/projects/${bigProjects[activeBigIndex].id}`}
-                          className="text-xs font-bold text-primary flex items-center gap-1 hover:underline justify-end"
-                        >
-                          <span>{language === 'ar' ? 'استكشف المشروع' : 'Explore Project'}</span>
-                          {language === 'ar' ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                        </Link>
-                      </div>
-                    </div>
-
-                    {/* Carousel Details Panel (5 cols) - Shown on Desktop */}
-                    <div className="lg:col-span-5 h-full flex flex-col justify-between py-2 text-right rtl:text-right ltr:text-left hidden lg:flex">
-                      <AnimatePresence mode="wait" custom={direction}>
-                        <motion.div
-                          key={activeBigIndex}
-                          custom={direction}
-                          initial={{ opacity: 0, y: 15 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -15 }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                          className="flex flex-col h-full"
-                        >
-                          <div className="mb-4">
-                            <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase inline-flex items-center gap-1 mb-3">
-                              <Sparkles className="w-3 h-3" />
-                              {language === 'ar' ? 'مشروع ريادي' : 'Featured Project'}
-                            </span>
-                            <h3 className="text-2xl font-extrabold text-foreground tracking-tight leading-tight Cairo mb-2">
-                              {language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
-                            </h3>
-                            <div className="flex items-center text-muted-foreground gap-1 text-xs mb-4">
-                              <MapPin className="w-3.5 h-3.5 text-muted-foreground/60" />
-                              <span>{bigProjects[activeBigIndex].locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}</span>
-                            </div>
-                          </div>
-
-                          {/* Quick Specs Grid */}
-                          <div className="grid grid-cols-3 gap-3 mb-5">
-                            <div className="bg-background/80 border border-border/50 rounded-xl p-3 text-center flex flex-col items-center justify-center shadow-xs">
-                              <Maximize2 className="w-4 h-4 text-primary mb-1.5" />
-                              <span className="text-[9px] text-muted-foreground mb-0.5">{language === 'ar' ? 'المساحة' : 'Area'}</span>
-                              <span className="text-xs font-bold text-foreground">{bigProjects[activeBigIndex].area} م²</span>
-                            </div>
-                            <div className="bg-background/80 border border-border/50 rounded-xl p-3 text-center flex flex-col items-center justify-center shadow-xs">
-                              <Building2 className="w-4 h-4 text-primary mb-1.5" />
-                              <span className="text-[9px] text-muted-foreground mb-0.5">{language === 'ar' ? 'النوع' : 'Type'}</span>
-                              <span className="text-xs font-bold text-foreground truncate max-w-full">
-                                {t(`cat.${bigProjects[activeBigIndex].propertyCategory}`) || bigProjects[activeBigIndex].propertyCategory}
-                              </span>
-                            </div>
-                            <div className="bg-background/80 border border-border/50 rounded-xl p-3 text-center flex flex-col items-center justify-center shadow-xs">
-                              <Calendar className="w-4 h-4 text-primary mb-1.5" />
-                              <span className="text-[9px] text-muted-foreground mb-0.5">{language === 'ar' ? 'العمر' : 'Age'}</span>
-                              <span className="text-xs font-bold text-foreground">
-                                {bigProjects[activeBigIndex].propertyAge > 0 
-                                  ? `${bigProjects[activeBigIndex].propertyAge} ${language === 'ar' ? 'سنة' : 'Yrs'}`
-                                  : (language === 'ar' ? 'جديد' : 'New')}
-                              </span>
-                            </div>
-                          </div>
-
-                          <p className="text-xs leading-relaxed text-muted-foreground mb-6 line-clamp-4 flex-grow">
-                            {bigProjects[activeBigIndex].description}
-                          </p>
-
-                          <div className="mt-auto">
-                            <Link 
-                              to={`/projects/${bigProjects[activeBigIndex].id}`}
-                            >
-                              <motion.span
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="w-full btn-primary text-xs font-bold gap-1.5 shadow-md flex items-center justify-center h-10 select-none"
-                              >
-                                {language === 'ar' ? 'عرض تفاصيل المشروع' : 'View Project Details'}
-                                {language === 'ar' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                              </motion.span>
-                            </Link>
-                          </div>
-                        </motion.div>
-                      </AnimatePresence>
-                    </div>
-                  </div>
-
-                  {/* Carousel Pill Indicators at bottom */}
-                  {bigProjects.length > 1 && (
-                    <div className="flex justify-center gap-1.5 mt-4 lg:mt-6">
-                      {bigProjects.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            setDirection(idx > activeBigIndex ? 1 : -1);
-                            setActiveBigIndex(idx);
-                          }}
-                          className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                            idx === activeBigIndex ? 'w-6 bg-primary' : 'w-1.5 bg-muted-foreground/35 hover:bg-muted-foreground/60'
-                          }`}
-                          aria-label={`Slide ${idx + 1}`}
-                        />
-                      ))}
                     </div>
                   )}
                 </div>

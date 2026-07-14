@@ -301,17 +301,30 @@ export default function Properties() {
             />
           </div>
           {!parentIdParam && (
-            <div className="flex items-center gap-2 mt-2">
-              <input
-                type="checkbox"
-                id="show-individual-units"
-                checked={showIndividualUnits}
-                onChange={(e) => setShowIndividualUnits(e.target.checked)}
-                className="w-4 h-4 accent-primary cursor-pointer rounded"
-              />
-              <label htmlFor="show-individual-units" className="text-xs text-muted-foreground font-medium cursor-pointer select-none">
+            <div className="flex items-center gap-3 mt-3 select-none animate-in fade-in duration-200">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={showIndividualUnits}
+                onClick={() => setShowIndividualUnits(!showIndividualUnits)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer focus:outline-none ${
+                  showIndividualUnits ? 'bg-primary' : 'bg-muted border border-border/80 dark:bg-zinc-800'
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    showIndividualUnits 
+                      ? (language === 'ar' ? '-translate-x-[18px]' : 'translate-x-[18px]') 
+                      : (language === 'ar' ? '-translate-x-[2px]' : 'translate-x-[2px]')
+                  }`}
+                />
+              </button>
+              <span 
+                onClick={() => setShowIndividualUnits(!showIndividualUnits)}
+                className="text-xs text-muted-foreground font-semibold cursor-pointer hover:text-foreground transition-colors"
+              >
                 {language === 'ar' ? 'عرض الوحدات كإعلانات مستقلة' : 'Show units as individual listings'}
-              </label>
+              </span>
             </div>
           )}
         </div>

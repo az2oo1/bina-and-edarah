@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone, Compass, Ruler, DoorOpen, Armchair, Bath } from 'lucide-react';
 import { ImageViewer } from '../components/ImageViewer';
+import { formatExternalLink } from '../utils/link';
 
 
 export default function ProjectDetails() {
@@ -278,7 +279,7 @@ export default function ProjectDetails() {
                   <p className="text-xs text-muted-foreground">{project.locationText}</p>
                 </div>
                 <a 
-                  href={project.locationLink} 
+                  href={formatExternalLink(project.locationLink)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="btn-primary py-2 px-4 text-xs flex items-center gap-1.5 shadow-xs"
