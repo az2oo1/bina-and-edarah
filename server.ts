@@ -1982,33 +1982,45 @@ async function startServer() {
         return coverImage;
       };
 
-      const enrichProperty = async (property: any) => {
-        const coords = extractCoords(property.locationLink);
-        const coverImage = await saveBase64ImageOnRead(property);
-
-        // Subunits calculation
-        const subUnits = await prisma.property.findMany({
+      const enrichPropertiesList = async (propertiesList: any[]) => {
+        const parentIds = propertiesList.map(p => p.id);
+        const allSubUnits = await prisma.property.findMany({
           where: {
-            parentId: property.id,
+            parentId: { in: parentIds },
             status: 'PUBLISHED'
           },
-          select: { price: true }
+          select: { parentId: true, price: true }
         });
 
-        const availableUnitsCount = subUnits.length;
-        const prices = subUnits.map(u => u.price).filter(p => p > 0);
-        const minUnitPrice = prices.length > 0 ? Math.min(...prices) : 0;
-        const maxUnitPrice = prices.length > 0 ? Math.max(...prices) : 0;
+        const subUnitsByParent = new Map<string, number[]>();
+        for (const u of allSubUnits) {
+          if (u.parentId) {
+            if (!subUnitsByParent.has(u.parentId)) {
+              subUnitsByParent.set(u.parentId, []);
+            }
+            subUnitsByParent.get(u.parentId)!.push(u.price);
+          }
+        }
 
-        return {
-          ...property,
-          imageUrls: JSON.stringify(coverImage ? [coverImage] : []),
-          latitude: coords?.lat ?? null,
-          longitude: coords?.lon ?? null,
-          availableUnitsCount,
-          minUnitPrice,
-          maxUnitPrice
-        };
+        return Promise.all(propertiesList.map(async (p) => {
+          const coords = extractCoords(p.locationLink);
+          const coverImage = await saveBase64ImageOnRead(p);
+          const prices = subUnitsByParent.get(p.id) || [];
+          const availableUnitsCount = prices.length;
+          const validPrices = prices.filter(pr => pr > 0);
+          const minUnitPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+          const maxUnitPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
+
+          return {
+            ...p,
+            imageUrls: JSON.stringify(coverImage ? [coverImage] : []),
+            latitude: coords?.lat ?? null,
+            longitude: coords?.lon ?? null,
+            availableUnitsCount,
+            minUnitPrice,
+            maxUnitPrice
+          };
+        }));
       };
 
       if (isPaginationRequest) {
@@ -2026,7 +2038,7 @@ async function startServer() {
           prisma.property.count({ where })
         ]);
 
-        const enriched = await Promise.all(properties.map(enrichProperty));
+        const enriched = await enrichPropertiesList(properties);
         return res.json({
           properties: enriched,
           totalCount,
@@ -2040,7 +2052,7 @@ async function startServer() {
           where,
           orderBy: { createdAt: 'desc' }
         });
-        const enriched = await Promise.all(properties.map(enrichProperty));
+        const enriched = await enrichPropertiesList(properties);
         
         if (!hasQueryParams) {
           dbCache[cacheKey] = enriched;

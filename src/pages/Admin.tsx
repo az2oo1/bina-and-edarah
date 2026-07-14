@@ -142,6 +142,30 @@ export default function Admin() {
   const [userRole, setUserRole] = useState<string>('ADMIN');
   const [selectedParentProperty, setSelectedParentProperty] = useState<Property | null>(null);
   const [selectedParentTab, setSelectedParentTab] = useState<'units' | 'renters' | 'details'>('units');
+  const [selectedParentUnits, setSelectedParentUnits] = useState<Property[]>([]);
+  const [loadingUnits, setLoadingUnits] = useState(false);
+
+  const fetchUnitsForParent = async (parentId: string) => {
+    setLoadingUnits(true);
+    try {
+      const res = await fetch(`/api/properties?parentId=${parentId}`);
+      const data = await res.json();
+      setSelectedParentUnits(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching units:", err);
+      setSelectedParentUnits([]);
+    } finally {
+      setLoadingUnits(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedParentProperty) {
+      fetchUnitsForParent(selectedParentProperty.id);
+    } else {
+      setSelectedParentUnits([]);
+    }
+  }, [selectedParentProperty]);
 
   useEffect(() => {
     setSelectedParentProperty(null);
@@ -183,8 +207,10 @@ export default function Admin() {
   };
 
   useEffect(() => {
-    fetchAdminBuildings();
-  }, [activeTab]);
+    if (activeTab === 'buildings' || activeTab === 'renters' || selectedParentProperty) {
+      fetchAdminBuildings();
+    }
+  }, [activeTab, selectedParentProperty]);
 
   useEffect(() => {
     if (selectedParentProperty) {
@@ -583,6 +609,9 @@ export default function Admin() {
         );
         resetForm();
         fetchProperties();
+        if (formData.parentId) {
+          fetchUnitsForParent(formData.parentId);
+        }
         setTimeout(() => setShowAddForm(false), 2000);
       } else {
         showSubmitMessage('error', isEditing ? (language === 'ar' ? 'فشل تحديث العقار' : 'Failed to update property.') : (language === 'ar' ? 'فشل إضافة العقار' : 'Failed to add property.'));
@@ -672,6 +701,99 @@ export default function Admin() {
 
   const [buildingFloors, setBuildingFloors] = useState<string[]>([]);
   const [newFloorInput, setNewFloorInput] = useState('');
+
+  const parentFloors = (() => {
+    const parent = selectedParentProperty || (formData.parentId ? properties.find(p => p.id === formData.parentId) : null);
+    if (!parent) return [];
+    try {
+      const detailsList = typeof parent.details === 'string' ? JSON.parse(parent.details || '[]') : (parent.details || []);
+      const match = detailsList.find((d: any) => d.key === 'أدوار المبنى' || d.key === 'Building Floors');
+      return match ? match.value.split(',').map((f: any) => f.trim()).filter(Boolean) : [];
+    } catch (_) {
+      return [];
+    }
+  })();
+
+  const handleAddFloorToParent = async () => {
+    if (!newFloorInput.trim() || !selectedParentProperty) return;
+    const flr = newFloorInput.trim();
+    let currentDetails = [];
+    try {
+      currentDetails = typeof selectedParentProperty.details === 'string' 
+        ? JSON.parse(selectedParentProperty.details || '[]') 
+        : (selectedParentProperty.details || []);
+    } catch (_) {}
+    
+    let detailsList = Array.isArray(currentDetails) ? currentDetails : [];
+    const existingIdx = detailsList.findIndex((d: any) => d.key === 'أدوار المبنى' || d.key === 'Building Floors');
+    let floorsList: string[] = [];
+    if (existingIdx > -1) {
+      floorsList = detailsList[existingIdx].value.split(',').map((f: any) => f.trim()).filter(Boolean);
+    }
+    if (floorsList.includes(flr)) return;
+    floorsList.push(flr);
+    
+    const floorsKey = language === 'ar' ? 'أدوار المبنى' : 'Building Floors';
+    if (existingIdx > -1) {
+      detailsList[existingIdx].value = floorsList.join(',');
+    } else {
+      detailsList.push({ key: floorsKey, value: floorsList.join(',') });
+    }
+    
+    try {
+      const res = await fetch(`/api/properties/${selectedParentProperty.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...selectedParentProperty, details: JSON.stringify(detailsList) })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSelectedParentProperty(updated);
+        setNewFloorInput('');
+        fetchProperties();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveFloorFromParent = async (index: number) => {
+    if (!selectedParentProperty) return;
+    let currentDetails = [];
+    try {
+      currentDetails = typeof selectedParentProperty.details === 'string' 
+        ? JSON.parse(selectedParentProperty.details || '[]') 
+        : (selectedParentProperty.details || []);
+    } catch (_) {}
+    
+    let detailsList = Array.isArray(currentDetails) ? currentDetails : [];
+    const existingIdx = detailsList.findIndex((d: any) => d.key === 'أدوار المبنى' || d.key === 'Building Floors');
+    if (existingIdx === -1) return;
+    
+    let floorsList = detailsList[existingIdx].value.split(',').map((f: any) => f.trim()).filter(Boolean);
+    floorsList = floorsList.filter((_, idx) => idx !== index);
+    
+    if (floorsList.length > 0) {
+      detailsList[existingIdx].value = floorsList.join(',');
+    } else {
+      detailsList = detailsList.filter((_, idx) => idx !== existingIdx);
+    }
+    
+    try {
+      const res = await fetch(`/api/properties/${selectedParentProperty.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...selectedParentProperty, details: JSON.stringify(detailsList) })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSelectedParentProperty(updated);
+        fetchProperties();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleNewUnitClick = () => {
     setUnitFormData({
@@ -1058,6 +1180,7 @@ export default function Admin() {
       });
       if (res.ok) {
         setProperties(properties.filter(p => p.id !== id));
+        setSelectedParentUnits(prev => prev.filter(p => p.id !== id));
       } else {
         await showAlert(language === 'ar' ? 'فشل حذف العقار.' : 'Failed to delete property.');
       }
@@ -1366,97 +1489,168 @@ export default function Admin() {
                   </div>
 
                   {selectedParentTab === 'units' && (
-                    properties.filter(p => p.parentId === selectedParentProperty.id).length === 0 ? (
-                      <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground bg-card/20 animate-in fade-in">
-                        <Building2 className="w-12 h-12 mx-auto mb-3 opacity-45 text-primary" />
-                        <p className="text-sm font-bold">{language === 'ar' ? 'لا يوجد وحدات سكنية مضافة لهذا العقار بعد.' : 'No units added for this listing yet.'}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {language === 'ar' ? 'اضغط على زر "إضافة وحدة" بالأعلى للبدء.' : 'Click "Add Unit" button above to get started.'}
-                        </p>
+                    <div className="space-y-6">
+                      {/* Floors definitions editor */}
+                      <div className="bg-card border border-border p-5 rounded-xl space-y-4 shadow-xs animate-in fade-in">
+                        <div>
+                          <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                            <Building2 className="w-4 h-4 text-primary" />
+                            <span>{language === 'ar' ? 'طوابق وأدوار المبنى' : 'Building Floors'}</span>
+                          </h4>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {language === 'ar' 
+                              ? 'قم بإضافة أدوار المبنى هنا أولاً لتتمكن من اختيارها عند إضافة أو تعديل وحدات هذا المبنى' 
+                              : 'Add building floors here first to select them when adding or editing units of this building'}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newFloorInput}
+                            onChange={(e) => setNewFloorInput(e.target.value)}
+                            placeholder={language === 'ar' ? 'مثال: الدور 1، الدور 2، الدور الأرضي' : 'e.g. Floor 1, Floor 2, Ground Floor'}
+                            className="cn-input text-xs h-9 flex-1 bg-background"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddFloorToParent();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddFloorToParent}
+                            className="px-4 h-9 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>{language === 'ar' ? 'إضافة دور' : 'Add Floor'}</span>
+                          </button>
+                        </div>
+
+                        {parentFloors.length > 0 ? (
+                          <div className="flex flex-wrap gap-2 pt-1.5">
+                            {parentFloors.map((flr, idx) => (
+                              <span 
+                                key={idx}
+                                className="inline-flex items-center gap-1 bg-muted border border-border/80 px-2.5 py-1 rounded-lg text-xs font-bold text-foreground select-none"
+                              >
+                                <span>{flr}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveFloorFromParent(idx)}
+                                  className="text-muted-foreground hover:text-red-500 rounded p-0.5 cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground italic">
+                            {language === 'ar' 
+                              ? 'لم يتم إضافة أدوار بعد. يرجى إضافة الأدوار لتصنيف وحدات المبنى.' 
+                              : 'No floors defined yet. Please add floors to classify the units.'}
+                          </p>
+                        )}
                       </div>
-                    ) : (
-                      <div className="overflow-x-auto overflow-y-hidden border border-border rounded-xl bg-card/25 shadow-xs animate-in fade-in">
-                        <table className="w-full ltr:text-left rtl:text-right border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-card text-muted-foreground text-[11px] font-bold border-b border-border uppercase tracking-wider">
-                              <th className="p-3 font-bold">#</th>
-                              <th className="p-3 font-bold">{language === 'ar' ? 'اسم الوحدة' : 'Unit Title'}</th>
-                              <th className="p-3 font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
-                              <th className="p-3 font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
-                              <th className="p-3 font-bold">{language === 'ar' ? 'المساحة' : 'Area'}</th>
-                              <th className="p-3 font-bold text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
-                              <th className="p-3 font-bold text-center">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border/60 text-foreground">
-                            {properties.filter(p => p.parentId === selectedParentProperty.id).map((unit, index) => {
-                              return (
-                                <tr key={unit.id} className="hover:bg-muted/30 transition-colors">
-                                  <td className="p-3 text-muted-foreground">{index + 1}</td>
-                                  <td className="p-3 font-semibold">
-                                    <p>{unit.titleAr}</p>
-                                    <p className="text-[10px] text-muted-foreground mt-0.5 font-sans font-normal" dir="ltr">{unit.titleEn}</p>
-                                  </td>
-                                  <td className="p-3 text-muted-foreground">{t(`cat.${unit.propertyCategory}`)}</td>
-                                  <td className="p-3 font-semibold font-mono">
-                                    {unit.price ? `${unit.price.toLocaleString()} SAR` : (language === 'ar' ? 'غير محدد' : 'N/A')}
-                                  </td>
-                                  <td className="p-3 font-mono text-muted-foreground">
-                                    {unit.area} {t('common.sqm')}
-                                  </td>
-                                  <td className="p-3 text-center">
-                                    <select
-                                      value={unit.status || 'PUBLISHED'}
-                                      onChange={async (e) => {
-                                        const newStatus = e.target.value;
-                                        try {
-                                          const updateRes = await fetch(`/api/properties/${unit.id}`, {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ ...unit, status: newStatus })
-                                          });
-                                          if (updateRes.ok) {
-                                            fetchProperties();
+
+                      {loadingUnits ? (
+                        <div className="flex justify-center items-center py-20 animate-in fade-in">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                      ) : selectedParentUnits.length === 0 ? (
+                        <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground bg-card/20 animate-in fade-in">
+                          <Building2 className="w-12 h-12 mx-auto mb-3 opacity-45 text-primary" />
+                          <p className="text-sm font-bold">{language === 'ar' ? 'لا يوجد وحدات سكنية مضافة لهذا العقار بعد.' : 'No units added for this listing yet.'}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {language === 'ar' ? 'اضغط على زر "إضافة وحدة" بالأعلى للبدء.' : 'Click "Add Unit" button above to get started.'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto overflow-y-hidden border border-border rounded-xl bg-card/25 shadow-xs animate-in fade-in">
+                          <table className="w-full ltr:text-left rtl:text-right border-collapse text-xs">
+                            <thead>
+                              <tr className="bg-card text-muted-foreground text-[11px] font-bold border-b border-border uppercase tracking-wider">
+                                <th className="p-3 font-bold">#</th>
+                                <th className="p-3 font-bold">{language === 'ar' ? 'اسم الوحدة' : 'Unit Title'}</th>
+                                <th className="p-3 font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
+                                <th className="p-3 font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
+                                <th className="p-3 font-bold">{language === 'ar' ? 'المساحة' : 'Area'}</th>
+                                <th className="p-3 font-bold text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                                <th className="p-3 font-bold text-center">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/60 text-foreground">
+                              {selectedParentUnits.map((unit, index) => {
+                                return (
+                                  <tr key={unit.id} className="hover:bg-muted/30 transition-colors">
+                                    <td className="p-3 text-muted-foreground">{index + 1}</td>
+                                    <td className="p-3 font-semibold">
+                                      <p>{unit.titleAr}</p>
+                                      <p className="text-[10px] text-muted-foreground mt-0.5 font-sans font-normal" dir="ltr">{unit.titleEn}</p>
+                                    </td>
+                                    <td className="p-3 text-muted-foreground">{t(`cat.${unit.propertyCategory}`)}</td>
+                                    <td className="p-3 font-semibold font-mono">
+                                      {unit.price ? `${unit.price.toLocaleString()} SAR` : (language === 'ar' ? 'غير محدد' : 'N/A')}
+                                    </td>
+                                    <td className="p-3 font-mono text-muted-foreground">
+                                      {unit.area} {t('common.sqm')}
+                                    </td>
+                                    <td className="p-3 text-center">
+                                      <select
+                                        value={unit.status || 'PUBLISHED'}
+                                        onChange={async (e) => {
+                                          const newStatus = e.target.value;
+                                          try {
+                                            const updateRes = await fetch(`/api/properties/${unit.id}`, {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ ...unit, status: newStatus })
+                                            });
+                                            if (updateRes.ok) {
+                                              fetchUnitsForParent(selectedParentProperty.id);
+                                            }
+                                          } catch (err) {
+                                            console.error("Failed to update unit status:", err);
                                           }
-                                        } catch (err) {
-                                          console.error("Failed to update unit status:", err);
-                                        }
-                                      }}
-                                      className="bg-background border border-border text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground"
-                                    >
-                                      <option value="PUBLISHED">{language === 'ar' ? 'متاح' : 'Available'}</option>
-                                      <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
-                                      <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
-                                      <option value="DRAFT">{language === 'ar' ? 'مخفي (مسودة)' : 'Hidden (Draft)'}</option>
-                                    </select>
-                                  </td>
-                                  <td className="p-3 text-center">
-                                    <div className="flex items-center justify-center gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleEditClick(unit)}
-                                        className="p-1.5 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
-                                        title={language === 'ar' ? 'تعديل' : 'Edit'}
+                                        }}
+                                        className="bg-background border border-border text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground"
                                       >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDelete(unit.id)}
-                                        className="p-1.5 text-red-500 hover:text-red-400 hover:border-red-500/30 rounded-lg border border-border bg-card/50 hover:bg-red-950/20 cursor-pointer transition-all inline-flex items-center justify-center"
-                                        title={t('admin.deleteProperty')}
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )
+                                        <option value="PUBLISHED">{language === 'ar' ? 'متاح' : 'Available'}</option>
+                                        <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
+                                        <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
+                                        <option value="DRAFT">{language === 'ar' ? 'مخفي (مسودة)' : 'Hidden (Draft)'}</option>
+                                      </select>
+                                    </td>
+                                    <td className="p-3 text-center">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleEditClick(unit)}
+                                          className="p-1.5 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
+                                          title={language === 'ar' ? 'تعديل' : 'Edit'}
+                                        >
+                                          <Pencil className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDelete(unit.id)}
+                                          className="p-1.5 text-red-500 hover:text-red-400 hover:border-red-500/30 rounded-lg border border-border bg-card/50 hover:bg-red-950/20 cursor-pointer transition-all inline-flex items-center justify-center"
+                                          title={t('admin.deleteProperty')}
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {selectedParentTab === 'renters' && (
@@ -1822,6 +2016,91 @@ export default function Admin() {
                           <label className="cn-label mb-2">{t('admin.placeholder.propertyAge')}</label>
                           <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({ ...formData, propertyAge: e.target.value })} className="cn-input" placeholder="0" />
                         </div>
+
+                        {formData.parentId && (
+                          <>
+                            <div>
+                              <label className="cn-label mb-2">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي بالعربية' : 'Internal Unit Name/Number (Ar)'}</label>
+                              <input
+                                required
+                                type="text"
+                                value={formData.detailsList.find(d => d.key === 'رقم الوحدة' || d.key === 'Unit Name')?.value || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setFormData(prev => {
+                                    const newList = [...prev.detailsList];
+                                    const keyName = language === 'ar' ? 'رقم الوحدة' : 'Unit Name';
+                                    const idx = newList.findIndex(d => d.key === 'رقم الوحدة' || d.key === 'Unit Name');
+                                    if (idx > -1) {
+                                      newList[idx] = { ...newList[idx], value: val };
+                                    } else {
+                                      newList.push({ id: Math.random().toString(), key: keyName, value: val });
+                                    }
+                                    return { ...prev, detailsList: newList };
+                                  });
+                                }}
+                                className="cn-input"
+                                placeholder="مثال: شقة 101"
+                              />
+                            </div>
+                            <div>
+                              <label className="cn-label mb-2">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي بالإنجليزية' : 'Internal Unit Name/Number (En)'}</label>
+                              <input
+                                type="text"
+                                value={formData.detailsList.find(d => d.key === 'Unit Name')?.value || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setFormData(prev => {
+                                    const newList = [...prev.detailsList];
+                                    const idx = newList.findIndex(d => d.key === 'Unit Name');
+                                    if (idx > -1) {
+                                      newList[idx] = { ...newList[idx], value: val };
+                                    } else {
+                                      newList.push({ id: Math.random().toString(), key: 'Unit Name', value: val });
+                                    }
+                                    return { ...prev, detailsList: newList };
+                                  });
+                                }}
+                                className="cn-input"
+                                placeholder="e.g. Apt 101"
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="cn-label mb-2">{language === 'ar' ? 'الدور' : 'Floor'}</label>
+                              {parentFloors.length > 0 ? (
+                                <select
+                                  value={formData.detailsList.find(d => d.key === 'الدور' || d.key === 'Floor')?.value || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFormData(prev => {
+                                      const newList = [...prev.detailsList];
+                                      const keyName = language === 'ar' ? 'الدور' : 'Floor';
+                                      const idx = newList.findIndex(d => d.key === 'الدور' || d.key === 'Floor');
+                                      if (idx > -1) {
+                                        newList[idx] = { ...newList[idx], value: val };
+                                      } else {
+                                        newList.push({ id: Math.random().toString(), key: keyName, value: val });
+                                      }
+                                      return { ...prev, detailsList: newList };
+                                    });
+                                  }}
+                                  className="cn-input"
+                                >
+                                  <option value="">{language === 'ar' ? 'اختر الدور' : 'Select Floor'}</option>
+                                  {parentFloors.map((flr) => (
+                                    <option key={flr} value={flr}>{flr}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <div className="text-xs text-muted-foreground p-3 border border-dashed border-border rounded-xl bg-muted/20">
+                                  {language === 'ar' 
+                                    ? 'لا توجد أدوار محددة في صفحة إدارة وحدات هذا المبنى. يرجى إضافة أدوار هناك أولاً لتتمكن من اختيارها.' 
+                                    : 'No floors defined on this parent property\'s Manage Units page. Please add floors there first to select them.'}
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
