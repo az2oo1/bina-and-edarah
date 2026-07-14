@@ -20,11 +20,26 @@ const Contact = lazy(() => import('./pages/Contact'));
 const Services = lazy(() => import('./pages/Services'));
 const About = lazy(() => import('./pages/About'));
 
+let settingsPromise: Promise<any> | null = null;
+function getCachedSettings() {
+  if (!settingsPromise) {
+    settingsPromise = fetch('/api/settings')
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to fetch settings');
+        return r.json();
+      })
+      .catch(err => {
+        settingsPromise = null;
+        throw err;
+      });
+  }
+  return settingsPromise;
+}
+
 function useLogoUrl() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.json())
+    getCachedSettings()
       .then(data => {
         if (data.logoUrl) setLogoUrl(data.logoUrl);
       })
@@ -42,8 +57,7 @@ function useLogoUrl() {
 function useSocialSettings(): SocialLinks {
   const [links, setLinks] = useState<SocialLinks>({});
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.json())
+    getCachedSettings()
       .then(data => setLinks({
         whatsappNumber: data.whatsappNumber,
         instagramUrl: data.instagramUrl,

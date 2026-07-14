@@ -42,6 +42,7 @@ export default function Properties() {
   // Pagination & Loading
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [leafletLoaded, setLeafletLoaded] = useState(!!(window as any).L);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
@@ -145,6 +146,48 @@ export default function Properties() {
     });
   }, [properties]);
 
+  useEffect(() => {
+    if ((window as any).L) {
+      setLeafletLoaded(true);
+      return;
+    }
+
+    const cssId = 'leaflet-css-dynamic';
+    if (!document.getElementById(cssId)) {
+      const link = document.createElement('link');
+      link.id = cssId;
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+      link.crossOrigin = '';
+      document.head.appendChild(link);
+    }
+
+    const jsId = 'leaflet-js-dynamic';
+    if (!document.getElementById(jsId)) {
+      const script = document.createElement('script');
+      script.id = jsId;
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+      script.crossOrigin = '';
+      script.onload = () => {
+        setLeafletLoaded(true);
+      };
+      script.onerror = () => {
+        console.error("Failed to load Leaflet script dynamically.");
+      };
+      document.head.appendChild(script);
+    } else {
+      const interval = setInterval(() => {
+        if ((window as any).L) {
+          setLeafletLoaded(true);
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
   const mapRef = useRef<any>(null);
 
   useEffect(() => {
@@ -199,7 +242,7 @@ export default function Properties() {
       const group = L.featureGroup(markers);
       mapRef.current.fitBounds(group.getBounds().pad(0.15));
     }
-  }, [mapProperties, language]);
+  }, [mapProperties, language, leafletLoaded]);
 
   return (
     <div className="bg-background min-h-screen pb-16">
@@ -530,7 +573,12 @@ export default function Properties() {
             </p>
           </div>
 
-          <div className="bg-card p-2.5 border border-border rounded-xl shadow-xs overflow-hidden h-[400px]">
+          <div className="bg-card p-2.5 border border-border rounded-xl shadow-xs overflow-hidden h-[400px] relative">
+            {!leafletLoaded && (
+              <div className="absolute inset-0 bg-muted/20 animate-pulse flex items-center justify-center text-xs font-semibold text-muted-foreground z-10">
+                {language === 'ar' ? 'جاري تحميل الخريطة...' : 'Loading map...'}
+              </div>
+            )}
             <div 
               id="properties-map"
               style={{ border: 0, borderRadius: '8px', height: '100%', width: '100%', zIndex: 1 }}

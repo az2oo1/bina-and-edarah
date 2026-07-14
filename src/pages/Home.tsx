@@ -15,6 +15,43 @@ const DEFAULT_IMAGES = {
 
 export type HomeImages = typeof DEFAULT_IMAGES;
 
+function ProjectsSkeleton() {
+  return (
+    <div className="space-y-32">
+      {[0, 1, 2].map((index) => {
+        const isEven = index % 2 === 1;
+        return (
+          <div key={index} className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 animate-pulse">
+            <div className={`w-full lg:w-3/5 aspect-[16/10] rounded-2xl bg-muted border border-border/80 ${isEven ? 'lg:order-2' : ''}`} />
+            <div className={`w-full lg:w-2/5 flex flex-col items-start ${isEven ? 'lg:order-1' : ''}`}>
+              <div className="h-4 bg-muted/60 rounded w-24 mb-3" />
+              <div className="h-8 bg-muted rounded w-3/4 mb-4" />
+              <div className="h-4 bg-muted/65 rounded w-full mb-2" />
+              <div className="h-4 bg-muted/65 rounded w-full mb-2" />
+              <div className="h-4 bg-muted/65 rounded w-5/6 mb-6" />
+              <div className="grid grid-cols-3 gap-6 w-full border-t border-b border-border/60 py-4 mb-6">
+                <div className="space-y-2">
+                  <div className="h-3 bg-muted/50 rounded w-12" />
+                  <div className="h-4 bg-muted rounded w-16" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-muted/50 rounded w-12" />
+                  <div className="h-4 bg-muted rounded w-16" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-muted/50 rounded w-12" />
+                  <div className="h-4 bg-muted rounded w-16" />
+                </div>
+              </div>
+              <div className="h-4 bg-muted/70 rounded w-32" />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface SocialSettings {
   email?: string;
   instagramUrl?: string;
@@ -33,6 +70,7 @@ export default function Home() {
   const [social, setSocial] = useState<SocialSettings>({});
 
   const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
   
   const [activeSection, setActiveSection] = useState('hero');
   const [projectsVisible, setProjectsVisible] = useState(false);
@@ -93,7 +131,10 @@ export default function Home() {
           setFeaturedProjects(data.slice(0, 3));
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setLoadingProjects(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -218,6 +259,10 @@ export default function Home() {
               <img 
                 src="/skyscrapers.png?v=2" 
                 alt="Skyscrapers divider" 
+                width="1024"
+                height="303"
+                fetchPriority="high"
+                loading="eager"
                 className="w-full h-auto object-contain object-bottom opacity-100 dark:opacity-85"
               />
             </div>
@@ -381,86 +426,95 @@ export default function Home() {
 
           {/* Staggered Alternating Rows Container */}
           <div ref={projectsRef} className="space-y-32">
-            {featuredProjects.map((project, index) => {
-              let imagesArr = [];
-              try {
-                imagesArr = JSON.parse(project.imageUrls || '[]');
-              } catch(_) {}
-              const image = imagesArr[0] || DEFAULT_IMAGES.service1;
-              const isEven = index % 2 === 1;
+            {loadingProjects ? (
+              <ProjectsSkeleton />
+            ) : featuredProjects.length > 0 ? (
+              featuredProjects.map((project, index) => {
+                let imagesArr = [];
+                try {
+                  imagesArr = JSON.parse(project.imageUrls || '[]');
+                } catch(_) {}
+                const image = imagesArr[0] || DEFAULT_IMAGES.service1;
+                const isEven = index % 2 === 1;
 
-              return (
-                <div 
-                  key={project.id}
-                  className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-20 transition-all duration-1000 ease-out transform ${
-                    projectsVisible 
-                      ? 'opacity-100 translate-y-0 scale-100' 
-                      : 'opacity-0 translate-y-20 scale-[0.98]'
-                  }`}
-                  style={{ transitionDelay: `${index * 150}ms` }}
-                >
-                  {/* Column A: Large Premium Parallax Image */}
-                  <Link 
-                    to={`/projects/${project.id}`}
-                    className={`w-full lg:w-3/5 aspect-[16/10] rounded-2xl overflow-hidden cursor-pointer border border-border/80 bg-muted shadow-lg hover:shadow-2xl hover:border-primary/25 transition-all duration-500 group relative block ${
-                      isEven ? 'lg:order-2' : ''
+                return (
+                  <div 
+                    key={project.id}
+                    className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-20 transition-all duration-1000 ease-out transform ${
+                      projectsVisible 
+                        ? 'opacity-100 translate-y-0 scale-100' 
+                        : 'opacity-0 translate-y-20 scale-[0.98]'
                     }`}
+                    style={{ transitionDelay: `${index * 150}ms` }}
                   >
-                    <img 
-                      src={image} 
-                      alt={language === 'ar' ? project.titleAr : project.titleEn} 
-                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
-                    />
-                    <div className="absolute inset-0 bg-black/10 dark:bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
-                  </Link>
-
-                  {/* Column B: Spacious Editorial Content */}
-                  <div className={`w-full lg:w-2/5 flex flex-col items-start text-right rtl:text-right ltr:text-left ${
-                    isEven ? 'lg:order-1' : ''
-                  }`}>
-                    {/* Category */}
-                    <span className="text-[10px] font-extrabold text-sky-500 dark:text-sky-400 uppercase tracking-widest mb-3">
-                      {t(`cat.${project.propertyCategory}`)}
-                    </span>
-                    
-                    {/* Title */}
-                    <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-4 leading-tight select-none">
-                      {language === 'ar' ? project.titleAr : project.titleEn}
-                    </h3>
-                    
-                    {/* Description */}
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-justify mb-6 max-w-lg">
-                      {language === 'ar' ? project.descriptionAr : project.descriptionEn}
-                    </p>
-
-                    {/* Quick Stats Grid */}
-                    <div className="grid grid-cols-3 gap-6 w-full border-t border-b border-border/60 py-4 mb-6">
-                      <div className="flex flex-col items-start justify-center">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'المساحة' : 'Area'}</span>
-                        <span className="text-xs font-bold text-foreground font-mono">{project.area} {t('common.sqm')}</span>
-                      </div>
-                      <div className="flex flex-col items-start justify-center">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'عمر العقار' : 'Property Age'}</span>
-                        <span className="text-xs font-bold text-foreground">{project.propertyAge > 0 ? `${project.propertyAge} ${language === 'ar' ? 'سنة' : 'years'}` : (language === 'ar' ? 'جديد' : 'New')}</span>
-                      </div>
-                      <div className="flex flex-col items-start justify-center">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'الموقع' : 'Location'}</span>
-                        <span className="text-xs font-bold text-foreground truncate max-w-[100px]">{project.locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}</span>
-                      </div>
-                    </div>
-
-                    {/* View Details Link */}
+                    {/* Column A: Large Premium Parallax Image */}
                     <Link 
                       to={`/projects/${project.id}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563eb] hover:text-[#1d4ed8] dark:text-sky-400 dark:hover:text-sky-300 transition-colors cursor-pointer select-none group/link"
+                      className={`w-full lg:w-3/5 aspect-[16/10] rounded-2xl overflow-hidden cursor-pointer border border-border/80 bg-muted shadow-lg hover:shadow-2xl hover:border-primary/25 transition-all duration-500 group relative block ${
+                        isEven ? 'lg:order-2' : ''
+                      }`}
                     >
-                      <span>{language === 'ar' ? 'تفاصيل المشروع كاملة' : 'View Full Details'}</span>
-                      <Arrow className="w-4 h-4 transform group-hover/link:translate-x-1 sm:rtl:group-hover/link:-translate-x-1 transition-transform" />
+                      <img 
+                        src={image} 
+                        alt={language === 'ar' ? project.titleAr : project.titleEn} 
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                      />
+                      <div className="absolute inset-0 bg-black/10 dark:bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
                     </Link>
+
+                    {/* Column B: Spacious Editorial Content */}
+                    <div className={`w-full lg:w-2/5 flex flex-col items-start text-right rtl:text-right ltr:text-left ${
+                      isEven ? 'lg:order-1' : ''
+                    }`}>
+                      {/* Category */}
+                      <span className="text-[10px] font-extrabold text-sky-500 dark:text-sky-400 uppercase tracking-widest mb-3">
+                        {t(`cat.${project.propertyCategory}`)}
+                      </span>
+                      
+                      {/* Title */}
+                      <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-4 leading-tight select-none">
+                        {language === 'ar' ? project.titleAr : project.titleEn}
+                      </h3>
+                      
+                      {/* Description */}
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-justify mb-6 max-w-lg">
+                        {language === 'ar' ? project.descriptionAr : project.descriptionEn}
+                      </p>
+
+                      {/* Quick Stats Grid */}
+                      <div className="grid grid-cols-3 gap-6 w-full border-t border-b border-border/60 py-4 mb-6">
+                        <div className="flex flex-col items-start justify-center">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'المساحة' : 'Area'}</span>
+                          <span className="text-xs font-bold text-foreground font-mono">{project.area} {t('common.sqm')}</span>
+                        </div>
+                        <div className="flex flex-col items-start justify-center">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'عمر العقار' : 'Property Age'}</span>
+                          <span className="text-xs font-bold text-foreground">{project.propertyAge > 0 ? `${project.propertyAge} ${language === 'ar' ? 'سنة' : 'years'}` : (language === 'ar' ? 'جديد' : 'New')}</span>
+                        </div>
+                        <div className="flex flex-col items-start justify-center">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{language === 'ar' ? 'الموقع' : 'Location'}</span>
+                          <span className="text-xs font-bold text-foreground truncate max-w-[100px]">{project.locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}</span>
+                        </div>
+                      </div>
+
+                      {/* View Details Link */}
+                      <Link 
+                        to={`/projects/${project.id}`}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563eb] hover:text-[#1d4ed8] dark:text-sky-400 dark:hover:text-sky-300 transition-colors cursor-pointer select-none group/link"
+                      >
+                        <span>{language === 'ar' ? 'تفاصيل المشروع كاملة' : 'View Full Details'}</span>
+                        <Arrow className="w-4 h-4 transform group-hover/link:translate-x-1 sm:rtl:group-hover/link:-translate-x-1 transition-transform" />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="text-center py-16 text-muted-foreground text-sm font-medium border border-dashed border-border rounded-2xl">
+                {language === 'ar' ? 'سيتم إضافة ألبوم المشاريع قريباً.' : 'Featured projects portfolio will be added soon.'}
+              </div>
+            )}
           </div>
 
           {featuredProjects.length > 0 && (
