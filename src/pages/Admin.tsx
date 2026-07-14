@@ -526,6 +526,50 @@ export default function Admin() {
     e.target.value = '';
   };
 
+  const [isUploadingDocs, setIsUploadingDocs] = useState(false);
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingDocs(true);
+
+    const docList = [...(formData.attachments || [])];
+
+    for (const file of Array.from(files) as File[]) {
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (typeof event.target?.result === 'string') {
+              resolve(event.target.result);
+            } else {
+              reject(new Error('Failed to read file'));
+            }
+          };
+          reader.onerror = () => reject(new Error('File read error'));
+          reader.readAsDataURL(file);
+        });
+        docList.push({
+          name: file.name,
+          url: base64,
+          size: file.size
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    setFormData(prev => ({ ...prev, attachments: docList }));
+    setIsUploadingDocs(false);
+    e.target.value = '';
+  };
+
+  const removeDocument = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: (prev.attachments || []).filter((_, idx) => idx !== index)
+    }));
+  };
+
   const removeImage = (index: number) => {
     const newImages = [...formData.imageUrls];
     newImages.splice(index, 1);
@@ -665,7 +709,8 @@ export default function Admin() {
       videoUrl: '',
       parentId: '',
       status: 'PUBLISHED',
-      subProperties: []
+      subProperties: [],
+      attachments: []
     });
     setEditingId(null);
     setShowAddForm(false);
@@ -1004,6 +1049,17 @@ export default function Admin() {
       }
       setBuildingFloors(initialFloors);
 
+      let parsedAttachments = [];
+      try {
+        if (propData.attachments) {
+          parsedAttachments = typeof propData.attachments === 'string'
+            ? JSON.parse(propData.attachments)
+            : propData.attachments;
+        }
+      } catch (e) {
+        // ignore
+      }
+
       setFormData({
         titleAr: propData.titleAr || '',
         titleEn: propData.titleEn || '',
@@ -1037,7 +1093,8 @@ export default function Admin() {
         videoUrl: propData.videoUrl || '',
         parentId: propData.parentId || '',
         status: propData.status || 'PUBLISHED',
-        subProperties: propData.subProperties || []
+        subProperties: propData.subProperties || [],
+        attachments: parsedAttachments
       });
       setEditingId(property.id);
       setShowAddForm(true);
@@ -2611,6 +2668,61 @@ export default function Admin() {
                           })}
                         </div>
                       )}
+
+                      {/* Documents Upload Section */}
+                      <div className="mt-10 border-t border-border pt-8">
+                        <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-primary" />
+                          <span>{language === 'ar' ? 'الملفات والمرفقات (بروشور، مخططات، رخص)' : 'Documents & Attachments (Brochure, Plans, Licenses)'}</span>
+                        </h4>
+                        
+                        <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isUploadingDocs ? 'border-border bg-muted cursor-not-allowed' : 'border-primary/30 bg-card hover:bg-muted'}`}>
+                          <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={handleDocumentUpload} className="hidden" id="doc-upload" disabled={isUploadingDocs} />
+                          <label htmlFor="doc-upload" className={`flex flex-col items-center ${isUploadingDocs ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            {isUploadingDocs ? (
+                              <Loader2 className="w-10 h-10 text-indigo-500 mb-3 animate-spin" />
+                            ) : (
+                              <Upload className="w-10 h-10 text-gray-400 mb-3" />
+                            )}
+                            
+                            <span className="font-bold text-sm text-muted-foreground">
+                              {isUploadingDocs ? (language === 'ar' ? 'جاري معالجة الملفات...' : 'Processing Files...') : (language === 'ar' ? 'اضغط لرفع ملفات PDF أو مستندات العقار' : 'Click to upload PDF or property documents')}
+                            </span>
+                          </label>
+                        </div>
+
+                        {formData.attachments && formData.attachments.length > 0 && (
+                          <div className="mt-4 space-y-2.5">
+                            {formData.attachments.map((doc, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-red-500/10 text-red-500 rounded-lg">
+                                    <FileText className="w-5 h-5" />
+                                  </div>
+                                  <div className="text-right rtl:text-right ltr:text-left">
+                                    <p className="text-xs font-bold text-foreground">
+                                      {doc.name}
+                                    </p>
+                                    {doc.size && (
+                                      <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                                        {(doc.size / (1024 * 1024)).toFixed(2)} MB
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeDocument(idx)}
+                                  className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                  title={language === 'ar' ? 'حذف' : 'Delete'}
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
