@@ -15,7 +15,7 @@ const Properties = lazy(() => import('./pages/Properties'));
 const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+
 const Contact = lazy(() => import('./pages/Contact'));
 const Services = lazy(() => import('./pages/Services'));
 const About = lazy(() => import('./pages/About'));
@@ -107,40 +107,40 @@ function Navbar() {
   };
 
   return (
-    <nav className="bg-card/95 border-b border-border shadow-md sticky top-0 z-50 backdrop-blur-md w-full">
+    <nav className="bg-background/80 border-b border-border/30 sticky top-0 z-50 backdrop-blur-md w-full">
       <div className="w-full px-4 sm:px-8 lg:px-12">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-12 items-center">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center gap-2 mr-12 lg:mr-20 sm:rtl:ml-12 sm:rtl:mr-0 lg:rtl:ml-20 group">
+            <Link to="/" className="flex-shrink-0 flex items-center gap-2 mr-8 lg:mr-12 sm:rtl:ml-8 sm:rtl:mr-0 lg:rtl:ml-12 group">
               <Logo
-                className={`h-8 w-8 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-[#34505e]'}`}
+                className={`h-5 w-5 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
                 logoUrl={logoUrl}
               />
-              <span className="font-bold text-base text-foreground tracking-wide hidden md:block">{t('hero.title')}</span>
+              <span className="font-bold text-xs text-foreground tracking-tight hidden md:block">{t('hero.title')}</span>
             </Link>
-            <div className="hidden sm:flex items-center gap-6 lg:gap-10">
-              <div className="relative group py-5 select-none">
-                <Link to="/" className="inline-flex items-center gap-1 px-1 pt-1 border-b-2 border-transparent group-hover:border-amber-400 text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-all cursor-pointer">
+            <div className="hidden sm:flex items-center gap-5 lg:gap-8">
+              <div className="relative group py-3 select-none">
+                <Link to="/" className="inline-flex items-center gap-1 text-[11px] lg:text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                   {t('nav.home')}
                 </Link>
-                <div className="absolute top-[80%] left-1/2 -translate-x-1/2 pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="bg-card border border-border rounded-lg shadow-lg py-2 text-right rtl:text-right ltr:text-left backdrop-blur-md">
-                    <Link to="/services" className="block px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
+                <div className="absolute top-[80%] left-1/2 -translate-x-1/2 pt-2 w-40 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="bg-card/95 border border-border/40 rounded-xl shadow-xl py-1 text-right rtl:text-right ltr:text-left backdrop-blur-md">
+                    <Link to="/services" className="block px-4 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
                       {language === 'ar' ? 'حلول عقارية' : 'Solutions'}
                     </Link>
-                    <Link to="/about" className="block px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
+                    <Link to="/about" className="block px-4 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
                       {language === 'ar' ? 'من نحن' : 'About Us'}
                     </Link>
                   </div>
                 </div>
               </div>
-              <Link to="/projects" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/projects" className="inline-flex items-center text-[11px] lg:text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.projects')}
               </Link>
-              <Link to="/properties" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/properties" className="inline-flex items-center text-[11px] lg:text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.properties')}
               </Link>
-              <Link to="/contact" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-amber-400 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/contact" className="inline-flex items-center text-[11px] lg:text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                 {language === 'ar' ? 'اتصل بنا' : 'Contact Us'}
               </Link>
             </div>
@@ -149,41 +149,41 @@ function Navbar() {
           <div className="hidden sm:flex items-center gap-3">
             <button
               onClick={toggleLanguage}
-              className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground border border-border hover:text-foreground hover:border-foreground transition-all flex items-center gap-1.5"
+              className="px-2 py-1 rounded-full text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
-              <Globe className="h-3.5 w-3.5" />
+              <Globe className="h-3 w-3" />
               <span>{language === 'ar' ? 'English' : 'العربية'}</span>
             </button>
             <button
               onClick={toggleTheme}
-              className="p-1.5 rounded-full text-muted-foreground border border-border hover:text-foreground hover:border-foreground transition-all flex items-center justify-center cursor-pointer"
+              className="p-1 rounded-full text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center cursor-pointer"
               title={theme === 'dark' ? (language === 'ar' ? 'الوضع المضيء' : 'Light Mode') : (language === 'ar' ? 'الوضع الداكن' : 'Dark Mode')}
             >
-              {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+              {theme === 'dark' ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
             </button>
             {user ? (
               <div className="flex items-center gap-2">
                 <Link 
-                  to={user.role === 'ADMIN' ? '/admin' : user.role === 'RENTER' ? '/login' : '/dashboard'} 
-                  className="px-3.5 py-1.5 bg-primary hover:opacity-90 text-primary-foreground font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-md"
+                  to={user.role === 'RENTER' ? '/login' : '/admin'} 
+                  className="px-3 py-1 bg-primary hover:opacity-90 text-primary-foreground font-semibold rounded-full text-[11px] transition-all flex items-center gap-1 shadow-sm"
                 >
-                  <UserCircle className="w-4 h-4" />
-                  <span>{user.role === 'ADMIN' ? t('nav.admin') : user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.dashboard')}</span>
+                  <UserCircle className="w-3.5 h-3.5" />
+                  <span>{user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.admin')}</span>
                 </Link>
                 <button 
                   onClick={handleLogout}
-                  className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                  className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                   title={language === 'ar' ? 'تسجيل خروج' : 'Logout'}
                 >
-                  <LogOut className="w-4.5 h-4.5" />
+                  <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
               <Link 
                 to="/login" 
-                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-md"
+                className="px-3 py-1 bg-foreground text-background hover:opacity-90 font-medium rounded-full text-[11px] transition-all flex items-center gap-1 shadow-sm"
               >
-                <UserCircle className="w-4 h-4" />
+                <UserCircle className="w-3.5 h-3.5" />
                 <span>{t('nav.login')}</span>
               </Link>
             )}
@@ -273,12 +273,12 @@ function Navbar() {
             {user ? (
               <div className="flex flex-col gap-2">
                 <Link 
-                  to={user.role === 'ADMIN' ? '/admin' : user.role === 'RENTER' ? '/login' : '/dashboard'} 
+                  to={user.role === 'RENTER' ? '/login' : '/admin'} 
                   onClick={() => setIsOpen(false)}
                   className="w-full py-2 bg-primary hover:opacity-90 text-primary-foreground font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-md"
                 >
                   <UserCircle className="w-4 h-4" />
-                  <span>{user.role === 'ADMIN' ? t('nav.admin') : user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.dashboard')}</span>
+                  <span>{user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.admin')}</span>
                 </Link>
                 <button 
                   onClick={handleLogout}
@@ -422,11 +422,7 @@ function AppContent() {
               </ProtectedRoute>
             } />
             <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT', 'USER']}>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
+            <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
             <Route path="/contact" element={<Contact />} />
           </Routes>
         </Suspense>

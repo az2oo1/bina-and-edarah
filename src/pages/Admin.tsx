@@ -292,6 +292,7 @@ export default function Admin() {
     hero: null, promoVideo: null
   });
   const [imageSlotUploading, setImageSlotUploading] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // Social Media & Contact State
   const [socialEmail, setSocialEmail] = useState('');
@@ -789,11 +790,11 @@ export default function Admin() {
       const res = await fetch(`/api/properties/${selectedParentProperty.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...selectedParentProperty, details: JSON.stringify(detailsList) })
+        body: JSON.stringify({ details: JSON.stringify(detailsList) })
       });
       if (res.ok) {
         const updated = await res.json();
-        setSelectedParentProperty(updated);
+        setSelectedParentProperty(prev => prev ? { ...prev, ...updated, details: JSON.stringify(detailsList) } : updated);
         setNewFloorInput('');
         fetchProperties();
       }
@@ -828,11 +829,11 @@ export default function Admin() {
       const res = await fetch(`/api/properties/${selectedParentProperty.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...selectedParentProperty, details: JSON.stringify(detailsList) })
+        body: JSON.stringify({ details: JSON.stringify(detailsList) })
       });
       if (res.ok) {
         const updated = await res.json();
-        setSelectedParentProperty(updated);
+        setSelectedParentProperty(prev => prev ? { ...prev, ...updated, details: JSON.stringify(detailsList) } : updated);
         fetchProperties();
       }
     } catch (err) {
@@ -3783,7 +3784,7 @@ export default function Admin() {
                         },
                       ];
 
-                      const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, isVideo: boolean, onUpload: (b: string) => void) => {
+                                            const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, isVideo: boolean, onUpload: (b: string) => void) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
                         const maxSize = isVideo ? 500 * 1024 * 1024 : 250 * 1024 * 1024;
@@ -3801,20 +3802,53 @@ export default function Admin() {
                           try {
                             const fd = new FormData();
                             fd.append('file', file);
-                            const res = await fetch('/api/admin/upload-home-video', {
-                              method: 'POST',
-                              body: fd,
+                            
+                            await new Promise<void>((resolve, reject) => {
+                              const xhr = new XMLHttpRequest();
+                              xhr.open('POST', '/api/admin/upload-home-video');
+                              
+                              xhr.upload.onprogress = (event) => {
+                                if (event.lengthComputable) {
+                                  const percentComplete = Math.round((event.loaded / event.total) * 100);
+                                  setUploadProgress(percentComplete);
+                                }
+                              };
+                              
+                              xhr.onload = () => {
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                  try {
+                                    const data = JSON.parse(xhr.responseText);
+                                    onUpload(data.url);
+                                    resolve();
+                                  } catch (err) {
+                                    reject(new Error('Invalid response format'));
+                                  }
+                                } else {
+                                  try {
+                                    const data = JSON.parse(xhr.responseText);
+                                    reject(new Error(data.error || 'Upload failed'));
+                                  } catch (_) {
+                                    reject(new Error('Upload failed'));
+                                  }
+                                }
+                              };
+                              
+                              xhr.onerror = () => {
+                                reject(new Error('Network error during upload'));
+                              };
+                              
+                              xhr.send(fd);
                             });
-                            const data = await res.json().catch(() => ({}));
-                            if (!res.ok) {
-                              throw new Error(data.error || 'Failed to upload video');
-                            }
-                            onUpload(data.url);
-                          } catch (uploadErr) {
+                          } catch (uploadErr: any) {
                             console.error(uploadErr);
-                            await showAlert(language === 'ar' ? 'فشل رفع الفيديو' : 'Failed to upload video');
+                            await showAlert(
+                              language === 'ar'
+                                ? `فشل رفع الفيديو: ${uploadErr.message || ''}`
+                                : `Failed to upload video: ${uploadErr.message || ''}`
+                            );
                           } finally {
                             setImageSlotUploading(null);
+                            setUploadProgress(null);
                             e.target.value = '';
                           }
                           return;
@@ -3894,17 +3928,25 @@ export default function Admin() {
                                       }`}
                                     >
                                       {imageSlotUploading === slot.key ? (
-                                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                        <div className="flex items-center gap-1.5 justify-center">
+                                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                          <span>
+                                            {uploadProgress !== null
+                                              ? (language === 'ar' ? `جاري الرفع: ${uploadProgress}%` : `Uploading: ${uploadProgress}%`)
+                                              : (language === 'ar' ? 'جاري الرفع...' : 'Uploading...')}
+                                          </span>
+                                        </div>
                                       ) : (
-                                        <ImagePlus className="w-4 h-4 text-muted-foreground" />
-                                      )}
-                                      {slot.current
-                                        ? (slot.isVideo ? (language === 'ar' ? 'تغيير الفيديو' : 'Change Video') : (language === 'ar' ? 'تغيير الصورة' : 'Change Image'))
-                                        : (slot.isVideo ? (language === 'ar' ? 'رفع فيديو' : 'Upload Video') : (language === 'ar' ? 'رفع صورة' : 'Upload Image'))
-                                      }
-                                    </label>
+                                        <>
+                                          <ImagePlus className="w-4 h-4 text-muted-foreground" />
+                                          {slot.current
+                                            ? (slot.isVideo ? (language === 'ar' ? 'تغيير الفيديو' : 'Change Video') : (language === 'ar' ? 'تغيير الصورة' : 'Change Image'))
+                                            : (slot.isVideo ? (language === 'ar' ? 'رفع فيديو' : 'Upload Video') : (language === 'ar' ? 'رفع صورة' : 'Upload Image'))
+                                          }
+                                        </>
+                                      )}</label>
                                     <p className="text-[10px] text-muted-foreground leading-none">{language === 'ar' ? (slot.isVideo ? 'الحد الأقصى 500MB' : 'الحد الأقصى 250MB') : (slot.isVideo ? 'Max 500MB' : 'Max 250MB')}</p>
-                                  </div>
+                                                                        </div>
                                 </div>
                               </div>
                             ); })}

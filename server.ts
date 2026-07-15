@@ -924,7 +924,7 @@ async function startServer() {
   app.use('/uploads', express.static(UPLOADS_DIR));
 
   // Dynamic SEO Open Graph Meta Injection for WhatsApp / Facebook / Twitter crawlers
-  // Serves property base64 image as binary JPEG/PNG
+  // Serves property image as binary JPEG/PNG (supports base64, /uploads/ paths, and external URLs)
   app.get('/property-image/:id/:index.jpg', async (req, res) => {
     try {
       const { id, index } = req.params;
@@ -937,28 +937,45 @@ async function startServer() {
         return res.status(404).send('Image Index Out of Bounds');
       }
 
-      const base64Data = images[imgIndex];
-      if (!base64Data || !base64Data.startsWith('data:image')) {
-        return res.status(400).send('Invalid Image Data');
+      const imgData = images[imgIndex];
+      if (!imgData) return res.status(404).send('No Image');
+
+      // Case 1: Base64 data URL
+      if (imgData.startsWith('data:image')) {
+        const matches = imgData.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+          return res.status(400).send('Invalid Base64 format');
+        }
+        const contentType = matches[1];
+        const imageBuffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(imageBuffer);
       }
 
-      const matches = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-      if (!matches || matches.length !== 3) {
-        return res.status(400).send('Invalid Base64 format');
+      // Case 2: Local file path (/uploads/xxx.jpg)
+      if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
+        const fileName = imgData.replace(/^\/?uploads\//, '');
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        if (fs.existsSync(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.sendFile(filePath);
+        }
+        return res.status(404).send('Image file not found');
       }
 
-      const contentType = matches[1];
-      const imageBuffer = Buffer.from(matches[2], 'base64');
+      // Case 3: External URL — redirect
+      if (imgData.startsWith('http://') || imgData.startsWith('https://')) {
+        return res.redirect(imgData);
+      }
 
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
-      return res.send(imageBuffer);
+      return res.status(400).send('Unsupported image format');
     } catch (err) {
       return res.status(500).send('Internal Error');
     }
   });
 
-  // Serves project base64 image as binary JPEG/PNG
+  // Serves project image as binary JPEG/PNG (supports base64, /uploads/ paths, and external URLs)
   app.get('/project-image/:id/:index.jpg', async (req, res) => {
     try {
       const { id, index } = req.params;
@@ -971,22 +988,39 @@ async function startServer() {
         return res.status(404).send('Image Index Out of Bounds');
       }
 
-      const base64Data = images[imgIndex];
-      if (!base64Data || !base64Data.startsWith('data:image')) {
-        return res.status(400).send('Invalid Image Data');
+      const imgData = images[imgIndex];
+      if (!imgData) return res.status(404).send('No Image');
+
+      // Case 1: Base64 data URL
+      if (imgData.startsWith('data:image')) {
+        const matches = imgData.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+          return res.status(400).send('Invalid Base64 format');
+        }
+        const contentType = matches[1];
+        const imageBuffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(imageBuffer);
       }
 
-      const matches = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-      if (!matches || matches.length !== 3) {
-        return res.status(400).send('Invalid Base64 format');
+      // Case 2: Local file path (/uploads/xxx.jpg)
+      if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
+        const fileName = imgData.replace(/^\/?uploads\//, '');
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        if (fs.existsSync(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.sendFile(filePath);
+        }
+        return res.status(404).send('Image file not found');
       }
 
-      const contentType = matches[1];
-      const imageBuffer = Buffer.from(matches[2], 'base64');
+      // Case 3: External URL — redirect
+      if (imgData.startsWith('http://') || imgData.startsWith('https://')) {
+        return res.redirect(imgData);
+      }
 
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      return res.send(imageBuffer);
+      return res.status(400).send('Unsupported image format');
     } catch (err) {
       return res.status(500).send('Internal Error');
     }
@@ -1144,9 +1178,13 @@ async function startServer() {
       const ogTags = `
         <title>${title}</title>
         <meta name="description" content="${description}" />
+        <meta property="og:site_name" content="شركة بناء وإدارة العقارية" />
         <meta property="og:title" content="${title}" />
         <meta property="og:description" content="${description}" />
         <meta property="og:image" content="${imageUrl}" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/jpeg" />
         <meta property="og:url" content="${siteUrl}${urlPath}" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -1959,12 +1997,20 @@ async function startServer() {
       const saveBase64ImageOnRead = async (property: any) => {
         let coverImage = '';
         try {
-          const imgs = JSON.parse(property.imageUrls || '[]');
+          if (!property.imageUrls) return '';
+          
+          // Optimization: If the string doesn't contain base64 pattern, get the first image path directly
+          if (!property.imageUrls.includes('data:image/') && !property.imageUrls.includes('data:application/') && !property.imageUrls.includes('data:video/')) {
+            const imgs = JSON.parse(property.imageUrls);
+            return Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : '';
+          }
+
+          const imgs = JSON.parse(property.imageUrls);
           if (Array.isArray(imgs) && imgs.length > 0) {
             coverImage = imgs[0];
             let needsUpdate = false;
             const updatedImgs = imgs.map(img => {
-              if (img && (img.startsWith('data:image/') || img.startsWith('data:application/'))) {
+              if (img && (img.startsWith('data:image/') || img.startsWith('data:application/') || img.startsWith('data:video/'))) {
                 needsUpdate = true;
                 return saveBase64Image(img);
               }
@@ -2211,164 +2257,173 @@ async function startServer() {
     try {
       const body = req.body;
       const type = body.type || "SALE";
-      const subPropertiesData = body.subProperties || [];
+      const hasSubProperties = 'subProperties' in body;
+      const subPropertiesData = hasSubProperties ? (body.subProperties || []) : null;
+
+      // Build update data only from fields explicitly provided in the request body
+      // This prevents partial updates (e.g. just changing details/floors) from
+      // wiping out other fields with defaults.
+      const updateData: any = {};
+      if ('titleAr' in body) updateData.titleAr = body.titleAr || (type === "SALE" ? "عقار للبيع" : "عقار للإيجار");
+      if ('titleEn' in body) updateData.titleEn = body.titleEn || (type === "SALE" ? "Property for Sale" : "Property for Rent");
+      if ('type' in body) updateData.type = type;
+      if ('propertyCategory' in body) updateData.propertyCategory = body.propertyCategory || "VILLA";
+      if ('paymentFrequency' in body) updateData.paymentFrequency = type === "RENT" ? (body.paymentFrequency || "MONTHLY") : null;
+      if ('paymentsCount' in body) updateData.paymentsCount = type === "RENT" ? safeIntOrNull(body.paymentsCount) : null;
+      if ('area' in body) updateData.area = safeFloat(body.area);
+      if ('details' in body) updateData.details = body.details || null;
+      if ('locationLink' in body) updateData.locationLink = body.locationLink || null;
+      if ('locationText' in body) updateData.locationText = body.locationText || null;
+      if ('description' in body) updateData.description = body.description || "";
+      if ('features' in body) updateData.features = body.features || null;
+      if ('propertyAge' in body) updateData.propertyAge = safeInt(body.propertyAge);
+      if ('electricityCost' in body) updateData.electricityCost = safeFloat(body.electricityCost);
+      if ('electricityFrequency' in body) updateData.electricityFrequency = body.electricityFrequency || null;
+      if ('vat' in body) updateData.vat = safeFloat(body.vat);
+      if ('vatExempt' in body) updateData.vatExempt = Boolean(body.vatExempt);
+      if ('utilityBills' in body) updateData.utilityBills = body.utilityBills || "NONE";
+      if ('commission' in body) updateData.commission = safeFloat(body.commission);
+      if ('price' in body) updateData.price = safeFloat(body.price);
+      if ('imageUrls' in body) updateData.imageUrls = processImageUrls(body.imageUrls);
+      if ('attachments' in body) updateData.attachments = processDocumentUrls(body.attachments);
+      if ('aqarLink' in body) updateData.aqarLink = body.aqarLink || null;
+      if ('allowedPaymentPlans' in body) updateData.allowedPaymentPlans = body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]";
+      if ('videoUrl' in body) updateData.videoUrl = body.videoUrl || null;
+      if ('userId' in body) updateData.userId = body.userId || null;
+      if ('parentId' in body) updateData.parentId = body.parentId || null;
+      if ('status' in body) updateData.status = body.status || "PUBLISHED";
 
       const updatedProperty = await prisma.property.update({
         where: { id: req.params.id },
-        data: {
-          titleAr: body.titleAr || (type === "SALE" ? "عقار للبيع" : "عقار للإيجار"),
-          titleEn: body.titleEn || (type === "SALE" ? "Property for Sale" : "Property for Rent"),
-          type: type,
-          propertyCategory: body.propertyCategory || "VILLA",
-          paymentFrequency: type === "RENT" ? (body.paymentFrequency || "MONTHLY") : null,
-          paymentsCount: type === "RENT" ? safeIntOrNull(body.paymentsCount) : null,
-          area: safeFloat(body.area),
-          details: body.details || null,
-          locationLink: body.locationLink || null,
-          locationText: body.locationText || null,
-          description: body.description || "",
-          features: body.features || null,
-          propertyAge: safeInt(body.propertyAge),
-          electricityCost: safeFloat(body.electricityCost),
-          electricityFrequency: body.electricityFrequency || null,
-          vat: safeFloat(body.vat),
-          vatExempt: body.vatExempt !== undefined ? Boolean(body.vatExempt) : false,
-          utilityBills: body.utilityBills || "NONE",
-          commission: safeFloat(body.commission),
-          price: safeFloat(body.price),
-          imageUrls: processImageUrls(body.imageUrls),
-          attachments: processDocumentUrls(body.attachments),
-          aqarLink: body.aqarLink || null,
-          allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
-          videoUrl: body.videoUrl || null,
-          userId: body.userId || null,
-          parentId: body.parentId || null,
-          status: body.status || "PUBLISHED",
-        }
+        data: updateData
       });
 
-      // Synchronize subProperties:
-      // Get all current subproperties of this building from DB
-      const dbSubProperties = await prisma.property.findMany({
-        where: { parentId: req.params.id }
-      });
-
-      const payloadSubIds = subPropertiesData.map((u: any) => u.id).filter(Boolean);
-
-      // 1. Delete ones that are not in the payload
-      const idsToDelete = dbSubProperties.filter(p => !payloadSubIds.includes(p.id)).map(p => p.id);
-      if (idsToDelete.length > 0) {
-        await prisma.property.deleteMany({
-          where: { id: { in: idsToDelete } }
+      // Only synchronize subProperties when explicitly provided in the payload.
+      // This prevents partial updates (like changing just details/floors) from
+      // accidentally deleting all child units.
+      if (hasSubProperties && subPropertiesData !== null) {
+        // Get all current subproperties of this building from DB
+        const dbSubProperties = await prisma.property.findMany({
+          where: { parentId: req.params.id }
         });
-      }
 
-      // 2. Create or Update the rest
-      if (Array.isArray(subPropertiesData)) {
-        for (const unit of subPropertiesData) {
-          const existingUnit = dbSubProperties.find(p => p.id === unit.id);
-          
-          let finalImageUrls = processImageUrls(unit.imageUrls);
-          let finalFeatures = unit.features || null;
-          let finalUtilityBills = unit.utilityBills || "NONE";
-          let finalAllowedPaymentPlans = unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]";
-          let finalVideoUrl = unit.videoUrl || null;
-          let finalElectricityCost = safeFloat(unit.electricityCost);
-          let finalElectricityFrequency = unit.electricityFrequency || null;
-          let finalVat = safeFloat(unit.vat);
-          let finalVatExempt = unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false;
-          let finalCommission = safeFloat(unit.commission);
-          let finalAqarLink = unit.aqarLink || null;
-          let finalAttachments = unit.attachments ? (typeof unit.attachments === 'string' ? unit.attachments : JSON.stringify(unit.attachments)) : "[]";
+        const payloadSubIds = subPropertiesData.map((u: any) => u.id).filter(Boolean);
 
-          if (existingUnit) {
-            // Preserve fields not edited in simplified inline step 5 form
-            if (!unit.imageUrls || unit.imageUrls === '[]' || (Array.isArray(unit.imageUrls) && unit.imageUrls.length === 0)) {
-              finalImageUrls = existingUnit.imageUrls || '[]';
-            }
-            if (!unit.features && existingUnit.features) {
-              finalFeatures = existingUnit.features;
-            }
-            if ((!unit.utilityBills || unit.utilityBills === 'NONE') && existingUnit.utilityBills && existingUnit.utilityBills !== 'NONE') {
-              finalUtilityBills = existingUnit.utilityBills;
-            }
-            if ((!unit.allowedPaymentPlans || unit.allowedPaymentPlans === '[]' || JSON.stringify(unit.allowedPaymentPlans) === '["1","2","4"]') && existingUnit.allowedPaymentPlans && existingUnit.allowedPaymentPlans !== '["1","2","4"]') {
-              finalAllowedPaymentPlans = existingUnit.allowedPaymentPlans;
-            }
-            if (!unit.videoUrl && existingUnit.videoUrl) {
-              finalVideoUrl = existingUnit.videoUrl;
-            }
-            if (!unit.electricityCost && existingUnit.electricityCost) {
-              finalElectricityCost = existingUnit.electricityCost;
-            }
-            if (!unit.electricityFrequency && existingUnit.electricityFrequency) {
-              finalElectricityFrequency = existingUnit.electricityFrequency;
-            }
-            if (!unit.vat && existingUnit.vat) {
-              finalVat = existingUnit.vat;
-            }
-            if (unit.vatExempt === undefined && existingUnit.vatExempt) {
-              finalVatExempt = existingUnit.vatExempt;
-            }
-            if (!unit.commission && existingUnit.commission) {
-              finalCommission = existingUnit.commission;
-            }
-            if (!unit.aqarLink && existingUnit.aqarLink) {
-              finalAqarLink = existingUnit.aqarLink;
-            }
-            if ((!unit.attachments || unit.attachments === '[]') && existingUnit.attachments && existingUnit.attachments !== '[]') {
-              finalAttachments = existingUnit.attachments;
-            }
-          }
+        // 1. Delete ones that are not in the payload
+        const idsToDelete = dbSubProperties.filter(p => !payloadSubIds.includes(p.id)).map(p => p.id);
+        if (idsToDelete.length > 0) {
+          await prisma.property.deleteMany({
+            where: { id: { in: idsToDelete } }
+          });
+        }
 
-          const unitData = {
-            titleAr: unit.titleAr || "وحدة سكنية",
-            titleEn: unit.titleEn || "Unit",
-            type: unit.type || type,
-            propertyCategory: unit.propertyCategory || "APARTMENT",
-            paymentFrequency: unit.paymentFrequency || (type === "RENT" ? "MONTHLY" : null),
-            paymentsCount: safeIntOrNull(unit.paymentsCount),
-            area: safeFloat(unit.area),
-            details: unit.details || null,
-            locationLink: body.locationLink || null,
-            locationText: body.locationText || null,
-            description: unit.description || "",
-            features: finalFeatures,
-            propertyAge: safeInt(body.propertyAge),
-            electricityCost: finalElectricityCost,
-            electricityFrequency: finalElectricityFrequency,
-            vat: finalVat,
-            vatExempt: finalVatExempt,
-            utilityBills: finalUtilityBills,
-            commission: finalCommission,
-            price: safeFloat(unit.price),
-            imageUrls: finalImageUrls,
-            aqarLink: finalAqarLink,
-            allowedPaymentPlans: finalAllowedPaymentPlans,
-            videoUrl: finalVideoUrl,
-            attachments: finalAttachments,
-            userId: body.userId || null,
-            parentId: updatedProperty.id,
-            status: unit.status || "PUBLISHED",
-          };
+        // 2. Create or Update the rest
+        if (Array.isArray(subPropertiesData)) {
+          for (const unit of subPropertiesData) {
+            const existingUnit = dbSubProperties.find(p => p.id === unit.id);
+            
+            let finalImageUrls = processImageUrls(unit.imageUrls);
+            let finalFeatures = unit.features || null;
+            let finalUtilityBills = unit.utilityBills || "NONE";
+            let finalAllowedPaymentPlans = unit.allowedPaymentPlans ? (typeof unit.allowedPaymentPlans === 'string' ? unit.allowedPaymentPlans : JSON.stringify(unit.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]";
+            let finalVideoUrl = unit.videoUrl || null;
+            let finalElectricityCost = safeFloat(unit.electricityCost);
+            let finalElectricityFrequency = unit.electricityFrequency || null;
+            let finalVat = safeFloat(unit.vat);
+            let finalVatExempt = unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false;
+            let finalCommission = safeFloat(unit.commission);
+            let finalAqarLink = unit.aqarLink || null;
+            let finalAttachments = unit.attachments ? (typeof unit.attachments === 'string' ? unit.attachments : JSON.stringify(unit.attachments)) : "[]";
 
-          if (unit.id && dbSubProperties.some(p => p.id === unit.id)) {
-            // Update existing unit
-            await prisma.property.update({
-              where: { id: unit.id },
-              data: unitData
-            });
-          } else {
-            // Create new unit
-            await prisma.property.create({
-              data: unitData
-            });
+            if (existingUnit) {
+              // Preserve fields not edited in simplified inline step 5 form
+              if (!unit.imageUrls || unit.imageUrls === '[]' || (Array.isArray(unit.imageUrls) && unit.imageUrls.length === 0)) {
+                finalImageUrls = existingUnit.imageUrls || '[]';
+              }
+              if (!unit.features && existingUnit.features) {
+                finalFeatures = existingUnit.features;
+              }
+              if ((!unit.utilityBills || unit.utilityBills === 'NONE') && existingUnit.utilityBills && existingUnit.utilityBills !== 'NONE') {
+                finalUtilityBills = existingUnit.utilityBills;
+              }
+              if ((!unit.allowedPaymentPlans || unit.allowedPaymentPlans === '[]' || JSON.stringify(unit.allowedPaymentPlans) === '["1","2","4"]') && existingUnit.allowedPaymentPlans && existingUnit.allowedPaymentPlans !== '["1","2","4"]') {
+                finalAllowedPaymentPlans = existingUnit.allowedPaymentPlans;
+              }
+              if (!unit.videoUrl && existingUnit.videoUrl) {
+                finalVideoUrl = existingUnit.videoUrl;
+              }
+              if (!unit.electricityCost && existingUnit.electricityCost) {
+                finalElectricityCost = existingUnit.electricityCost;
+              }
+              if (!unit.electricityFrequency && existingUnit.electricityFrequency) {
+                finalElectricityFrequency = existingUnit.electricityFrequency;
+              }
+              if (!unit.vat && existingUnit.vat) {
+                finalVat = existingUnit.vat;
+              }
+              if (unit.vatExempt === undefined && existingUnit.vatExempt) {
+                finalVatExempt = existingUnit.vatExempt;
+              }
+              if (!unit.commission && existingUnit.commission) {
+                finalCommission = existingUnit.commission;
+              }
+              if (!unit.aqarLink && existingUnit.aqarLink) {
+                finalAqarLink = existingUnit.aqarLink;
+              }
+              if ((!unit.attachments || unit.attachments === '[]') && existingUnit.attachments && existingUnit.attachments !== '[]') {
+                finalAttachments = existingUnit.attachments;
+              }
+            }
+
+            const unitData = {
+              titleAr: unit.titleAr || "وحدة سكنية",
+              titleEn: unit.titleEn || "Unit",
+              type: unit.type || type,
+              propertyCategory: unit.propertyCategory || "APARTMENT",
+              paymentFrequency: unit.paymentFrequency || (type === "RENT" ? "MONTHLY" : null),
+              paymentsCount: safeIntOrNull(unit.paymentsCount),
+              area: safeFloat(unit.area),
+              details: unit.details || null,
+              locationLink: body.locationLink || null,
+              locationText: body.locationText || null,
+              description: unit.description || "",
+              features: finalFeatures,
+              propertyAge: safeInt(body.propertyAge),
+              electricityCost: finalElectricityCost,
+              electricityFrequency: finalElectricityFrequency,
+              vat: finalVat,
+              vatExempt: finalVatExempt,
+              utilityBills: finalUtilityBills,
+              commission: finalCommission,
+              price: safeFloat(unit.price),
+              imageUrls: finalImageUrls,
+              aqarLink: finalAqarLink,
+              allowedPaymentPlans: finalAllowedPaymentPlans,
+              videoUrl: finalVideoUrl,
+              attachments: finalAttachments,
+              userId: body.userId || null,
+              parentId: updatedProperty.id,
+              status: unit.status || "PUBLISHED",
+            };
+
+            if (unit.id && dbSubProperties.some(p => p.id === unit.id)) {
+              // Update existing unit
+              await prisma.property.update({
+                where: { id: unit.id },
+                data: unitData
+              });
+            } else {
+              // Create new unit
+              await prisma.property.create({
+                data: unitData
+              });
+            }
           }
         }
       }
 
       invalidateCache('properties');
-      await logAction(req, "UPDATE_PROPERTY", `Updated property: ${updatedProperty.titleAr} (${req.params.id}) with synced subProperties`);
+      await logAction(req, "UPDATE_PROPERTY", `Updated property: ${updatedProperty.titleAr} (${req.params.id})${hasSubProperties ? ' with synced subProperties' : ''}`);
       res.json(updatedProperty);
     } catch (error) {
       logger.error("Error updating property:", error);
@@ -2747,7 +2802,15 @@ async function startServer() {
     }
   });
 
-  app.post("/api/admin/upload-home-video", requirePermission('settings'), homeVideoUpload.single('file'), async (req, res) => {
+  app.post("/api/admin/upload-home-video", requirePermission('settings'), (req, res, next) => {
+    homeVideoUpload.single('file')(req, res, (err) => {
+      if (err) {
+        logger.error('Multer error during home video upload:', err);
+        return res.status(400).json({ error: 'Failed to upload video file: ' + err.message });
+      }
+      next();
+    });
+  }, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No video file uploaded' });
