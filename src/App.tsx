@@ -113,7 +113,7 @@ function Navbar() {
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center gap-2 mr-8 lg:mr-12 sm:rtl:ml-8 sm:rtl:mr-0 lg:rtl:ml-12 group">
               <Logo
-                className={`h-5 w-5 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                className={`h-6 w-6 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
                 logoUrl={logoUrl}
               />
               <span className="font-bold text-xs text-foreground tracking-tight hidden md:block">{t('hero.title')}</span>

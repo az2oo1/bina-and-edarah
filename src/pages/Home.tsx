@@ -242,16 +242,12 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Skyscrapers transparent divider image serving as a bottom mockup showpiece */}
-            <div className="w-full mt-4 max-w-4xl mx-auto px-6 relative z-30 select-none pointer-events-none">
+            {/* Showcase image floating freely at full page width */}
+            <div className="w-full mt-12 relative z-30 select-none pointer-events-none">
               <img 
                 src="/skyscrapers.png?v=2" 
-                alt="Skyscrapers divider" 
-                width="1024"
-                height="303"
-                fetchPriority="high"
-                loading="eager"
-                className="w-full h-auto object-contain object-bottom opacity-100 dark:opacity-90 max-h-[220px]"
+                alt="Skyscrapers showcase" 
+                className="w-full h-auto object-contain object-bottom opacity-100 dark:opacity-90"
               />
             </div>
           </section>
