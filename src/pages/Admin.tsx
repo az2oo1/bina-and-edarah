@@ -742,7 +742,8 @@ export default function Admin() {
     description: '',
     rooms: '',
     bathrooms: '',
-    floor: ''
+    floor: '',
+    imageUrls: '[]'
   });
 
   const [buildingFloors, setBuildingFloors] = useState<string[]>([]);
@@ -856,7 +857,8 @@ export default function Admin() {
       description: '',
       rooms: '',
       bathrooms: '',
-      floor: ''
+      floor: '',
+      imageUrls: '[]'
     });
     setEditingUnitIndex(null);
     setShowUnitForm(true);
@@ -892,7 +894,8 @@ export default function Admin() {
       description: unit.description || '',
       rooms,
       bathrooms,
-      floor
+      floor,
+      imageUrls: unit.imageUrls || '[]'
     });
     setEditingUnitIndex(index);
     setShowUnitForm(true);
@@ -935,7 +938,7 @@ export default function Admin() {
       status: unitFormData.status,
       description: unitFormData.description,
       details: JSON.stringify(detailsArray),
-      imageUrls: '[]'
+      imageUrls: unitFormData.imageUrls || '[]'
     };
 
     setFormData(prev => {

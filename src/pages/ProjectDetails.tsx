@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
+import * as LucideIcons from 'lucide-react';
 import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone, Compass, Ruler, DoorOpen, Armchair, Bath } from 'lucide-react';
 import { ImageViewer } from '../components/ImageViewer';
 import { formatExternalLink } from '../utils/link';
@@ -233,20 +234,29 @@ export default function ProjectDetails() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {project.detailsList.map((detail: any, idx: number) => {
-                    const lowerKey = detail.key.toLowerCase();
-                    let icon = <Layers className="w-4 h-4" />;
-                    if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) icon = <Compass className="w-4 h-4" />;
-                    else if (lowerKey.includes('شارع') || lowerKey.includes('street')) icon = <Ruler className="w-4 h-4" />;
-                    else if (lowerKey.includes('غرف') || lowerKey.includes('room')) icon = <DoorOpen className="w-4 h-4" />;
-                    else if (lowerKey.includes('صالة') || lowerKey.includes('hall')) icon = <Armchair className="w-4 h-4" />;
-                    else if (lowerKey.includes('حمام') || lowerKey.includes('bathroom')) icon = <Bath className="w-4 h-4" />;
-                    else if (lowerKey.includes('ضمان') || lowerKey.includes('warrant')) icon = <CheckCircle className="w-4 h-4" />;
-                    else if (lowerKey.includes('تاريخ') || lowerKey.includes('date') || lowerKey.includes('تسليم')) icon = <Calendar className="w-4 h-4" />;
+                    let IconComponent = LucideIcons.Layers;
+
+                    if (detail.icon && (LucideIcons as any)[detail.icon]) {
+                      IconComponent = (LucideIcons as any)[detail.icon];
+                    } else {
+                      const lowerKey = detail.key.toLowerCase();
+                      if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) IconComponent = LucideIcons.Compass;
+                      else if (lowerKey.includes('شارع') || lowerKey.includes('street')) IconComponent = LucideIcons.Ruler;
+                      else if (lowerKey.includes('غرف') || lowerKey.includes('room')) IconComponent = LucideIcons.DoorOpen;
+                      else if (lowerKey.includes('صالة') || lowerKey.includes('hall')) IconComponent = LucideIcons.Armchair;
+                      else if (lowerKey.includes('حمام') || lowerKey.includes('bathroom')) IconComponent = LucideIcons.Bath;
+                      else if (lowerKey.includes('ضمان') || lowerKey.includes('warrant')) IconComponent = LucideIcons.CheckCircle;
+                      else if (lowerKey.includes('تاريخ') || lowerKey.includes('date') || lowerKey.includes('تسليم')) IconComponent = LucideIcons.Calendar;
+                      else if (lowerKey.includes('دور') || lowerKey.includes('floor')) IconComponent = LucideIcons.Layers;
+                      else if (lowerKey.includes('موقف') || lowerKey.includes('parking')) IconComponent = LucideIcons.Car || LucideIcons.Layers;
+                      else if (lowerKey.includes('مصعد') || lowerKey.includes('elevator')) IconComponent = LucideIcons.ArrowUpCircle || LucideIcons.Layers;
+                      else if (lowerKey.includes('وحد') || lowerKey.includes('unit')) IconComponent = LucideIcons.Building2;
+                    }
 
                     return (
                       <div key={idx} className="flex items-center gap-3.5 p-3 rounded-lg bg-background border border-border transition-colors">
                         <div className="p-2 bg-card rounded border border-border text-primary shadow-xs">
-                          {icon}
+                          <IconComponent className="w-4 h-4" />
                         </div>
                         <div>
                           <p className="text-[10px] font-bold text-muted-foreground mb-0.5">{detail.key}</p>

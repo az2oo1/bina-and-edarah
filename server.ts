@@ -1073,7 +1073,7 @@ async function startServer() {
     try {
       const settings = await prisma.settings.findUnique({ where: { id: "global" } });
       if (!settings || !settings.logoUrl) {
-        return res.sendFile(path.join(process.cwd(), 'public', 'favicon.ico'));
+        return res.sendFile(path.join(process.cwd(), 'public', 'logo-default.png'));
       }
 
       const base64Data = settings.logoUrl;
@@ -1107,9 +1107,68 @@ async function startServer() {
         return res.sendFile(directPath);
       }
 
-      return res.sendFile(path.join(process.cwd(), 'public', 'favicon.ico'));
+      return res.sendFile(path.join(process.cwd(), 'public', 'logo-default.png'));
     } catch (err) {
       logger.error("Failed to serve settings logo:", err);
+      return res.status(500).send('Internal Error');
+    }
+  });
+
+  // Serves settings hero image as binary image
+  app.get('/settings-hero.jpg', async (req, res) => {
+    try {
+      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      let heroData = null;
+      if (settings?.homeImages) {
+        try {
+          const parsed = JSON.parse(settings.homeImages);
+          if (parsed && parsed.hero) {
+            heroData = parsed.hero;
+          }
+        } catch (_) {}
+      }
+
+      if (!heroData) {
+        return res.sendFile(path.join(process.cwd(), 'public', 'skyscrapers.png'));
+      }
+
+      // Case 1: Base64 data URL
+      if (heroData.startsWith('data:image')) {
+        const matches = heroData.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const contentType = matches[1];
+          const imageBuffer = Buffer.from(matches[2], 'base64');
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.send(imageBuffer);
+        }
+      }
+
+      // Case 2: Local file path in uploads
+      if (heroData.startsWith('/uploads/') || heroData.startsWith('uploads/')) {
+        const fileName = heroData.replace(/^\/?uploads\//, '');
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        if (fs.existsSync(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.sendFile(filePath);
+        }
+      }
+
+      // Case 3: External URL — redirect
+      if (heroData.startsWith('http://') || heroData.startsWith('https://')) {
+        return res.redirect(heroData);
+      }
+
+      // Case 4: direct path check
+      const directPath = path.resolve(process.cwd(), heroData.replace(/^\//, ''));
+      if (fs.existsSync(directPath)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.sendFile(directPath);
+      }
+
+      return res.sendFile(path.join(process.cwd(), 'public', 'skyscrapers.png'));
+    } catch (err) {
+      logger.error("Failed to serve settings hero:", err);
       return res.status(500).send('Internal Error');
     }
   });
@@ -1131,7 +1190,7 @@ async function startServer() {
       const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
       const siteUrl = `${protocol}://${host}`;
       
-      let imageUrl = `${siteUrl}/settings-logo.png`;
+      let imageUrl = `${siteUrl}/settings-hero.jpg`;
       
       // If it's a property page
       if (urlPath.startsWith('/properties/')) {
@@ -1141,7 +1200,18 @@ async function startServer() {
           if (property) {
             title = `${property.titleAr} | ${property.titleEn} - بناء وإدارة`;
             description = property.description || description;
-            imageUrl = `${siteUrl}/property-image/${property.id}/0.jpg`;
+            
+            let hasImages = false;
+            try {
+              const images = JSON.parse(property.imageUrls);
+              if (Array.isArray(images) && images.length > 0 && images[0]) {
+                hasImages = true;
+              }
+            } catch (_) {}
+            
+            if (hasImages) {
+              imageUrl = `${siteUrl}/property-image/${property.id}/0.jpg`;
+            }
           }
         }
       }
@@ -1153,7 +1223,18 @@ async function startServer() {
           if (project) {
             title = `${project.titleAr} | ${project.titleEn} - بناء وإدارة`;
             description = project.description || description;
-            imageUrl = `${siteUrl}/project-image/${project.id}/0.jpg`;
+            
+            let hasImages = false;
+            try {
+              const images = JSON.parse(project.imageUrls);
+              if (Array.isArray(images) && images.length > 0 && images[0]) {
+                hasImages = true;
+              }
+            } catch (_) {}
+            
+            if (hasImages) {
+              imageUrl = `${siteUrl}/project-image/${project.id}/0.jpg`;
+            }
           }
         }
       }
@@ -1965,6 +2046,22 @@ async function startServer() {
           orderBy: { createdAt: 'desc' }
         });
 
+        const parentIdsToFetch = mapProperties
+          .map(p => p.parentId)
+          .filter((id): id is string => !!id);
+
+        const parents = parentIdsToFetch.length > 0
+          ? await prisma.property.findMany({
+              where: { id: { in: parentIdsToFetch } },
+              select: { id: true, imageUrls: true }
+            })
+          : [];
+
+        const parentImageUrlsMap = new Map<string, string>();
+        for (const parent of parents) {
+          parentImageUrlsMap.set(parent.id, parent.imageUrls || '[]');
+        }
+
         const enrichedMap = mapProperties.map(p => {
           const coords = extractCoords(p.locationLink);
           let coverImage = '';
@@ -1972,6 +2069,19 @@ async function startServer() {
             const imgs = JSON.parse(p.imageUrls || '[]');
             if (Array.isArray(imgs) && imgs.length > 0) coverImage = imgs[0];
           } catch (_) {}
+
+          if (!coverImage && p.parentId) {
+            const parentImageUrlsStr = parentImageUrlsMap.get(p.parentId);
+            if (parentImageUrlsStr) {
+              try {
+                const parentImgs = JSON.parse(parentImageUrlsStr);
+                if (Array.isArray(parentImgs) && parentImgs.length > 0) {
+                  coverImage = parentImgs[0];
+                }
+              } catch (_) {}
+            }
+          }
+
           return {
             id: p.id,
             titleAr: p.titleAr,
@@ -2048,9 +2158,38 @@ async function startServer() {
           }
         }
 
+        const parentIdsToFetch = propertiesList
+          .map(p => p.parentId)
+          .filter((id): id is string => !!id);
+
+        const parents = parentIdsToFetch.length > 0
+          ? await prisma.property.findMany({
+              where: { id: { in: parentIdsToFetch } },
+              select: { id: true, imageUrls: true }
+            })
+          : [];
+
+        const parentImageUrlsMap = new Map<string, string>();
+        for (const parent of parents) {
+          parentImageUrlsMap.set(parent.id, parent.imageUrls || '[]');
+        }
+
         return Promise.all(propertiesList.map(async (p) => {
           const coords = extractCoords(p.locationLink);
-          const coverImage = await saveBase64ImageOnRead(p);
+          let coverImage = await saveBase64ImageOnRead(p);
+
+          if (!coverImage && p.parentId) {
+            const parentImageUrlsStr = parentImageUrlsMap.get(p.parentId);
+            if (parentImageUrlsStr) {
+              try {
+                const parentImgs = JSON.parse(parentImageUrlsStr);
+                if (Array.isArray(parentImgs) && parentImgs.length > 0) {
+                  coverImage = parentImgs[0];
+                }
+              } catch (_) {}
+            }
+          }
+
           const prices = subUnitsByParent.get(p.id) || [];
           const availableUnitsCount = prices.length;
           const validPrices = prices.filter(pr => pr > 0);
@@ -2069,6 +2208,8 @@ async function startServer() {
         }));
       };
 
+      const basic = req.query.basic === 'true';
+
       if (isPaginationRequest) {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 9;
@@ -2084,7 +2225,34 @@ async function startServer() {
           prisma.property.count({ where })
         ]);
 
-        const enriched = await enrichPropertiesList(properties);
+        let enriched = [];
+        if (basic) {
+          enriched = properties.map(p => {
+            let thumbnail = '';
+            try {
+              if (p.imageUrls && !p.imageUrls.includes('data:image/') && !p.imageUrls.includes('data:application/')) {
+                const imgs = JSON.parse(p.imageUrls);
+                if (Array.isArray(imgs) && imgs.length > 0) {
+                  thumbnail = imgs[0];
+                }
+              }
+            } catch (_) {}
+            return {
+              ...p,
+              isEnriched: false,
+              availableUnitsCount: 0,
+              minUnitPrice: 0,
+              maxUnitPrice: 0,
+              thumbnail: thumbnail
+            };
+          });
+        } else {
+          enriched = (await enrichPropertiesList(properties)).map(p => ({
+            ...p,
+            isEnriched: true
+          }));
+        }
+
         return res.json({
           properties: enriched,
           totalCount,
@@ -2098,9 +2266,36 @@ async function startServer() {
           where,
           orderBy: { createdAt: 'desc' }
         });
-        const enriched = await enrichPropertiesList(properties);
+
+        let enriched = [];
+        if (basic) {
+          enriched = properties.map(p => {
+            let thumbnail = '';
+            try {
+              if (p.imageUrls && !p.imageUrls.includes('data:image/') && !p.imageUrls.includes('data:application/')) {
+                const imgs = JSON.parse(p.imageUrls);
+                if (Array.isArray(imgs) && imgs.length > 0) {
+                  thumbnail = imgs[0];
+                }
+              }
+            } catch (_) {}
+            return {
+              ...p,
+              isEnriched: false,
+              availableUnitsCount: 0,
+              minUnitPrice: 0,
+              maxUnitPrice: 0,
+              thumbnail: thumbnail
+            };
+          });
+        } else {
+          enriched = (await enrichPropertiesList(properties)).map(p => ({
+            ...p,
+            isEnriched: true
+          }));
+        }
         
-        if (!hasQueryParams) {
+        if (!hasQueryParams && !basic) {
           dbCache[cacheKey] = enriched;
         }
         return res.json(enriched);

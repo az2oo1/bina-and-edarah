@@ -44,7 +44,7 @@ interface Property {
 
 const getDetailIcon = (key: string) => {
   const lowerKey = key.toLowerCase();
-  const iconClass = "w-5 h-5";
+  const iconClass = "w-4 h-4 sm:w-5 h-5";
   if (lowerKey.includes('مطبخ') || lowerKey.includes('kitchen')) return <ChefHat className={iconClass} />;
   if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) return <Compass className={iconClass} />;
   if (lowerKey.includes('شارع') || lowerKey.includes('street')) return <Ruler className={iconClass} />;
@@ -241,7 +241,17 @@ export default function PropertyDetails() {
                   return [];
                 }
               })();
-              const cover = unitImages.length > 0 ? unitImages[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop';
+              const parentImages = (() => {
+                try {
+                  const p = JSON.parse(property.imageUrls || '[]');
+                  return Array.isArray(p) && p.length > 0 ? p : [];
+                } catch (_) {
+                  return [];
+                }
+              })();
+              const cover = unitImages.length > 0 
+                ? unitImages[0] 
+                : (parentImages.length > 0 ? parentImages[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop');
               
               let unitDetails: Array<{key: string; value: string}> = [];
               try {
@@ -411,10 +421,10 @@ export default function PropertyDetails() {
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-6">
           
-          {/* Main Content & Gallery */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Gallery */}
+          <div className="order-1 lg:order-none lg:col-span-2">
             
             {/* Gallery */}
             <div className="shadcn-card overflow-hidden">
@@ -580,8 +590,10 @@ export default function PropertyDetails() {
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Technical Specifications */}
+          {/* Technical Specifications */}
+          <div className="order-3 lg:order-none lg:col-span-2">
             <div className="shadcn-card p-6">
               <h3 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-primary" />
@@ -589,19 +601,19 @@ export default function PropertyDetails() {
               </h3>
               
               {/* Specs Grid (Device Specs Style) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3.5">
                 {(() => {
                   const specItems: React.ReactNode[] = [];
 
                   // 1. Category
                   specItems.push(
-                    <div key="category" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
-                      <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Building2 className="w-5 h-5" />
+                    <div key="category" className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                      <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Building2 className="w-4 h-4 sm:w-5 h-5" />
                       </div>
                       <div className="flex flex-col text-start min-w-0">
-                        <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('admin.placeholder.category')}</p>
-                        <p className="text-sm font-extrabold text-foreground truncate">{t(`cat.${property.propertyCategory}`)}</p>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('admin.placeholder.category')}</p>
+                        <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{t(`cat.${property.propertyCategory}`)}</p>
                       </div>
                     </div>
                   );
@@ -609,13 +621,13 @@ export default function PropertyDetails() {
                   // 2. Area
                   if (property.area > 0) {
                     specItems.push(
-                      <div key="area" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
-                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                          <Maximize className="w-5 h-5" />
+                      <div key="area" className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                        <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Maximize className="w-4 h-4 sm:w-5 h-5" />
                         </div>
                         <div className="flex flex-col text-start min-w-0">
-                          <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.area')}</p>
-                          <p className="text-sm font-extrabold text-foreground truncate">{property.area} {t('common.sqm')}</p>
+                          <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.area')}</p>
+                          <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{property.area} {t('common.sqm')}</p>
                         </div>
                       </div>
                     );
@@ -624,13 +636,13 @@ export default function PropertyDetails() {
                   // 3. Property Age
                   if (property.propertyAge > 0) {
                     specItems.push(
-                      <div key="age" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
-                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                          <CalendarDays className="w-5 h-5" />
+                      <div key="age" className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                        <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                          <CalendarDays className="w-4 h-4 sm:w-5 h-5" />
                         </div>
                         <div className="flex flex-col text-start min-w-0">
-                          <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.propertyAge')}</p>
-                          <p className="text-sm font-extrabold text-foreground truncate">{property.propertyAge} {language === 'ar' ? 'سنة' : 'Years'}</p>
+                          <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.propertyAge')}</p>
+                          <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{property.propertyAge} {language === 'ar' ? 'سنة' : 'Years'}</p>
                         </div>
                       </div>
                     );
@@ -639,13 +651,13 @@ export default function PropertyDetails() {
                   // 4. Location Text
                   if (property.locationText) {
                     specItems.push(
-                      <div key="locationText" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
-                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-5 h-5" />
+                      <div key="locationText" className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                        <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                          <MapPin className="w-4 h-4 sm:w-5 h-5" />
                         </div>
                         <div className="flex flex-col text-start min-w-0">
-                          <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.locationText')}</p>
-                          <p className="text-sm font-extrabold text-foreground truncate">{property.locationText}</p>
+                          <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{t('common.locationText')}</p>
+                          <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{property.locationText}</p>
                         </div>
                       </div>
                     );
@@ -658,13 +670,13 @@ export default function PropertyDetails() {
                       if (Array.isArray(parsed)) {
                         parsed.forEach((item: any, idx: number) => {
                           specItems.push(
-                            <div key={`detail-${idx}`} className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
-                              <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                            <div key={`detail-${idx}`} className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                              <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                                 {getDetailIcon(item.key)}
                               </div>
                               <div className="flex flex-col text-start min-w-0">
-                                <p className="text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{item.key}</p>
-                                <p className="text-sm font-extrabold text-foreground truncate">{item.value}</p>
+                                <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{item.key}</p>
+                                <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{item.value}</p>
                               </div>
                             </div>
                           );
@@ -681,8 +693,10 @@ export default function PropertyDetails() {
                 })()}
               </div>
             </div>
+          </div>
 
-            {/* Description & Features */}
+          {/* Description & Features */}
+          <div className="order-4 lg:order-none lg:col-span-2">
             <div className="shadcn-card p-6">
               <div className="mb-8">
                 <h2 className="text-lg font-bold text-foreground tracking-tight mb-4">{language === 'ar' ? 'وصف العقار' : 'Description'}</h2>
@@ -705,11 +719,10 @@ export default function PropertyDetails() {
                 </div>
               )}
             </div>
-
           </div>
 
           {/* Sidebar / Info */}
-          <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <div className="order-2 lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-3 space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div className="shadcn-card p-6">
               
               {property.parent && (

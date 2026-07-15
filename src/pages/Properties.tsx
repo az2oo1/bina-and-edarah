@@ -31,29 +31,30 @@ const THUMBNAIL_FALLBACK = "https://images.unsplash.com/photo-1560518883-ce09059
 
 export default function Properties() {
   const { t, language } = useLanguage();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const parentIdParam = searchParams.get('parentId');
 
   // Properties State
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
   const [mapProperties, setMapProperties] = useState<any[]>([]);
   const [parentProperty, setParentProperty] = useState<any>(null);
   
   // Pagination & Loading
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const pageSize = 9;
   const [leafletLoaded, setLeafletLoaded] = useState(!!(window as any).L);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
 
-  // Filters State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('ALL');
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [showIndividualUnits, setShowIndividualUnits] = useState(false);
+  // Filters State (Local input states, synced to URL via debounce)
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || 'ALL');
+  const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'ALL');
+  const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
+  const [showIndividualUnits, setShowIndividualUnits] = useState(searchParams.get('showIndividualUnits') === 'true');
 
   // 1. Fetch parent property details separately if parentIdParam is active
   useEffect(() => {
@@ -66,6 +67,60 @@ export default function Properties() {
       setParentProperty(null);
     }
   }, [parentIdParam]);
+
+  // Synchronize URL search params back to local state (for back/forward buttons)
+  useEffect(() => {
+    setSearchTerm(searchParams.get('search') || '');
+    setTypeFilter(searchParams.get('type') || 'ALL');
+    setCategoryFilter(searchParams.get('category') || 'ALL');
+    setMinPrice(searchParams.get('minPrice') || '');
+    setMaxPrice(searchParams.get('maxPrice') || '');
+    setShowIndividualUnits(searchParams.get('showIndividualUnits') === 'true');
+  }, [searchParams]);
+
+  // Debounced effect to sync text inputs to URL search params (with page reset to 1)
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      const nextParams = new URLSearchParams(searchParams);
+      
+      if (searchTerm) nextParams.set('search', searchTerm);
+      else nextParams.delete('search');
+      
+      if (minPrice) nextParams.set('minPrice', minPrice);
+      else nextParams.delete('minPrice');
+      
+      if (maxPrice) nextParams.set('maxPrice', maxPrice);
+      else nextParams.delete('maxPrice');
+      
+      nextParams.set('page', '1'); // Reset to page 1
+      setSearchParams(nextParams);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [searchTerm, minPrice, maxPrice]);
+
+  // Helper to update select / immediate input parameters in URL directly
+  const updateImmediateFilter = (key: string, value: string | number | boolean) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value && value !== 'ALL' && value !== 'false') {
+      nextParams.set(key, String(value));
+    } else {
+      nextParams.delete(key);
+    }
+    nextParams.set('page', '1'); // Reset to page 1
+    setSearchParams(nextParams);
+  };
+
+  // Helper to change page
+  const handlePageChange = (page: number) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('page', String(page));
+    setSearchParams(nextParams);
+  };
 
   // 2. Fetch all matching properties for map markers (lightweight fetch)
   useEffect(() => {
@@ -85,56 +140,113 @@ export default function Properties() {
         setMapProperties(Array.isArray(data) ? data : []);
       })
       .catch(err => console.error("Error fetching map properties:", err));
-  }, [parentIdParam, showIndividualUnits, searchTerm, typeFilter, categoryFilter, minPrice, maxPrice]);
+  }, [parentIdParam, showIndividualUnits, searchParams]); // Run when final URL params update
 
-  // 3. Fetch paginated grid properties
+  // 3. Fetch paginated grid properties in three consecutive batches of 3
   useEffect(() => {
+    let active = true;
     setLoading(true);
-    const params = new URLSearchParams();
-    params.set('page', String(currentPage));
-    params.set('limit', '9');
-    if (parentIdParam) params.set('parentId', parentIdParam);
-    if (showIndividualUnits) params.set('showIndividualUnits', 'true');
-    if (searchTerm) params.set('search', searchTerm);
-    if (typeFilter !== 'ALL') params.set('type', typeFilter);
-    if (categoryFilter !== 'ALL') params.set('category', categoryFilter);
-    if (minPrice) params.set('minPrice', minPrice);
-    if (maxPrice) params.set('maxPrice', maxPrice);
+    setProperties([]); // Clear properties for the new page/filter
 
-    fetch(`/api/properties?${params.toString()}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && Array.isArray(data.properties)) {
-          const mapped = data.properties.map((p: any) => {
+    const fetchBatch = async (batchIndex: number, signal: AbortSignal) => {
+      const fetchParams = new URLSearchParams(searchParams);
+      // Map 1-based page of size 9 to corresponding pages of size 3
+      const targetPage = (currentPage - 1) * 3 + batchIndex;
+      fetchParams.set('page', String(targetPage));
+      fetchParams.set('limit', '3');
+
+      const res = await fetch(`/api/properties?${fetchParams.toString()}`, { signal });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    };
+
+    const runLoadingSequence = async () => {
+      const controller = new AbortController();
+      
+      try {
+        // --- Batch 1 ---
+        const data1 = await fetchBatch(1, controller.signal);
+        if (!active) return;
+
+        let items1: any[] = [];
+        if (data1 && Array.isArray(data1.properties)) {
+          items1 = data1.properties.map((p: any) => {
             let thumbnail = THUMBNAIL_FALLBACK;
             try {
-              const parsed = JSON.parse(p.imageUrls);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                thumbnail = parsed[0];
+              if (p.imageUrls) {
+                const parsed = JSON.parse(p.imageUrls);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  thumbnail = parsed[0];
+                }
               }
             } catch (e) {}
-            return { ...p, thumbnail };
+            return { ...p, thumbnail, isEnriched: true };
           });
-          setProperties(mapped);
-          setTotalPages(data.totalPages || 1);
-          setTotalCount(data.totalCount || 0);
-        } else {
-          setProperties([]);
-          setTotalPages(1);
-          setTotalCount(0);
+          setProperties(items1);
+          setTotalCount(data1.totalCount || 0);
+          setTotalPages(Math.ceil((data1.totalCount || 0) / 9));
         }
         setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching paginated properties:", err);
-        setLoading(false);
-      });
-  }, [currentPage, parentIdParam, showIndividualUnits, searchTerm, typeFilter, categoryFilter, minPrice, maxPrice]);
 
-  // Reset page to 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [parentIdParam, showIndividualUnits, searchTerm, typeFilter, categoryFilter, minPrice, maxPrice]);
+        // If batch 1 did not return a full batch of 3, no more items exist
+        if (items1.length < 3) return;
+
+        // --- Batch 2 ---
+        const data2 = await fetchBatch(2, controller.signal);
+        if (!active) return;
+
+        let items2: any[] = [];
+        if (data2 && Array.isArray(data2.properties)) {
+          items2 = data2.properties.map((p: any) => {
+            let thumbnail = THUMBNAIL_FALLBACK;
+            try {
+              if (p.imageUrls) {
+                const parsed = JSON.parse(p.imageUrls);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  thumbnail = parsed[0];
+                }
+              }
+            } catch (e) {}
+            return { ...p, thumbnail, isEnriched: true };
+          });
+          setProperties(prev => [...prev, ...items2]);
+        }
+
+        if (items2.length < 3) return;
+
+        // --- Batch 3 ---
+        const data3 = await fetchBatch(3, controller.signal);
+        if (!active) return;
+
+        let items3: any[] = [];
+        if (data3 && Array.isArray(data3.properties)) {
+          items3 = data3.properties.map((p: any) => {
+            let thumbnail = THUMBNAIL_FALLBACK;
+            try {
+              if (p.imageUrls) {
+                const parsed = JSON.parse(p.imageUrls);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  thumbnail = parsed[0];
+                }
+              }
+            } catch (e) {}
+            return { ...p, thumbnail, isEnriched: true };
+          });
+          setProperties(prev => [...prev, ...items3]);
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        console.error("Error in loading sequence:", err);
+        setLoading(false);
+      }
+    };
+
+    runLoadingSequence();
+
+    return () => {
+      active = false;
+    };
+  }, [searchParams]);
 
   useEffect(() => {
     setImageLoading((current) => {
@@ -289,7 +401,7 @@ export default function Properties() {
 
         {/* Filters */}
         <div className="bg-card p-5 rounded-lg shadow-xs border border-border mb-8 animate-in fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
             <input
               type="text"
               placeholder={language === 'ar' ? 'بحث عن عقار...' : 'Search properties...'}
@@ -299,7 +411,10 @@ export default function Properties() {
             />
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                updateImmediateFilter('type', e.target.value);
+              }}
               className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
             >
               <option value="ALL">{language === 'ar' ? 'جميع الأنواع' : 'All Types'}</option>
@@ -308,7 +423,10 @@ export default function Properties() {
             </select>
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                updateImmediateFilter('category', e.target.value);
+              }}
               className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
             >
               <option value="ALL">{language === 'ar' ? 'جميع الفئات' : 'All Categories'}</option>
@@ -349,7 +467,11 @@ export default function Properties() {
                 type="button"
                 role="checkbox"
                 aria-checked={showIndividualUnits}
-                onClick={() => setShowIndividualUnits(!showIndividualUnits)}
+                onClick={() => {
+                  const nextVal = !showIndividualUnits;
+                  setShowIndividualUnits(nextVal);
+                  updateImmediateFilter('showIndividualUnits', nextVal);
+                }}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer focus:outline-none ${
                   showIndividualUnits ? 'bg-primary' : 'bg-muted border border-border/80 dark:bg-zinc-800'
                 }`}
@@ -363,7 +485,11 @@ export default function Properties() {
                 />
               </button>
               <span 
-                onClick={() => setShowIndividualUnits(!showIndividualUnits)}
+                onClick={() => {
+                  const nextVal = !showIndividualUnits;
+                  setShowIndividualUnits(nextVal);
+                  updateImmediateFilter('showIndividualUnits', nextVal);
+                }}
                 className="text-xs text-muted-foreground font-semibold cursor-pointer hover:text-foreground transition-colors"
               >
                 {language === 'ar' ? 'عرض الوحدات كإعلانات مستقلة' : 'Show units as individual listings'}
@@ -373,8 +499,23 @@ export default function Properties() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+            {Array.from({ length: pageSize }).map((_, idx) => (
+              <div key={idx} className="shadcn-card group flex flex-col overflow-hidden border border-border rounded-lg bg-card p-5 h-[380px]">
+                <div className="h-44 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded-md mb-4" />
+                <div className="h-5 w-2/3 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded mb-2" />
+                <div className="h-3.5 w-1/2 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded mb-4" />
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="h-8 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded" />
+                  <div className="h-8 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded" />
+                  <div className="h-8 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded" />
+                </div>
+                <div className="mt-auto pt-3.5 border-t border-border flex justify-between items-center">
+                  <div className="h-6 w-24 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded" />
+                  <div className="h-4 w-16 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : properties.length === 0 ? (
           <div className="text-center py-20 bg-card rounded-lg shadow-xs border border-border flex flex-col items-center justify-center animate-in fade-in">
@@ -397,6 +538,7 @@ export default function Properties() {
                 setMinPrice('');
                 setMaxPrice('');
                 setShowIndividualUnits(false);
+                setSearchParams(new URLSearchParams());
               }}
               className="btn-primary text-xs"
             >
@@ -411,30 +553,38 @@ export default function Properties() {
                 return (
                   <Link to={`/properties/${property.id}`} key={property.id} className="shadcn-card hover:shadow-md transition-all duration-200 group flex flex-col overflow-hidden hover:-translate-y-0.5 block">
                     <div className="relative h-48 overflow-hidden bg-muted">
-                      <div
-                        className={`absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted transition-opacity duration-300 ${
-                          imageLoading[property.id] ? 'opacity-0' : 'animate-pulse opacity-100'
-                        }`}
-                      />
-                      <img 
-                        src={property.thumbnail}
-                        alt={language === 'ar' ? property.titleAr : property.titleEn} 
-                        loading="lazy"
-                        decoding="async"
-                        onLoad={() => setImageLoading((current) => ({ ...current, [property.id]: true }))}
-                        onError={(event) => {
-                          const target = event.currentTarget;
-                          if (target.dataset.fallbackApplied === 'true') {
-                            setImageLoading((current) => ({ ...current, [property.id]: true }));
-                            return;
-                          }
-                          target.dataset.fallbackApplied = 'true';
-                          target.src = THUMBNAIL_FALLBACK;
-                        }}
-                        className={`relative z-10 w-full h-full object-cover group-hover:scale-[1.02] transition-all duration-500 ${
-                          imageLoading[property.id] ? 'opacity-100 blur-0 scale-100' : 'opacity-70 blur-md scale-105'
-                        }`} 
-                      />
+                      {!property.isEnriched && !property.thumbnail ? (
+                        <div className="absolute inset-0 bg-slate-200 dark:bg-zinc-800 animate-pulse flex items-center justify-center">
+                          <Building2 className="w-10 h-10 text-muted-foreground/30" />
+                        </div>
+                      ) : (
+                        <>
+                          <div
+                            className={`absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted transition-opacity duration-300 ${
+                              imageLoading[property.id] ? 'opacity-0' : 'animate-pulse opacity-100'
+                            }`}
+                          />
+                          <img 
+                            src={property.thumbnail}
+                            alt={language === 'ar' ? property.titleAr : property.titleEn} 
+                            loading="lazy"
+                            decoding="async"
+                            onLoad={() => setImageLoading((current) => ({ ...current, [property.id]: true }))}
+                            onError={(event) => {
+                              const target = event.currentTarget;
+                              if (target.dataset.fallbackApplied === 'true') {
+                                setImageLoading((current) => ({ ...current, [property.id]: true }));
+                                return;
+                              }
+                              target.dataset.fallbackApplied = 'true';
+                              target.src = THUMBNAIL_FALLBACK;
+                            }}
+                            className={`relative z-10 w-full h-full object-cover group-hover:scale-[1.02] transition-all duration-500 ${
+                              imageLoading[property.id] ? 'opacity-100 blur-0 scale-100' : 'opacity-70 blur-md scale-105'
+                            }`} 
+                          />
+                        </>
+                      )}
                       <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-20 flex flex-wrap gap-1.5">
                         <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
                           {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
@@ -442,13 +592,15 @@ export default function Properties() {
                         <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
                           {t(`cat.${property.propertyCategory || 'VILLA'}`)}
                         </span>
-                        {hasUnits && (
+                        {!property.isEnriched ? (
+                          <span className="bg-slate-200 dark:bg-zinc-800 animate-pulse w-14 h-4 rounded text-[10px] border border-border" />
+                        ) : hasUnits ? (
                           <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-[10px] font-bold shadow-xs">
                             {language === 'ar' 
                               ? `${property.availableUnitsCount} وحدات`
                               : `${property.availableUnitsCount} Units`}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     
@@ -481,7 +633,9 @@ export default function Properties() {
                       <div className="mt-auto pt-3.5 border-t border-border flex items-end justify-between">
                         <div>
                           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{t('common.price')}</p>
-                          {hasUnits && property.minUnitPrice && property.maxUnitPrice ? (
+                          {!property.isEnriched ? (
+                            <div className="h-6 w-28 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded mt-1" />
+                          ) : hasUnits && property.minUnitPrice && property.maxUnitPrice ? (
                             <p className="text-lg font-bold text-primary flex items-center gap-1" dir="ltr">
                               <span className="font-mono tracking-tight">
                                 {property.minUnitPrice === property.maxUnitPrice
@@ -503,7 +657,9 @@ export default function Properties() {
                             </p>
                           )}
                         </div>
-                        {property.vatExempt ? (
+                        {!property.isEnriched ? (
+                          <div className="h-4.5 w-20 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded" />
+                        ) : property.vatExempt ? (
                           <div className="text-right">
                              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-semibold">
                                <Coins className="w-3 h-3 text-amber-600" /> {language === 'ar' ? 'معفى من الضريبة' : 'VAT Exempt'}
@@ -527,7 +683,7 @@ export default function Properties() {
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-12 select-none">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
                   disabled={currentPage === 1}
                   className="px-3.5 py-1.5 border border-border hover:bg-muted bg-card rounded-lg transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
@@ -537,7 +693,7 @@ export default function Properties() {
                 {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((page) => (
                   <button
                     key={page}
-                    onClick={() => setCurrentPage(page)}
+                    onClick={() => handlePageChange(page)}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                       currentPage === page
                         ? 'bg-primary text-primary-foreground border-primary'
@@ -549,7 +705,7 @@ export default function Properties() {
                 ))}
                 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
                   disabled={currentPage === totalPages}
                   className="px-3.5 py-1.5 border border-border hover:bg-muted bg-card rounded-lg transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
                 >
