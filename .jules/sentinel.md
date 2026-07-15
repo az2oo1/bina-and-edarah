@@ -18,3 +18,7 @@
 **Vulnerability:** The `/settings-logo.png` endpoint in `server.ts` suffered from a Local File Inclusion / Path Traversal vulnerability because it trusted the `settings.logoUrl` database entry to resolve local file paths using `path.resolve(process.cwd(), base64Data)`. A malicious admin could configure this to `../../../../etc/passwd` to read arbitrary system files.
 **Learning:** Never inherently trust settings derived from the database (even if modified by "admins") when resolving system paths, especially if the app architecture allows administrators to manipulate setting variables freely.
 **Prevention:** Always validate that resolved file paths map strictly within an expected base directory (e.g. `filePath.startsWith(path.resolve(UPLOADS_DIR))`) before exposing them to the filesystem or network responses.
+## 2024-05-24 - Prisma executeRawUnsafe SQL Injection Vulnerability
+**Vulnerability:** Found `prisma.$executeRawUnsafe` being used with manually escaped string concatenations (`replace(/'/g, "''")`) for database updates in `server.ts` (e.g. `PUT /api/admin/users/:id`).
+**Learning:** Raw SQL fallbacks using `$executeRawUnsafe` with manual string interpolation are prone to SQL injection, even if rudimentary escaping is attempted.
+**Prevention:** Always use parameterized queries with `prisma.$executeRaw(Prisma.sql\`...\`)` for raw SQL fallbacks to ensure proper escaping by the database driver and prevent SQL injection.
