@@ -26,6 +26,7 @@ interface Property {
   electricityFrequency: string | null;
   vat: number;
   vatExempt: boolean;
+  vatNotApplicable: boolean;
   commission: number;
   price: number;
   imageUrls: string; // JSON string
@@ -305,7 +306,7 @@ export default function PropertyDetails() {
                           <>
                             <div className="flex items-start justify-between gap-3">
                               <h3 className="text-sm font-extrabold text-foreground leading-snug group-hover/unit:text-primary transition-colors duration-250 line-clamp-1" style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}>
-                                {unitName ? `${unitName} - ` : ''}{language === 'ar' ? unit.titleAr : unit.titleEn}
+                                {unitName && unitName !== (language === 'ar' ? unit.titleAr : unit.titleEn) ? `${unitName} - ` : ''}{language === 'ar' ? unit.titleAr : unit.titleEn}
                               </h3>
                             </div>
 
@@ -677,6 +678,17 @@ export default function PropertyDetails() {
                       const parsed = JSON.parse(property.details);
                       if (Array.isArray(parsed)) {
                         parsed.forEach((item: any, idx: number) => {
+                          const isFloorsKey = item.key === 'أدوار المبنى' || item.key === 'Building Floors';
+                          const displayValue = isFloorsKey
+                            ? (() => {
+                                const count = item.value.split(',').map((f: any) => f.trim()).filter(Boolean).length;
+                                return language === 'ar' ? `${count} طوابق` : `${count} Floors`;
+                              })()
+                            : item.value;
+                          const displayKey = isFloorsKey
+                            ? (language === 'ar' ? 'عدد الأدوار' : 'Number of Floors')
+                            : item.key;
+
                           specItems.push(
                             <div key={`detail-${idx}`} className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
                               <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
@@ -690,8 +702,8 @@ export default function PropertyDetails() {
                                 )}
                               </div>
                               <div className="flex flex-col text-start min-w-0">
-                                <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{item.key}</p>
-                                <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{item.value}</p>
+                                <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{displayKey}</p>
+                                <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{displayValue}</p>
                               </div>
                             </div>
                           );
@@ -872,7 +884,7 @@ export default function PropertyDetails() {
                       <div className="flex justify-between items-center text-xs font-medium py-0.5">
                         <span className="text-muted-foreground">{t('common.vat')}</span>
                         <span className="text-foreground font-semibold">
-                          {property.vatExempt ? (language === 'ar' ? 'معفى' : 'Exempt') : (property.vat > 0 ? <>{property.vat.toLocaleString()} {t('common.currency')}</> : (language === 'ar' ? 'شامل' : 'Included'))}
+                          {property.vatNotApplicable ? t('common.vatNotApplicable') : (property.vatExempt ? (language === 'ar' ? 'معفى' : 'Exempt') : (property.vat > 0 ? <>{property.vat.toLocaleString()} {t('common.currency')}</> : (language === 'ar' ? 'شامل' : 'Included')))}
                         </span>
                       </div>
                       {property.type === 'RENT' && (() => {

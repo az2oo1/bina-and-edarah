@@ -101,8 +101,16 @@ export default function Projects() {
 
   return (
     <div className="bg-background min-h-screen pb-20 font-sans" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Clean Monochrome Header Banner */}
-      <div className="border-b border-border/30 py-16 bg-background text-foreground">
+      {/* Premium Header Banner with Decorative Dots & Glows */}
+      <div className="border-b border-border py-16 relative overflow-hidden bg-background text-foreground">
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          {/* Soft blurred background color glows */}
+          <div className="absolute -top-10 left-1/4 w-[400px] h-[400px] bg-sky-400/10 dark:bg-sky-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-[350px] h-[350px] bg-indigo-400/8 dark:bg-indigo-500/8 rounded-full blur-[90px] pointer-events-none"></div>
+          
+          {/* Dots Grid Pattern (Subtle & Elegant 1px) */}
+          <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+        </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <motion.h1 

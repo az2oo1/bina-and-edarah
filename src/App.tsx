@@ -218,11 +218,7 @@ const NAV_CONTENT: Record<string, {
       cardTitle: lang === 'ar' ? 'تواصل فوري' : 'Instant Connect',
       desc: lang === 'ar'
         ? 'يمكنك تعبئة طلب اتصال وسيقوم أحد مستشارينا بالتواصل معك في أقرب وقت.'
-        : 'Leave a callback request and one of our expert advisors will reach out to you shortly.',
-      btn: {
-        to: '/contact',
-        label: lang === 'ar' ? 'احجز موعد اتصال' : 'Schedule Call'
-      }
+        : 'Leave a callback request and one of our expert advisors will reach out to you shortly.'
     })
   }
 };

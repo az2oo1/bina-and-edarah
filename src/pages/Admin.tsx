@@ -2964,7 +2964,17 @@ export default function Admin() {
                                   <input
                                     type="text"
                                     value={unitFormData.unitNameAr}
-                                    onChange={(e) => setUnitFormData({ ...unitFormData, unitNameAr: e.target.value })}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setUnitFormData(prev => {
+                                        const syncTitle = !prev.titleAr || prev.titleAr === prev.unitNameAr;
+                                        return {
+                                          ...prev,
+                                          unitNameAr: val,
+                                          titleAr: syncTitle ? val : prev.titleAr
+                                        };
+                                      });
+                                    }}
                                     placeholder="مثال: شقة 101"
                                     className="cn-input text-xs h-9 bg-background"
                                   />
@@ -2974,7 +2984,17 @@ export default function Admin() {
                                   <input
                                     type="text"
                                     value={unitFormData.unitNameEn}
-                                    onChange={(e) => setUnitFormData({ ...unitFormData, unitNameEn: e.target.value })}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setUnitFormData(prev => {
+                                        const syncTitle = !prev.titleEn || prev.titleEn === prev.unitNameEn;
+                                        return {
+                                          ...prev,
+                                          unitNameEn: val,
+                                          titleEn: syncTitle ? val : prev.titleEn
+                                        };
+                                      });
+                                    }}
                                     placeholder="e.g. Apt 101"
                                     className="cn-input text-xs h-9 bg-background"
                                   />

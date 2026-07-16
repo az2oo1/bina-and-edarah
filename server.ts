@@ -2388,6 +2388,7 @@ async function startServer() {
           electricityFrequency: body.electricityFrequency || null,
           vat: safeFloat(body.vat),
           vatExempt: body.vatExempt !== undefined ? Boolean(body.vatExempt) : false,
+          vatNotApplicable: body.vatNotApplicable !== undefined ? Boolean(body.vatNotApplicable) : false,
           utilityBills: body.utilityBills || "NONE",
           commission: safeFloat(body.commission),
           price: safeFloat(body.price),
@@ -2424,6 +2425,7 @@ async function startServer() {
               electricityFrequency: unit.electricityFrequency || null,
               vat: safeFloat(unit.vat),
               vatExempt: unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false,
+              vatNotApplicable: unit.vatNotApplicable !== undefined ? Boolean(unit.vatNotApplicable) : false,
               utilityBills: unit.utilityBills || "NONE",
               commission: safeFloat(unit.commission),
               price: safeFloat(unit.price),
@@ -2476,6 +2478,7 @@ async function startServer() {
       if ('electricityFrequency' in body) updateData.electricityFrequency = body.electricityFrequency || null;
       if ('vat' in body) updateData.vat = safeFloat(body.vat);
       if ('vatExempt' in body) updateData.vatExempt = Boolean(body.vatExempt);
+      if ('vatNotApplicable' in body) updateData.vatNotApplicable = Boolean(body.vatNotApplicable);
       if ('utilityBills' in body) updateData.utilityBills = body.utilityBills || "NONE";
       if ('commission' in body) updateData.commission = safeFloat(body.commission);
       if ('price' in body) updateData.price = safeFloat(body.price);
@@ -2526,6 +2529,7 @@ async function startServer() {
             let finalElectricityFrequency = unit.electricityFrequency || null;
             let finalVat = safeFloat(unit.vat);
             let finalVatExempt = unit.vatExempt !== undefined ? Boolean(unit.vatExempt) : false;
+            let finalVatNotApplicable = unit.vatNotApplicable !== undefined ? Boolean(unit.vatNotApplicable) : false;
             let finalCommission = safeFloat(unit.commission);
             let finalAqarLink = unit.aqarLink || null;
             let finalAttachments = unit.attachments ? (typeof unit.attachments === 'string' ? unit.attachments : JSON.stringify(unit.attachments)) : "[]";
@@ -2559,6 +2563,9 @@ async function startServer() {
               if (unit.vatExempt === undefined && existingUnit.vatExempt) {
                 finalVatExempt = existingUnit.vatExempt;
               }
+              if (unit.vatNotApplicable === undefined && existingUnit.vatNotApplicable) {
+                finalVatNotApplicable = existingUnit.vatNotApplicable;
+              }
               if (!unit.commission && existingUnit.commission) {
                 finalCommission = existingUnit.commission;
               }
@@ -2588,6 +2595,7 @@ async function startServer() {
               electricityFrequency: finalElectricityFrequency,
               vat: finalVat,
               vatExempt: finalVatExempt,
+              vatNotApplicable: finalVatNotApplicable,
               utilityBills: finalUtilityBills,
               commission: finalCommission,
               price: safeFloat(unit.price),
@@ -2766,7 +2774,9 @@ async function startServer() {
       `ALTER TABLE "Settings" ADD COLUMN "imapPort" integer`,
       `ALTER TABLE Settings ADD COLUMN imapPort integer`,
       `ALTER TABLE "Property" ADD COLUMN "status" text DEFAULT 'PUBLISHED'`,
-      `ALTER TABLE Property ADD COLUMN status text DEFAULT 'PUBLISHED'`
+      `ALTER TABLE Property ADD COLUMN status text DEFAULT 'PUBLISHED'`,
+      `ALTER TABLE "Property" ADD COLUMN "vatNotApplicable" boolean DEFAULT false`,
+      `ALTER TABLE Property ADD COLUMN vatNotApplicable boolean DEFAULT false`
     ];
     for (const cmd of alterCommands) {
       try {

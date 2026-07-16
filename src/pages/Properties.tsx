@@ -18,6 +18,7 @@ interface Property {
   propertyAge?: number;
   vat?: number;
   vatExempt?: boolean;
+  vatNotApplicable?: boolean;
   locationText?: string;
   locationLink?: string;
   parentId?: string | null;
@@ -659,6 +660,12 @@ export default function Properties() {
                         </div>
                         {!property.isEnriched ? (
                           <div className="h-4.5 w-20 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded" />
+                        ) : property.vatNotApplicable ? (
+                          <div className="text-right">
+                             <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-semibold">
+                               <Coins className="w-3 h-3 text-amber-600" /> {language === 'ar' ? 'غير مشمول بالضريبة' : 'VAT Not Applicable'}
+                             </span>
+                          </div>
                         ) : property.vatExempt ? (
                           <div className="text-right">
                              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-semibold">
