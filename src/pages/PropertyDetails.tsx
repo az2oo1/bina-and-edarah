@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
+import * as LucideIcons from 'lucide-react';
 import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, Search, LayoutGrid, List, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { ImageViewer } from '../components/ImageViewer';
@@ -253,7 +254,7 @@ export default function PropertyDetails() {
                 ? unitImages[0] 
                 : (parentImages.length > 0 ? parentImages[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop');
               
-              let unitDetails: Array<{key: string; value: string}> = [];
+              let unitDetails: Array<{key: string; value: string; icon?: string}> = [];
               try {
                 unitDetails = JSON.parse(unit.details || '[]');
               } catch (_) {}
@@ -322,7 +323,14 @@ export default function PropertyDetails() {
                                     key={idx} 
                                     className="inline-flex items-center gap-1 bg-muted/40 hover:bg-muted/70 border border-border/30 px-2 py-0.5 rounded-lg text-[9.5px] font-bold text-muted-foreground transition-all duration-150"
                                   >
-                                    {getDetailIcon(detail.key)}
+                                    {detail.icon && (LucideIcons as any)[detail.icon] ? (
+                                      (() => {
+                                        const IconComp = (LucideIcons as any)[detail.icon];
+                                        return <IconComp className="w-3.5 h-3.5" />;
+                                      })()
+                                    ) : (
+                                      getDetailIcon(detail.key)
+                                    )}
                                     <span>{detail.value}</span>
                                   </span>
                                 ))}
@@ -672,7 +680,14 @@ export default function PropertyDetails() {
                           specItems.push(
                             <div key={`detail-${idx}`} className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
                               <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                                {getDetailIcon(item.key)}
+                                {item.icon && (LucideIcons as any)[item.icon] ? (
+                                  (() => {
+                                    const IconComp = (LucideIcons as any)[item.icon];
+                                    return <IconComp className="w-4 h-4 sm:w-5 h-5" />;
+                                  })()
+                                ) : (
+                                  getDetailIcon(item.key)
+                                )}
                               </div>
                               <div className="flex flex-col text-start min-w-0">
                                 <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{item.key}</p>

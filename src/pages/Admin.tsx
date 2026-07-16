@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, EyeOff, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Check, DollarSign, FileText, Image, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import * as LucideIcons from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon, SnapIcon } from '../components/SocialIcons';
 import { useDialog } from '../context/DialogContext';
@@ -115,6 +116,13 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   MANAGER: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'callbacks', 'analytics'],
   AGENT: ['properties', 'projects', 'callbacks']
 };
+
+const POPULAR_ICONS = [
+  'Home', 'Building2', 'Compass', 'Ruler', 'DoorOpen', 'Armchair', 'Bath', 
+  'Calendar', 'CheckCircle', 'Layers', 'Wind', 'Wifi', 'Shield', 'MapPin', 
+  'Car', 'Coins', 'Key', 'Tv', 'Flame', 'Droplet', 'Sun', 'Moon', 'Info', 
+  'Sparkles', 'Users', 'Heart', 'Map', 'Trees', 'Warehouse'
+];
 
 function hasTabPermission(tab: string, role: string) {
   const perm = TAB_TO_PERMISSION[tab];
@@ -317,6 +325,11 @@ export default function Admin() {
 
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Icon Picker States
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [activeDetailId, setActiveDetailId] = useState<string | null>(null);
+  const [iconSearchQuery, setIconSearchQuery] = useState('');
+
   // Property Form State
   const [formData, setFormData] = useState({
     titleAr: '',
@@ -337,7 +350,7 @@ export default function Admin() {
     price: '',
     imageUrls: [] as string[],
     aqarLink: '',
-    detailsList: [] as {id: string, key: string, value: string}[],
+    detailsList: [] as {id: string, key: string, value: string, icon?: string}[],
     paymentsCount: '',
     utilityBills: 'NONE',
     includeElectricity: false,
@@ -611,7 +624,7 @@ export default function Admin() {
       waterFrequency: formData.includeWater ? formData.waterFrequencyVal : 'YEARLY'
     });
 
-    const finalDetailsList = [...formData.detailsList.map(({key, value}) => ({key, value}))];
+    const finalDetailsList = [...formData.detailsList.map(({key, value, icon}) => ({key, value, icon}))];
     if (buildingFloors.length > 0) {
       const existingIdx = finalDetailsList.findIndex(d => d.key === 'أدوار المبنى' || d.key === 'Building Floors');
       const floorsKey = language === 'ar' ? 'أدوار المبنى' : 'Building Floors';
@@ -674,7 +687,20 @@ export default function Admin() {
     await saveProperty(e, formData.status as 'PUBLISHED' | 'DRAFT' || 'PUBLISHED');
   };
 
+  const renderIcon = (iconName?: string) => {
+    const IconComponent = iconName ? (LucideIcons as any)[iconName] : null;
+    if (IconComponent) {
+      return <IconComponent className="w-5 h-5 text-primary" />;
+    }
+    return <LucideIcons.Layers className="w-5 h-5 text-primary" />;
+  };
 
+  const updateDetailIcon = (id: string, iconName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      detailsList: prev.detailsList.map(d => d.id === id ? { ...d, icon: iconName } : d)
+    }));
+  };
 
   const resetForm = () => {
     setFormData({
@@ -982,7 +1008,7 @@ export default function Admin() {
       try {
         if (propData.details) {
           const arr = JSON.parse(propData.details);
-          initialDetailsList = arr.map((item: any, idx: number) => ({ id: Math.random().toString(), key: item.key, value: item.value }));
+          initialDetailsList = arr.map((item: any) => ({ id: Math.random().toString(), key: item.key, value: item.value, icon: item.icon || '' }));
         }
       } catch (e) {
         // ignore
@@ -2426,9 +2452,25 @@ export default function Admin() {
                                 key={pd.keyEn}
                                 type="button"
                                 onClick={() => {
+                                  const key = language === 'ar' ? pd.keyAr : pd.keyEn;
+                                  let defaultIcon = '';
+                                  const lowerKey = key.toLowerCase();
+                                  if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) defaultIcon = 'Compass';
+                                  else if (lowerKey.includes('شارع') || lowerKey.includes('street')) defaultIcon = 'Ruler';
+                                  else if (lowerKey.includes('غرف') || lowerKey.includes('room')) defaultIcon = 'DoorOpen';
+                                  else if (lowerKey.includes('صالة') || lowerKey.includes('hall')) defaultIcon = 'Armchair';
+                                  else if (lowerKey.includes('حمام') || lowerKey.includes('bathroom') || lowerKey.includes('مياه')) defaultIcon = 'Bath';
+                                  else if (lowerKey.includes('ضمان') || lowerKey.includes('warrant')) defaultIcon = 'CheckCircle';
+                                  else if (lowerKey.includes('تاريخ') || lowerKey.includes('date') || lowerKey.includes('تسليم')) defaultIcon = 'Calendar';
+                                  else if (lowerKey.includes('دور') || lowerKey.includes('floor')) defaultIcon = 'Layers';
+                                  else if (lowerKey.includes('موقف') || lowerKey.includes('parking')) defaultIcon = 'Car';
+                                  else if (lowerKey.includes('مصعد') || lowerKey.includes('elevator')) defaultIcon = 'ArrowUpCircle';
+                                  else if (lowerKey.includes('وحد') || lowerKey.includes('unit')) defaultIcon = 'Building2';
+                                  else if (lowerKey.includes('مساح') || lowerKey.includes('area')) defaultIcon = 'Maximize2';
+
                                   setFormData({ 
                                     ...formData, 
-                                    detailsList: [...formData.detailsList, { id: Math.random().toString(), key: language === 'ar' ? pd.keyAr : pd.keyEn, value: '' }] 
+                                    detailsList: [...formData.detailsList, { id: Math.random().toString(), key, value: '', icon: defaultIcon }] 
                                   });
                                 }}
                                 className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
@@ -2443,14 +2485,27 @@ export default function Admin() {
                         
                         <div className="space-y-3">
                           {formData.detailsList.length > 0 && (
-                            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-1 text-xs font-semibold text-muted-foreground">
+                            <div className="grid grid-cols-[40px_1fr_1fr_auto] gap-3 px-1 text-xs font-semibold text-muted-foreground">
+                              <div>{language === 'ar' ? 'رمز' : 'Icon'}</div>
                               <div>{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
                               <div>{language === 'ar' ? 'القيمة' : 'Value'}</div>
                               <div className="w-10"></div>
                             </div>
                           )}
                           {formData.detailsList.map((detail, idx) => (
-                            <div key={detail.id} className="flex gap-2 items-center relative group">
+                            <div key={detail.id} className="grid grid-cols-[40px_1fr_1fr_auto] gap-3 items-center relative group">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveDetailId(detail.id);
+                                  setIconSearchQuery('');
+                                  setShowIconPicker(true);
+                                }}
+                                className="w-10 h-10 bg-background border border-border rounded-xl flex items-center justify-center text-primary hover:bg-muted transition cursor-pointer hover:border-primary/50 shadow-xs"
+                                title={language === 'ar' ? 'اختر أيقونة' : 'Choose Icon'}
+                              >
+                                {renderIcon(detail.icon)}
+                              </button>
                               <input
                                 type="text"
                                 value={detail.key}
@@ -2460,7 +2515,7 @@ export default function Admin() {
                                   setFormData({ ...formData, detailsList: newList });
                                 }}
                                 placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'}
-                                className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                                className="border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
                               />
                               <input
                                 type="text"
@@ -2471,7 +2526,7 @@ export default function Admin() {
                                   setFormData({ ...formData, detailsList: newList });
                                 }}
                                 placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'}
-                                className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                                className="border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
                               />
                               <button
                                 type="button"
@@ -2487,7 +2542,7 @@ export default function Admin() {
                           ))}
                           <button
                             type="button"
-                            onClick={() => setFormData({ ...formData, detailsList: [...formData.detailsList, { id: Math.random().toString(), key: '', value: '' }] })}
+                            onClick={() => setFormData({ ...formData, detailsList: [...formData.detailsList, { id: Math.random().toString(), key: '', value: '', icon: '' }] })}
                             className="text-primary font-bold flex items-center gap-2 hover:text-primary py-2 text-sm text-sky-500"
                           >
                             <PlusCircle className="w-4.5 h-4.5" />
@@ -4225,6 +4280,125 @@ export default function Admin() {
         {activeTab === 'logs' && <AdminLogs />}
       </motion.div>
     </AnimatePresence>
+
+      {/* Icon Picker Modal */}
+      {showIconPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[80vh] admin-stagger-item animate-in fade-in zoom-in duration-200" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            {/* Modal Header */}
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h3 className="text-base font-bold text-foreground">
+                {language === 'ar' ? 'اختر أيقونة' : 'Select Icon'}
+              </h3>
+              <button 
+                type="button"
+                onClick={() => setShowIconPicker(false)}
+                className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="p-4 border-b border-border">
+              <input
+                type="text"
+                value={iconSearchQuery}
+                onChange={(e) => setIconSearchQuery(e.target.value)}
+                placeholder={language === 'ar' ? 'ابحث عن أيقونة... (مثال: Bed, Bath, Home)' : 'Search icons... (e.g. Bed, Bath, Home)'}
+                className="cn-input w-full"
+                autoFocus
+              />
+            </div>
+
+            {/* Icons Grid Container */}
+            <div className="p-4 overflow-y-auto flex-1 space-y-6">
+              {/* Popular Icons (only show if search query is empty) */}
+              {!iconSearchQuery && (
+                <div className="space-y-2.5">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    {language === 'ar' ? 'الأيقونات الشائعة' : 'Popular Icons'}
+                  </h4>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {POPULAR_ICONS.map((iconName) => {
+                      const IconComponent = (LucideIcons as any)[iconName];
+                      if (!IconComponent) return null;
+                      return (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() => {
+                            if (activeDetailId) {
+                              updateDetailIcon(activeDetailId, iconName);
+                            }
+                            setShowIconPicker(false);
+                          }}
+                          className="p-2.5 bg-background border border-border/60 hover:border-primary/50 hover:bg-primary/5 rounded-xl flex flex-col items-center justify-center gap-1.5 transition text-foreground hover:text-primary cursor-pointer group"
+                          title={iconName}
+                        >
+                          <IconComponent className="w-6 h-6 text-muted-foreground group-hover:text-primary transition" />
+                          <span className="text-[9px] truncate max-w-full text-muted-foreground group-hover:text-primary font-medium">{iconName}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Search Results */}
+              {iconSearchQuery && (
+                <div className="space-y-2.5">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    {language === 'ar' ? 'نتائج البحث' : 'Search Results'}
+                  </h4>
+                  {(() => {
+                    const filtered = Object.keys(LucideIcons)
+                      .filter(key => {
+                        return /^[A-Z]/.test(key) && 
+                          (typeof (LucideIcons as any)[key] === 'function' || typeof (LucideIcons as any)[key] === 'object') &&
+                          key.toLowerCase().includes(iconSearchQuery.toLowerCase());
+                      })
+                      .slice(0, 48); // Limit to 48 icons to keep it fast
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="text-center py-6 text-sm text-muted-foreground">
+                          {language === 'ar' ? 'لم يتم العثور على أيقونات مطابقة' : 'No matching icons found'}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        {filtered.map((iconName) => {
+                          const IconComponent = (LucideIcons as any)[iconName];
+                          return (
+                            <button
+                              key={iconName}
+                              type="button"
+                              onClick={() => {
+                                if (activeDetailId) {
+                                  updateDetailIcon(activeDetailId, iconName);
+                                }
+                                setShowIconPicker(false);
+                              }}
+                              className="p-2.5 bg-background border border-border/60 hover:border-primary/50 hover:bg-primary/5 rounded-xl flex flex-col items-center justify-center gap-1.5 transition text-foreground hover:text-primary cursor-pointer group"
+                              title={iconName}
+                            >
+                              <IconComponent className="w-6 h-6 text-muted-foreground group-hover:text-primary transition" />
+                              <span className="text-[9px] truncate max-w-full text-muted-foreground group-hover:text-primary font-medium">{iconName}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
