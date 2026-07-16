@@ -27,6 +27,7 @@ model Property {
   electricityFrequency String? // YEARLY or MONTHLY
   vat              Float    @default(0) // VAT amount
   vatExempt        Boolean  @default(false)
+  vatNotApplicable Boolean  @default(false)
   utilityBills     String   @default("NONE") // 'NONE', 'ELECTRICITY', 'WATER', 'BOTH'
   commission       Float    @default(0)
   price            Float
