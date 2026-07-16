@@ -101,16 +101,8 @@ export default function Projects() {
 
   return (
     <div className="bg-background min-h-screen pb-20 font-sans" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Premium Header Banner with Decorative Dots & Glows */}
-      <div className="border-b border-border py-16 relative overflow-hidden bg-background text-foreground">
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          {/* Soft blurred background color glows */}
-          <div className="absolute -top-10 left-1/4 w-[400px] h-[400px] bg-sky-400/10 dark:bg-sky-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-          <div className="absolute bottom-0 right-1/4 w-[350px] h-[350px] bg-indigo-400/8 dark:bg-indigo-500/8 rounded-full blur-[90px] pointer-events-none"></div>
-          
-          {/* Dots Grid Pattern (Subtle & Elegant 1px) */}
-          <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-        </div>
+      {/* Clean Monochrome Header Banner */}
+      <div className="border-b border-border/30 py-16 bg-background text-foreground">
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <motion.h1 
@@ -134,160 +126,135 @@ export default function Projects() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        {loading ? (
+      {loading ? (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
           <div className="flex justify-center items-center h-48">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : projects.length === 0 ? (
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
           <div className="text-center py-16 text-muted-foreground text-sm font-medium">
             {language === 'ar' ? 'لا توجد مشاريع مضافة حالياً' : 'No projects available currently'}
           </div>
-        ) : (
-          <div className="space-y-20">
-            {/* TIER 1: BIG - FEATURED SPOTLIGHT CAROUSEL */}
-            {bigProjects.length > 0 && (
-              <section className="relative">
-                <div className="flex items-center justify-between mb-6 border-b border-border/60 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1 bg-amber-500/10 text-amber-500 rounded-lg">
-                      <Sparkles className="w-5 h-5 animate-pulse" />
-                    </div>
-                    <h2 className="text-xl font-bold tracking-tight text-foreground Cairo">
-                      {language === 'ar' ? 'مشاريعنا الريادية' : 'Flagship Projects'}
-                    </h2>
-                  </div>
-                </div>
+        </div>
+      ) : (
+        <div className="w-full">
+          {/* TIER 1: BIG - FEATURED SPOTLIGHT CAROUSEL (FULL WIDTH BANNER) */}
+          {bigProjects.length > 0 && (
+            <section className="w-full h-[580px] sm:h-[450px] relative overflow-hidden bg-[#e8f2ff] dark:bg-[#0c121e] border-b border-border/30 group">
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={activeBigIndex}
+                  custom={direction}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="absolute inset-0 w-full h-full"
+                >
+                  <div className="relative w-full h-full flex flex-col sm:flex-row items-stretch overflow-hidden">
+                    {/* First child: Solid text background (Left in LTR, Right in RTL) */}
+                    <div className="relative flex-grow bg-[#e8f2ff] dark:bg-[#0c121e] flex flex-col justify-center px-6 py-8 sm:px-16 lg:px-24 z-20 text-start">
+                      <div className="mb-2 flex justify-start relative z-10">
+                        <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[10px] font-extrabold uppercase tracking-widest Cairo">
+                          <Sparkles className="w-3.5 h-3.5 fill-current" />
+                          {language === 'ar' ? 'مشروع ريادي متميز' : 'Featured Masterpiece'}
+                        </span>
+                      </div>
+                      
+                      <h3 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-3 Cairo relative z-10 leading-tight">
+                        {language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
+                      </h3>
+                      
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-300 font-semibold mb-3 relative z-10">
+                        <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{bigProjects[activeBigIndex].locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}</span>
+                      </div>
 
-                {/* Main Carousel Wrapper - Full bleed modern design */}
-                <div className="relative overflow-hidden rounded-3xl border border-border bg-neutral-950 shadow-2xl h-[500px] sm:h-[560px]">
-                  <AnimatePresence mode="wait" custom={direction}>
-                    <motion.div
-                      key={activeBigIndex}
-                      custom={direction}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.4 }}
-                      className="absolute inset-0 w-full h-full"
-                    >
-                      {/* Full Background Image */}
+                      {/* Clean inline specs line */}
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-semibold mb-6 relative z-10">
+                        <span>{bigProjects[activeBigIndex].area} م²</span>
+                        <span className="text-slate-400 dark:text-slate-600">•</span>
+                        <span>{t(`cat.${bigProjects[activeBigIndex].propertyCategory}`) || bigProjects[activeBigIndex].propertyCategory}</span>
+                        {bigProjects[activeBigIndex].propertyAge > 0 && (
+                          <>
+                            <span className="text-slate-400 dark:text-slate-600">•</span>
+                            <span>
+                              {bigProjects[activeBigIndex].propertyAge} {language === 'ar' ? 'سنوات' : 'Years'}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-lg mb-8 line-clamp-3 relative z-10">
+                        {bigProjects[activeBigIndex].description}
+                      </p>
+
+                      {/* Action Button Row */}
+                      <div className="flex justify-start relative z-10">
+                        <Link
+                          to={`/projects/${bigProjects[activeBigIndex].id}`}
+                          className="bg-[#0071e3] hover:bg-[#0077ed] text-white px-6 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1 transition-all active:scale-[0.98] shadow-sm hover:shadow"
+                        >
+                          <span>{language === 'ar' ? 'استكشف المشروع بالكامل' : 'Explore Full Project'}</span>
+                          {language === 'ar' ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Second child: Image with gradient fade to solid side */}
+                    <div className="relative w-full sm:w-[62%] h-[240px] sm:h-full overflow-hidden flex-shrink-0">
                       <img 
                         src={getFirstImage(bigProjects[activeBigIndex].imageUrls)} 
                         alt={language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
-                        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-700 ease-out"
+                        className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-[1200ms] ease-out group-hover:scale-[1.02]"
                       />
-                      
-                      {/* Dark Elegant Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent"></div>
-                      <div className="absolute inset-0 bg-neutral-950/20 backdrop-blur-[0.5px]"></div>
-                    </motion.div>
-                  </AnimatePresence>
-
-                  {/* Spotlight background lights */}
-                  <div className="absolute -right-20 -top-20 w-80 h-80 bg-primary/10 rounded-full blur-[90px] pointer-events-none z-10"></div>
-                  <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-[90px] pointer-events-none z-10"></div>
-
-                  {/* Foreground Content Overlay */}
-                  <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-10 lg:p-14 text-right rtl:text-right ltr:text-left z-20">
-                    <AnimatePresence mode="wait" custom={direction}>
-                      <motion.div
-                        key={activeBigIndex}
-                        custom={direction}
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -30 }}
-                        transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
-                        className="max-w-3xl"
-                      >
-                        {/* Featured Badge */}
-                        <div className="mb-4">
-                          <span className="bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/10 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase inline-flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 fill-current" />
-                            {language === 'ar' ? 'مشروع ريادي متميز' : 'Featured Masterpiece'}
-                          </span>
-                        </div>
-
-                        {/* Title & Location */}
-                        <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight Cairo mb-3 drop-shadow-md">
-                          {language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
-                        </h3>
-
-                        <div className="flex items-center justify-start lg:justify-start gap-1.5 text-white/90 text-xs sm:text-sm mb-4 font-semibold drop-shadow-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                          <MapPin className="w-4 h-4 text-amber-400" />
-                          <span>{bigProjects[activeBigIndex].locationText || (language === 'ar' ? 'الرياض' : 'Riyadh')}</span>
-                        </div>
-
-                        {/* Description */}
-                        <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-2xl mb-6 line-clamp-3 drop-shadow-sm font-medium">
-                          {bigProjects[activeBigIndex].description}
-                        </p>
-
-                        {/* Specs & Button Row */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-5 pt-5 border-t border-white/10">
-                          {/* Translucent Glassmorphic Specs */}
-                          <div className="flex flex-wrap items-center gap-2.5" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                            <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white flex items-center gap-2 shadow-sm">
-                              <Maximize2 className="w-4 h-4 text-amber-400" />
-                              <span className="text-xs font-bold">{bigProjects[activeBigIndex].area} م²</span>
-                            </div>
-                            <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white flex items-center gap-2 shadow-sm">
-                              <Building2 className="w-4 h-4 text-amber-400" />
-                              <span className="text-xs font-bold truncate max-w-[120px]">
-                                {t(`cat.${bigProjects[activeBigIndex].propertyCategory}`) || bigProjects[activeBigIndex].propertyCategory}
-                              </span>
-                            </div>
-                            <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white flex items-center gap-2 shadow-sm">
-                              <Calendar className="w-4 h-4 text-amber-400" />
-                              <span className="text-xs font-bold">
-                                {bigProjects[activeBigIndex].propertyAge > 0 
-                                  ? `${bigProjects[activeBigIndex].propertyAge} ${language === 'ar' ? 'سنوات' : 'Years'}`
-                                  : (language === 'ar' ? 'جديد' : 'New')}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Action Button */}
-                          <div className="flex-shrink-0">
-                            <Link
-                              to={`/projects/${bigProjects[activeBigIndex].id}`}
-                              className="inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-100 text-neutral-950 h-11 px-5 rounded-2xl text-xs font-black transition-all duration-150 ease-out active:scale-97 cursor-pointer shadow-lg hover:shadow-xl hover:scale-[1.02]"
-                            >
-                              <span>{language === 'ar' ? 'استكشف المشروع بالكامل' : 'Explore Full Project'}</span>
-                              {language === 'ar' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                            </Link>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Navigation Arrows for Carousel */}
-                  {bigProjects.length > 1 && (
-                    <div className="absolute top-6 left-6 sm:top-10 sm:left-10 z-30 flex items-center gap-2" dir="ltr">
-                      <motion.button 
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handlePrevBig}
-                        className="p-2 rounded-xl border border-white/15 bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all cursor-pointer flex items-center justify-center"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </motion.button>
-                      <motion.button 
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleNextBig}
-                        className="p-2 rounded-xl border border-white/15 bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all cursor-pointer flex items-center justify-center"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </motion.button>
+                      {/* Fade gradient: vertical on mobile, horizontal on desktop. Blends into our blue-ish solid color */}
+                      <div className={`absolute inset-0 bg-gradient-to-t ${language === 'ar' ? 'sm:bg-gradient-to-r' : 'sm:bg-gradient-to-l'} from-transparent to-[#e8f2ff] dark:to-[#0c121e] z-10`} />
                     </div>
-                  )}
-                </div>
-              </section>
-            )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
 
-            {/* TIER 2: MID - EDITORIAL HORIZONTAL CARDS */}
+              {/* Navigation Arrows for Carousel */}
+              {bigProjects.length > 1 && (
+                <>
+                  <button 
+                    onClick={handlePrevBig}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/80 hover:bg-background text-foreground border border-border/40 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={handleNextBig}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/80 hover:bg-background text-foreground border border-border/40 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+
+                  {/* Pagination Indicator Dots */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
+                    {bigProjects.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setDirection(idx > activeBigIndex ? 1 : -1);
+                          setActiveBigIndex(idx);
+                        }}
+                        className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
+                          idx === activeBigIndex ? 'bg-primary w-4' : 'bg-muted hover:bg-muted-foreground/40'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {/* Constrained Container for Mid and Other Projects */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 space-y-20">
             {midProjects.length > 0 && (
               <section className="space-y-6">
                 <div className="border-b border-border/60 pb-3 flex items-center gap-2">
@@ -443,8 +410,8 @@ export default function Projects() {
               </section>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

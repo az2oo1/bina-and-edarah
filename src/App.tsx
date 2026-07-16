@@ -237,23 +237,44 @@ function Navbar() {
   const socialLinks = useSocialSettings();
 
   const [activeDropdown, setActiveDropdown] = useState<'home' | 'projects' | 'properties' | 'contact' | null>(null);
-  const timeoutRef = React.useRef<any>(null);
+  const openTimeoutRef = React.useRef<any>(null);
+  const closeTimeoutRef = React.useRef<any>(null);
 
   const handleMouseEnter = (menu: 'home' | 'projects' | 'properties' | 'contact') => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setActiveDropdown(menu);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+
+    if (activeDropdown) {
+      // If already open, switch immediately without delay
+      setActiveDropdown(menu);
+    } else {
+      // If closed, open after a 220ms delay (Apple style hover intent)
+      openTimeoutRef.current = setTimeout(() => {
+        setActiveDropdown(menu);
+      }, 220);
+    }
   };
 
   const handleMouseLeave = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
+    if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+
+    // Wait 200ms before closing
+    closeTimeoutRef.current = setTimeout(() => {
       setActiveDropdown(null);
-    }, 150);
+    }, 200);
+  };
+
+  const handleLogoOrControlsHover = () => {
+    if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    setActiveDropdown(null);
   };
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     };
   }, []);
 
@@ -291,10 +312,7 @@ function Navbar() {
             <Link 
               to="/" 
               className="flex-shrink-0 flex items-center gap-2 mr-8 lg:mr-12 sm:rtl:ml-8 sm:rtl:mr-0 lg:rtl:ml-12 group"
-              onMouseEnter={() => {
-                if (timeoutRef.current) clearTimeout(timeoutRef.current);
-                setActiveDropdown(null);
-              }}
+              onMouseEnter={handleLogoOrControlsHover}
             >
               <Logo
                 className={`h-6 w-6 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
@@ -324,10 +342,7 @@ function Navbar() {
           
           <div 
             className="hidden sm:flex items-center gap-3"
-            onMouseEnter={() => {
-              if (timeoutRef.current) clearTimeout(timeoutRef.current);
-              setActiveDropdown(null);
-            }}
+            onMouseEnter={handleLogoOrControlsHover}
           >
             <button
               onClick={toggleLanguage}
@@ -389,7 +404,7 @@ function Navbar() {
       <div 
         className={`nav-dropdown-tray ${activeDropdown ? 'open' : ''}`}
         onMouseEnter={() => {
-          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
         }}
         onMouseLeave={handleMouseLeave}
       >
