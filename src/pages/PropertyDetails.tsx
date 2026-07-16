@@ -57,6 +57,10 @@ const getDetailIcon = (key: string) => {
   if (lowerKey.includes('دور') || lowerKey.includes('floor')) return <Layers className={iconClass} />;
   if (lowerKey.includes('عمر') || lowerKey.includes('age')) return <CalendarDays className={iconClass} />;
   if (lowerKey.includes('فئة') || lowerKey.includes('category')) return <Users className={iconClass} />;
+  if (lowerKey.includes('موقف') || lowerKey.includes('parking')) return <Car className={iconClass} />;
+  if (lowerKey.includes('مصعد') || lowerKey.includes('elevator')) return <ArrowUpCircle className={iconClass} />;
+  if (lowerKey.includes('وحد') || lowerKey.includes('unit')) return <Building2 className={iconClass} />;
+  if (lowerKey.includes('مساح') || lowerKey.includes('area')) return <Maximize className={iconClass} />;
   return <Info className={iconClass} />;
 };
 
@@ -677,7 +681,41 @@ export default function PropertyDetails() {
                     try {
                       const parsed = JSON.parse(property.details);
                       if (Array.isArray(parsed)) {
-                        parsed.forEach((item: any, idx: number) => {
+                        // Filter out duplicate translations
+                        const keysInList = parsed.map(item => item.key.toLowerCase());
+                        const filtered = parsed.filter(item => {
+                          const k = item.key.toLowerCase();
+                          if (language === 'ar') {
+                            if (k === 'unit name' && keysInList.includes('رقم الوحدة')) return false;
+                            if (k === 'floor' && keysInList.includes('الدور')) return false;
+                            if (k === 'facade' && keysInList.includes('الواجهة')) return false;
+                            if (k === 'rooms' && keysInList.includes('عدد الغرف')) return false;
+                            if (k === 'bedrooms' && keysInList.includes('غرف النوم')) return false;
+                            if (k === 'bathrooms' && keysInList.includes('دورات المياه')) return false;
+                            if (k === 'parking spaces' && keysInList.includes('مواقف سيارات')) return false;
+                            if (k === 'built area' && keysInList.includes('مسطح البناء')) return false;
+                            if (k === 'condition' && keysInList.includes('حالة العقار')) return false;
+                            if (k === 'street width' && keysInList.includes('عرض الشارع')) return false;
+                            if (k === 'elevators' && keysInList.includes('مصاعد')) return false;
+                            if (k === 'number of units' && keysInList.includes('عدد الوحدات')) return false;
+                          } else {
+                            if (k === 'رقم الوحدة' && keysInList.includes('unit name')) return false;
+                            if (k === 'الدور' && keysInList.includes('floor')) return false;
+                            if (k === 'الواجهة' && keysInList.includes('facade')) return false;
+                            if (k === 'عدد الغرف' && keysInList.includes('rooms')) return false;
+                            if (k === 'غرف النوم' && keysInList.includes('bedrooms')) return false;
+                            if (k === 'دورات المياه' && keysInList.includes('bathrooms')) return false;
+                            if (k === 'مواقف سيارات' && keysInList.includes('parking spaces')) return false;
+                            if (k === 'مسطح البناء' && keysInList.includes('built area')) return false;
+                            if (k === 'حالة العقار' && keysInList.includes('condition')) return false;
+                            if (k === 'عرض الشارع' && keysInList.includes('street width')) return false;
+                            if (k === 'مصاعد' && keysInList.includes('elevators')) return false;
+                            if (k === 'عدد الوحدات' && keysInList.includes('number of units')) return false;
+                          }
+                          return true;
+                        });
+
+                        filtered.forEach((item: any, idx: number) => {
                           const isFloorsKey = item.key === 'أدوار المبنى' || item.key === 'Building Floors';
                           const displayValue = isFloorsKey
                             ? (() => {

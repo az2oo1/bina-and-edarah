@@ -360,6 +360,7 @@ export default function Admin() {
     waterCostVal: '',
     waterFrequencyVal: 'YEARLY',
     vatExempt: false,
+    vatNotApplicable: false,
     allowedPaymentPlans: ["1", "2", "4"] as string[],
     videoUrl: '',
     attachments: [] as { name: string, url: string, size: number }[],
@@ -687,8 +688,26 @@ export default function Admin() {
     await saveProperty(e, formData.status as 'PUBLISHED' | 'DRAFT' || 'PUBLISHED');
   };
 
-  const renderIcon = (iconName?: string) => {
-    const IconComponent = iconName ? (LucideIcons as any)[iconName] : null;
+  const renderIcon = (iconName?: string, key?: string) => {
+    let resolvedIcon = iconName;
+    if (!resolvedIcon && key) {
+      const lowerKey = key.toLowerCase();
+      if (lowerKey.includes('واجهة') || lowerKey.includes('facade')) resolvedIcon = 'Compass';
+      else if (lowerKey.includes('شارع') || lowerKey.includes('street')) resolvedIcon = 'Ruler';
+      else if (lowerKey.includes('غرف') || lowerKey.includes('room')) resolvedIcon = 'DoorOpen';
+      else if (lowerKey.includes('صالة') || lowerKey.includes('hall')) resolvedIcon = 'Armchair';
+      else if (lowerKey.includes('حمام') || lowerKey.includes('bathroom') || lowerKey.includes('مياه')) resolvedIcon = 'Bath';
+      else if (lowerKey.includes('ضمان') || lowerKey.includes('warrant')) resolvedIcon = 'CheckCircle';
+      else if (lowerKey.includes('تاريخ') || lowerKey.includes('date') || lowerKey.includes('تسليم')) resolvedIcon = 'Calendar';
+      else if (lowerKey.includes('دور') || lowerKey.includes('floor')) resolvedIcon = 'Layers';
+      else if (lowerKey.includes('موقف') || lowerKey.includes('parking')) resolvedIcon = 'Car';
+      else if (lowerKey.includes('مصعد') || lowerKey.includes('elevator')) resolvedIcon = 'ArrowUpCircle';
+      else if (lowerKey.includes('وحد') || lowerKey.includes('unit')) resolvedIcon = 'Building2';
+      else if (lowerKey.includes('مساح') || lowerKey.includes('area')) resolvedIcon = 'Maximize2';
+      else if (lowerKey.includes('مطبخ') || lowerKey.includes('kitchen')) resolvedIcon = 'ChefHat';
+    }
+
+    const IconComponent = resolvedIcon ? (LucideIcons as any)[resolvedIcon] : null;
     if (IconComponent) {
       return <IconComponent className="w-5 h-5 text-primary" />;
     }
@@ -732,6 +751,7 @@ export default function Admin() {
       waterCostVal: '',
       waterFrequencyVal: 'YEARLY',
       vatExempt: false,
+      vatNotApplicable: false,
       allowedPaymentPlans: ["1", "2", "4"],
       videoUrl: '',
       parentId: '',
@@ -938,10 +958,8 @@ export default function Admin() {
   };
 
   const handleSaveUnit = async () => {
-    if (!unitFormData.titleAr) {
-      await showAlert(language === 'ar' ? 'الرجاء إدخال عنوان الوحدة بالعربية' : 'Please enter the unit title in Arabic.');
-      return;
-    }
+    const titleAr = unitFormData.titleAr || unitFormData.unitNameAr;
+    const titleEn = unitFormData.titleEn || unitFormData.unitNameEn || titleAr;
     if (!unitFormData.unitNameAr) {
       await showAlert(language === 'ar' ? 'الرجاء إدخال اسم/رقم الوحدة بالعربية' : 'Please enter the unit name/number in Arabic.');
       return;
@@ -955,8 +973,8 @@ export default function Admin() {
 
     const newUnit = {
       id: unitFormData.id || undefined,
-      titleAr: unitFormData.titleAr,
-      titleEn: unitFormData.titleEn || unitFormData.titleAr,
+      titleAr: titleAr,
+      titleEn: titleEn,
       type: unitFormData.type,
       propertyCategory: unitFormData.propertyCategory,
       price: Number(unitFormData.price) || 0,
@@ -1104,6 +1122,9 @@ export default function Admin() {
         electricityCost: propData.electricityCost?.toString() || '',
         electricityFrequency: propData.electricityFrequency || 'YEARLY',
         vat: propData.vat?.toString() || '',
+        vatExempt: propData.vatExempt || false,
+        vatNotApplicable: propData.vatNotApplicable || false,
+        allowedPaymentPlans: parsedPaymentPlans,
         commission: propData.commission?.toString() || '',
         description: propData.description || '',
         price: propData.price?.toString() || '',
@@ -1118,8 +1139,6 @@ export default function Admin() {
         includeWater: parsedUtility.water,
         waterCostVal: parsedUtility.waterCost ? parsedUtility.waterCost.toString() : '',
         waterFrequencyVal: parsedUtility.waterFrequency,
-        vatExempt: propData.vatExempt || false,
-        allowedPaymentPlans: parsedPaymentPlans,
         videoUrl: propData.videoUrl || '',
         parentId: propData.parentId || '',
         status: propData.status || 'PUBLISHED',
@@ -2106,8 +2125,8 @@ export default function Admin() {
 
                         {formData.parentId && (
                           <>
-                            <div>
-                              <label className="cn-label mb-2">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي بالعربية' : 'Internal Unit Name/Number (Ar)'}</label>
+                            <div className="md:col-span-2">
+                              <label className="cn-label mb-2">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي' : 'Internal Unit Name/Number'}</label>
                               <input
                                 required
                                 type="text"
@@ -2116,40 +2135,33 @@ export default function Admin() {
                                   const val = e.target.value;
                                   setFormData(prev => {
                                     const newList = [...prev.detailsList];
-                                    const keyName = language === 'ar' ? 'رقم الوحدة' : 'Unit Name';
-                                    const idx = newList.findIndex(d => d.key === 'رقم الوحدة' || d.key === 'Unit Name');
-                                    if (idx > -1) {
-                                      newList[idx] = { ...newList[idx], value: val };
+                                    const idxAr = newList.findIndex(d => d.key === 'رقم الوحدة');
+                                    const oldValAr = idxAr > -1 ? newList[idxAr].value : '';
+                                    if (idxAr > -1) {
+                                      newList[idxAr] = { ...newList[idxAr], value: val };
                                     } else {
-                                      newList.push({ id: Math.random().toString(), key: keyName, value: val });
+                                      newList.push({ id: Math.random().toString(), key: 'رقم الوحدة', value: val });
                                     }
-                                    return { ...prev, detailsList: newList };
-                                  });
-                                }}
-                                className="cn-input"
-                                placeholder="مثال: شقة 101"
-                              />
-                            </div>
-                            <div>
-                              <label className="cn-label mb-2">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي بالإنجليزية' : 'Internal Unit Name/Number (En)'}</label>
-                              <input
-                                type="text"
-                                value={formData.detailsList.find(d => d.key === 'Unit Name')?.value || ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setFormData(prev => {
-                                    const newList = [...prev.detailsList];
-                                    const idx = newList.findIndex(d => d.key === 'Unit Name');
-                                    if (idx > -1) {
-                                      newList[idx] = { ...newList[idx], value: val };
+
+                                    const idxEn = newList.findIndex(d => d.key === 'Unit Name');
+                                    if (idxEn > -1) {
+                                      newList[idxEn] = { ...newList[idxEn], value: val };
                                     } else {
                                       newList.push({ id: Math.random().toString(), key: 'Unit Name', value: val });
                                     }
-                                    return { ...prev, detailsList: newList };
+
+                                    const syncTitleAr = !prev.titleAr || prev.titleAr === oldValAr;
+                                    const syncTitleEn = !prev.titleEn || prev.titleEn === oldValAr;
+                                    return { 
+                                      ...prev, 
+                                      detailsList: newList,
+                                      titleAr: syncTitleAr ? val : prev.titleAr,
+                                      titleEn: syncTitleEn ? val : prev.titleEn
+                                    };
                                   });
                                 }}
                                 className="cn-input"
-                                placeholder="e.g. Apt 101"
+                                placeholder={language === 'ar' ? 'مثال: شقة 101' : 'e.g. Apt 101'}
                               />
                             </div>
                             <div className="md:col-span-2">
@@ -2380,17 +2392,32 @@ export default function Admin() {
                          <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="cn-label">{t('admin.placeholder.vat')}</label>
-                            <button
-                              type="button"
-                              onClick={() => setFormData({ 
-                                ...formData, 
-                                vatExempt: !formData.vatExempt,
-                                vat: !formData.vatExempt ? '0' : formData.vat 
-                              })}
-                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${formData.vatExempt ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-muted text-muted-foreground border border-border hover:bg-gray-200'}`}
-                            >
-                              {formData.vatExempt ? (language === 'ar' ? 'معفى من الضريبة ✓' : 'VAT Exempt ✓') : (language === 'ar' ? 'معفى؟' : 'Exempt?')}
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ 
+                                  ...formData, 
+                                  vatExempt: !formData.vatExempt,
+                                  vatNotApplicable: false,
+                                  vat: !formData.vatExempt ? '0' : formData.vat 
+                                })}
+                                className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${formData.vatExempt ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-muted text-muted-foreground border border-border hover:bg-gray-200'}`}
+                              >
+                                {formData.vatExempt ? (language === 'ar' ? 'معفى من الضريبة ✓' : 'VAT Exempt ✓') : (language === 'ar' ? 'معفى؟' : 'Exempt?')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ 
+                                  ...formData, 
+                                  vatNotApplicable: !formData.vatNotApplicable,
+                                  vatExempt: false,
+                                  vat: !formData.vatNotApplicable ? '0' : formData.vat 
+                                })}
+                                className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${formData.vatNotApplicable ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-muted text-muted-foreground border border-border hover:bg-gray-200'}`}
+                              >
+                                {formData.vatNotApplicable ? (language === 'ar' ? 'غير مشمول ✓' : 'Not Applicable ✓') : (language === 'ar' ? 'غير مشمول؟' : 'Not Applicable?')}
+                              </button>
+                            </div>
                           </div>
                           <div className="relative flex shadow-sm rounded-xl overflow-hidden border border-border bg-background focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
                             <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
@@ -2398,8 +2425,8 @@ export default function Admin() {
                             </div>
                             <input 
                               type="number" 
-                              disabled={formData.vatExempt}
-                              value={formData.vatExempt ? '0' : formData.vat} 
+                              disabled={formData.vatExempt || formData.vatNotApplicable}
+                              value={(formData.vatExempt || formData.vatNotApplicable) ? '0' : formData.vat} 
                               onChange={(e) => setFormData({ ...formData, vat: e.target.value })} 
                               className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground disabled:opacity-50" 
                               placeholder="0" 
@@ -2492,54 +2519,59 @@ export default function Admin() {
                               <div className="w-11 shrink-0"></div>
                             </div>
                           )}
-                          {formData.detailsList.map((detail, idx) => (
-                            <div key={detail.id} className="flex gap-3 items-center relative group w-full">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveDetailId(detail.id);
-                                  setIconSearchQuery('');
-                                  setShowIconPicker(true);
-                                }}
-                                className="w-10 h-10 shrink-0 bg-background border border-border rounded-xl flex items-center justify-center text-primary hover:bg-muted transition cursor-pointer hover:border-primary/50 shadow-xs"
-                                title={language === 'ar' ? 'اختر أيقونة' : 'Choose Icon'}
-                              >
-                                {renderIcon(detail.icon)}
-                              </button>
-                              <input
-                                type="text"
-                                value={detail.key}
-                                onChange={(e) => {
-                                  const newList = [...formData.detailsList];
-                                  newList[idx].key = e.target.value;
-                                  setFormData({ ...formData, detailsList: newList });
-                                }}
-                                placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'}
-                                className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
-                              />
-                              <input
-                                type="text"
-                                value={detail.value}
-                                onChange={(e) => {
-                                  const newList = [...formData.detailsList];
-                                  newList[idx].value = e.target.value;
-                                  setFormData({ ...formData, detailsList: newList });
-                                }}
-                                placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'}
-                                className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newList = formData.detailsList.filter((_, i) => i !== idx);
-                                  setFormData({ ...formData, detailsList: newList });
-                                }}
-                                className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition shrink-0 cursor-pointer"
-                              >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                              </button>
-                            </div>
-                          ))}
+                           {formData.detailsList
+                            .filter(detail => detail.key !== 'الدور' && detail.key !== 'Floor' && detail.key !== 'رقم الوحدة' && detail.key !== 'Unit Name')
+                            .map((detail) => {
+                              const idx = formData.detailsList.findIndex(d => d.id === detail.id);
+                              return (
+                                <div key={detail.id} className="flex gap-3 items-center relative group w-full">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveDetailId(detail.id);
+                                      setIconSearchQuery('');
+                                      setShowIconPicker(true);
+                                    }}
+                                    className="w-10 h-10 shrink-0 bg-background border border-border rounded-xl flex items-center justify-center text-primary hover:bg-muted transition cursor-pointer hover:border-primary/50 shadow-xs"
+                                    title={language === 'ar' ? 'اختر أيقونة' : 'Choose Icon'}
+                                  >
+                                    {renderIcon(detail.icon, detail.key)}
+                                  </button>
+                                  <input
+                                    type="text"
+                                    value={detail.key}
+                                    onChange={(e) => {
+                                      const newList = [...formData.detailsList];
+                                      newList[idx].key = e.target.value;
+                                      setFormData({ ...formData, detailsList: newList });
+                                    }}
+                                    placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'}
+                                    className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={detail.value}
+                                    onChange={(e) => {
+                                      const newList = [...formData.detailsList];
+                                      newList[idx].value = e.target.value;
+                                      setFormData({ ...formData, detailsList: newList });
+                                    }}
+                                    placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'}
+                                    className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newList = formData.detailsList.filter((_, i) => i !== idx);
+                                      setFormData({ ...formData, detailsList: newList });
+                                    }}
+                                    className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition shrink-0 cursor-pointer"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                  </button>
+                                </div>
+                              );
+                            })}
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, detailsList: [...formData.detailsList, { id: Math.random().toString(), key: '', value: '', icon: '' }] })}
@@ -2877,7 +2909,7 @@ export default function Admin() {
                                     <div>
                                       <div className="flex items-center gap-2">
                                         <span className="font-black text-foreground">{language === 'ar' ? unit.titleAr : unit.titleEn}</span>
-                                        {unitName && (
+                                        {unitName && unitName !== unit.titleAr && unitName !== unit.titleEn && (
                                           <span className="bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded">
                                             {unitName}
                                           </span>
@@ -2959,8 +2991,8 @@ export default function Admin() {
                                   />
                                 </div>
                                 
-                                <div>
-                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي (عربي)' : 'Unit Name/Number (Ar)'}</label>
+                                <div className="md:col-span-2">
+                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي' : 'Unit Name/Number'}</label>
                                   <input
                                     type="text"
                                     value={unitFormData.unitNameAr}
@@ -2968,34 +3000,17 @@ export default function Admin() {
                                       const val = e.target.value;
                                       setUnitFormData(prev => {
                                         const syncTitle = !prev.titleAr || prev.titleAr === prev.unitNameAr;
+                                        const syncTitleEn = !prev.titleEn || prev.titleEn === prev.unitNameEn;
                                         return {
                                           ...prev,
                                           unitNameAr: val,
-                                          titleAr: syncTitle ? val : prev.titleAr
-                                        };
-                                      });
-                                    }}
-                                    placeholder="مثال: شقة 101"
-                                    className="cn-input text-xs h-9 bg-background"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي (إنجليزي)' : 'Unit Name/Number (En)'}</label>
-                                  <input
-                                    type="text"
-                                    value={unitFormData.unitNameEn}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnitFormData(prev => {
-                                        const syncTitle = !prev.titleEn || prev.titleEn === prev.unitNameEn;
-                                        return {
-                                          ...prev,
                                           unitNameEn: val,
-                                          titleEn: syncTitle ? val : prev.titleEn
+                                          titleAr: syncTitle ? val : prev.titleAr,
+                                          titleEn: syncTitleEn ? val : prev.titleEn
                                         };
                                       });
                                     }}
-                                    placeholder="e.g. Apt 101"
+                                    placeholder={language === 'ar' ? 'مثال: شقة 101' : 'e.g. Apt 101'}
                                     className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>
