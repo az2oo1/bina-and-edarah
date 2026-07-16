@@ -350,8 +350,8 @@ export default function AdminProjects() {
                 <div>
                   <label className="cn-label mb-2">{language === 'ar' ? 'تصنيف المشروع (Tier)' : 'Project Tier'}</label>
                   <select value={formData.tier} onChange={(e) => setFormData({...formData, tier: e.target.value})} className="cn-input">
-                    <option value="BIG" className="bg-card text-foreground">{language === 'ar' ? 'مشروع كبير (Big)' : 'Big Project'}</option>
-                    <option value="MID" className="bg-card text-foreground">{language === 'ar' ? 'مشروع متوسط (Mid)' : 'Mid Project'}</option>
+                    <option value="BIG" className="bg-card text-foreground">{language === 'ar' ? 'مشروع ريادي (Flagship)' : 'Flagship Project'}</option>
+                    <option value="MID" className="bg-card text-foreground">{language === 'ar' ? 'مشروع مميز (Featured)' : 'Featured Project'}</option>
                     <option value="OTHER" className="bg-card text-foreground">{language === 'ar' ? 'مشاريع أخرى (Other)' : 'Other Projects'}</option>
                   </select>
                 </div>
@@ -619,7 +619,7 @@ export default function AdminProjects() {
                         {language === 'ar' ? project.titleAr : project.titleEn}
                       </h3>
                       <span className="inline-flex bg-primary/10 text-primary border border-primary/20 text-[10px] px-2 py-0.5 rounded font-semibold">
-                         {project.tier === 'BIG' ? (language === 'ar' ? 'مشروع كبير' : 'Big Project') : project.tier === 'MID' ? (language === 'ar' ? 'مشروع متوسط' : 'Mid Project') : (language === 'ar' ? 'مشاريع أخرى' : 'Other Projects')}
+                         {project.tier === 'BIG' ? (language === 'ar' ? 'مشروع ريادي' : 'Flagship Project') : project.tier === 'MID' ? (language === 'ar' ? 'مشروع مميز' : 'Featured Project') : (language === 'ar' ? 'مشاريع أخرى' : 'Other Projects')}
                       </span>
                     </div>
                   </div>

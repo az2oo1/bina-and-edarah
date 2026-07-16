@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router';
 import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X, Sun, Moon } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
@@ -74,6 +75,158 @@ function useSocialSettings(): SocialLinks {
   return links;
 }
 
+const NAV_CONTENT: Record<string, {
+  columns: (lang: string, socialLinks: any) => Array<{
+    title: string;
+    links?: Array<{ to: string; label: string; external?: boolean }>;
+    text?: string;
+  }>;
+  featured: (lang: string) => {
+    title: string;
+    cardTitle: string;
+    desc: string;
+    btn?: { to: string; label: string };
+  };
+}> = {
+  home: {
+    columns: (lang) => [
+      {
+        title: lang === 'ar' ? 'الشركة' : 'Company',
+        links: [
+          { to: '/', label: lang === 'ar' ? 'الصفحة الرئيسية' : 'Home Page' },
+          { to: '/about', label: lang === 'ar' ? 'من نحن' : 'About Us' },
+          { to: '/services', label: lang === 'ar' ? 'حلولنا العقارية' : 'Our Solutions' }
+        ]
+      },
+      {
+        title: lang === 'ar' ? 'الخدمات المميزة' : 'Key Services',
+        links: [
+          { to: '/projects', label: lang === 'ar' ? 'مشاريع تطوير حديثة' : 'Modern Developments' },
+          { to: '/properties', label: lang === 'ar' ? 'إدارة الأملاك والتسويق' : 'Property Management' }
+        ]
+      },
+      {
+        title: lang === 'ar' ? 'معلومات عامة' : 'General Info',
+        links: [
+          { to: '/contact', label: lang === 'ar' ? 'مواعيد العمل وقنوات التواصل' : 'Working Hours & Contacts' }
+        ]
+      }
+    ],
+    featured: (lang) => ({
+      title: lang === 'ar' ? 'نظرة سريعة' : 'Quick Glance',
+      cardTitle: lang === 'ar' ? 'شركة بناء وإدارة العقارية' : 'Benaa & Edara Co.',
+      desc: lang === 'ar'
+        ? 'شريكك العقاري الموثوق للتطوير والتسويق وإدارة الأملاك بمدينة الرياض.'
+        : 'Your trusted real estate partner for development, marketing, and asset management in Riyadh.'
+    })
+  },
+  projects: {
+    columns: (lang) => [
+      {
+        title: lang === 'ar' ? 'تصفح المشاريع' : 'Browse Projects',
+        links: [
+          { to: '/projects', label: lang === 'ar' ? 'جميع المشاريع' : 'All Projects' }
+        ]
+      },
+      {
+        title: lang === 'ar' ? 'فئات التطوير' : 'Development Types',
+        links: [
+          { to: '/projects?type=residential', label: lang === 'ar' ? 'مشاريع سكنية' : 'Residential Projects' },
+          { to: '/projects?type=commercial', label: lang === 'ar' ? 'مشاريع تجارية' : 'Commercial Projects' }
+        ]
+      },
+      {
+        title: lang === 'ar' ? 'رؤيتنا في التطوير' : 'Our Philosophy',
+        text: lang === 'ar'
+          ? 'نلتزم بأعلى معايير الجودة والاستدامة في بناء وتطوير البيئات السكنية والتجارية العصرية.'
+          : 'We are committed to the highest standards of quality and sustainability in designing modern environments.'
+      }
+    ],
+    featured: (lang) => ({
+      title: lang === 'ar' ? 'مشاريع مميزة' : 'Featured Developments',
+      cardTitle: lang === 'ar' ? 'مشاريع البناء الحديثة' : 'Modern Developments',
+      desc: lang === 'ar'
+        ? 'تصفح أحدث المجمعات السكنية والتجارية التي قمنا بتطويرها مؤخراً.'
+        : 'Explore our latest residential & commercial complexes developed with fine craftsmanship.'
+    })
+  },
+  properties: {
+    columns: (lang) => [
+      {
+        title: lang === 'ar' ? 'تصفح العقارات' : 'Browse Properties',
+        links: [
+          { to: '/properties', label: lang === 'ar' ? 'كل العقارات المتاحة' : 'All Listings' }
+        ]
+      },
+      {
+        title: lang === 'ar' ? 'حالة العقار' : 'Listing Status',
+        links: [
+          { to: '/properties?type=SALE', label: lang === 'ar' ? 'عقارات للبيع' : 'Properties for Sale' },
+          { to: '/properties?type=RENT', label: lang === 'ar' ? 'عقارات للإيجار' : 'Properties for Rent' }
+        ]
+      },
+      {
+        title: lang === 'ar' ? 'الأنواع الأكثر طلباً' : 'Popular Types',
+        links: [
+          { to: '/properties?category=APARTMENT', label: lang === 'ar' ? 'شقق سكنية' : 'Apartments' },
+          { to: '/properties?category=VILLA', label: lang === 'ar' ? 'فلل وقصور' : 'Villas' },
+          { to: '/properties?category=OFFICE', label: lang === 'ar' ? 'مكاتب تجارية' : 'Offices' }
+        ]
+      }
+    ],
+    featured: (lang) => ({
+      title: lang === 'ar' ? 'البحث الذكي' : 'Smart Search',
+      cardTitle: lang === 'ar' ? 'جد عقارك المناسب' : 'Find Your Match',
+      desc: lang === 'ar'
+        ? 'استخدم الفلاتر المتقدمة في صفحة العقارات لتصفية المساحات والأسعار والموقع المناسب لك.'
+        : 'Use filters on our properties page to quickly narrow down size, price, and neighborhood.'
+    })
+  },
+  contact: {
+    columns: (lang, socialLinks) => {
+      const links: Array<{ to: string; label: string; external?: boolean }> = [
+        { to: '/contact', label: lang === 'ar' ? 'نموذج الاتصال بنا' : 'Contact Form' }
+      ];
+      if (socialLinks.whatsappNumber) {
+        links.push({
+          to: `https://wa.me/${socialLinks.whatsappNumber}`,
+          label: lang === 'ar' ? 'واتساب مباشر' : 'WhatsApp Chat',
+          external: true
+        });
+      }
+      return [
+        {
+          title: lang === 'ar' ? 'قنوات الاتصال المباشرة' : 'Direct Channels',
+          links
+        },
+        {
+          title: lang === 'ar' ? 'الدعم وخدمة العملاء' : 'Customer Support',
+          text: lang === 'ar'
+            ? 'يسعدنا خدمتك وتلبية استفساراتك على مدار الساعة عبر رقم الجوال الموحد أو البريد الإلكتروني.'
+            : 'We are delighted to serve you and answer your inquiries around the clock via our unified phone number or email.'
+        },
+        {
+          title: lang === 'ar' ? 'العنوان والموقع' : 'Headquarters',
+          text: lang === 'ar'
+            ? 'المملكة العربية السعودية، مدينة الرياض. تفضل بزيارة مكتبنا للاطلاع على المزيد من الفرص.'
+            : 'Kingdom of Saudi Arabia, Riyadh City. Feel free to visit our headquarters to explore opportunities.'
+        }
+      ];
+    },
+    featured: (lang) => ({
+      title: lang === 'ar' ? 'طلب معاينة أو تفاصيل' : 'Request Callback',
+      cardTitle: lang === 'ar' ? 'تواصل فوري' : 'Instant Connect',
+      desc: lang === 'ar'
+        ? 'يمكنك تعبئة طلب اتصال وسيقوم أحد مستشارينا بالتواصل معك في أقرب وقت.'
+        : 'Leave a callback request and one of our expert advisors will reach out to you shortly.',
+      btn: {
+        to: '/contact',
+        label: lang === 'ar' ? 'احجز موعد اتصال' : 'Schedule Call'
+      }
+    })
+  }
+};
+
 function Navbar() {
   const { language, toggleLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
@@ -82,6 +235,27 @@ function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const logoUrl = useLogoUrl();
   const socialLinks = useSocialSettings();
+
+  const [activeDropdown, setActiveDropdown] = useState<'home' | 'projects' | 'properties' | 'contact' | null>(null);
+  const timeoutRef = React.useRef<any>(null);
+
+  const handleMouseEnter = (menu: 'home' | 'projects' | 'properties' | 'contact') => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setActiveDropdown(menu);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null);
+    }, 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const checkUser = () => {
@@ -107,11 +281,21 @@ function Navbar() {
   };
 
   return (
-    <nav className="bg-background/80 border-b border-border/30 sticky top-0 z-50 backdrop-blur-md w-full">
-      <div className="w-full px-4 sm:px-8 lg:px-12">
+    <nav 
+      className="bg-background/80 border-b border-border/30 sticky top-0 z-50 backdrop-blur-md w-full"
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="w-full px-4 sm:px-8 lg:px-12 relative z-50 bg-transparent">
         <div className="flex justify-between h-12 items-center">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center gap-2 mr-8 lg:mr-12 sm:rtl:ml-8 sm:rtl:mr-0 lg:rtl:ml-12 group">
+            <Link 
+              to="/" 
+              className="flex-shrink-0 flex items-center gap-2 mr-8 lg:mr-12 sm:rtl:ml-8 sm:rtl:mr-0 lg:rtl:ml-12 group"
+              onMouseEnter={() => {
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                setActiveDropdown(null);
+              }}
+            >
               <Logo
                 className={`h-6 w-6 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
                 logoUrl={logoUrl}
@@ -119,34 +303,32 @@ function Navbar() {
               <span className="font-bold text-xs text-foreground tracking-tight hidden md:block">{t('hero.title')}</span>
             </Link>
             <div className="hidden sm:flex items-center gap-5 lg:gap-8">
-              <div className="relative group py-3 select-none">
-                <Link to="/" className="inline-flex items-center gap-1 text-[11px] lg:text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                  {t('nav.home')}
-                </Link>
-                <div className="absolute top-[80%] left-1/2 -translate-x-1/2 pt-2 w-40 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="bg-card/95 border border-border/40 rounded-xl shadow-xl py-1 text-right rtl:text-right ltr:text-left backdrop-blur-md">
-                    <Link to="/services" className="block px-4 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
-                      {language === 'ar' ? 'حلول عقارية' : 'Solutions'}
-                    </Link>
-                    <Link to="/about" className="block px-4 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors">
-                      {language === 'ar' ? 'من نحن' : 'About Us'}
-                    </Link>
-                  </div>
+              {(['home', 'projects', 'properties', 'contact'] as const).map((menu) => (
+                <div 
+                  key={menu}
+                  className="py-3"
+                  onMouseEnter={() => handleMouseEnter(menu)}
+                >
+                  <Link 
+                    to={menu === 'home' ? '/' : `/${menu}`} 
+                    className={`inline-flex items-center gap-1 text-[11px] lg:text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                      activeDropdown === menu ? 'text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {menu === 'contact' ? (language === 'ar' ? 'اتصل بنا' : 'Contact Us') : t(`nav.${menu}`)}
+                  </Link>
                 </div>
-              </div>
-              <Link to="/projects" className="inline-flex items-center text-[11px] lg:text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                {t('nav.projects')}
-              </Link>
-              <Link to="/properties" className="inline-flex items-center text-[11px] lg:text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                {t('nav.properties')}
-              </Link>
-              <Link to="/contact" className="inline-flex items-center text-[11px] lg:text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                {language === 'ar' ? 'اتصل بنا' : 'Contact Us'}
-              </Link>
+              ))}
             </div>
           </div>
           
-          <div className="hidden sm:flex items-center gap-3">
+          <div 
+            className="hidden sm:flex items-center gap-3"
+            onMouseEnter={() => {
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              setActiveDropdown(null);
+            }}
+          >
             <button
               onClick={toggleLanguage}
               className="px-2 py-1 rounded-full text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
@@ -202,6 +384,102 @@ function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Shared Dropdown Tray */}
+      <div 
+        className={`nav-dropdown-tray ${activeDropdown ? 'open' : ''}`}
+        onMouseEnter={() => {
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        }}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className="nav-dropdown-wrapper">
+          <div className="nav-dropdown-inner">
+            <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+              {activeDropdown && (
+                <div className="grid grid-cols-4 gap-10">
+                  {/* Columns 1-3 */}
+                  {NAV_CONTENT[activeDropdown].columns(language, socialLinks).map((col, idx) => (
+                    <div key={idx} className="nav-dropdown-column">
+                      <span className="nav-dropdown-title">{col.title}</span>
+                      {col.links && (
+                        <div className="nav-dropdown-links-group flex flex-col gap-2">
+                          {col.links.map((link, lIdx) => (
+                            link.external ? (
+                              <a 
+                                key={lIdx} 
+                                href={link.to} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="nav-dropdown-link" 
+                                onClick={() => setActiveDropdown(null)}
+                              >
+                                {link.label}
+                              </a>
+                            ) : (
+                              <Link 
+                                key={lIdx} 
+                                to={link.to} 
+                                className="nav-dropdown-link" 
+                                onClick={() => setActiveDropdown(null)}
+                              >
+                                {link.label}
+                              </Link>
+                            )
+                          ))}
+                        </div>
+                      )}
+                      {col.text && (
+                        <div className="text-xs text-muted-foreground leading-relaxed">
+                          {col.text}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Column 4 (Featured) */}
+                  <div className="nav-dropdown-column">
+                    {(() => {
+                      const feat = NAV_CONTENT[activeDropdown].featured(language);
+                      return (
+                        <>
+                          <span className="nav-dropdown-title">{feat.title}</span>
+                          <div className="nav-dropdown-featured flex flex-col gap-1 text-[11px] text-right rtl:text-right ltr:text-left select-none">
+                            <div className="font-bold text-[12px] mb-1 text-foreground">
+                              {feat.cardTitle}
+                            </div>
+                            <div className="text-muted-foreground leading-relaxed text-[11px] mb-2">
+                              {feat.desc}
+                            </div>
+                            {feat.btn && (
+                              <Link 
+                                to={feat.btn.to} 
+                                onClick={() => setActiveDropdown(null)} 
+                                className="inline-flex text-[10px] font-bold bg-primary text-primary-foreground px-3 py-1 rounded-full hover:opacity-90 transition-opacity w-fit"
+                              >
+                                {feat.btn.label}
+                              </Link>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Blurred Backdrop Overlay */}
+      {createPortal(
+        <div 
+          className={`nav-overlay ${activeDropdown ? 'open' : ''}`}
+          onClick={() => setActiveDropdown(null)}
+        />,
+        document.body
+      )}
 
       {/* Mobile Dropdown Panel */}
       {isOpen && (

@@ -84,7 +84,11 @@ export default function ProjectDetails() {
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-xs font-semibold">
-              {project.tier === 'BIG' ? (language === 'ar' ? 'مشروع كبير' : 'Big Project') : project.tier === 'MID' ? (language === 'ar' ? 'مشروع متوسط' : 'Mid Project') : (language === 'ar' ? 'مشاريع أخرى' : 'Other Projects')}
+              {project.tier === 'BIG' 
+                ? (language === 'ar' ? 'مشروع ريادي' : 'Flagship Project') 
+                : project.tier === 'MID' 
+                  ? (language === 'ar' ? 'مشروع مميز' : 'Featured Project') 
+                  : (language === 'ar' ? 'مشاريع أخرى' : 'Other Projects')}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight mb-2">{language === 'ar' ? project.titleAr : project.titleEn}</h1>
@@ -210,7 +214,13 @@ export default function ProjectDetails() {
               <div className="bg-background p-4 border border-border rounded-lg flex flex-col items-center justify-center text-center shadow-xs">
                 <Layers className="w-5 h-5 text-primary mb-2" />
                 <span className="text-muted-foreground text-xs mb-0.5">{language === 'ar' ? 'التصنيف' : 'Tier'}</span>
-                <span className="text-sm font-bold text-foreground">{project.tier}</span>
+                <span className="text-sm font-bold text-foreground">
+                  {project.tier === 'BIG' 
+                    ? (language === 'ar' ? 'ريادي' : 'Flagship') 
+                    : project.tier === 'MID' 
+                      ? (language === 'ar' ? 'مميز' : 'Featured') 
+                      : (language === 'ar' ? 'آخر' : 'Other')}
+                </span>
               </div>
             </div>
 
