@@ -439,7 +439,7 @@ export default function AdminProjects() {
                         </div>
                       )}
 
-                      <button type="button" onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
+                      <button type="button" aria-label={language === 'ar' ? 'حذف الصورة' : 'Remove image'} onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -519,7 +519,7 @@ export default function AdminProjects() {
                         className="input-field text-sm" 
                       />
                     </div>
-                    <button type="button" onClick={() => removeDetail(detail.id)} className="p-2.5 text-red-500 hover:bg-red-50 rounded-lg border border-border transition cursor-pointer flex items-center justify-center h-10">
+                    <button type="button" aria-label={language === 'ar' ? 'حذف التفصيل' : 'Remove detail'} onClick={() => removeDetail(detail.id)} className="p-2.5 text-red-500 hover:bg-red-50 rounded-lg border border-border transition cursor-pointer flex items-center justify-center h-10">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -577,7 +577,7 @@ export default function AdminProjects() {
                         className="input-field text-sm" 
                       />
                     </div>
-                    <button type="button" onClick={() => removeFeature(feature.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border transition">
+                    <button type="button" aria-label={language === 'ar' ? 'حذف الميزة' : 'Remove feature'} onClick={() => removeFeature(feature.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border transition">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -625,7 +625,7 @@ export default function AdminProjects() {
                   </div>
                 </div>
                 <div className="px-4 py-3 bg-muted/40 border-t border-border flex justify-between items-center">
-                  <button onClick={() => handleDelete(project.id)} className="text-red-500 hover:text-red-600 p-2 hover:bg-red-500/10 rounded-lg transition-transform active:scale-[0.97] cursor-pointer">
+                  <button onClick={() => handleDelete(project.id)} aria-label={language === 'ar' ? 'حذف المشروع' : 'Delete project'} className="text-red-500 hover:text-red-600 p-2 hover:bg-red-500/10 rounded-lg transition-transform active:scale-[0.97] cursor-pointer">
                     <Trash2 className="w-5 h-5" />
                   </button>
                   <button onClick={() => handleEdit(project.id)} className="btn-primary px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer active:scale-[0.97]">
@@ -649,6 +649,7 @@ export default function AdminProjects() {
               </h3>
               <button 
                 type="button"
+                aria-label={language === 'ar' ? 'إغلاق' : 'Close'}
                 onClick={() => setShowIconPicker(false)}
                 className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition cursor-pointer"
               >
