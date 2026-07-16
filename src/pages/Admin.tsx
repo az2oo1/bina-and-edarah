@@ -2485,15 +2485,15 @@ export default function Admin() {
                         
                         <div className="space-y-3">
                           {formData.detailsList.length > 0 && (
-                            <div className="grid grid-cols-[40px_1fr_1fr_auto] gap-3 px-1 text-xs font-semibold text-muted-foreground">
-                              <div>{language === 'ar' ? 'رمز' : 'Icon'}</div>
-                              <div>{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
-                              <div>{language === 'ar' ? 'القيمة' : 'Value'}</div>
-                              <div className="w-10"></div>
+                            <div className="flex gap-3 px-1 text-xs font-semibold text-muted-foreground w-full select-none">
+                              <div className="w-10 shrink-0 text-center">{language === 'ar' ? 'رمز' : 'Icon'}</div>
+                              <div className="flex-1">{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
+                              <div className="flex-1">{language === 'ar' ? 'القيمة' : 'Value'}</div>
+                              <div className="w-11 shrink-0"></div>
                             </div>
                           )}
                           {formData.detailsList.map((detail, idx) => (
-                            <div key={detail.id} className="grid grid-cols-[40px_1fr_1fr_auto] gap-3 items-center relative group">
+                            <div key={detail.id} className="flex gap-3 items-center relative group w-full">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -2501,7 +2501,7 @@ export default function Admin() {
                                   setIconSearchQuery('');
                                   setShowIconPicker(true);
                                 }}
-                                className="w-10 h-10 bg-background border border-border rounded-xl flex items-center justify-center text-primary hover:bg-muted transition cursor-pointer hover:border-primary/50 shadow-xs"
+                                className="w-10 h-10 shrink-0 bg-background border border-border rounded-xl flex items-center justify-center text-primary hover:bg-muted transition cursor-pointer hover:border-primary/50 shadow-xs"
                                 title={language === 'ar' ? 'اختر أيقونة' : 'Choose Icon'}
                               >
                                 {renderIcon(detail.icon)}
@@ -2515,7 +2515,7 @@ export default function Admin() {
                                   setFormData({ ...formData, detailsList: newList });
                                 }}
                                 placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'}
-                                className="border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                                className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
                               />
                               <input
                                 type="text"
@@ -2526,7 +2526,7 @@ export default function Admin() {
                                   setFormData({ ...formData, detailsList: newList });
                                 }}
                                 placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'}
-                                className="border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
+                                className="flex-1 border border-border bg-background rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm"
                               />
                               <button
                                 type="button"
@@ -2534,7 +2534,7 @@ export default function Admin() {
                                   const newList = formData.detailsList.filter((_, i) => i !== idx);
                                   setFormData({ ...formData, detailsList: newList });
                                 }}
-                                className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition"
+                                className="p-3 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition shrink-0 cursor-pointer"
                               >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                               </button>

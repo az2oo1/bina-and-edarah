@@ -816,7 +816,7 @@ nav:has(.nav-dropdown-tray.open) > div {
 }
 .nav-overlay {
   position: fixed;
-  top: 3rem; /* Same as h-12 */
+  top: 0;
   left: 0;
   right: 0;
   bottom: 0;
@@ -884,6 +884,15 @@ nav:has(.nav-dropdown-tray.open) > div {
 .nav-dropdown-featured:hover {
   background-color: color-mix(in oklch, var(--muted) 70%, transparent);
   border-color: color-mix(in oklch, var(--primary) 20%, var(--border));
+}
+
+/* Remove default focus outline on navigation items for a premium look */
+nav a:focus,
+nav button:focus,
+.nav-dropdown-tray a:focus,
+.nav-dropdown-tray button:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 
