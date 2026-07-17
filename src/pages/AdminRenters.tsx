@@ -583,7 +583,7 @@ export default function AdminRenters({ selectedBuildingId, selectedBuildingName 
               <h3 className="text-sm font-bold text-foreground">
                 {language === 'ar' ? 'تعديل بيانات المستأجر' : 'Edit Renter Details'}
               </h3>
-              <button type="button" onClick={() => setEditingRenter(null)} className="w-7 h-7 bg-card border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+              <button type="button" onClick={() => setEditingRenter(null)} className="w-7 h-7 bg-card border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer" aria-label={language === 'ar' ? 'إغلاق' : 'Close'}>
                  <X className="w-5 h-5" />
               </button>
             </div>
