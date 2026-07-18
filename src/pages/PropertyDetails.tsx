@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
-import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, Search, LayoutGrid, List, ArrowUpDown, SlidersHorizontal, X } from 'lucide-react';
+import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, Search, LayoutGrid, List, ArrowUpDown, SlidersHorizontal, X, Car, ArrowUpCircle } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { ImageViewer } from '../components/ImageViewer';
 import { formatExternalLink } from '../utils/link';

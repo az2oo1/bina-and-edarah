@@ -956,8 +956,8 @@ async function startServer() {
       // Case 2: Local file path (/uploads/xxx.jpg)
       if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
         const fileName = imgData.replace(/^\/?uploads\//, '');
-        const filePath = path.join(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        const filePath = path.resolve(UPLOADS_DIR, fileName);
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -1007,8 +1007,8 @@ async function startServer() {
       // Case 2: Local file path (/uploads/xxx.jpg)
       if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
         const fileName = imgData.replace(/^\/?uploads\//, '');
-        const filePath = path.join(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        const filePath = path.resolve(UPLOADS_DIR, fileName);
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -1046,8 +1046,8 @@ async function startServer() {
         // File path in uploads
         if (base64Data.startsWith('/uploads/') || base64Data.startsWith('uploads/')) {
           const fileName = base64Data.replace(/^\/?uploads\//, '');
-          const filePath = path.join(UPLOADS_DIR, fileName);
-          if (fs.existsSync(filePath)) {
+          const filePath = path.resolve(UPLOADS_DIR, fileName);
+          if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
             res.setHeader('Cache-Control', 'public, max-age=86400');
             return res.sendFile(filePath);
           }
@@ -1090,8 +1090,8 @@ async function startServer() {
 
       if (base64Data.startsWith('/uploads/') || base64Data.startsWith('uploads/')) {
         const fileName = base64Data.replace(/^\/?uploads\//, '');
-        const filePath = path.join(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        const filePath = path.resolve(UPLOADS_DIR, fileName);
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -1102,7 +1102,7 @@ async function startServer() {
       }
 
       const directPath = path.resolve(process.cwd(), base64Data.replace(/^\//, ''));
-      if (fs.existsSync(directPath)) {
+      if (directPath.startsWith(path.resolve(process.cwd()) + path.sep) && fs.existsSync(directPath)) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return res.sendFile(directPath);
       }
@@ -1147,8 +1147,8 @@ async function startServer() {
       // Case 2: Local file path in uploads
       if (heroData.startsWith('/uploads/') || heroData.startsWith('uploads/')) {
         const fileName = heroData.replace(/^\/?uploads\//, '');
-        const filePath = path.join(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        const filePath = path.resolve(UPLOADS_DIR, fileName);
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -1161,7 +1161,7 @@ async function startServer() {
 
       // Case 4: direct path check
       const directPath = path.resolve(process.cwd(), heroData.replace(/^\//, ''));
-      if (fs.existsSync(directPath)) {
+      if (directPath.startsWith(path.resolve(process.cwd()) + path.sep) && fs.existsSync(directPath)) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return res.sendFile(directPath);
       }
