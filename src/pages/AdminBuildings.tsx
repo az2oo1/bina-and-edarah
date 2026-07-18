@@ -533,7 +533,7 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode, parentP
                      {selectedRenterForHistory.building?.name || b.name} — {language === 'ar' ? 'وحدة' : 'Unit'} {selectedRenterForHistory.unitNumber}
                    </div>
                  </div>
-                 <button onClick={() => setSelectedRenterForHistory(null)} className="w-7 h-7 bg-card rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                 <button onClick={() => setSelectedRenterForHistory(null)} className="w-7 h-7 bg-card rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer" aria-label={language === 'ar' ? 'إغلاق' : 'Close'}>
                     <X className="w-5 h-5" />
                  </button>
               </div>
@@ -730,7 +730,7 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode, parentP
           <div className="bg-card rounded-lg border border-border w-full max-w-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]">
             <div className="bg-muted/40 p-4 border-b border-border flex items-center justify-between">
               <h3 className="text-sm font-bold text-foreground">{language === 'ar' ? 'تعديل بيانات المبنى' : 'Edit Building Details'}</h3>
-              <button onClick={() => setEditingBuildingId(null)} className="w-7 h-7 rounded border border-border flex items-center justify-center bg-card text-muted-foreground hover:text-foreground cursor-pointer">
+              <button onClick={() => setEditingBuildingId(null)} className="w-7 h-7 rounded border border-border flex items-center justify-center bg-card text-muted-foreground hover:text-foreground cursor-pointer" aria-label={language === 'ar' ? 'إغلاق' : 'Close'}>
                  <X className="w-5 h-5" />
               </button>
             </div>
@@ -803,7 +803,7 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode, parentP
                   {selectedBuildingForRenters.name} — {language === 'ar' ? 'المستأجرين' : 'Renters'}
                 </h3>
               </div>
-              <button onClick={() => setSelectedBuildingForRenters(null)} className="w-7 h-7 bg-card border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+              <button onClick={() => setSelectedBuildingForRenters(null)} className="w-7 h-7 bg-card border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer" aria-label={language === 'ar' ? 'إغلاق' : 'Close'}>
                  <X className="w-5 h-5" />
               </button>
             </div>
@@ -977,7 +977,7 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode, parentP
                     {selectedRenterForHistory.building?.name || selectedBuildingForRenters?.name} — {language === 'ar' ? 'وحدة' : 'Unit'} {selectedRenterForHistory.unitNumber}
                   </div>
                 </div>
-                <button onClick={() => setSelectedRenterForHistory(null)} className="w-7 h-7 bg-card rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                <button onClick={() => setSelectedRenterForHistory(null)} className="w-7 h-7 bg-card rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer" aria-label={language === 'ar' ? 'إغلاق' : 'Close'}>
                    <X className="w-5 h-5" />
                 </button>
              </div>
