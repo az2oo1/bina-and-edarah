@@ -351,6 +351,7 @@ function Navbar() {
               onClick={toggleTheme}
               className="p-1 rounded-full text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center cursor-pointer"
               title={theme === 'dark' ? (language === 'ar' ? 'الوضع المضيء' : 'Light Mode') : (language === 'ar' ? 'الوضع الداكن' : 'Dark Mode')}
+              aria-label={theme === 'dark' ? (language === 'ar' ? 'الوضع المضيء' : 'Light Mode') : (language === 'ar' ? 'الوضع الداكن' : 'Dark Mode')}
             >
               {theme === 'dark' ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
             </button>
@@ -367,6 +368,7 @@ function Navbar() {
                   onClick={handleLogout}
                   className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                   title={language === 'ar' ? 'تسجيل خروج' : 'Logout'}
+                  aria-label={language === 'ar' ? 'تسجيل خروج' : 'Logout'}
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
