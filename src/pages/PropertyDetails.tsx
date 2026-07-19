@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
@@ -201,7 +201,110 @@ export default function PropertyDetails() {
     setActiveImage(idx);
   };
 
-  const visibleSubProperties = property.subProperties?.filter(unit => unit.status !== 'DRAFT') || [];
+  const memoizedParsedData = useMemo(() => {
+    let details: Array<{key: string; value: string; icon?: string}> = [];
+    if (property.details) {
+      try {
+        const parsed = JSON.parse(property.details);
+        if (Array.isArray(parsed)) {
+          const keysInList = parsed.map((item: any) => item.key.toLowerCase());
+          details = parsed.filter((item: any) => {
+            const k = item.key.toLowerCase();
+            if (language === 'ar') {
+              if (k === 'unit name' && keysInList.includes('رقم الوحدة')) return false;
+              if (k === 'floor' && keysInList.includes('الدور')) return false;
+              if (k === 'facade' && keysInList.includes('الواجهة')) return false;
+              if (k === 'rooms' && keysInList.includes('عدد الغرف')) return false;
+              if (k === 'bedrooms' && keysInList.includes('غرف النوم')) return false;
+              if (k === 'bathrooms' && keysInList.includes('دورات المياه')) return false;
+              if (k === 'parking spaces' && keysInList.includes('مواقف سيارات')) return false;
+              if (k === 'built area' && keysInList.includes('مسطح البناء')) return false;
+              if (k === 'condition' && keysInList.includes('حالة العقار')) return false;
+              if (k === 'street width' && keysInList.includes('عرض الشارع')) return false;
+              if (k === 'elevators' && keysInList.includes('مصاعد')) return false;
+              if (k === 'number of units' && keysInList.includes('عدد الوحدات')) return false;
+            } else {
+              if (k === 'رقم الوحدة' && keysInList.includes('unit name')) return false;
+              if (k === 'الدور' && keysInList.includes('floor')) return false;
+              if (k === 'الواجهة' && keysInList.includes('facade')) return false;
+              if (k === 'عدد الغرف' && keysInList.includes('rooms')) return false;
+              if (k === 'غرف النوم' && keysInList.includes('bedrooms')) return false;
+              if (k === 'دورات المياه' && keysInList.includes('bathrooms')) return false;
+              if (k === 'مواقف سيارات' && keysInList.includes('parking spaces')) return false;
+              if (k === 'مسطح البناء' && keysInList.includes('built area')) return false;
+              if (k === 'حالة العقار' && keysInList.includes('condition')) return false;
+              if (k === 'عرض الشارع' && keysInList.includes('street width')) return false;
+              if (k === 'مصاعد' && keysInList.includes('elevators')) return false;
+              if (k === 'عدد الوحدات' && keysInList.includes('number of units')) return false;
+            }
+            return true;
+          });
+        }
+      } catch (_) {}
+    }
+
+    let utilityBills = null;
+    if (property.type === 'RENT' && property.utilityBills && property.utilityBills !== 'NONE') {
+      try {
+        utilityBills = JSON.parse(property.utilityBills);
+      } catch (_) {}
+    }
+
+    let allowedPaymentPlans: string[] = [];
+    if (property.type === 'RENT' && property.allowedPaymentPlans) {
+      try {
+        const parsed = JSON.parse(property.allowedPaymentPlans);
+        if (Array.isArray(parsed) && parsed.length > 0) allowedPaymentPlans = parsed;
+      } catch (_) {}
+    }
+
+    let attachments: { name: string; url: string; size?: number }[] = [];
+    if (property.attachments) {
+      try {
+        attachments = typeof property.attachments === 'string'
+          ? JSON.parse(property.attachments)
+          : property.attachments as any;
+      } catch (_) {}
+    }
+
+    let parentImages: string[] = [];
+    try {
+      const p = JSON.parse(property.imageUrls || '[]');
+      if (Array.isArray(p) && p.length > 0) parentImages = p;
+    } catch (_) {}
+
+    return { details, utilityBills, allowedPaymentPlans, attachments, parentImages };
+  }, [property.details, property.type, property.utilityBills, property.allowedPaymentPlans, property.attachments, property.imageUrls, language]);
+
+  const visibleSubProperties = useMemo(() => {
+    const subs = property.subProperties?.filter(unit => unit.status !== 'DRAFT') || [];
+    return subs.map(unit => {
+      let unitImages: string[] = [];
+      try {
+        const p = JSON.parse(unit.imageUrls || '[]');
+        if (Array.isArray(p) && p.length > 0) unitImages = p;
+      } catch (_) {}
+
+      let unitDetails: Array<{key: string; value: string; icon?: string}> = [];
+      try {
+        unitDetails = JSON.parse(unit.details || '[]');
+      } catch (_) {}
+
+      const cover = unitImages.length > 0
+        ? unitImages[0]
+        : (memoizedParsedData.parentImages.length > 0 ? memoizedParsedData.parentImages[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop');
+
+      return {
+        ...unit,
+        unitImages,
+        unitDetails,
+        cover,
+        isAvailable: unit.status === 'PUBLISHED',
+        isSold: unit.status === 'SOLD',
+        isRented: unit.status === 'RENTED'
+      };
+    });
+  }, [property.subProperties, memoizedParsedData.parentImages]);
 
   if (viewMode === 'units') {
     return (
@@ -239,34 +342,7 @@ export default function PropertyDetails() {
           {/* Units Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {visibleSubProperties.map((unit, idx) => {
-              const unitImages = (() => {
-                try {
-                  const p = JSON.parse(unit.imageUrls || '[]');
-                  return Array.isArray(p) && p.length > 0 ? p : [];
-                } catch (_) {
-                  return [];
-                }
-              })();
-              const parentImages = (() => {
-                try {
-                  const p = JSON.parse(property.imageUrls || '[]');
-                  return Array.isArray(p) && p.length > 0 ? p : [];
-                } catch (_) {
-                  return [];
-                }
-              })();
-              const cover = unitImages.length > 0 
-                ? unitImages[0] 
-                : (parentImages.length > 0 ? parentImages[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop');
-              
-              let unitDetails: Array<{key: string; value: string; icon?: string}> = [];
-              try {
-                unitDetails = JSON.parse(unit.details || '[]');
-              } catch (_) {}
-
-              const isAvailable = unit.status === 'PUBLISHED';
-              const isSold = unit.status === 'SOLD';
-              const isRented = unit.status === 'RENTED';
+              const { unitImages, cover, unitDetails, isAvailable, isSold, isRented } = unit as any;
 
               return (
                 <div
@@ -677,77 +753,38 @@ export default function PropertyDetails() {
                   }
 
                   // 5. Dynamically parsed details
-                  if (property.details) {
-                    try {
-                      const parsed = JSON.parse(property.details);
-                      if (Array.isArray(parsed)) {
-                        // Filter out duplicate translations
-                        const keysInList = parsed.map(item => item.key.toLowerCase());
-                        const filtered = parsed.filter(item => {
-                          const k = item.key.toLowerCase();
-                          if (language === 'ar') {
-                            if (k === 'unit name' && keysInList.includes('رقم الوحدة')) return false;
-                            if (k === 'floor' && keysInList.includes('الدور')) return false;
-                            if (k === 'facade' && keysInList.includes('الواجهة')) return false;
-                            if (k === 'rooms' && keysInList.includes('عدد الغرف')) return false;
-                            if (k === 'bedrooms' && keysInList.includes('غرف النوم')) return false;
-                            if (k === 'bathrooms' && keysInList.includes('دورات المياه')) return false;
-                            if (k === 'parking spaces' && keysInList.includes('مواقف سيارات')) return false;
-                            if (k === 'built area' && keysInList.includes('مسطح البناء')) return false;
-                            if (k === 'condition' && keysInList.includes('حالة العقار')) return false;
-                            if (k === 'street width' && keysInList.includes('عرض الشارع')) return false;
-                            if (k === 'elevators' && keysInList.includes('مصاعد')) return false;
-                            if (k === 'number of units' && keysInList.includes('عدد الوحدات')) return false;
-                          } else {
-                            if (k === 'رقم الوحدة' && keysInList.includes('unit name')) return false;
-                            if (k === 'الدور' && keysInList.includes('floor')) return false;
-                            if (k === 'الواجهة' && keysInList.includes('facade')) return false;
-                            if (k === 'عدد الغرف' && keysInList.includes('rooms')) return false;
-                            if (k === 'غرف النوم' && keysInList.includes('bedrooms')) return false;
-                            if (k === 'دورات المياه' && keysInList.includes('bathrooms')) return false;
-                            if (k === 'مواقف سيارات' && keysInList.includes('parking spaces')) return false;
-                            if (k === 'مسطح البناء' && keysInList.includes('built area')) return false;
-                            if (k === 'حالة العقار' && keysInList.includes('condition')) return false;
-                            if (k === 'عرض الشارع' && keysInList.includes('street width')) return false;
-                            if (k === 'مصاعد' && keysInList.includes('elevators')) return false;
-                            if (k === 'عدد الوحدات' && keysInList.includes('number of units')) return false;
-                          }
-                          return true;
-                        });
+                  if (memoizedParsedData.details.length > 0) {
+                    memoizedParsedData.details.forEach((item: any, idx: number) => {
+                      const isFloorsKey = item.key === 'أدوار المبنى' || item.key === 'Building Floors';
+                      const displayValue = isFloorsKey
+                        ? (() => {
+                            const count = item.value.split(',').map((f: any) => f.trim()).filter(Boolean).length;
+                            return language === 'ar' ? `${count} طوابق` : `${count} Floors`;
+                          })()
+                        : item.value;
+                      const displayKey = isFloorsKey
+                        ? (language === 'ar' ? 'عدد الأدوار' : 'Number of Floors')
+                        : item.key;
 
-                        filtered.forEach((item: any, idx: number) => {
-                          const isFloorsKey = item.key === 'أدوار المبنى' || item.key === 'Building Floors';
-                          const displayValue = isFloorsKey
-                            ? (() => {
-                                const count = item.value.split(',').map((f: any) => f.trim()).filter(Boolean).length;
-                                return language === 'ar' ? `${count} طوابق` : `${count} Floors`;
+                      specItems.push(
+                        <div key={`detail-${idx}`} className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                          <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                            {item.icon && (LucideIcons as any)[item.icon] ? (
+                              (() => {
+                                const IconComp = (LucideIcons as any)[item.icon];
+                                return <IconComp className="w-4 h-4 sm:w-5 h-5" />;
                               })()
-                            : item.value;
-                          const displayKey = isFloorsKey
-                            ? (language === 'ar' ? 'عدد الأدوار' : 'Number of Floors')
-                            : item.key;
-
-                          specItems.push(
-                            <div key={`detail-${idx}`} className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
-                              <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                                {item.icon && (LucideIcons as any)[item.icon] ? (
-                                  (() => {
-                                    const IconComp = (LucideIcons as any)[item.icon];
-                                    return <IconComp className="w-4 h-4 sm:w-5 h-5" />;
-                                  })()
-                                ) : (
-                                  getDetailIcon(item.key)
-                                )}
-                              </div>
-                              <div className="flex flex-col text-start min-w-0">
-                                <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{displayKey}</p>
-                                <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{displayValue}</p>
-                              </div>
-                            </div>
-                          );
-                        });
-                      }
-                    } catch (_) {}
+                            ) : (
+                              getDetailIcon(item.key)
+                            )}
+                          </div>
+                          <div className="flex flex-col text-start min-w-0">
+                            <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/90 mb-0.5 truncate">{displayKey}</p>
+                            <p className="text-xs sm:text-sm font-extrabold text-foreground truncate">{displayValue}</p>
+                          </div>
+                        </div>
+                      );
+                    });
                   }
 
                   return specItems.map((item, idx) => (
@@ -927,10 +964,8 @@ export default function PropertyDetails() {
                       </div>
                       {property.type === 'RENT' && (() => {
                         try {
-                          if (!property.utilityBills || property.utilityBills === 'NONE') {
-                            throw new Error('No utility bills');
-                          }
-                          const parsed = JSON.parse(property.utilityBills);
+                          const parsed = memoizedParsedData.utilityBills;
+                          if (!parsed) throw new Error('No utility bills');
                           const rows = [];
                           if (parsed.electricity && parsed.electricityCost > 0) {
                             rows.push(
@@ -1045,14 +1080,7 @@ export default function PropertyDetails() {
     
                 <a
                   href={`https://wa.me/${whatsappNumber.replace(/\+/g, '')}?text=${(() => {
-                    const allowedPlans = (() => {
-                      if (!property.allowedPaymentPlans) return [];
-                      try {
-                        const parsed = JSON.parse(property.allowedPaymentPlans);
-                        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                      } catch (_) {}
-                      return [];
-                    })();
+                    const allowedPlans = memoizedParsedData.allowedPaymentPlans;
                     const plansJoined = allowedPlans.length > 0 
                       ? (language === 'ar' 
                           ? ` (${allowedPlans.join(' أو ')} دفعات)` 
@@ -1121,15 +1149,7 @@ export default function PropertyDetails() {
 
             {/* Documents & Files Card */}
             {(() => {
-              let attachmentsList: { name: string; url: string; size?: number }[] = [];
-              try {
-                if (property.attachments) {
-                  attachmentsList = typeof property.attachments === 'string'
-                    ? JSON.parse(property.attachments)
-                    : property.attachments;
-                }
-              } catch (_) {}
-
+              const attachmentsList = memoizedParsedData.attachments;
               if (!Array.isArray(attachmentsList) || attachmentsList.length === 0) return null;
 
               return (
