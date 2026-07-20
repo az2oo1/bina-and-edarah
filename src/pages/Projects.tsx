@@ -231,12 +231,14 @@ export default function Projects() {
                   <button 
                     onClick={handlePrevBig}
                     className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/80 hover:bg-background text-foreground border border-border/40 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+                    aria-label={language === 'ar' ? 'المشروع السابق' : 'Previous Project'}
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={handleNextBig}
                     className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/80 hover:bg-background text-foreground border border-border/40 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+                    aria-label={language === 'ar' ? 'المشروع التالي' : 'Next Project'}
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -253,6 +255,7 @@ export default function Projects() {
                         className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
                           idx === activeBigIndex ? 'bg-primary w-4' : 'bg-muted hover:bg-muted-foreground/40'
                         }`}
+                        aria-label={language === 'ar' ? `الذهاب إلى مشروع ${idx + 1}` : `Go to project ${idx + 1}`}
                       />
                     ))}
                   </div>
