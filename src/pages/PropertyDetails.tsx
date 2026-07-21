@@ -201,7 +201,44 @@ export default function PropertyDetails() {
     setActiveImage(idx);
   };
 
-  const visibleSubProperties = property.subProperties?.filter(unit => unit.status !== 'DRAFT') || [];
+  const visibleSubProperties = React.useMemo(() => {
+    const units = property.subProperties?.filter(unit => unit.status !== 'DRAFT') || [];
+
+    // Parse parent property images once
+    let parentParsedImages: string[] = [];
+    try {
+      const p = JSON.parse(property.imageUrls || '[]');
+      if (Array.isArray(p) && p.length > 0) {
+        parentParsedImages = p;
+      }
+    } catch (_) {}
+
+    return units.map(unit => {
+      let unitParsedImages: string[] = [];
+      try {
+        const p = JSON.parse(unit.imageUrls || '[]');
+        if (Array.isArray(p) && p.length > 0) {
+          unitParsedImages = p;
+        }
+      } catch (_) {}
+
+      let unitDetails: Array<{key: string; value: string; icon?: string}> = [];
+      try {
+        unitDetails = JSON.parse(unit.details || '[]');
+      } catch (_) {}
+
+      const cover = unitParsedImages.length > 0
+        ? unitParsedImages[0]
+        : (parentParsedImages.length > 0 ? parentParsedImages[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop');
+
+      return {
+        ...unit,
+        _parsedImages: unitParsedImages,
+        _parsedDetails: unitDetails,
+        _cover: cover
+      };
+    });
+  }, [property.subProperties, property.imageUrls]);
 
   if (viewMode === 'units') {
     return (
@@ -239,30 +276,8 @@ export default function PropertyDetails() {
           {/* Units Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {visibleSubProperties.map((unit, idx) => {
-              const unitImages = (() => {
-                try {
-                  const p = JSON.parse(unit.imageUrls || '[]');
-                  return Array.isArray(p) && p.length > 0 ? p : [];
-                } catch (_) {
-                  return [];
-                }
-              })();
-              const parentImages = (() => {
-                try {
-                  const p = JSON.parse(property.imageUrls || '[]');
-                  return Array.isArray(p) && p.length > 0 ? p : [];
-                } catch (_) {
-                  return [];
-                }
-              })();
-              const cover = unitImages.length > 0 
-                ? unitImages[0] 
-                : (parentImages.length > 0 ? parentImages[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop');
-              
-              let unitDetails: Array<{key: string; value: string; icon?: string}> = [];
-              try {
-                unitDetails = JSON.parse(unit.details || '[]');
-              } catch (_) {}
+              const unitDetails = unit._parsedDetails;
+              const cover = unit._cover;
 
               const isAvailable = unit.status === 'PUBLISHED';
               const isSold = unit.status === 'SOLD';
