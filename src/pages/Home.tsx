@@ -128,7 +128,17 @@ export default function Home() {
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setFeaturedProjects(data.slice(0, 3));
+          const processed = data.slice(0, 3).map((project: any) => {
+            let firstImage = DEFAULT_IMAGES.service1;
+            try {
+              const urls = JSON.parse(project.imageUrls || '[]');
+              if (urls.length > 0) {
+                firstImage = urls[0];
+              }
+            } catch (_) {}
+            return { ...project, firstImage };
+          });
+          setFeaturedProjects(processed);
         }
       })
       .catch(() => {})
@@ -386,11 +396,7 @@ export default function Home() {
               <ProjectsSkeleton />
             ) : featuredProjects.length > 0 ? (
               featuredProjects.map((project, index) => {
-                let imagesArr = [];
-                try {
-                  imagesArr = JSON.parse(project.imageUrls || '[]');
-                } catch(_) {}
-                const image = imagesArr[0] || DEFAULT_IMAGES.service1;
+                const image = project.firstImage || DEFAULT_IMAGES.service1;
                 const isEven = index % 2 === 1;
 
                 return (
