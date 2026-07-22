@@ -3520,26 +3520,6 @@ async function startServer() {
          return res.json(userPayload);
        }
  
-       // Hardcoded admin fallback for preview if DB is empty
-       if (username === 'admin' && password === 'admin') {
-         const userPayload = { 
-           id: 'admin-fallback', 
-           username: 'admin', 
-           role: 'ADMIN', 
-           name: 'Administrator',
-           permissions: ROLE_PERMISSIONS['ADMIN']
-         };
-         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-         res.cookie('token', token, {
-           httpOnly: true,
-           secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-           sameSite: 'lax',
-           maxAge: 24 * 60 * 60 * 1000 // 24 hours
-         });
-         logger.info(`Fallback admin login successful`);
-         return res.json(userPayload);
-       }
-
       logger.warn(`Failed login attempt for username: ${username}`);
       res.status(401).json({ error: "Invalid credentials" });
     } catch (error) {
@@ -3557,11 +3537,6 @@ async function startServer() {
   app.put("/api/admin/credentials", async (req, res) => {
     try {
       const { adminId, currentUsername, newUsername, newPassword } = req.body;
-
-      // Handle fallback admin
-      if (adminId === 'admin-fallback' || currentUsername === 'admin') {
-        return res.status(400).json({ error: "Cannot change fallback admin credentials. Please create a real admin in DB." });
-      }
 
       const admin = await prisma.admin.findUnique({ where: { username: currentUsername } });
       if (!admin || admin.id !== adminId) {
