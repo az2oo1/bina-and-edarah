@@ -2875,20 +2875,36 @@ async function startServer() {
       logger.warn("Prisma client settings update failed, falling back to raw SQL updates:", err);
     }
 
+    const allowedFields = ['whatsappNumber', 'callingNumber', 'email', 'addressAr', 'addressEn', 'addressMapLink', 'analyticsDashboardUrl', 'imapHost', 'imapPort'];
     // Fallback: update fields one-by-one using raw SQL
     for (const field of fields) {
+      if (!allowedFields.includes(field)) continue;
       const val = data[field];
       try {
         if (typeof val === 'string') {
-          const escaped = val.replace(/'/g, "''");
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = '${escaped}' WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = '${escaped}' WHERE id = 'global'`);
+          await Promise.all([
+             prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET ${Prisma.raw('"' + field + '"')} = ${val} WHERE id = 'global'`).catch(() => {}),
+             prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`).catch(() => {})
+          ]).then(results => {
+             const successCount = results.filter(r => r !== undefined).length;
+             if (successCount === 0) throw new Error('Both database updates failed');
+          });
         } else if (typeof val === 'number') {
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = ${val} WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = ${val} WHERE id = 'global'`);
+          await Promise.all([
+             prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET ${Prisma.raw('"' + field + '"')} = ${val} WHERE id = 'global'`).catch(() => {}),
+             prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`).catch(() => {})
+          ]).then(results => {
+             const successCount = results.filter(r => r !== undefined).length;
+             if (successCount === 0) throw new Error('Both database updates failed');
+          });
         } else if (val === null) {
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = NULL WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = NULL WHERE id = 'global'`);
+          await Promise.all([
+             prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET ${Prisma.raw('"' + field + '"')} = NULL WHERE id = 'global'`).catch(() => {}),
+             prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = NULL WHERE id = 'global'`).catch(() => {})
+          ]).then(results => {
+             const successCount = results.filter(r => r !== undefined).length;
+             if (successCount === 0) throw new Error('Both database updates failed');
+          });
         }
       } catch (e) {
         logger.error(`Raw SQL update failed for Settings.${field}:`, e);
@@ -3883,26 +3899,46 @@ async function startServer() {
       }
 
       // Fallback: update using raw SQL
+      const executeFallback = async (query1: any, query2: any) => {
+          await Promise.all([
+             prisma.$executeRaw(query1).catch(() => {}),
+             prisma.$executeRaw(query2).catch(() => {})
+          ]).then(results => {
+             const successCount = results.filter(r => r !== undefined).length;
+             if (successCount === 0) throw new Error('Both database updates failed');
+          });
+      };
+
       if (username) {
-        await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET username = ${username} WHERE id = ${id}`);
-        await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET username = ${username} WHERE id = ${id}`);
+        await executeFallback(
+            Prisma.sql`UPDATE "Admin" SET username = ${username} WHERE id = ${id}`,
+            Prisma.sql`UPDATE Admin SET username = ${username} WHERE id = ${id}`
+        );
       }
       if (password) {
-        await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET password = ${password} WHERE id = ${id}`);
-        await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET password = ${password} WHERE id = ${id}`);
+        await executeFallback(
+            Prisma.sql`UPDATE "Admin" SET password = ${password} WHERE id = ${id}`,
+            Prisma.sql`UPDATE Admin SET password = ${password} WHERE id = ${id}`
+        );
       }
       if (name) {
-        await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET name = ${name} WHERE id = ${id}`);
-        await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET name = ${name} WHERE id = ${id}`);
+        await executeFallback(
+            Prisma.sql`UPDATE "Admin" SET name = ${name} WHERE id = ${id}`,
+            Prisma.sql`UPDATE Admin SET name = ${name} WHERE id = ${id}`
+        );
       }
       if (role) {
-        await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET role = ${role} WHERE id = ${id}`);
-        await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET role = ${role} WHERE id = ${id}`);
+        await executeFallback(
+            Prisma.sql`UPDATE "Admin" SET role = ${role} WHERE id = ${id}`,
+            Prisma.sql`UPDATE Admin SET role = ${role} WHERE id = ${id}`
+        );
       }
       if (email !== undefined) {
         const emailVal = email || null;
-        await prisma.$executeRaw(Prisma.sql`UPDATE "Admin" SET email = ${emailVal} WHERE id = ${id}`);
-        await prisma.$executeRaw(Prisma.sql`UPDATE Admin SET email = ${emailVal} WHERE id = ${id}`);
+        await executeFallback(
+            Prisma.sql`UPDATE "Admin" SET email = ${emailVal} WHERE id = ${id}`,
+            Prisma.sql`UPDATE Admin SET email = ${emailVal} WHERE id = ${id}`
+        );
       }
 
       await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details (raw SQL): ${username || existing.username}`);
@@ -4046,4 +4082,6 @@ async function startServer() {
   });
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
