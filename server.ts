@@ -2876,19 +2876,28 @@ async function startServer() {
     }
 
     // Fallback: update fields one-by-one using raw SQL
+    const allowedFields = [
+      "whatsappNumber", "callingNumber", "whatsappMessage", "otpWebhookUrl", "otpMessageTemplate", "otpWebhookPayload",
+      "homeImages", "logoUrl", "email", "instagramUrl", "twitterUrl", "facebookUrl", "linkedinUrl", "youtubeUrl", "tiktokUrl", "snapchatUrl",
+      "notificationEmail", "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpFrom", "imapHost", "imapPort", "analyticsScript", "analyticsDashboardUrl",
+      "addressAr", "addressEn", "addressMapLink",
+      "techhubEnabled", "techhubClientId", "techhubClientSecret", "techhubApiKey", "techhubSandboxMode", "indexNowKey"
+    ];
+
     for (const field of fields) {
+      if (!allowedFields.includes(field)) continue;
+
       const val = data[field];
       try {
-        if (typeof val === 'string') {
-          const escaped = val.replace(/'/g, "''");
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = '${escaped}' WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = '${escaped}' WHERE id = 'global'`);
-        } else if (typeof val === 'number') {
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = ${val} WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = ${val} WHERE id = 'global'`);
-        } else if (val === null) {
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = NULL WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = NULL WHERE id = 'global'`);
+        try {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET ${Prisma.raw(`"${field}"`)} = ${val} WHERE id = 'global'`);
+        } catch (e: any) {
+          const msg = String(e?.message || e);
+          if (msg.includes('syntax') || msg.includes('table') || msg.includes('relation') || msg.includes('column')) {
+            await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`);
+          } else {
+            throw e;
+          }
         }
       } catch (e) {
         logger.error(`Raw SQL update failed for Settings.${field}:`, e);
