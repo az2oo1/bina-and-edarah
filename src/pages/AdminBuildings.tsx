@@ -486,6 +486,7 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode, parentP
                                     <button 
                                       onClick={() => openWhatsApp(r.renterPhone, r.renterName)}
                                       className="p-1 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100/50 cursor-pointer"
+                                      aria-label={language === 'ar' ? 'التواصل عبر الواتساب' : 'Contact via WhatsApp'}
                                     >
                                       <WhatsAppIcon className="w-3.5 h-3.5" />
                                     </button>
@@ -912,8 +913,9 @@ export default function AdminBuildings({ selectedBuildingId, inlineMode, parentP
                                   </a>
                                   <button 
                                     onClick={() => openWhatsApp(r.renterPhone, r.renterName)}
-                                    className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 flex flex-col items-center justify-center hover:bg-emerald-100/50 transition-colors"
+                                    className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 flex flex-col items-center justify-center hover:bg-emerald-100/50 transition-colors cursor-pointer"
                                     title="WhatsApp"
+                                    aria-label={language === 'ar' ? 'التواصل عبر الواتساب' : 'Contact via WhatsApp'}
                                   >
                                     <WhatsAppIcon className="w-4 h-4" />
                                   </button>
