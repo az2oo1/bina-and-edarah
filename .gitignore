@@ -1,9 +1,63 @@
+# Dependencies
 node_modules/
-build/
+.pnpm-store/
+
+# Production build outputs
 dist/
-coverage/
-.DS_Store
-*.log
-.env*
+dist-ssr/
+build/
+out/
+*.tsbuildinfo
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 !.env.example
-src/pages/Admin.tsx
+
+# Runtime uploads & user files
+uploads/
+public/uploads/
+
+# Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+dev.db
+prisma/*.db
+prisma/*.sqlite
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+server.log
+
+# Temporary & Cache directories
+.cache/
+.vite/
+scratch/
+.temp/
+.tmp/
+coverage/
+.nyc_output/
+
+# Editor & OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo

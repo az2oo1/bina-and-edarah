@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, Component } from 'react';
 import { createPortal } from 'react-dom';
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router';
 import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X, Sun, Moon } from 'lucide-react';
@@ -724,18 +724,80 @@ function AppContent() {
   );
 }
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+  public props!: ErrorBoundaryProps;
+  public setState!: (state: Partial<ErrorBoundaryState>) => void;
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6 text-center">
+          <div className="max-w-md w-full bg-card p-8 rounded-2xl border border-border shadow-lg">
+            <h2 className="text-xl font-bold mb-2">حدث خطأ أثناء تحميل الصفحة</h2>
+            <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
+              {this.state.error?.message || "An unexpected error occurred while loading this page."}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.reload();
+                }}
+                className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                إعادة تحميل الصفحة
+              </button>
+              <a
+                href="/"
+                className="px-5 py-2.5 bg-muted text-muted-foreground hover:text-foreground font-bold rounded-xl text-xs transition-colors"
+              >
+                الصفحة الرئيسية
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <DialogProvider>
-          <BrowserRouter>
-            <PageTracker />
-            <AppContent />
-          </BrowserRouter>
-        </DialogProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <LanguageProvider>
+          <DialogProvider>
+            <BrowserRouter>
+              <PageTracker />
+              <AppContent />
+            </BrowserRouter>
+          </DialogProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

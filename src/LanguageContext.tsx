@@ -175,16 +175,24 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = language;
   }, [language]);
 
-  const toggleLanguage = () => {
+  const toggleLanguage = React.useCallback(() => {
     setLanguage((prev) => (prev === 'ar' ? 'en' : 'ar'));
-  };
+  }, []);
 
-  const t = (key: string) => {
-    return translations[language][key] || key;
-  };
+  const t = React.useCallback(
+    (key: string) => {
+      return translations[language][key] || key;
+    },
+    [language]
+  );
+
+  const value = React.useMemo(
+    () => ({ language, toggleLanguage, t }),
+    [language, toggleLanguage, t]
+  );
 
   return (
-    <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

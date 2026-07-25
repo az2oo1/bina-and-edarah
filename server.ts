@@ -23,6 +23,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import compression from "compression";
 
 const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
 
@@ -913,12 +914,15 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+  // HTTP response compression (gzip/brotli) for all API responses
+  app.use(compression());
+
   // Read cookies
   app.use(cookieParser());
 
-  // Increase payload size for base64 multi-image/video uploads (up to 350MB to support 250MB videos)
-  app.use(express.json({ limit: '350mb' }));
-  app.use(express.urlencoded({ limit: '350mb', extended: true }));
+  // Safe JSON payload limits to protect against memory exhaustion / JSON DoS attacks
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
   
   // Serve static uploaded files
   app.use('/uploads', express.static(UPLOADS_DIR));

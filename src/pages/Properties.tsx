@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { MapPin, Building2, Maximize, CalendarDays, Coins } from 'lucide-react';
+import { MapPin, Building2, Maximize, CalendarDays, Coins, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { SrIcon } from '../components/SrIcon';
 
@@ -375,9 +375,10 @@ export default function Properties() {
             <div className="mb-4 inline-flex items-center">
               <Link 
                 to={`/properties/${parentIdParam}`} 
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563eb] hover:underline bg-[#2563eb]/10 border border-[#2563eb]/20 px-3.5 py-1.5 rounded-full transition-all shadow-sm"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97]"
               >
-                {language === 'ar' ? '→ العودة لصفحة العقار الرئيسي' : '← Back to Parent Property'}
+                {language === 'ar' ? <ArrowRight className="w-3.5 h-3.5 text-primary" /> : <ArrowLeft className="w-3.5 h-3.5 text-primary" />}
+                <span>{language === 'ar' ? 'العودة لصفحة العقار الرئيسي' : 'Back to Parent Property'}</span>
               </Link>
             </div>
           )}
@@ -551,6 +552,34 @@ export default function Properties() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
               {properties.map((property) => {
                 const hasUnits = !!(property.availableUnitsCount && property.availableUnitsCount > 0);
+                const unitNumber = (() => {
+                  if (!property.details) return '';
+                  try {
+                    const list = typeof property.details === 'string' ? JSON.parse(property.details) : property.details;
+                    if (Array.isArray(list)) {
+                      const match = list.find((item: any) => {
+                        if (!item || !item.key) return false;
+                        const k = String(item.key).trim().toLowerCase();
+                        return (
+                          k === 'رقم الوحدة' ||
+                          k === 'unit name' ||
+                          k === 'unit number' ||
+                          k === 'رقم الشقة' ||
+                          k === 'شقة' ||
+                          k === 'unit' ||
+                          k === 'apartment number' ||
+                          k === 'apt number'
+                        );
+                      });
+                      if (match?.value) return String(match.value);
+                    }
+                  } catch (_) {}
+                  return '';
+                })();
+
+                const currentTitle = language === 'ar' ? property.titleAr : property.titleEn;
+                const hasUnitInTitle = unitNumber ? currentTitle.toLowerCase().includes(unitNumber.toLowerCase()) : false;
+
                 return (
                   <Link to={`/properties/${property.id}`} key={property.id} className="shadcn-card hover:shadow-md transition-all duration-200 group flex flex-col overflow-hidden hover:-translate-y-0.5 block">
                     <div className="relative h-48 overflow-hidden bg-muted">
@@ -567,7 +596,7 @@ export default function Properties() {
                           />
                           <img 
                             src={property.thumbnail}
-                            alt={language === 'ar' ? property.titleAr : property.titleEn} 
+                            alt={currentTitle} 
                             loading="lazy"
                             decoding="async"
                             onLoad={() => setImageLoading((current) => ({ ...current, [property.id]: true }))}
@@ -593,6 +622,13 @@ export default function Properties() {
                         <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
                           {t(`cat.${property.propertyCategory || 'VILLA'}`)}
                         </span>
+                        {(property.parentId || unitNumber) && (
+                          <span className="bg-amber-600 text-white px-2 py-0.5 rounded text-[10px] font-extrabold shadow-xs">
+                            {language === 'ar' 
+                              ? (unitNumber ? `وحدة/شقة: ${unitNumber}` : 'وحدة سكنية') 
+                              : (unitNumber ? `Apt/Unit #${unitNumber}` : 'Sub-Unit')}
+                          </span>
+                        )}
                         {!property.isEnriched ? (
                           <span className="bg-slate-200 dark:bg-zinc-800 animate-pulse w-14 h-4 rounded text-[10px] border border-border" />
                         ) : hasUnits ? (
@@ -606,8 +642,13 @@ export default function Properties() {
                     </div>
                     
                     <div className="p-5 flex flex-col flex-grow text-foreground">
-                      <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
-                        {language === 'ar' ? property.titleAr : property.titleEn}
+                      <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1 flex items-center gap-1.5">
+                        {unitNumber && !hasUnitInTitle && (
+                          <span className="text-[11px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-black flex-shrink-0">
+                            {language === 'ar' ? `شقة/وحدة ${unitNumber}` : `Apt #${unitNumber}`}
+                          </span>
+                        )}
+                        <span className="truncate">{currentTitle}</span>
                       </h3>
                       {property.locationText && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2 font-medium">

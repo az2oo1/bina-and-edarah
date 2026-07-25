@@ -1,1 +1,3 @@
-## 2026-07-13 - Adding ARIA Labels in Internationalized React Components\n**Learning:** When adding `aria-label` attributes to icon-only buttons in a bilingual application (Arabic/English), the labels must be dynamic and translate just like visible text to provide a fully localized experience for screen reader users.\n**Action:** Always check the existing translation mechanism (e.g., `language === 'ar'` ternary operator) and apply it directly within the `aria-label` attribute for any new interactive elements.
+## 2024-05-24 - Navigation Accessibility Pattern
+**Learning:** The mobile navigation menu toggle (hamburger menu) was missing basic accessibility states (`aria-label` and `aria-expanded`), which is a critical pattern for screen readers navigating the main UI layout.
+**Action:** When auditing global navigation components, ensure `aria-expanded` is dynamically linked to the menu's state (`isOpen`) and localized `aria-label` is used for icon-only toggles.

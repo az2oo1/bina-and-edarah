@@ -1486,9 +1486,9 @@ export default function Admin() {
                       <button
                         type="button"
                         onClick={() => setSelectedParentProperty(null)}
-                        className="px-3 py-1.5 border border-border hover:bg-muted bg-background rounded-lg transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer text-foreground"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97]"
                       >
-                        {language === 'ar' ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+                        {language === 'ar' ? <ArrowRight className="w-3.5 h-3.5 text-primary" /> : <ArrowLeft className="w-3.5 h-3.5 text-primary" />}
                         <span>{language === 'ar' ? 'العودة لقائمة العقارات' : 'Back to Listings'}</span>
                       </button>
                       <div className="h-6 w-px bg-border"></div>

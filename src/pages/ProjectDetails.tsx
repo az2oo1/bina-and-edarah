@@ -24,13 +24,34 @@ export default function ProjectDetails() {
         const res = await fetch(`/api/projects/${id}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.imageUrls) data.imageUrls = JSON.parse(data.imageUrls);
-          if (data.features) data.featuresList = JSON.parse(data.features);
-          if (data.details) data.detailsList = JSON.parse(data.details);
+          if (data.imageUrls) {
+            try {
+              data.imageUrls = typeof data.imageUrls === 'string' ? JSON.parse(data.imageUrls) : data.imageUrls;
+            } catch (_) {
+              data.imageUrls = [];
+            }
+          }
+          if (data.features) {
+            try {
+              data.featuresList = typeof data.features === 'string' ? JSON.parse(data.features) : data.features;
+            } catch (_) {
+              data.featuresList = [];
+            }
+          }
+          if (data.details) {
+            try {
+              data.detailsList = typeof data.details === 'string' ? JSON.parse(data.details) : data.details;
+            } catch (_) {
+              data.detailsList = [];
+            }
+          }
           setProject(data);
+        } else {
+          setProject(null);
         }
       } catch (err) {
         console.error(err);
+        setProject(null);
       } finally {
         setLoading(false);
       }
@@ -56,7 +77,18 @@ export default function ProjectDetails() {
   }
 
   if (!project) {
-    return <div className="min-h-screen flex items-center justify-center text-2xl font-bold">Project not found</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-muted-foreground">
+        <p className="text-xl font-bold mb-4">{language === 'ar' ? 'المشروع غير موجود' : 'Project not found'}</p>
+        <Link 
+          to="/projects" 
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97]"
+        >
+          {language === 'ar' ? <ChevronRight className="w-3.5 h-3.5 text-primary" /> : <ChevronLeft className="w-3.5 h-3.5 text-primary" />}
+          <span>{language === 'ar' ? 'العودة للمشاريع' : 'Back to Projects'}</span>
+        </Link>
+      </div>
+    );
   }
 
   const images = project.imageUrls && project.imageUrls.length > 0 ? project.imageUrls : ['https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070'];
@@ -70,9 +102,12 @@ export default function ProjectDetails() {
       {/* Breadcrumb & Navigation */}
       <div className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-          <Link to="/projects" className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5 transition-colors">
-            {language === 'ar' ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            {language === 'ar' ? 'العودة للمشاريع' : 'Back to Projects'}
+          <Link 
+            to="/projects" 
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97]"
+          >
+            {language === 'ar' ? <ChevronRight className="w-3.5 h-3.5 text-primary" /> : <ChevronLeft className="w-3.5 h-3.5 text-primary" />}
+            <span>{language === 'ar' ? 'العودة للمشاريع' : 'Back to Projects'}</span>
           </Link>
           <div className="text-xs text-muted-foreground font-mono font-medium">#{project.id.split('-')[0]}</div>
         </div>

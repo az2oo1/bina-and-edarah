@@ -130,12 +130,20 @@ export default function PropertyDetails() {
     setActiveImage(0);
     setExpandedUnitId(null);
     fetch(`/api/properties/${id}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("Property not found");
+        return res.json();
+      })
       .then((data: Property) => {
+        if (!data || (data as any).error) {
+          setProperty(null);
+          setLoading(false);
+          return;
+        }
         setProperty(data);
         if (data.allowedPaymentPlans) {
           try {
-            const parsed = JSON.parse(data.allowedPaymentPlans);
+            const parsed = typeof data.allowedPaymentPlans === 'string' ? JSON.parse(data.allowedPaymentPlans) : data.allowedPaymentPlans;
             if (Array.isArray(parsed) && parsed.length > 0) {
               setSelectedPlan(parsed[0]);
             }
@@ -145,11 +153,14 @@ export default function PropertyDetails() {
         }
         let unitImages: string[] = [];
         try {
-          const parsed = JSON.parse(data.imageUrls);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            unitImages = parsed;
-          } else if (data.parent && data.parent.imageUrls) {
-            const parentParsed = JSON.parse(data.parent.imageUrls);
+          if (data.imageUrls) {
+            const parsed = typeof data.imageUrls === 'string' ? JSON.parse(data.imageUrls) : data.imageUrls;
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              unitImages = parsed;
+            }
+          }
+          if (unitImages.length === 0 && data.parent && data.parent.imageUrls) {
+            const parentParsed = typeof data.parent.imageUrls === 'string' ? JSON.parse(data.parent.imageUrls) : data.parent.imageUrls;
             if (Array.isArray(parentParsed) && parentParsed.length > 0) {
               unitImages = parentParsed;
             }
@@ -164,52 +175,24 @@ export default function PropertyDetails() {
       })
       .catch(err => {
         console.error(err);
+        setProperty(null);
         setLoading(false);
       });
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600"></div>
-      </div>
-    );
-  }
-
-  if (!property) {
-    return (
-      <div className="text-center py-20 text-muted-foreground">
-        <p className="text-xl">Property not found.</p>
-        <Link to="/properties" className="text-yellow-600 mt-4 inline-block hover:underline">
-          Back to Properties
-        </Link>
-      </div>
-    );
-  }
-
-  const galleryItems: { type: 'image' | 'video' | 'map'; url?: string }[] = images.map(url => ({ type: 'image', url }));
-  if (property.videoUrl && !images.includes(property.videoUrl)) {
-    galleryItems.push({ type: 'video', url: property.videoUrl });
-  }
-  const hasMap = !!(property.latitude && property.longitude);
-  if (hasMap) {
-    galleryItems.push({ type: 'map' });
-  }
-  const mapIndex = hasMap ? galleryItems.length - 1 : -1;
-
-  const goToIndex = (idx: number) => {
-    setActiveImage(idx);
-  };
-
   const memoizedParsedData = useMemo(() => {
+    if (!property) {
+      return { details: [], utilityBills: null, allowedPaymentPlans: [], attachments: [], parentImages: [] };
+    }
     let details: Array<{key: string; value: string; icon?: string}> = [];
     if (property.details) {
       try {
-        const parsed = JSON.parse(property.details);
+        const parsed = typeof property.details === 'string' ? JSON.parse(property.details) : property.details;
         if (Array.isArray(parsed)) {
-          const keysInList = parsed.map((item: any) => item.key.toLowerCase());
+          const keysInList = parsed.map((item: any) => item?.key ? String(item.key).toLowerCase() : '');
           details = parsed.filter((item: any) => {
-            const k = item.key.toLowerCase();
+            if (!item || !item.key) return false;
+            const k = String(item.key).toLowerCase();
             if (language === 'ar') {
               if (k === 'unit name' && keysInList.includes('رقم الوحدة')) return false;
               if (k === 'floor' && keysInList.includes('الدور')) return false;
@@ -246,14 +229,14 @@ export default function PropertyDetails() {
     let utilityBills = null;
     if (property.type === 'RENT' && property.utilityBills && property.utilityBills !== 'NONE') {
       try {
-        utilityBills = JSON.parse(property.utilityBills);
+        utilityBills = typeof property.utilityBills === 'string' ? JSON.parse(property.utilityBills) : property.utilityBills;
       } catch (_) {}
     }
 
     let allowedPaymentPlans: string[] = [];
     if (property.type === 'RENT' && property.allowedPaymentPlans) {
       try {
-        const parsed = JSON.parse(property.allowedPaymentPlans);
+        const parsed = typeof property.allowedPaymentPlans === 'string' ? JSON.parse(property.allowedPaymentPlans) : property.allowedPaymentPlans;
         if (Array.isArray(parsed) && parsed.length > 0) allowedPaymentPlans = parsed;
       } catch (_) {}
     }
@@ -269,25 +252,32 @@ export default function PropertyDetails() {
 
     let parentImages: string[] = [];
     try {
-      const p = JSON.parse(property.imageUrls || '[]');
-      if (Array.isArray(p) && p.length > 0) parentImages = p;
+      if (property.imageUrls) {
+        const p = typeof property.imageUrls === 'string' ? JSON.parse(property.imageUrls) : property.imageUrls;
+        if (Array.isArray(p) && p.length > 0) parentImages = p;
+      }
     } catch (_) {}
 
     return { details, utilityBills, allowedPaymentPlans, attachments, parentImages };
-  }, [property.details, property.type, property.utilityBills, property.allowedPaymentPlans, property.attachments, property.imageUrls, language]);
+  }, [property?.details, property?.type, property?.utilityBills, property?.allowedPaymentPlans, property?.attachments, property?.imageUrls, language]);
 
   const visibleSubProperties = useMemo(() => {
+    if (!property) return [];
     const subs = property.subProperties?.filter(unit => unit.status !== 'DRAFT') || [];
     return subs.map(unit => {
       let unitImages: string[] = [];
       try {
-        const p = JSON.parse(unit.imageUrls || '[]');
-        if (Array.isArray(p) && p.length > 0) unitImages = p;
+        if (unit.imageUrls) {
+          const p = typeof unit.imageUrls === 'string' ? JSON.parse(unit.imageUrls) : unit.imageUrls;
+          if (Array.isArray(p) && p.length > 0) unitImages = p;
+        }
       } catch (_) {}
 
       let unitDetails: Array<{key: string; value: string; icon?: string}> = [];
       try {
-        unitDetails = JSON.parse(unit.details || '[]');
+        if (unit.details) {
+          unitDetails = typeof unit.details === 'string' ? JSON.parse(unit.details) : unit.details;
+        }
       } catch (_) {}
 
       const cover = unitImages.length > 0
@@ -304,7 +294,44 @@ export default function PropertyDetails() {
         isRented: unit.status === 'RENTED'
       };
     });
-  }, [property.subProperties, memoizedParsedData.parentImages]);
+  }, [property?.subProperties, memoizedParsedData.parentImages]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600"></div>
+      </div>
+    );
+  }
+
+  if (!property || (property as any).error) {
+    return (
+      <div className="text-center py-20 text-muted-foreground flex flex-col items-center justify-center">
+        <p className="text-xl mb-4">{language === 'ar' ? 'العقار غير موجود' : 'Property not found.'}</p>
+        <Link 
+          to="/properties" 
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97]"
+        >
+          {language === 'ar' ? <ArrowRight className="w-3.5 h-3.5 text-primary" /> : <ArrowLeft className="w-3.5 h-3.5 text-primary" />}
+          <span>{language === 'ar' ? 'العودة لصفحة العقارات' : 'Back to Properties'}</span>
+        </Link>
+      </div>
+    );
+  }
+
+  const galleryItems: { type: 'image' | 'video' | 'map'; url?: string }[] = images.map(url => ({ type: 'image', url }));
+  if (property.videoUrl && !images.includes(property.videoUrl)) {
+    galleryItems.push({ type: 'video', url: property.videoUrl });
+  }
+  const hasMap = !!(property.latitude && property.longitude);
+  if (hasMap) {
+    galleryItems.push({ type: 'map' });
+  }
+  const mapIndex = hasMap ? galleryItems.length - 1 : -1;
+
+  const goToIndex = (idx: number) => {
+    setActiveImage(idx);
+  };
 
   if (viewMode === 'units') {
     return (
@@ -361,32 +388,70 @@ export default function PropertyDetails() {
                       className="w-full h-full object-cover group-hover/unit:scale-[1.04] transition-transform duration-500" 
                       style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
                     />
-                    <div className="absolute top-3 left-3 z-10 select-none">
-                      <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-md ${
-                        isAvailable ? 'bg-emerald-600/90 text-white' :
-                        isSold ? 'bg-destructive/90 text-white' :
-                        isRented ? 'bg-amber-600/90 text-white' :
-                        'bg-slate-600/90 text-white'
-                      }`}>
-                        {isAvailable ? (language === 'ar' ? 'متاح' : 'Available') :
-                         isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
-                         isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
-                         (language === 'ar' ? 'مخفي' : 'Hidden')}
-                      </span>
+                      {(() => {
+                        const unitName = unitDetails.find((d: any) => {
+                          if (!d || !d.key) return false;
+                          const k = String(d.key).trim().toLowerCase();
+                          return k === 'رقم الوحدة' || k === 'unit name' || k === 'unit number' || k === 'رقم الشقة' || k === 'شقة' || k === 'unit' || k === 'apartment number' || k === 'apt number';
+                        })?.value || '';
+                        const filteredTags = unitDetails.filter((d: any) => {
+                          if (!d || !d.key) return false;
+                          const k = String(d.key).trim().toLowerCase();
+                          return k !== 'رقم الوحدة' && k !== 'unit name' && k !== 'unit number' && k !== 'رقم الشقة' && k !== 'شقة' && k !== 'unit';
+                        });
+
+                        return (
+                          <>
+                            <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-10 select-none flex items-center gap-1.5">
+                              <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-md ${
+                                isAvailable ? 'bg-emerald-600/90 text-white' :
+                                isSold ? 'bg-destructive/90 text-white' :
+                                isRented ? 'bg-amber-600/90 text-white' :
+                                'bg-slate-600/90 text-white'
+                              }`}>
+                                {isAvailable ? (language === 'ar' ? 'متاح' : 'Available') :
+                                 isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
+                                 isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
+                                 (language === 'ar' ? 'مخفي' : 'Hidden')}
+                              </span>
+                              {unitName && (
+                                <span className="bg-amber-600/95 text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-md">
+                                  {language === 'ar' ? `شقة/وحدة: ${unitName}` : `Apt/Unit #: ${unitName}`}
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
-                  </div>
 
                   {/* Content */}
                   <div className="p-4 flex-1 flex flex-col justify-between">
                     <div>
                       {(() => {
-                        const unitName = unitDetails.find(d => d.key === 'رقم الوحدة' || d.key === 'Unit Name')?.value || '';
-                        const filteredTags = unitDetails.filter(d => d.key !== 'رقم الوحدة' && d.key !== 'Unit Name');
+                        const unitName = unitDetails.find((d: any) => {
+                          if (!d || !d.key) return false;
+                          const k = String(d.key).trim().toLowerCase();
+                          return k === 'رقم الوحدة' || k === 'unit name' || k === 'unit number' || k === 'رقم الشقة' || k === 'شقة' || k === 'unit' || k === 'apartment number' || k === 'apt number';
+                        })?.value || '';
+                        const filteredTags = unitDetails.filter((d: any) => {
+                          if (!d || !d.key) return false;
+                          const k = String(d.key).trim().toLowerCase();
+                          return k !== 'رقم الوحدة' && k !== 'unit name' && k !== 'unit number' && k !== 'رقم الشقة' && k !== 'شقة' && k !== 'unit';
+                        });
+                        const currentTitle = language === 'ar' ? unit.titleAr : unit.titleEn;
+                        const hasUnitInTitle = unitName ? currentTitle.toLowerCase().includes(String(unitName).toLowerCase()) : false;
+
                         return (
                           <>
                             <div className="flex items-start justify-between gap-3">
-                              <h3 className="text-sm font-extrabold text-foreground leading-snug group-hover/unit:text-primary transition-colors duration-250 line-clamp-1" style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}>
-                                {unitName && unitName !== (language === 'ar' ? unit.titleAr : unit.titleEn) ? `${unitName} - ` : ''}{language === 'ar' ? unit.titleAr : unit.titleEn}
+                              <h3 className="text-sm font-extrabold text-foreground leading-snug group-hover/unit:text-primary transition-colors duration-250 line-clamp-1 flex items-center gap-1.5" style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}>
+                                {unitName && !hasUnitInTitle && (
+                                  <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-black flex-shrink-0">
+                                    {language === 'ar' ? `شقة/وحدة ${unitName}` : `Apt #${unitName}`}
+                                  </span>
+                                )}
+                                <span className="truncate">{currentTitle}</span>
                               </h3>
                             </div>
 
@@ -471,9 +536,9 @@ export default function PropertyDetails() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6 select-none">
           <Link 
             to={property.parent ? `/properties/${property.parent.id}` : "/properties"} 
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97]"
           >
-            {language === 'ar' ? <ArrowRight className="w-4 h-4 text-primary" /> : <ArrowLeft className="w-4 h-4 text-primary" />}
+            {language === 'ar' ? <ArrowRight className="w-3.5 h-3.5 text-primary" /> : <ArrowLeft className="w-3.5 h-3.5 text-primary" />}
             <span>
               {property.parent 
                 ? (language === 'ar' ? 'العودة للعقار الرئيسي' : 'Back to Main Property') 

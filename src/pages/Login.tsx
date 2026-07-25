@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
-import { Lock, User, Phone, AlertTriangle, Building2, Calendar, FileText, ChevronLeft, CreditCard, History, Banknote, Landmark, CheckCircle2, UploadCloud, Loader2, Eye } from 'lucide-react';
+import { Lock, User, Phone, AlertTriangle, Building2, Calendar, FileText, ChevronLeft, CreditCard, History, Banknote, Landmark, CheckCircle2, UploadCloud, Loader2, Eye, ArrowLeft, ArrowRight } from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
 import { useDialog } from '../context/DialogContext';
 import { getRentStatus } from '../utils/rentStatus';
@@ -420,6 +420,16 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        
+        <div className="mb-6 flex justify-center select-none">
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97]"
+          >
+            {language === 'ar' ? <ArrowRight className="w-3.5 h-3.5 text-primary" /> : <ArrowLeft className="w-3.5 h-3.5 text-primary" />}
+            <span>{language === 'ar' ? 'العودة للرئيسية' : 'Back to Home'}</span>
+          </Link>
+        </div>
         
         {loading ? (
           /* Rhea Syncing/Loading state */
