@@ -234,6 +234,7 @@ export default function AdminRenters({ selectedBuildingId, selectedBuildingName 
                       onClick={() => openWhatsApp(selectedRenterPhone!, customerNames)}
                       className="w-7 h-7 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded flex items-center justify-center hover:bg-emerald-100/5 transition-colors cursor-pointer"
                       title="WhatsApp"
+                      aria-label={language === 'ar' ? 'التواصل عبر الواتساب' : 'Contact via WhatsApp'}
                     >
                       <WhatsAppIcon className="w-5 h-5" />
                     </button>
@@ -493,6 +494,7 @@ export default function AdminRenters({ selectedBuildingId, selectedBuildingName 
                             onClick={() => openWhatsApp(r.renterPhone, r.allNames)}
                             className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 flex flex-col items-center justify-center hover:bg-emerald-100/50 transition-colors cursor-pointer"
                             title="WhatsApp"
+                            aria-label={language === 'ar' ? 'التواصل عبر الواتساب' : 'Contact via WhatsApp'}
                           >
                             <WhatsAppIcon className="w-4 h-4" />
                           </button>
