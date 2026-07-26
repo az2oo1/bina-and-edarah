@@ -100,7 +100,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.rent': 'For Rent',
     'common.price': 'Price',
     'common.basePrice': 'Base Price',
-    'common.currency': 'SAR',
+    'common.currency': 'SR',
     'common.yearly': 'Yearly',
     'common.monthly': 'Monthly',
     'common.viewAqar': 'View on Aqar',

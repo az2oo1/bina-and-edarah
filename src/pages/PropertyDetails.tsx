@@ -520,9 +520,9 @@ export default function PropertyDetails() {
 
                     <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-3">
                       {unit.price > 0 ? (
-                        <div>
-                          <span className="text-sm font-black text-primary font-mono tracking-tight">{unit.price.toLocaleString()}</span>
-                          <span className="text-[9px] text-muted-foreground ml-1 font-semibold">{t('common.currency')}</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base font-extrabold text-foreground font-mono tracking-tight">{unit.price.toLocaleString()}</span>
+                          <span className="text-[10px] font-bold text-muted-foreground">{t('common.currency')}</span>
                         </div>
                       ) : (
                         <span className="text-[10px] text-muted-foreground italic font-medium">{language === 'ar' ? 'اتصل لمعرفة السعر' : 'Call for price'}</span>

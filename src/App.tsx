@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense, Component } from 'react';
 import { createPortal } from 'react-dom';
-import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router';
+import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate, useLocation } from 'react-router';
 import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X, Sun, Moon } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -227,6 +227,7 @@ function Navbar() {
   const { language, toggleLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<{username: string, role: string} | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const logoUrl = useLogoUrl();
@@ -373,7 +374,7 @@ function Navbar() {
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : (
+            ) : location.pathname !== '/login' ? (
               <Link 
                 to="/login" 
                 className="px-3 py-1 bg-foreground text-background hover:opacity-90 font-medium rounded-full text-[11px] transition-all flex items-center gap-1 shadow-sm"
@@ -381,7 +382,7 @@ function Navbar() {
                 <UserCircle className="w-3.5 h-3.5" />
                 <span>{t('nav.login')}</span>
               </Link>
-            )}
+            ) : null}
           </div>
 
           {/* Hamburger Menu Toggle (Mobile) */}
@@ -579,7 +580,7 @@ function Navbar() {
                   <span>{language === 'ar' ? 'تسجيل الخروج' : 'Logout'}</span>
                 </button>
               </div>
-            ) : (
+            ) : location.pathname !== '/login' ? (
               <Link 
                 to="/login" 
                 onClick={() => setIsOpen(false)}
@@ -588,7 +589,7 @@ function Navbar() {
                 <UserCircle className="w-4 h-4" />
                 <span>{t('nav.login')}</span>
               </Link>
-            )}
+            ) : null}
           </div>
         </div>
       )}
@@ -630,8 +631,6 @@ function Footer() {
     </footer>
   );
 }
-
-import { useLocation } from 'react-router';
 
 function PageTracker() {
   const location = useLocation();

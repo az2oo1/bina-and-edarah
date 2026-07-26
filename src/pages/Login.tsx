@@ -636,7 +636,7 @@ export default function Login() {
                   <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-alert text-destructive"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
                   </div>
-                  <div className="cn-item-content text-right rtl:text-right ltr:text-left">
+                  <div className="cn-item-content text-start">
                     <div className="cn-item-title text-xs font-bold text-foreground">
                       {language === 'ar' ? 'دعم المستأجرين' : 'Need Assistance?'}
                     </div>
@@ -646,7 +646,7 @@ export default function Login() {
                   </div>
                 </div>
                 <div className="text-muted-foreground hover:text-primary transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-right size-4"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                 </div>
               </Link>
             </div>

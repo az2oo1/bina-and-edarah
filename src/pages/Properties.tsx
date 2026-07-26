@@ -675,23 +675,27 @@ export default function Properties() {
                           {!property.isEnriched ? (
                             <div className="h-6 w-28 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded mt-1" />
                           ) : hasUnits && property.minUnitPrice && property.maxUnitPrice ? (
-                            <p className="text-lg font-bold text-primary flex items-center gap-1" dir="ltr">
-                              <span className="font-mono tracking-tight">
+                            <div className="flex items-baseline gap-1 mt-1">
+                              <span className="text-xl font-extrabold text-foreground tracking-tight font-mono">
                                 {property.minUnitPrice === property.maxUnitPrice
                                   ? property.minUnitPrice.toLocaleString()
                                   : `${property.minUnitPrice.toLocaleString()} - ${property.maxUnitPrice.toLocaleString()}`}
                               </span>
-                              <SrIcon className="w-5 h-5 text-primary flex-shrink-0" />
-                            </p>
+                              <span className="text-[10.5px] font-extrabold text-muted-foreground">
+                                {t('common.currency')}
+                              </span>
+                            </div>
                           ) : property.price > 0 ? (
-                            <p className="text-lg font-bold text-primary flex items-center gap-1" dir="ltr">
-                              <span className="font-mono tracking-tight">
+                            <div className="flex items-baseline gap-1 mt-1">
+                              <span className="text-xl font-extrabold text-foreground tracking-tight font-mono">
                                 {(property.price + (property.vat || 0) + (property.type === 'RENT' ? (property.electricityCost || 0) : (property.commission || 0))).toLocaleString()}
                               </span>
-                              <SrIcon className="w-5 h-5 text-primary flex-shrink-0" />
-                            </p>
+                              <span className="text-[10.5px] font-extrabold text-muted-foreground">
+                                {t('common.currency')}
+                              </span>
+                            </div>
                           ) : (
-                            <p className="text-sm font-bold text-primary flex items-center gap-1.5">
+                            <p className="text-sm font-bold text-foreground flex items-center gap-1.5 mt-1">
                               {language === 'ar' ? 'عرض الوحدات' : 'Show Units'}
                             </p>
                           )}
