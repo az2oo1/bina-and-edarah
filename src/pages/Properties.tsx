@@ -161,6 +161,27 @@ export default function Properties() {
       return res.json();
     };
 
+    const enrichProperty = (p: any) => {
+      let thumbnail = THUMBNAIL_FALLBACK;
+      try {
+        if (p.imageUrls) {
+          const parsed = JSON.parse(p.imageUrls);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            thumbnail = parsed[0];
+          }
+        }
+      } catch (e) {}
+
+      let parsedDetails = [];
+      try {
+        if (p.details) {
+          parsedDetails = typeof p.details === 'string' ? JSON.parse(p.details) : p.details;
+        }
+      } catch (e) {}
+
+      return { ...p, thumbnail, parsedDetails, isEnriched: true };
+    };
+
     const runLoadingSequence = async () => {
       const controller = new AbortController();
       
@@ -171,18 +192,7 @@ export default function Properties() {
 
         let items1: any[] = [];
         if (data1 && Array.isArray(data1.properties)) {
-          items1 = data1.properties.map((p: any) => {
-            let thumbnail = THUMBNAIL_FALLBACK;
-            try {
-              if (p.imageUrls) {
-                const parsed = JSON.parse(p.imageUrls);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  thumbnail = parsed[0];
-                }
-              }
-            } catch (e) {}
-            return { ...p, thumbnail, isEnriched: true };
-          });
+          items1 = data1.properties.map(enrichProperty);
           setProperties(items1);
           setTotalCount(data1.totalCount || 0);
           setTotalPages(Math.ceil((data1.totalCount || 0) / 9));
@@ -198,18 +208,7 @@ export default function Properties() {
 
         let items2: any[] = [];
         if (data2 && Array.isArray(data2.properties)) {
-          items2 = data2.properties.map((p: any) => {
-            let thumbnail = THUMBNAIL_FALLBACK;
-            try {
-              if (p.imageUrls) {
-                const parsed = JSON.parse(p.imageUrls);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  thumbnail = parsed[0];
-                }
-              }
-            } catch (e) {}
-            return { ...p, thumbnail, isEnriched: true };
-          });
+          items2 = data2.properties.map(enrichProperty);
           setProperties(prev => [...prev, ...items2]);
         }
 
@@ -221,18 +220,7 @@ export default function Properties() {
 
         let items3: any[] = [];
         if (data3 && Array.isArray(data3.properties)) {
-          items3 = data3.properties.map((p: any) => {
-            let thumbnail = THUMBNAIL_FALLBACK;
-            try {
-              if (p.imageUrls) {
-                const parsed = JSON.parse(p.imageUrls);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  thumbnail = parsed[0];
-                }
-              }
-            } catch (e) {}
-            return { ...p, thumbnail, isEnriched: true };
-          });
+          items3 = data3.properties.map(enrichProperty);
           setProperties(prev => [...prev, ...items3]);
         }
       } catch (err: any) {
@@ -553,27 +541,22 @@ export default function Properties() {
               {properties.map((property) => {
                 const hasUnits = !!(property.availableUnitsCount && property.availableUnitsCount > 0);
                 const unitNumber = (() => {
-                  if (!property.details) return '';
-                  try {
-                    const list = typeof property.details === 'string' ? JSON.parse(property.details) : property.details;
-                    if (Array.isArray(list)) {
-                      const match = list.find((item: any) => {
-                        if (!item || !item.key) return false;
-                        const k = String(item.key).trim().toLowerCase();
-                        return (
-                          k === 'رقم الوحدة' ||
-                          k === 'unit name' ||
-                          k === 'unit number' ||
-                          k === 'رقم الشقة' ||
-                          k === 'شقة' ||
-                          k === 'unit' ||
-                          k === 'apartment number' ||
-                          k === 'apt number'
-                        );
-                      });
-                      if (match?.value) return String(match.value);
-                    }
-                  } catch (_) {}
+                  if (!property.parsedDetails || !Array.isArray(property.parsedDetails)) return '';
+                  const match = property.parsedDetails.find((item: any) => {
+                    if (!item || !item.key) return false;
+                    const k = String(item.key).trim().toLowerCase();
+                    return (
+                      k === 'رقم الوحدة' ||
+                      k === 'unit name' ||
+                      k === 'unit number' ||
+                      k === 'رقم الشقة' ||
+                      k === 'شقة' ||
+                      k === 'unit' ||
+                      k === 'apartment number' ||
+                      k === 'apt number'
+                    );
+                  });
+                  if (match?.value) return String(match.value);
                   return '';
                 })();
 
