@@ -131,6 +131,25 @@ function hasTabPermission(tab: string, role: string) {
   return role === 'ADMIN' || userPerms.includes(perm);
 }
 
+const formatNumberWithCommas = (val: string | number | undefined | null): string => {
+  if (val === undefined || val === null) return '';
+  const str = String(val).replace(/,/g, '');
+  if (str === '') return '';
+  const parts = str.split('.');
+  parts[0] = parts[0].replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if (parts.length > 1) {
+    parts[1] = parts[1].replace(/[^\d]/g, '');
+    return parts[0] + '.' + parts[1];
+  }
+  return parts[0];
+};
+
+const sanitizeNumericInput = (val: string): string => {
+  const clean = val.replace(/,/g, '').replace(/[^\d.]/g, '');
+  const parts = clean.split('.');
+  return parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
+};
+
 export default function Admin() {
   const { t, language } = useLanguage();
   const { showAlert, showConfirm } = useDialog();
@@ -2235,7 +2254,7 @@ export default function Admin() {
                             <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
                               <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                             </div>
-                            <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" placeholder="2500000" />
+                            <input required type="text" inputMode="decimal" value={formatNumberWithCommas(formData.price)} onChange={(e) => setFormData({ ...formData, price: sanitizeNumericInput(e.target.value) })} className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" placeholder="2,500,000" />
                             {formData.type === 'RENT' && (
                               <div className="flex border-l border-border ltr:border-l rtl:border-r flex-shrink-0">
                                 <select value={formData.paymentFrequency} onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })} className="bg-card w-36 px-4 py-1 outline-none focus:ring-0 font-medium border-none cursor-pointer text-foreground">
@@ -2336,9 +2355,10 @@ export default function Admin() {
                                       <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
                                     </div>
                                     <input 
-                                      type="number" 
-                                      value={formData.electricityCostVal} 
-                                      onChange={(e) => setFormData({ ...formData, electricityCostVal: e.target.value })} 
+                                      type="text" 
+                                      inputMode="decimal"
+                                      value={formatNumberWithCommas(formData.electricityCostVal)} 
+                                      onChange={(e) => setFormData({ ...formData, electricityCostVal: sanitizeNumericInput(e.target.value) })} 
                                       className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" 
                                       placeholder="0" 
                                     />
@@ -2366,9 +2386,10 @@ export default function Admin() {
                                       <span className="text-muted-foreground font-bold text-xs">{t('common.currency')}</span>
                                     </div>
                                     <input 
-                                      type="number" 
-                                      value={formData.waterCostVal} 
-                                      onChange={(e) => setFormData({ ...formData, waterCostVal: e.target.value })} 
+                                      type="text" 
+                                      inputMode="decimal"
+                                      value={formatNumberWithCommas(formData.waterCostVal)} 
+                                      onChange={(e) => setFormData({ ...formData, waterCostVal: sanitizeNumericInput(e.target.value) })} 
                                       className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" 
                                       placeholder="0" 
                                     />
@@ -2424,10 +2445,11 @@ export default function Admin() {
                               <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                             </div>
                             <input 
-                              type="number" 
+                              type="text" 
+                              inputMode="decimal"
                               disabled={formData.vatExempt || formData.vatNotApplicable}
-                              value={(formData.vatExempt || formData.vatNotApplicable) ? '0' : formData.vat} 
-                              onChange={(e) => setFormData({ ...formData, vat: e.target.value })} 
+                              value={(formData.vatExempt || formData.vatNotApplicable) ? '0' : formatNumberWithCommas(formData.vat)} 
+                              onChange={(e) => setFormData({ ...formData, vat: sanitizeNumericInput(e.target.value) })} 
                               className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground disabled:opacity-50" 
                               placeholder="0" 
                             />
@@ -2440,7 +2462,7 @@ export default function Admin() {
                             <div className="flex bg-muted items-center justify-center px-4 border-r border-border ltr:border-r rtl:border-l">
                               <span className="text-muted-foreground font-bold">{t('common.currency')}</span>
                             </div>
-                            <input type="number" value={formData.commission} onChange={(e) => setFormData({ ...formData, commission: e.target.value })} className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" placeholder="0" />
+                            <input type="text" inputMode="decimal" value={formatNumberWithCommas(formData.commission)} onChange={(e) => setFormData({ ...formData, commission: sanitizeNumericInput(e.target.value) })} className="flex-1 w-full p-3 outline-none min-w-0 bg-transparent text-foreground" placeholder="0" />
                           </div>
                         </div>
                       </div>
@@ -3042,9 +3064,10 @@ export default function Admin() {
                                 <div>
                                   <label className="cn-label mb-1.5">{language === 'ar' ? 'السعر (ريال)' : 'Price (SAR)'}</label>
                                   <input
-                                    type="number"
-                                    value={unitFormData.price}
-                                    onChange={(e) => setUnitFormData({ ...unitFormData, price: e.target.value })}
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={formatNumberWithCommas(unitFormData.price)}
+                                    onChange={(e) => setUnitFormData({ ...unitFormData, price: sanitizeNumericInput(e.target.value) })}
                                     placeholder="0"
                                     className="cn-input text-xs h-9 bg-background"
                                   />

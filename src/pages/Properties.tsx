@@ -622,11 +622,9 @@ export default function Properties() {
                         <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
                           {t(`cat.${property.propertyCategory || 'VILLA'}`)}
                         </span>
-                        {(property.parentId || unitNumber) && (
+                        {(property.parentId && !unitNumber) && (
                           <span className="bg-amber-600 text-white px-2 py-0.5 rounded text-[10px] font-extrabold shadow-xs">
-                            {language === 'ar' 
-                              ? (unitNumber ? `وحدة/شقة: ${unitNumber}` : 'وحدة سكنية') 
-                              : (unitNumber ? `Apt/Unit #${unitNumber}` : 'Sub-Unit')}
+                            {language === 'ar' ? 'وحدة سكنية' : 'Sub-Unit'}
                           </span>
                         )}
                         {!property.isEnriched ? (
@@ -643,12 +641,11 @@ export default function Properties() {
                     
                     <div className="p-5 flex flex-col flex-grow text-foreground">
                       <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1 flex items-center gap-1.5">
-                        {unitNumber && !hasUnitInTitle && (
-                          <span className="text-[11px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-black flex-shrink-0">
-                            {language === 'ar' ? `شقة/وحدة ${unitNumber}` : `Apt #${unitNumber}`}
-                          </span>
-                        )}
-                        <span className="truncate">{currentTitle}</span>
+                        <span className="truncate">
+                          {unitNumber && !hasUnitInTitle
+                            ? `${t(`cat.${property.propertyCategory || 'APARTMENT'}`)} ${unitNumber} - ${currentTitle}`
+                            : currentTitle}
+                        </span>
                       </h3>
                       {property.locationText && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2 font-medium">

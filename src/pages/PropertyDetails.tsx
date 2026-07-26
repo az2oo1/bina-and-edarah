@@ -296,6 +296,37 @@ export default function PropertyDetails() {
     });
   }, [property?.subProperties, memoizedParsedData.parentImages]);
 
+  const mainUnitNumber = useMemo(() => {
+    if (!property || !property.details) return '';
+    try {
+      const list = typeof property.details === 'string' ? JSON.parse(property.details) : property.details;
+      if (Array.isArray(list)) {
+        const match = list.find((item: any) => {
+          if (!item || !item.key) return false;
+          const k = String(item.key).trim().toLowerCase();
+          return (
+            k === 'رقم الوحدة' ||
+            k === 'unit name' ||
+            k === 'unit number' ||
+            k === 'رقم الشقة' ||
+            k === 'شقة' ||
+            k === 'unit' ||
+            k === 'apartment number' ||
+            k === 'apt number'
+          );
+        });
+        if (match?.value) return String(match.value);
+      }
+    } catch (_) {}
+    return '';
+  }, [property?.details]);
+
+  const mainHasUnitInTitle = useMemo(() => {
+    if (!property || !mainUnitNumber) return false;
+    const title = language === 'ar' ? property.titleAr : property.titleEn;
+    return title.toLowerCase().includes(mainUnitNumber.toLowerCase());
+  }, [property, mainUnitNumber, language]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -394,11 +425,6 @@ export default function PropertyDetails() {
                           const k = String(d.key).trim().toLowerCase();
                           return k === 'رقم الوحدة' || k === 'unit name' || k === 'unit number' || k === 'رقم الشقة' || k === 'شقة' || k === 'unit' || k === 'apartment number' || k === 'apt number';
                         })?.value || '';
-                        const filteredTags = unitDetails.filter((d: any) => {
-                          if (!d || !d.key) return false;
-                          const k = String(d.key).trim().toLowerCase();
-                          return k !== 'رقم الوحدة' && k !== 'unit name' && k !== 'unit number' && k !== 'رقم الشقة' && k !== 'شقة' && k !== 'unit';
-                        });
 
                         return (
                           <>
@@ -414,11 +440,6 @@ export default function PropertyDetails() {
                                  isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
                                  (language === 'ar' ? 'مخفي' : 'Hidden')}
                               </span>
-                              {unitName && (
-                                <span className="bg-amber-600/95 text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-md">
-                                  {language === 'ar' ? `شقة/وحدة: ${unitName}` : `Apt/Unit #: ${unitName}`}
-                                </span>
-                              )}
                             </div>
                           </>
                         );
@@ -446,12 +467,11 @@ export default function PropertyDetails() {
                           <>
                             <div className="flex items-start justify-between gap-3">
                               <h3 className="text-sm font-extrabold text-foreground leading-snug group-hover/unit:text-primary transition-colors duration-250 line-clamp-1 flex items-center gap-1.5" style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}>
-                                {unitName && !hasUnitInTitle && (
-                                  <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-black flex-shrink-0">
-                                    {language === 'ar' ? `شقة/وحدة ${unitName}` : `Apt #${unitName}`}
-                                  </span>
-                                )}
-                                <span className="truncate">{currentTitle}</span>
+                                <span className="truncate">
+                                  {unitName && !hasUnitInTitle
+                                    ? `${t(`cat.${unit.propertyCategory || 'APARTMENT'}`)} ${unitName} - ${currentTitle}`
+                                    : currentTitle}
+                                </span>
                               </h3>
                             </div>
 
@@ -571,7 +591,9 @@ export default function PropertyDetails() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight">
-            {language === 'ar' ? property.titleAr : property.titleEn}
+            {mainUnitNumber && !mainHasUnitInTitle
+              ? `${t(`cat.${property.propertyCategory || 'APARTMENT'}`)} ${mainUnitNumber} - ${language === 'ar' ? property.titleAr : property.titleEn}`
+              : (language === 'ar' ? property.titleAr : property.titleEn)}
           </h1>
         </div>
 
