@@ -26,3 +26,8 @@
 **Vulnerability:** Prisma raw query fallbacks used `$executeRawUnsafe` with manual string escaping for interpolation, creating critical SQL injection risks across admin authentication and profile updates.
 **Learning:** Even when the ORM fails, developers might incorrectly reach for completely raw unparameterized statements. Manual string escaping (e.g. `.replace(/'/g, "''")`) is insufficient against SQL injection. Prisma provides parameterized raw SQL queries using the `Prisma.sql` tagged template literal via `$executeRaw`.
 **Prevention:** Audit all uses of `prisma.$executeRawUnsafe`. Ensure that parameterizable queries use `$executeRaw(Prisma.sql\`...\`)` and that the `Prisma` namespace is exported and accessible for this purpose.
+
+## 2025-02-28 - SQL Injection in Raw Prisma Updates
+**Vulnerability:** SQL injection vulnerability found in `server.ts` within the `updateGlobalSettings` fallback block. The function used `prisma.$executeRawUnsafe` with manually escaped strings and dynamically interpolated column names directly derived from object keys (`Object.keys(data)`).
+**Learning:** This occurred because Prisma client updates can sometimes fail or require fallbacks in this specific setup, leading developers to rely on raw SQL. Using `$executeRawUnsafe` with dynamic column names enables attackers to pass malicious keys in request payloads to execute arbitrary SQL.
+**Prevention:** Always validate dynamic column names against a hardcoded allowlist (e.g., derived from the Prisma schema) before execution. Use `prisma.$executeRaw(Prisma.sql...)` instead of `executeRawUnsafe`, and safely interpolate the validated column name using `Prisma.raw(field)`.

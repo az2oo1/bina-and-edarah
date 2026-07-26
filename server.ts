@@ -2879,20 +2879,47 @@ async function startServer() {
       logger.warn("Prisma client settings update failed, falling back to raw SQL updates:", err);
     }
 
+    // Allowed fields for Settings from schema to prevent SQL injection
+    const allowedFields = [
+      'whatsappNumber', 'callingNumber', 'whatsappMessage', 'otpWebhookUrl',
+      'otpMessageTemplate', 'otpWebhookPayload', 'homeImages', 'logoUrl',
+      'email', 'instagramUrl', 'twitterUrl', 'facebookUrl', 'linkedinUrl',
+      'youtubeUrl', 'tiktokUrl', 'snapchatUrl', 'notificationEmail',
+      'smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom',
+      'imapHost', 'imapPort', 'analyticsScript', 'analyticsDashboardUrl',
+      'addressAr', 'addressEn', 'addressMapLink', 'techhubEnabled',
+      'techhubClientId', 'techhubClientSecret', 'techhubApiKey',
+      'techhubSandboxMode', 'indexNowKey'
+    ];
+
     // Fallback: update fields one-by-one using raw SQL
     for (const field of fields) {
+      if (!allowedFields.includes(field)) {
+        logger.warn(`Skipping invalid field in Settings update: ${field}`);
+        continue;
+      }
       const val = data[field];
       try {
-        if (typeof val === 'string') {
-          const escaped = val.replace(/'/g, "''");
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = '${escaped}' WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = '${escaped}' WHERE id = 'global'`);
-        } else if (typeof val === 'number') {
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = ${val} WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = ${val} WHERE id = 'global'`);
+        if (typeof val === 'string' || typeof val === 'number') {
+          try {
+            await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = ${val} WHERE id = 'global'`);
+          } catch (e: any) {
+            if (e.message?.includes('syntax') || e.message?.includes('table') || e.code?.startsWith('P2')) {
+              await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`);
+            } else {
+              throw e;
+            }
+          }
         } else if (val === null) {
-          await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "${field}" = NULL WHERE id = 'global'`);
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET ${field} = NULL WHERE id = 'global'`);
+          try {
+            await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = NULL WHERE id = 'global'`);
+          } catch (e: any) {
+            if (e.message?.includes('syntax') || e.message?.includes('table') || e.code?.startsWith('P2')) {
+              await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = NULL WHERE id = 'global'`);
+            } else {
+              throw e;
+            }
+          }
         }
       } catch (e) {
         logger.error(`Raw SQL update failed for Settings.${field}:`, e);
