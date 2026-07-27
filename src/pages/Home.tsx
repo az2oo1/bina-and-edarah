@@ -128,7 +128,16 @@ export default function Home() {
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setFeaturedProjects(data.slice(0, 3));
+          // Optimization: Pre-parse JSON image arrays once during data fetch
+          // to prevent expensive string parsing in the React render loop.
+          const parsedData = data.slice(0, 3).map((p: any) => {
+            let parsedImageUrls: string[] = [];
+            try {
+              parsedImageUrls = JSON.parse(p.imageUrls || '[]');
+            } catch (_) {}
+            return { ...p, parsedImageUrls };
+          });
+          setFeaturedProjects(parsedData);
         }
       })
       .catch(() => {})
@@ -386,10 +395,7 @@ export default function Home() {
               <ProjectsSkeleton />
             ) : featuredProjects.length > 0 ? (
               featuredProjects.map((project, index) => {
-                let imagesArr = [];
-                try {
-                  imagesArr = JSON.parse(project.imageUrls || '[]');
-                } catch(_) {}
+                const imagesArr = project.parsedImageUrls || [];
                 const image = imagesArr[0] || DEFAULT_IMAGES.service1;
                 const isEven = index % 2 === 1;
 
