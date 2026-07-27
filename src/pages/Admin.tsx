@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, EyeOff, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Check, DollarSign, FileText, Image, LayoutGrid, User, UserPlus, Search } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, EyeOff, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Check, DollarSign, FileText, Image, LayoutGrid, User, UserPlus, Search, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as LucideIcons from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
@@ -1113,6 +1113,113 @@ export default function Admin() {
     }
   };
 
+  const getNextUnitNameWithSuffix = (baseStr: string, existingList: string[]): string => {
+    if (!baseStr) baseStr = 'وحدة';
+    const match = baseStr.match(/^(.*?)(?:_(\d+))?$/);
+    const base = (match && match[1]) ? match[1] : baseStr;
+
+    let maxSeq = 0;
+    const escBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`^${escBase}(?:_(\\d+))?$`);
+
+    for (const item of existingList) {
+      if (!item) continue;
+      const m = item.match(regex);
+      if (m) {
+        const num = m[1] ? parseInt(m[1], 10) : (item === base ? 0 : 0);
+        if (num > maxSeq) maxSeq = num;
+      }
+      const m2 = item.match(new RegExp(`^${escBase}_(\\d+)$`));
+      if (m2 && m2[1]) {
+        const num = parseInt(m2[1], 10);
+        if (num > maxSeq) maxSeq = num;
+      }
+    }
+
+    return `${base}_${maxSeq + 1}`;
+  };
+
+  const handleDuplicateSubProperty = (index: number) => {
+    const targetUnit = formData.subProperties[index];
+    if (!targetUnit) return;
+
+    const existingTitlesAr = formData.subProperties.map(u => u.titleAr);
+    const existingTitlesEn = formData.subProperties.map(u => u.titleEn);
+
+    let unitNameAr = '';
+    let unitNameEn = '';
+    try {
+      const parsed = JSON.parse(targetUnit.details || '[]');
+      unitNameAr = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key.includes('اسم الوحدة'))?.value || '';
+      unitNameEn = parsed.find((d: any) => d.key === 'Unit Name' || d.key.toLowerCase().includes('unit name'))?.value || '';
+    } catch (_) {}
+
+    const newTitleAr = getNextUnitNameWithSuffix(targetUnit.titleAr || unitNameAr || 'وحدة', existingTitlesAr);
+    const newTitleEn = getNextUnitNameWithSuffix(targetUnit.titleEn || unitNameEn || 'Unit', existingTitlesEn);
+
+    let updatedDetails = targetUnit.details;
+    if (targetUnit.details) {
+      try {
+        const parsed = JSON.parse(targetUnit.details);
+        if (Array.isArray(parsed)) {
+          const nextDetails = parsed.map((d: any) => {
+            if (d.key === 'رقم الوحدة') {
+              const existingUnitNamesAr = formData.subProperties.map(u => {
+                try { return JSON.parse(u.details || '[]').find((x: any) => x.key === 'رقم الوحدة')?.value; } catch(_) { return ''; }
+              }).filter(Boolean);
+              return { ...d, value: getNextUnitNameWithSuffix(d.value || 'وحدة', existingUnitNamesAr) };
+            }
+            if (d.key === 'Unit Name') {
+              const existingUnitNamesEn = formData.subProperties.map(u => {
+                try { return JSON.parse(u.details || '[]').find((x: any) => x.key === 'Unit Name')?.value; } catch(_) { return ''; }
+              }).filter(Boolean);
+              return { ...d, value: getNextUnitNameWithSuffix(d.value || 'Unit', existingUnitNamesEn) };
+            }
+            return d;
+          });
+          updatedDetails = JSON.stringify(nextDetails);
+        }
+      } catch (_) {}
+    }
+
+    const duplicatedUnit = {
+      ...targetUnit,
+      id: undefined,
+      titleAr: newTitleAr,
+      titleEn: newTitleEn,
+      details: updatedDetails
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      subProperties: [...(prev.subProperties || []), duplicatedUnit]
+    }));
+    showSubmitMessage('success', language === 'ar' ? 'تم تكرار الوحدة بنجاح' : 'Unit duplicated successfully');
+  };
+
+  const handleDuplicateParentUnit = async (unit: Property) => {
+    try {
+      const res = await fetch(`/api/properties/${unit.id}/duplicate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: 1 })
+      });
+      if (res.ok) {
+        showSubmitMessage('success', language === 'ar' ? 'تم تكرار الوحدة بنجاح' : 'Unit duplicated successfully');
+        if (selectedParentProperty) {
+          fetchUnitsForParent(selectedParentProperty.id);
+        }
+        fetchProperties();
+      } else {
+        const errData = await res.json();
+        showSubmitMessage('error', errData.error || (language === 'ar' ? 'فشل تكرار الوحدة' : 'Failed to duplicate unit'));
+      }
+    } catch (err) {
+      console.error(err);
+      showSubmitMessage('error', language === 'ar' ? 'حدث خطأ أثناء تكرار الوحدة' : 'Error duplicating unit');
+    }
+  };
+
   const handleSaveUnit = async () => {
     const titleAr = unitFormData.titleAr || unitFormData.unitNameAr;
     const titleEn = unitFormData.titleEn || unitFormData.unitNameEn || titleAr;
@@ -1902,7 +2009,8 @@ export default function Admin() {
                                     </td>
                                     <td className="p-3 text-center">
                                       <div className="flex items-center justify-center gap-1.5">
-                                        <button
+                                        <button type="button" onClick={() => handleDuplicateParentUnit(unit)} className="p-1.5 text-muted-foreground hover:text-emerald-500 hover:border-emerald-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center" title={language === 'ar' ? 'تكرار الوحدة (_1, _2)' : 'Duplicate Unit (_1, _2)'}><Copy className="w-3.5 h-3.5" /></button>
+<button
                                           type="button"
                                           onClick={() => handleEditClick(unit)}
                                           className="p-1.5 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
@@ -2092,6 +2200,14 @@ export default function Admin() {
                                             </td>
                                             <td className="p-2.5 text-center">
                                               <div className="flex items-center justify-center gap-1.5">
+                                         <button
+                                           type="button"
+                                           onClick={() => handleDuplicateParentUnit(unit)}
+                                           className="p-1.5 text-muted-foreground hover:text-emerald-500 hover:border-emerald-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
+                                           title={language === 'ar' ? 'تكرار الوحدة (_1, _2)' : 'Duplicate Unit (_1, _2)'}
+                                         >
+                                           <Copy className="w-3.5 h-3.5" />
+                                         </button>
                                                 <button
                                                   onClick={() => handleEditClick(unit)}
                                                   className="p-1.5 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
@@ -3098,7 +3214,8 @@ export default function Admin() {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <button
+                                      <button type="button" onClick={() => handleDuplicateSubProperty(index)} className="p-1.5 text-muted-foreground hover:text-emerald-500 hover:border-emerald-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center" title={language === 'ar' ? 'تكرار الوحدة (_1, _2)' : 'Duplicate Unit (_1, _2)'}><Copy className="w-4 h-4" /></button>
+<button
                                         type="button"
                                         onClick={() => handleEditUnit(index)}
                                         className="p-1.5 text-muted-foreground hover:text-[#2563eb] hover:border-[#2563eb]/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"

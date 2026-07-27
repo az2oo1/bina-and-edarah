@@ -2993,6 +2993,134 @@ async function startServer() {
     }
   });
 
+  app.post("/api/properties/:id/duplicate", requirePermission('properties'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const count = Math.min(Math.max(parseInt(req.body?.count) || 1, 1), 20);
+
+      const sourceProperty = await prisma.property.findUnique({
+        where: { id }
+      });
+
+      if (!sourceProperty) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+
+      let siblingProperties: Array<{ titleAr: string; titleEn: string; details: any }> = [];
+      if (sourceProperty.parentId) {
+        siblingProperties = await prisma.property.findMany({
+          where: { parentId: sourceProperty.parentId },
+          select: { titleAr: true, titleEn: true, details: true }
+        });
+      } else {
+        siblingProperties = [sourceProperty];
+      }
+
+      const matchAr = (sourceProperty.titleAr || '').match(/^(.*?)(?:_(\d+))?$/);
+      const baseTitleAr = (matchAr && matchAr[1]) ? matchAr[1] : (sourceProperty.titleAr || 'وحدة');
+
+      const matchEn = (sourceProperty.titleEn || '').match(/^(.*?)(?:_(\d+))?$/);
+      const baseTitleEn = (matchEn && matchEn[1]) ? matchEn[1] : (sourceProperty.titleEn || 'Unit');
+
+      let maxSeq = 0;
+      const escAr = baseTitleAr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regexAr = new RegExp(`^${escAr}(?:_(\\d+))?$`);
+
+      for (const sib of siblingProperties) {
+        const m = sib.titleAr ? sib.titleAr.match(regexAr) : null;
+        if (m) {
+          const num = m[1] && sib.titleAr === baseTitleAr ? 0 : (m[1] ? parseInt(m[1], 10) : 0);
+          if (num > maxSeq) maxSeq = num;
+        }
+      }
+
+      // Check all sibling titles matching baseTitleAr logic
+      for (const sib of siblingProperties) {
+        if (!sib.titleAr) continue;
+        if (sib.titleAr === baseTitleAr && maxSeq < 0) maxSeq = 0;
+        const m = sib.titleAr.match(new RegExp(`^${escAr}_(\\d+)$`));
+        if (m && m[1]) {
+          const num = parseInt(m[1], 10);
+          if (num > maxSeq) maxSeq = num;
+        }
+      }
+
+      const createdDuplicates = [];
+
+      for (let i = 1; i <= count; i++) {
+        const nextSeq = maxSeq + i;
+        const newTitleAr = `${baseTitleAr}_${nextSeq}`;
+        const newTitleEn = `${baseTitleEn}_${nextSeq}`;
+
+        let updatedDetails = sourceProperty.details;
+        if (sourceProperty.details) {
+          try {
+            const detailsList = typeof sourceProperty.details === 'string'
+              ? JSON.parse(sourceProperty.details)
+              : sourceProperty.details;
+
+            if (Array.isArray(detailsList)) {
+              const newDetailsList = detailsList.map((d: any) => {
+                if (d.key === 'رقم الوحدة' || d.key === 'Unit Name') {
+                  const valMatch = String(d.value || '').match(/^(.*?)(?:_(\d+))?$/);
+                  const valBase = (valMatch && valMatch[1]) ? valMatch[1] : String(d.value || '');
+                  return { ...d, value: `${valBase}_${nextSeq}` };
+                }
+                return d;
+              });
+              updatedDetails = JSON.stringify(newDetailsList);
+            }
+          } catch (_) {}
+        }
+
+        const duplicate = await prisma.property.create({
+          data: {
+            titleAr: newTitleAr,
+            titleEn: newTitleEn,
+            type: sourceProperty.type,
+            propertyCategory: sourceProperty.propertyCategory,
+            paymentFrequency: sourceProperty.paymentFrequency,
+            paymentsCount: sourceProperty.paymentsCount,
+            area: sourceProperty.area,
+            details: updatedDetails,
+            locationLink: sourceProperty.locationLink,
+            locationText: sourceProperty.locationText,
+            description: sourceProperty.description,
+            features: sourceProperty.features,
+            propertyAge: sourceProperty.propertyAge,
+            electricityCost: sourceProperty.electricityCost,
+            electricityFrequency: sourceProperty.electricityFrequency,
+            vat: sourceProperty.vat,
+            vatExempt: sourceProperty.vatExempt,
+            vatNotApplicable: sourceProperty.vatNotApplicable,
+            utilityBills: sourceProperty.utilityBills,
+            commission: sourceProperty.commission,
+            price: sourceProperty.price,
+            imageUrls: sourceProperty.imageUrls,
+            attachments: sourceProperty.attachments,
+            aqarLink: sourceProperty.aqarLink,
+            allowedPaymentPlans: sourceProperty.allowedPaymentPlans,
+            videoUrl: sourceProperty.videoUrl,
+            userId: (req as any).user ? (req as any).user.id : sourceProperty.userId,
+            parentId: sourceProperty.parentId,
+            status: sourceProperty.status || "PUBLISHED",
+            renterId: null,
+            renterName: null,
+            renterPhone: null
+          }
+        });
+        createdDuplicates.push(duplicate);
+      }
+
+      invalidateCache('properties');
+      await logAction(req, "DUPLICATE_PROPERTY", `Duplicated property ${sourceProperty.titleAr} (${sourceProperty.id}) ${count} time(s)`);
+      res.status(201).json(createdDuplicates.length === 1 ? createdDuplicates[0] : createdDuplicates);
+    } catch (error) {
+      logger.error(`Error duplicating property ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to duplicate property" });
+    }
+  });
+
   // Projects
   app.get("/api/projects", async (req, res) => {
     try {
