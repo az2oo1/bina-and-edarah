@@ -1964,7 +1964,7 @@ async function startServer() {
       if (!renterId) {
         const updated = await prisma.renterUnit.update({
           where: { id: unitId },
-          data: { renterId: null }
+          data: { renterId: null, renterName: null, renterPhone: null }
         });
         return res.json(updated);
       }
@@ -2163,7 +2163,7 @@ async function startServer() {
       phone.trim()
     ]));
 
-    // Check if phone exists in our imported active renter units or Renter model
+    // Check if phone exists in active renter units, Renter model, or Property model
     const units = await prisma.renterUnit.findMany({
       where: {
         OR: [
@@ -2173,8 +2173,16 @@ async function startServer() {
       }
     });
 
-    if (units.length === 0) {
-      return res.status(404).json({ error: "لا يوجد مستأجر بهذا الرقم. (No records found for this phone number)" });
+    const renterUser = await prisma.renter.findFirst({
+      where: { phone: { in: phoneVariants } }
+    });
+
+    const propertyUnit = await prisma.property.findFirst({
+      where: { renterPhone: { in: phoneVariants } }
+    });
+
+    if (units.length === 0 && !renterUser && !propertyUnit) {
+      return res.status(404).json({ error: "لا يوجد حساب مستأجر مسجل بهذا الرقم. (No renter account found for this phone number)" });
     }
 
     // Generate 4-digit OTP
@@ -2984,11 +2992,75 @@ async function startServer() {
       if ('userId' in body) updateData.userId = body.userId || null;
       if ('parentId' in body) updateData.parentId = body.parentId || null;
       if ('status' in body) updateData.status = body.status || "PUBLISHED";
+      if ('renterId' in body) updateData.renterId = body.renterId || null;
+      if ('renterName' in body) updateData.renterName = body.renterName || null;
+      if ('renterPhone' in body) updateData.renterPhone = body.renterPhone || null;
 
       const updatedProperty = await prisma.property.update({
         where: { id: req.params.id },
         data: updateData
       });
+
+      // Auto-sync with Building and RenterUnit models if this is a sub-property unit being assigned/updated
+      if (updatedProperty.parentId && ('renterId' in body || 'renterName' in body || 'renterPhone' in body)) {
+        try {
+          const parentProp = await prisma.property.findUnique({ where: { id: updatedProperty.parentId } });
+          if (parentProp) {
+            const buildingName = parentProp.titleAr || parentProp.titleEn;
+            let building = await prisma.building.findFirst({ where: { name: buildingName } });
+            if (!building) {
+              building = await prisma.building.create({ data: { name: buildingName } });
+            }
+
+            const unitNum = updatedProperty.titleAr || updatedProperty.titleEn || "وحدة";
+            let rUnit = await prisma.renterUnit.findFirst({
+              where: { buildingId: building.id, unitNumber: unitNum }
+            });
+
+            let normalizedPhone = (updatedProperty.renterPhone || '').trim().replace(/\D/g, '');
+            if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+            normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+            let rId = updatedProperty.renterId || null;
+            if (!rId && normalizedPhone) {
+              let existingRenter = await prisma.renter.findUnique({ where: { phone: normalizedPhone } });
+              if (!existingRenter) {
+                existingRenter = await prisma.renter.create({
+                  data: {
+                    name: updatedProperty.renterName || 'مستأجر',
+                    phone: normalizedPhone
+                  }
+                });
+              }
+              rId = existingRenter.id;
+            }
+
+            if (!rUnit) {
+              await prisma.renterUnit.create({
+                data: {
+                  buildingId: building.id,
+                  unitNumber: unitNum,
+                  renterId: rId,
+                  renterName: updatedProperty.renterName || null,
+                  renterPhone: normalizedPhone || null,
+                  rentAmount: updatedProperty.price || null
+                }
+              });
+            } else {
+              await prisma.renterUnit.update({
+                where: { id: rUnit.id },
+                data: {
+                  renterId: rId,
+                  renterName: updatedProperty.renterName || null,
+                  renterPhone: normalizedPhone || null
+                }
+              });
+            }
+          }
+        } catch (syncErr) {
+          logger.error("Failed auto-syncing property unit to RenterUnit:", syncErr);
+        }
+      }
 
       // Only synchronize subProperties when explicitly provided in the payload.
       // This prevents partial updates (like changing just details/floors) from
