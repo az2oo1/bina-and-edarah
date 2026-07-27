@@ -306,6 +306,26 @@ export default function Admin() {
       });
 
       if (updateRes.ok) {
+        // Also sync to RenterUnit system if matching building exists
+        if (matchingBuilding && matchingBuilding.id) {
+          try {
+            const rUnitsRes = await fetch('/api/admin/renters');
+            if (rUnitsRes.ok) {
+              const rUnits = await rUnitsRes.json();
+              const targetRUnit = rUnits.find((u: any) => u.buildingId === matchingBuilding.id && (u.unitNumber === unitForRenterAssignment.titleAr || u.unitNumber === unitForRenterAssignment.titleEn));
+              if (targetRUnit) {
+                await fetch(`/api/admin/units/${targetRUnit.id}/assign-renter`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ renterId: rId })
+                });
+              }
+            }
+          } catch (syncErr) {
+            console.error("RenterUnit sync error:", syncErr);
+          }
+        }
+
         showSubmitMessage('success', language === 'ar' ? 'تم تعيين المستأجر للوحدة بنجاح' : 'Renter assigned to unit successfully');
         setUnitForRenterAssignment(null);
         if (selectedParentProperty) {
@@ -335,6 +355,25 @@ export default function Admin() {
         })
       });
       if (updateRes.ok) {
+        if (matchingBuilding && matchingBuilding.id) {
+          try {
+            const rUnitsRes = await fetch('/api/admin/renters');
+            if (rUnitsRes.ok) {
+              const rUnits = await rUnitsRes.json();
+              const targetRUnit = rUnits.find((u: any) => u.buildingId === matchingBuilding.id && (u.unitNumber === unit.titleAr || u.unitNumber === unit.titleEn));
+              if (targetRUnit) {
+                await fetch(`/api/admin/units/${targetRUnit.id}/assign-renter`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ renterId: null })
+                });
+              }
+            }
+          } catch (syncErr) {
+            console.error("RenterUnit unassign sync error:", syncErr);
+          }
+        }
+
         if (selectedParentProperty) {
           fetchUnitsForParent(selectedParentProperty.id);
         }

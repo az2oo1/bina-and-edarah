@@ -1727,7 +1727,7 @@ async function startServer() {
     }
   });
 
-  // Sync renters to Renter User model
+  // Sync renters to Renter User model and bridge legacy Property units
   async function syncRentersToUsers() {
     try {
       const renterUnits = await prisma.renterUnit.findMany({
@@ -1765,6 +1765,77 @@ async function startServer() {
             where: { id: unit.id },
             data: { renterId: renter.id }
           });
+        }
+      }
+
+      // Automatically bridge legacy Property sub-properties with renter info into Renter & RenterUnit models
+      const propertyUnits = await prisma.property.findMany({
+        where: {
+          parentId: { not: null },
+          OR: [
+            { renterPhone: { not: null } },
+            { renterName: { not: null } }
+          ]
+        },
+        include: { parent: true }
+      });
+
+      for (const pUnit of propertyUnits) {
+        if (!pUnit.renterPhone && !pUnit.renterName) continue;
+        let normalized = (pUnit.renterPhone || '').trim().replace(/\D/g, '');
+        if (normalized.startsWith('966')) normalized = normalized.substring(3);
+        normalized = normalized.replace(/^0+/, '');
+        if (!normalized) continue;
+
+        let renter = await prisma.renter.findUnique({
+          where: { phone: normalized }
+        });
+
+        if (!renter) {
+          renter = await prisma.renter.create({
+            data: {
+              name: pUnit.renterName || 'مستأجر',
+              phone: normalized
+            }
+          });
+        }
+
+        if (pUnit.parent) {
+          const buildingName = pUnit.parent.titleAr || pUnit.parent.titleEn;
+          let building = await prisma.building.findFirst({
+            where: { name: buildingName }
+          });
+          if (!building) {
+            building = await prisma.building.create({
+              data: { name: buildingName }
+            });
+          }
+
+          const unitNum = pUnit.titleAr || pUnit.titleEn || 'وحدة';
+          let rUnit = await prisma.renterUnit.findFirst({
+            where: { buildingId: building.id, unitNumber: unitNum }
+          });
+          if (!rUnit) {
+            await prisma.renterUnit.create({
+              data: {
+                buildingId: building.id,
+                unitNumber: unitNum,
+                renterId: renter.id,
+                renterName: pUnit.renterName || renter.name,
+                renterPhone: normalized,
+                rentAmount: pUnit.price || null
+              }
+            });
+          } else if (!rUnit.renterId) {
+            await prisma.renterUnit.update({
+              where: { id: rUnit.id },
+              data: {
+                renterId: renter.id,
+                renterName: pUnit.renterName || renter.name,
+                renterPhone: normalized
+              }
+            });
+          }
         }
       }
     } catch (err) {
