@@ -25,23 +25,26 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
+if (!process.env.JWT_SECRET) {
+  throw new Error("Missing JWT_SECRET environment variable. Cannot start server securely.");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
   : path.resolve(process.cwd(), 'server.log');
 
 export function serializeMeta(meta: any[]): string {
-  if (!meta.length) return "";
+  if (!meta || !meta.length) return "";
   return meta.map(arg => {
     if (arg instanceof Error) {
-      return `${arg.message}\n${arg.stack}`;
+      return arg.stack ? String(arg.stack) : arg.message;
     }
-    if (typeof arg === 'object') {
+    if (typeof arg === 'object' && arg !== null) {
       try {
         return JSON.stringify(arg);
       } catch (err) {
-        return String(arg);
+        return '[Circular]';
       }
     }
     return String(arg);
@@ -4077,4 +4080,6 @@ async function startServer() {
   });
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
