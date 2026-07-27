@@ -174,7 +174,7 @@ export default function Admin() {
   const fetchUnitsForParent = async (parentId: string) => {
     setLoadingUnits(true);
     try {
-      const res = await fetch(`/api/properties?parentId=${parentId}`);
+      const res = await fetch(`/api/admin/properties?parentId=${parentId}`);
       const data = await res.json();
       setSelectedParentUnits(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -294,7 +294,7 @@ export default function Admin() {
       }
 
       // Update unit Property record with renter fields
-      const updateRes = await fetch(`/api/properties/${unitForRenterAssignment.id}`, {
+      const updateRes = await fetch(`/api/admin/properties/${unitForRenterAssignment.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -324,7 +324,7 @@ export default function Admin() {
     const confirmed = await showConfirm(language === 'ar' ? 'هل أنت تأكد من إلغاء تعيين هذا المستأجر من الوحدة؟' : 'Are you sure you want to unassign this renter from the unit?');
     if (!confirmed) return;
     try {
-      const updateRes = await fetch(`/api/properties/${unit.id}`, {
+      const updateRes = await fetch(`/api/admin/properties/${unit.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -520,7 +520,7 @@ export default function Admin() {
 
   const fetchProperties = async () => {
     try {
-      const res = await fetch('/api/properties');
+      const res = await fetch('/api/admin/properties');
       const data = await res.json();
       setProperties(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -807,7 +807,7 @@ export default function Admin() {
 
     try {
       const isEditing = Boolean(editingId);
-      const url = isEditing ? `/api/properties/${editingId}` : '/api/properties';
+      const url = isEditing ? `/api/admin/properties/${editingId}` : '/api/admin/properties';
       const method = isEditing ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -990,7 +990,7 @@ export default function Admin() {
     }
     
     try {
-      const res = await fetch(`/api/properties/${selectedParentProperty.id}`, {
+      const res = await fetch(`/api/admin/properties/${selectedParentProperty.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ details: JSON.stringify(detailsList) })
@@ -1029,7 +1029,7 @@ export default function Admin() {
     }
     
     try {
-      const res = await fetch(`/api/properties/${selectedParentProperty.id}`, {
+      const res = await fetch(`/api/admin/properties/${selectedParentProperty.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ details: JSON.stringify(detailsList) })
@@ -1199,7 +1199,7 @@ export default function Admin() {
 
   const handleDuplicateParentUnit = async (unit: Property) => {
     try {
-      const res = await fetch(`/api/properties/${unit.id}/duplicate`, {
+      const res = await fetch(`/api/admin/properties/${unit.id}/duplicate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ count: 1 })
@@ -1275,7 +1275,7 @@ export default function Admin() {
 
   const handleEditClick = async (property: Property) => {
     try {
-      const res = await fetch(`/api/properties/${property.id}`);
+      const res = await fetch(`/api/admin/properties/${property.id}`);
       const propData = await res.json();
       
       let parsedImages = [];
@@ -1549,7 +1549,7 @@ export default function Admin() {
     if (!confirmed) return;
     
     try {
-      const res = await fetch(`/api/properties/${id}`, {
+      const res = await fetch(`/api/admin/properties/${id}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -1789,7 +1789,7 @@ export default function Admin() {
                         onChange={async (e) => {
                           const newStatus = e.target.value;
                           try {
-                            const updateRes = await fetch(`/api/properties/${selectedParentProperty.id}`, {
+                            const updateRes = await fetch(`/api/admin/properties/${selectedParentProperty.id}`, {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ ...selectedParentProperty, status: newStatus })
@@ -1819,7 +1819,7 @@ export default function Admin() {
                         onClick={async () => {
                           if (confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا العقار بالكامل؟' : 'Are you sure you want to delete this property entirely?')) {
                             try {
-                              const res = await fetch(`/api/properties/${selectedParentProperty.id}`, { method: 'DELETE' });
+                              const res = await fetch(`/api/admin/properties/${selectedParentProperty.id}`, { method: 'DELETE' });
                               if (res.ok) {
                                 setSelectedParentProperty(null);
                                 fetchProperties();
@@ -1987,7 +1987,7 @@ export default function Admin() {
                                         onChange={async (e) => {
                                           const newStatus = e.target.value;
                                           try {
-                                            const updateRes = await fetch(`/api/properties/${unit.id}`, {
+                                            const updateRes = await fetch(`/api/admin/properties/${unit.id}`, {
                                               method: 'PUT',
                                               headers: { 'Content-Type': 'application/json' },
                                               body: JSON.stringify({ ...unit, status: newStatus })
@@ -2177,7 +2177,7 @@ export default function Admin() {
                                                 onChange={async (e) => {
                                                   const newStatus = e.target.value;
                                                   try {
-                                                    const updateRes = await fetch(`/api/properties/${unit.id}`, {
+                                                    const updateRes = await fetch(`/api/admin/properties/${unit.id}`, {
                                                       method: 'PUT',
                                                       headers: { 'Content-Type': 'application/json' },
                                                       body: JSON.stringify({ ...unit, status: newStatus })

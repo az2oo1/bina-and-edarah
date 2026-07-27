@@ -739,14 +739,18 @@ function invalidateCache(type: 'properties' | 'projects') {
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { error: "Too many login attempts. Please try again after 15 minutes." }
 });
 
 const otpLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  message: { error: "Too many OTP requests. Please try again after an hour." }
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "لقد تجاوزت عدد محاولات طلب رمز التحقق. يرجى المحاولة بعد 15 دقيقة. (Too many OTP requests. Please try again after 15 minutes.)" }
 });
 
 const UPLOADS_DIR = fs.existsSync('/data') 
@@ -854,8 +858,20 @@ function processDocumentUrls(docsInput: any): string {
   return JSON.stringify([]);
 }
 
+function extractToken(req: any): string | null {
+  if (req.cookies?.token) return req.cookies.token;
+  const authHeader = req.headers?.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+  if (req.headers?.['x-access-token']) {
+    return req.headers['x-access-token'] as string;
+  }
+  return null;
+}
+
 function adminAuthMiddleware(req: any, res: any, next: any) {
-  const token = req.cookies?.token;
+  const token = extractToken(req);
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: Missing session token" });
   }
@@ -874,7 +890,7 @@ function adminAuthMiddleware(req: any, res: any, next: any) {
 
 function requirePermission(permission: string) {
   return (req: any, res: any, next: any) => {
-    const token = req.cookies?.token;
+    const token = extractToken(req);
     if (!token) {
       return res.status(401).json({ error: "Unauthorized: Missing session token" });
     }
@@ -912,6 +928,7 @@ async function startServer() {
   }
 
   const app = express();
+  app.set('trust proxy', 1);
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   // HTTP response compression (gzip/brotli) for all API responses
@@ -2066,12 +2083,21 @@ async function startServer() {
     if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
     normalizedPhone = normalizedPhone.replace(/^0+/, '');
 
+    const phoneVariants = Array.from(new Set([
+      normalizedPhone,
+      '0' + normalizedPhone,
+      '966' + normalizedPhone,
+      '+966' + normalizedPhone,
+      '00966' + normalizedPhone,
+      phone.trim()
+    ]));
+
     // Check if phone exists in our imported active renter units or Renter model
     const units = await prisma.renterUnit.findMany({
       where: {
         OR: [
-          { renterPhone: normalizedPhone },
-          { renter: { phone: normalizedPhone } }
+          { renterPhone: { in: phoneVariants } },
+          { renter: { phone: { in: phoneVariants } } }
         ]
       }
     });
@@ -2150,7 +2176,7 @@ async function startServer() {
     res.json({ success: true, fakeOtpDelivery: !webhookUrl ? otp : undefined }); 
   });
 
-  app.post('/api/renter/login', otpLimiter, async (req, res) => {
+  app.post('/api/renter/login', authLimiter, async (req, res) => {
     try {
       const { phone, otp } = req.body;
       logger.info(`Renter login attempt for phone: ${phone}`);
@@ -2180,12 +2206,21 @@ async function startServer() {
         await prisma.otpSession.delete({ where: { id: validOtp.id } });
       }
 
+      const phoneVariants = Array.from(new Set([
+        normalizedPhone,
+        '0' + normalizedPhone,
+        '966' + normalizedPhone,
+        '+966' + normalizedPhone,
+        '00966' + normalizedPhone,
+        phone.trim()
+      ]));
+
       // Fetch user units
       const units = await prisma.renterUnit.findMany({
         where: {
           OR: [
-            { renterPhone: normalizedPhone },
-            { renter: { phone: normalizedPhone } }
+            { renterPhone: { in: phoneVariants } },
+            { renter: { phone: { in: phoneVariants } } }
           ]
         },
         include: { building: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } } 
@@ -2272,30 +2307,19 @@ async function startServer() {
     return null;
   }
 
-  // Properties
+  // PUBLIC Listings API - Zero Auth, Ultra Fast, Strictly Published Only
   app.get("/api/properties", async (req, res) => {
     try {
-      let isAdmin = false;
-      const token = req.cookies?.token;
-      if (token) {
-        try {
-          const decoded = jwt.verify(token, JWT_SECRET) as any;
-          if (decoded && (decoded.role === 'ADMIN' || decoded.role === 'MANAGER' || decoded.role === 'AGENT')) {
-            isAdmin = true;
-          }
-        } catch (_) {}
-      }
-
       const isMapRequest = req.query.map === 'true';
       const isPaginationRequest = req.query.page !== undefined || req.query.limit !== undefined;
 
       const hasQueryParams = Object.keys(req.query).length > 0;
-      const cacheKey = isAdmin ? 'propertiesAdmin' : 'propertiesPublic';
+      const cacheKey = 'propertiesPublic';
       
       if (!hasQueryParams) {
         const cached = dbCache[cacheKey];
         if (cached && (!Array.isArray(cached) || cached.length > 0)) {
-          logger.info(`Serving properties from cache (${cacheKey})`);
+          logger.info(`Serving public properties from cache`);
           return res.json(cached);
         }
       }
@@ -2303,12 +2327,10 @@ async function startServer() {
       // Build Prisma Filters
       const andFilters: any[] = [];
 
-      // Public status filter
-      if (!isAdmin) {
-        andFilters.push({
-          status: { notIn: ['DRAFT', 'HIDDEN'] }
-        });
-      }
+      // Public status filter: strictly exclude DRAFT & HIDDEN listings for ALL visitors
+      andFilters.push({
+        status: { notIn: ['DRAFT', 'HIDDEN'] }
+      });
 
       // Parent ID Param
       const parentIdParam = req.query.parentId as string;
@@ -2359,7 +2381,7 @@ async function startServer() {
               subProperties: {
                 some: {
                   price: priceRange,
-                  status: { not: 'DRAFT' }
+                  status: { notIn: ['DRAFT', 'HIDDEN'] }
                 }
               }
             }
@@ -2488,7 +2510,7 @@ async function startServer() {
         const allSubUnits = await prisma.property.findMany({
           where: {
             parentId: { in: parentIds },
-            status: 'PUBLISHED'
+            status: { notIn: ['DRAFT', 'HIDDEN'] }
           },
           select: { parentId: true, price: true }
         });
@@ -2655,24 +2677,13 @@ async function startServer() {
     try {
       const property = await prisma.property.findUnique({
         where: { id: req.params.id },
-        include: { subProperties: true, parent: true }
+        include: {
+          subProperties: { where: { status: { notIn: ['DRAFT', 'HIDDEN'] } } },
+          parent: true
+        }
       });
-      if (!property) return res.status(404).json({ error: "Property not found" });
-
-      if (property.status === 'DRAFT' || property.status === 'HIDDEN') {
-        let isAdmin = false;
-        const token = req.cookies?.token;
-        if (token) {
-          try {
-            const decoded = jwt.verify(token, JWT_SECRET) as any;
-            if (decoded && (decoded.role === 'ADMIN' || decoded.role === 'MANAGER' || decoded.role === 'AGENT')) {
-              isAdmin = true;
-            }
-          } catch (_) {}
-        }
-        if (!isAdmin) {
-          return res.status(404).json({ error: "Property not found" });
-        }
+      if (!property || property.status === 'DRAFT' || property.status === 'HIDDEN') {
+        return res.status(404).json({ error: "Property not found" });
       }
 
       const coords = extractCoords(property.locationLink);
@@ -2684,6 +2695,73 @@ async function startServer() {
     } catch (error) {
       logger.error(`Failed to fetch property by id: ${req.params.id}`, error);
       res.status(500).json({ error: "Failed to fetch property" });
+    }
+  });
+
+  // ADMIN Properties API - Dedicated Staff Route with Full Access
+  app.get("/api/admin/properties", requirePermission('properties'), async (req, res) => {
+    try {
+      const parentIdParam = req.query.parentId as string;
+      const andFilters: any[] = [];
+
+      if (parentIdParam) {
+        andFilters.push({ parentId: parentIdParam });
+      }
+
+      const search = req.query.search as string;
+      if (search) {
+        andFilters.push({
+          OR: [
+            { titleAr: { contains: search, mode: 'insensitive' } },
+            { titleEn: { contains: search, mode: 'insensitive' } }
+          ]
+        });
+      }
+
+      const whereClause = andFilters.length > 0 ? { AND: andFilters } : {};
+
+      const properties = await prisma.property.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          subProperties: true,
+          parent: true
+        }
+      });
+
+      const enriched = properties.map(p => {
+        const coords = extractCoords(p.locationLink);
+        return {
+          ...p,
+          latitude: coords?.lat ?? null,
+          longitude: coords?.lon ?? null
+        };
+      });
+
+      return res.json(enriched);
+    } catch (error) {
+      logger.error("Failed to fetch admin properties", error);
+      res.status(500).json({ error: "Failed to fetch admin properties" });
+    }
+  });
+
+  app.get("/api/admin/properties/:id", requirePermission('properties'), async (req, res) => {
+    try {
+      const property = await prisma.property.findUnique({
+        where: { id: req.params.id },
+        include: { subProperties: true, parent: true }
+      });
+      if (!property) return res.status(404).json({ error: "Property not found" });
+
+      const coords = extractCoords(property.locationLink);
+      res.json({
+        ...property,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lon ?? null
+      });
+    } catch (error) {
+      logger.error(`Failed to fetch admin property by id: ${req.params.id}`, error);
+      res.status(500).json({ error: "Failed to fetch admin property" });
     }
   });
 
@@ -2708,7 +2786,7 @@ async function startServer() {
     return Number.isNaN(parsed) ? null : parsed;
   };
 
-  app.post("/api/properties", requirePermission('properties'), async (req, res) => {
+  app.post(["/api/properties", "/api/admin/properties"], requirePermission('properties'), async (req, res) => {
     try {
       const body = req.body;
       const type = body.type || "SALE";
@@ -2795,7 +2873,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/properties/:id", requirePermission('properties'), async (req, res) => {
+  app.put(["/api/properties/:id", "/api/admin/properties/:id"], requirePermission('properties'), async (req, res) => {
     try {
       const body = req.body;
       const type = body.type || "SALE";
@@ -2979,7 +3057,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/properties/:id", requirePermission('properties'), async (req, res) => {
+  app.delete(["/api/properties/:id", "/api/admin/properties/:id"], requirePermission('properties'), async (req, res) => {
     try {
       await prisma.property.delete({
         where: { id: req.params.id }
@@ -2993,7 +3071,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/properties/:id/duplicate", requirePermission('properties'), async (req, res) => {
+  app.post(["/api/properties/:id/duplicate", "/api/admin/properties/:id/duplicate"], requirePermission('properties'), async (req, res) => {
     try {
       const { id } = req.params;
       const count = Math.min(Math.max(parseInt(req.body?.count) || 1, 1), 20);
@@ -3985,6 +4063,15 @@ async function startServer() {
     try {
       const { username, password } = req.body;
       logger.info(`Login attempt for username: ${username}`);
+
+      const isHttps = req.protocol === 'https' || (req.secure && process.env.NODE_ENV === 'production');
+      const cookieOptions = {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: 'lax' as const,
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      };
       
        // Check Admin
        const admin = await prisma.admin.findUnique({ where: { username } });
@@ -3997,14 +4084,9 @@ async function startServer() {
            permissions: ROLE_PERMISSIONS[admin.role || 'ADMIN'] || []
          };
          const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-         res.cookie('token', token, {
-           httpOnly: true,
-           secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-           sameSite: 'lax',
-           maxAge: 24 * 60 * 60 * 1000 // 24 hours
-         });
+         res.cookie('token', token, cookieOptions);
          logger.info(`Admin login successful for ${username} (${admin.role})`);
-         return res.json(userPayload);
+         return res.json({ ...userPayload, token });
        }
  
        // Check User
@@ -4018,14 +4100,9 @@ async function startServer() {
            permissions: []
          };
          const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-         res.cookie('token', token, {
-           httpOnly: true,
-           secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-           sameSite: 'lax',
-           maxAge: 24 * 60 * 60 * 1000 // 24 hours
-         });
+         res.cookie('token', token, cookieOptions);
          logger.info(`User login successful for ${username}`);
-         return res.json(userPayload);
+         return res.json({ ...userPayload, token });
        }
  
        // Hardcoded admin fallback for preview if DB is empty
@@ -4038,14 +4115,9 @@ async function startServer() {
            permissions: ROLE_PERMISSIONS['ADMIN']
          };
          const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-         res.cookie('token', token, {
-           httpOnly: true,
-           secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
-           sameSite: 'lax',
-           maxAge: 24 * 60 * 60 * 1000 // 24 hours
-         });
+         res.cookie('token', token, cookieOptions);
          logger.info(`Fallback admin login successful`);
-         return res.json(userPayload);
+         return res.json({ ...userPayload, token });
        }
 
       logger.warn(`Failed login attempt for username: ${username}`);

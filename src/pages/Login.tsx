@@ -179,6 +179,9 @@ export default function Login() {
       if (res.ok) {
         const user = await res.json();
         localStorage.setItem('user', JSON.stringify(user));
+        if (user.token) {
+          localStorage.setItem('token', user.token);
+        }
         window.dispatchEvent(new Event('storage'));
         navigate(['ADMIN', 'MANAGER', 'AGENT'].includes(user.role) ? '/admin' : '/dashboard');
       } else {

@@ -292,6 +292,7 @@ function Navbar() {
   const handleLogout = () => {
     fetch('/api/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
     navigate('/');
     window.dispatchEvent(new Event('storage'));
