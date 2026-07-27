@@ -152,6 +152,7 @@ export function SocialIconsRow({ links, size = 'md' }: SocialIconsRowProps) {
           target={item.href.startsWith('mailto') ? undefined : '_blank'}
           rel="noopener noreferrer"
           title={item.label}
+          aria-label={item.label}
           className={`${btnBase} text-white`}
           style={item.style}
         >
