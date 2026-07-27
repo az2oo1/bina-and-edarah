@@ -30,7 +30,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 # Define a default database URL that maps to the `/data` volume
-ENV DATABASE_URL="file:/data/dev.db"
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bina_db?schema=public"
 
 # Copy necessary files from builder
 COPY --from=builder /app/dist ./dist
