@@ -9,7 +9,7 @@ const requirePermission = (permission: string) => (req: any, res: any, next: any
 // GET /api/properties
 propertyRouter.get('/', async (req, res) => {
   try {
-    const { category, type, search, status } = req.query;
+    const { category, type, search, status, page, limit } = req.query;
     const where: any = {};
 
     if (category && category !== 'ALL') {
@@ -31,11 +31,30 @@ propertyRouter.get('/', async (req, res) => {
       ];
     }
 
-    const properties = await prisma.property.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: { subProperties: true },
-    });
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 6;
+    const skipNum = (pageNum - 1) * limitNum;
+
+    const [properties, totalCount] = await Promise.all([
+      prisma.property.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: page ? skipNum : undefined,
+        take: limit ? limitNum : undefined,
+        include: { subProperties: true },
+      }),
+      prisma.property.count({ where }),
+    ]);
+
+    if (page || limit) {
+      return res.json({
+        properties,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limitNum),
+        page: pageNum,
+        limit: limitNum,
+      });
+    }
 
     res.json(properties);
   } catch (error: any) {
