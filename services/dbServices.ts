@@ -196,19 +196,7 @@ export const renterService = {
         });
       }
 
-      const receipt = await tx.receipt.create({
-        data: {
-          renterName: data.renterName,
-          renterPhone: data.renterPhone,
-          buildingName: data.buildingName,
-          unitNumber: data.unitNumber,
-          amount: data.amount,
-          dueDate: data.dueDate,
-          receiptUrl: data.receiptUrl,
-        },
-      });
-
-      return { updatedHistory, receipt };
+      return { updatedHistory };
     });
   },
 };

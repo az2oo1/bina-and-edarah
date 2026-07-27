@@ -119,16 +119,14 @@ export default function AdminLogs() {
 
         <div className="flex items-center gap-2">
           {/* Search bar */}
-          <div className="relative w-full md:w-64">
-            <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-muted-foreground">
-              <Search className="h-4 w-4" />
-            </div>
+          <div className="flex items-center gap-2 border border-border rounded-xl px-3 bg-card focus-within:ring-1 focus-within:ring-primary w-full md:w-64 h-9">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={language === 'ar' ? 'ابحث بالموظف، الإجراء، أو التفاصيل...' : 'Search by staff, action, detail...'}
-              className="block w-full bg-card border border-border rounded-lg py-2 ps-9 pe-4 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-xs text-foreground placeholder:text-muted-foreground"
             />
           </div>
 

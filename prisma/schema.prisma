@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -41,6 +41,10 @@ model Property {
 
   userId           String?
   user             User?    @relation(fields: [userId], references: [id])
+
+  renterId         String?
+  renterName       String?
+  renterPhone      String?
 
   parentId         String?
   parent           Property?  @relation("SubProperties", fields: [parentId], references: [id], onDelete: Cascade)
@@ -131,6 +135,12 @@ model Settings {
   techhubClientSecret String?
   techhubApiKey      String?
   techhubSandboxMode Boolean @default(true)
+  // VerifyKit Integration Settings
+  verifyKitEnabled   Boolean @default(true)
+  verifyKitAppKey    String? @default("AxaVaO8JfW2OMj")
+  verifyKitServerKey String? @default("Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6")
+  verifyKitDomain    String? @default("https://rbmc.sa")
+  verifyKitDeeplink  String? @default("vfk300403://welcome")
   // SEO Settings
   indexNowKey        String?
 }
@@ -153,20 +163,40 @@ model Building {
   units           RenterUnit[]
 }
 
+model Renter {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units              RenterUnit[]
+  maintenanceReports MaintenanceReport[]
+}
+
 model RenterUnit {
   id              String   @id @default(uuid())
   buildingId      String
   building        Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   unitNumber      String
-  renterName      String
-  renterPhone     String
+  renterId        String?
+  renter          Renter?  @relation(fields: [renterId], references: [id], onDelete: SetNull)
+  renterName      String?
+  renterPhone     String?
   contractEndDate String?
   isTanfeeth      Boolean  @default(false)
   nextRentDue     String?
   rentAmount      Float?
+  bedrooms        Int?     @default(2)
+  bathrooms       Int?     @default(2)
+  area            Float?   @default(120)
+  floor           String?  @default("1")
+  features        String?  @default("مكيفات مجهزة, مطبخ راكب, موقف خاص, مصعد, إنتركوم ذكي")
+  photos          String?  @default("[]")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   rentHistory     RentHistory[]
+  maintenanceReports MaintenanceReport[]
 }
 
 model RentHistory {
@@ -180,16 +210,23 @@ model RentHistory {
   createdAt    DateTime @default(now())
 }
 
-model Receipt {
-  id           String   @id @default(uuid())
-  renterName   String
-  renterPhone  String
-  buildingName String?
-  unitNumber   String?
-  amount       String?
-  dueDate      String?
-  receiptUrl   String
-  createdAt    DateTime @default(now())
+model MaintenanceReport {
+  id            String     @id @default(uuid())
+  category      String?    @default("GENERAL")
+  priority      String?    @default("NORMAL")
+  description   String
+  images        String     @default("[]") // JSON stringified array of 1-4 images
+  status        String     @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  adminResponse String?
+
+  renterId      String
+  renter        Renter     @relation(fields: [renterId], references: [id], onDelete: Cascade)
+
+  renterUnitId  String
+  renterUnit    RenterUnit @relation(fields: [renterUnitId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model OtpSession {

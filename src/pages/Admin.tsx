@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, EyeOff, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Check, DollarSign, FileText, Image, LayoutGrid } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, EyeOff, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Check, DollarSign, FileText, Image, LayoutGrid, User, UserPlus, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as LucideIcons from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
@@ -9,9 +9,8 @@ import { useDialog } from '../context/DialogContext';
 
 import AdminProjects from './AdminProjects';
 import AdminCallbacks from './AdminCallbacks';
-import AdminBuildings from './AdminBuildings';
 import AdminRenters from './AdminRenters';
-import AdminReceipts from './AdminReceipts';
+import AdminMaintenance from './AdminMaintenance';
 import AdminUsers from './AdminUsers';
 import AdminLogs from './AdminLogs';
 import { compressImage } from '../lib/image';
@@ -103,7 +102,7 @@ const TAB_TO_PERMISSION: Record<string, string> = {
   projects: 'projects',
   buildings: 'buildings',
   renters: 'renters',
-  receipts: 'receipts',
+  maintenance: 'renters',
   analytics: 'analytics',
   settings: 'settings',
   callbacks: 'callbacks',
@@ -112,8 +111,8 @@ const TAB_TO_PERMISSION: Record<string, string> = {
 };
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'analytics', 'settings', 'callbacks', 'users', 'logs'],
-  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'callbacks', 'analytics'],
+  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'analytics', 'settings', 'callbacks', 'users', 'logs'],
+  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'callbacks', 'analytics'],
   AGENT: ['properties', 'projects', 'callbacks']
 };
 
@@ -165,10 +164,10 @@ export default function Admin() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'receipts' | 'settings' | 'callbacks' | 'users' | 'logs'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'maintenance' | 'settings' | 'callbacks' | 'users' | 'logs'>('manage');
   const [userRole, setUserRole] = useState<string>('ADMIN');
   const [selectedParentProperty, setSelectedParentProperty] = useState<Property | null>(null);
-  const [selectedParentTab, setSelectedParentTab] = useState<'units' | 'renters' | 'details'>('units');
+  const [selectedParentTab, setSelectedParentTab] = useState<'units' | 'details'>('units');
   const [selectedParentUnits, setSelectedParentUnits] = useState<Property[]>([]);
   const [loadingUnits, setLoadingUnits] = useState(false);
 
@@ -220,6 +219,130 @@ export default function Admin() {
 
   const [adminBuildings, setAdminBuildings] = useState<any[]>([]);
   const [matchingBuilding, setMatchingBuilding] = useState<any | null>(null);
+
+  // Renter unit assignment state for Admin.tsx
+  const [unitForRenterAssignment, setUnitForRenterAssignment] = useState<any | null>(null);
+  const [renterAssignmentMode, setRenterAssignmentMode] = useState<'existing' | 'new'>('existing');
+  const [availableRenterUsers, setAvailableRenterUsers] = useState<any[]>([]);
+  const [selectedRenterUserId, setSelectedRenterUserId] = useState('');
+  const [renterSearchQuery, setRenterSearchQuery] = useState('');
+  const [newUnitRenterName, setNewUnitRenterName] = useState('');
+  const [newUnitRenterPhone, setNewUnitRenterPhone] = useState('');
+  const [isSavingRenterToUnit, setIsSavingRenterToUnit] = useState(false);
+
+  const fetchRenterUsersList = async () => {
+    try {
+      const res = await fetch('/api/admin/renters-users');
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableRenterUsers(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch renters list:", err);
+    }
+  };
+
+  const handleOpenAssignRenterModal = (unit: any) => {
+    setUnitForRenterAssignment(unit);
+    setRenterAssignmentMode('existing');
+    setSelectedRenterUserId(unit.renterId || '');
+    setRenterSearchQuery('');
+    setNewUnitRenterName('');
+    setNewUnitRenterPhone('');
+    fetchRenterUsersList();
+  };
+
+  const handleSaveRenterToUnit = async () => {
+    if (!unitForRenterAssignment) return;
+    setIsSavingRenterToUnit(true);
+    try {
+      let rId = '';
+      let rName = '';
+      let rPhone = '';
+
+      if (renterAssignmentMode === 'existing') {
+        const found = availableRenterUsers.find(r => r.id === selectedRenterUserId);
+        if (!found) {
+          await showAlert(language === 'ar' ? 'الرجاء اختيار مستأجر من القائمة' : 'Please select a renter from the list');
+          setIsSavingRenterToUnit(false);
+          return;
+        }
+        rId = found.id;
+        rName = found.name;
+        rPhone = found.phone;
+      } else {
+        if (!newUnitRenterName.trim() || !newUnitRenterPhone.trim()) {
+          await showAlert(language === 'ar' ? 'الرجاء كتابة اسم المستأجر ورقم الجوال' : 'Please enter renter name and phone');
+          setIsSavingRenterToUnit(false);
+          return;
+        }
+        const createRes = await fetch('/api/admin/renters-users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newUnitRenterName.trim(), phone: newUnitRenterPhone.trim() })
+        });
+        if (!createRes.ok) {
+          const errData = await createRes.json();
+          await showAlert(errData.error || (language === 'ar' ? 'فشل إضافة المستأجر' : 'Failed to create renter'));
+          setIsSavingRenterToUnit(false);
+          return;
+        }
+        const newRenterData = await createRes.json();
+        rId = newRenterData.id;
+        rName = newRenterData.name;
+        rPhone = newRenterData.phone;
+      }
+
+      // Update unit Property record with renter fields
+      const updateRes = await fetch(`/api/properties/${unitForRenterAssignment.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...unitForRenterAssignment,
+          renterId: rId,
+          renterName: rName,
+          renterPhone: rPhone
+        })
+      });
+
+      if (updateRes.ok) {
+        showSubmitMessage('success', language === 'ar' ? 'تم تعيين المستأجر للوحدة بنجاح' : 'Renter assigned to unit successfully');
+        setUnitForRenterAssignment(null);
+        if (selectedParentProperty) {
+          fetchUnitsForParent(selectedParentProperty.id);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlert(language === 'ar' ? 'حدث خطأ أثناء حفظ المستأجر' : 'Error assigning renter');
+    } finally {
+      setIsSavingRenterToUnit(false);
+    }
+  };
+
+  const handleUnassignRenterFromPropertyUnit = async (unit: any) => {
+    const confirmed = await showConfirm(language === 'ar' ? 'هل أنت تأكد من إلغاء تعيين هذا المستأجر من الوحدة؟' : 'Are you sure you want to unassign this renter from the unit?');
+    if (!confirmed) return;
+    try {
+      const updateRes = await fetch(`/api/properties/${unit.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...unit,
+          renterId: null,
+          renterName: null,
+          renterPhone: null
+        })
+      });
+      if (updateRes.ok) {
+        if (selectedParentProperty) {
+          fetchUnitsForParent(selectedParentProperty.id);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchAdminBuildings = async () => {
     try {
@@ -293,6 +416,13 @@ export default function Admin() {
   const [techhubApiKey, setTechhubApiKey] = useState('');
   const [techhubSandboxMode, setTechhubSandboxMode] = useState(true);
   const [syncingTechHub, setSyncingTechHub] = useState(false);
+
+  // VerifyKit Settings State
+  const [verifyKitEnabled, setVerifyKitEnabled] = useState(true);
+  const [verifyKitAppKey, setVerifyKitAppKey] = useState('AxaVaO8JfW2OMj');
+  const [verifyKitServerKey, setVerifyKitServerKey] = useState('Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6');
+  const [verifyKitDomain, setVerifyKitDomain] = useState('https://rbmc.sa');
+  const [verifyKitDeeplink, setVerifyKitDeeplink] = useState('vfk300403://welcome');
 
   // SMTP Settings State
   const [smtpHost, setSmtpHost] = useState('');
@@ -453,6 +583,13 @@ export default function Admin() {
       if (data.techhubClientSecret !== undefined) setTechhubClientSecret(data.techhubClientSecret || '');
       if (data.techhubApiKey !== undefined) setTechhubApiKey(data.techhubApiKey || '');
       if (data.techhubSandboxMode !== undefined) setTechhubSandboxMode(data.techhubSandboxMode);
+
+      // Load VerifyKit Settings
+      if (data.verifyKitEnabled !== undefined) setVerifyKitEnabled(data.verifyKitEnabled);
+      if (data.verifyKitAppKey !== undefined) setVerifyKitAppKey(data.verifyKitAppKey || 'AxaVaO8JfW2OMj');
+      if (data.verifyKitServerKey !== undefined) setVerifyKitServerKey(data.verifyKitServerKey || 'Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6');
+      if (data.verifyKitDomain !== undefined) setVerifyKitDomain(data.verifyKitDomain || 'https://rbmc.sa');
+      if (data.verifyKitDeeplink !== undefined) setVerifyKitDeeplink(data.verifyKitDeeplink || 'vfk300403://welcome');
     } catch (err) {
       console.error(err);
     }
@@ -1210,7 +1347,12 @@ export default function Admin() {
         techhubClientId,
         techhubClientSecret,
         techhubApiKey,
-        techhubSandboxMode
+        techhubSandboxMode,
+        verifyKitEnabled,
+        verifyKitAppKey,
+        verifyKitServerKey,
+        verifyKitDomain,
+        verifyKitDeeplink
       };
 
       if (activeSettingsSection === 'social') {
@@ -1362,17 +1504,29 @@ export default function Admin() {
               {language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects'}
             </button>
           )}
-
-          {hasTabPermission('receipts', userRole) && (
+          {hasTabPermission('renters', userRole) && (
             <button 
-              onClick={() => setActiveTab('receipts')}
+              onClick={() => setActiveTab('renters')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'receipts' 
+                activeTab === 'renters' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
-              {language === 'ar' ? 'الإيصالات' : 'Receipts'}
+              {language === 'ar' ? 'المستأجرين' : 'Renters'}
+            </button>
+          )}
+
+          {hasTabPermission('maintenance', userRole) && (
+            <button 
+              onClick={() => setActiveTab('maintenance')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'maintenance' 
+                  ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'بلاغات الصيانة' : 'Maintenance Reports'}
             </button>
           )}
           {hasTabPermission('analytics', userRole) && (
@@ -1446,9 +1600,8 @@ export default function Admin() {
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
             {activeTab === 'projects' && <AdminProjects />}
-            {activeTab === 'buildings' && <AdminBuildings />}
             {activeTab === 'renters' && <AdminRenters />}
-            {activeTab === 'receipts' && <AdminReceipts />}
+            {activeTab === 'maintenance' && <AdminMaintenance />}
 
             {activeTab === 'manage' && (
           <div className="min-h-[500px]">
@@ -1544,7 +1697,8 @@ export default function Admin() {
                         }}
                         className="bg-background border border-border text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground h-9"
                       >
-                        <option value="PUBLISHED">{language === 'ar' ? 'منشور' : 'Published'}</option>
+                        <option value="PUBLISHED">{language === 'ar' ? 'منشور (ظاهر للمستخدمين)' : 'Published (Visible)'}</option>
+                        <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في صفحة العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
                         <option value="DRAFT">{language === 'ar' ? 'مسودة' : 'Draft'}</option>
                       </select>
                       <button
@@ -1576,41 +1730,10 @@ export default function Admin() {
                     </div>
                   </div>
 
-                  {/* Sub-property details tabs */}
-                  <div className="flex border-b border-border gap-2 select-none">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedParentTab('units')}
-                      className={`px-4 py-2 text-xs font-bold transition-all cursor-pointer border-b-2 -mb-px ${
-                        selectedParentTab === 'units'
-                          ? 'border-primary text-primary font-black'
-                          : 'border-transparent text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {language === 'ar' ? 'الوحدات السكنية' : 'Units'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedParentTab('renters')}
-                      className={`px-4 py-2 text-xs font-bold transition-all cursor-pointer border-b-2 -mb-px ${
-                        selectedParentTab === 'renters'
-                          ? 'border-primary text-primary font-black'
-                          : 'border-transparent text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {language === 'ar' ? 'المستأجرين والعقود' : 'Renters & Contracts'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedParentTab('details')}
-                      className={`px-4 py-2 text-xs font-bold transition-all cursor-pointer border-b-2 -mb-px ${
-                        selectedParentTab === 'details'
-                          ? 'border-primary text-primary font-black'
-                          : 'border-transparent text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {language === 'ar' ? 'تفاصيل الحساب والصور' : 'Bank Transfer & Photos'}
-                    </button>
+                  <div className="flex border-b border-border gap-2 select-none mb-4">
+                    <div className="px-4 py-2 text-xs font-black border-b-2 border-primary text-primary">
+                      {language === 'ar' ? 'وحدات العقار' : 'Property Units'}
+                    </div>
                   </div>
 
                   {selectedParentTab === 'units' && (
@@ -1702,6 +1825,7 @@ export default function Admin() {
                                 <th className="p-3 font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
                                 <th className="p-3 font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
                                 <th className="p-3 font-bold">{language === 'ar' ? 'المساحة' : 'Area'}</th>
+                                <th className="p-3 font-bold">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
                                 <th className="p-3 font-bold text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
                                 <th className="p-3 font-bold text-center">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
                               </tr>
@@ -1721,6 +1845,34 @@ export default function Admin() {
                                     </td>
                                     <td className="p-3 font-mono text-muted-foreground">
                                       {unit.area} {t('common.sqm')}
+                                    </td>
+                                    <td className="p-3">
+                                      {unit.renterName ? (
+                                        <div className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
+                                          <User className="w-3.5 h-3.5" />
+                                          <div className="text-right rtl:text-right ltr:text-left">
+                                            <p className="leading-tight">{unit.renterName}</p>
+                                            {unit.renterPhone && <p className="text-[9px] font-mono opacity-80 leading-none mt-0.5" dir="ltr">{unit.renterPhone}</p>}
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUnassignRenterFromPropertyUnit(unit)}
+                                            className="text-red-400 hover:text-red-500 p-0.5 ml-1 rounded transition-colors cursor-pointer"
+                                            title={language === 'ar' ? 'إلغاء تعيين المستأجر' : 'Unassign Renter'}
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenAssignRenterModal(unit)}
+                                          className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-primary/40 text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                                        >
+                                          <UserPlus className="w-3.5 h-3.5" />
+                                          <span>{language === 'ar' ? 'تعيين مستأجر' : 'Assign Renter'}</span>
+                                        </button>
+                                      )}
                                     </td>
                                     <td className="p-3 text-center">
                                       <select
@@ -1780,17 +1932,14 @@ export default function Admin() {
 
                   {selectedParentTab === 'renters' && (
                     <div className="animate-in fade-in duration-300">
-                      <AdminBuildings selectedBuildingId={matchingBuilding?.id} inlineMode="renters" />
+                      <AdminRenters />
                     </div>
                   )}
 
                   {selectedParentTab === 'details' && (
-                    <div className="animate-in fade-in duration-300">
-                      <AdminBuildings 
-                        selectedBuildingId={matchingBuilding?.id} 
-                        inlineMode="details" 
-                        parentPropertyId={selectedParentProperty?.id} 
-                      />
+                    <div className="animate-in fade-in duration-300 p-6 bg-card border border-border rounded-2xl">
+                      <h4 className="font-bold text-lg text-foreground mb-2">{selectedParentProperty?.titleAr}</h4>
+                      <p className="text-xs text-muted-foreground">{selectedParentProperty?.description}</p>
                     </div>
                   )}
                 </div>
@@ -1937,7 +2086,8 @@ export default function Admin() {
                                                 <option value="PUBLISHED">{language === 'ar' ? 'متاح' : 'Available'}</option>
                                                 <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
                                                 <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
-                                                <option value="DRAFT">{language === 'ar' ? 'مخفي' : 'Hidden (Draft)'}</option>
+                                                <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
+                                     <option value="DRAFT">{language === 'ar' ? 'مسودة' : 'Draft'}</option>
                                               </select>
                                             </td>
                                             <td className="p-2.5 text-center">
@@ -4453,6 +4603,172 @@ export default function Admin() {
                   })()}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Renter to Unit Modal */}
+      {unitForRenterAssignment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">
+                    {language === 'ar' ? 'تعيين مستأجر للوحدة' : 'Assign Renter to Unit'}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {unitForRenterAssignment.titleAr || unitForRenterAssignment.titleEn}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUnitForRenterAssignment(null)}
+                className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Option Selector: Choose existing or Add new */}
+              <div className="flex bg-muted p-1 rounded-xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => setRenterAssignmentMode('existing')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    renterAssignmentMode === 'existing'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {language === 'ar' ? 'اختيار مستأجر حالي' : 'Select Existing Renter'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRenterAssignmentMode('new')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    renterAssignmentMode === 'new'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {language === 'ar' ? 'إضافة مستأجر جديد' : 'Create New Renter'}
+                </button>
+              </div>
+
+              {renterAssignmentMode === 'existing' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 border border-border rounded-xl px-3 bg-background focus-within:ring-1 focus-within:ring-primary h-9">
+                    <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <input
+                      type="text"
+                      value={renterSearchQuery}
+                      onChange={(e) => setRenterSearchQuery(e.target.value)}
+                      placeholder={language === 'ar' ? 'ابحث باسم المستأجر أو رقم الجوال...' : 'Search renter by name or phone...'}
+                      className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-xs text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+
+                  <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                    {(() => {
+                      const filteredRenters = availableRenterUsers.filter(r => {
+                        const q = renterSearchQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        return (r.name && r.name.toLowerCase().includes(q)) || (r.phone && r.phone.includes(q));
+                      });
+
+                      if (filteredRenters.length === 0) {
+                        return (
+                          <div className="text-center py-6 text-xs text-muted-foreground">
+                            {language === 'ar' ? 'لم يتم العثور على مستأجر مطابق' : 'No matching renters found'}
+                          </div>
+                        );
+                      }
+
+                      return filteredRenters.map(renter => {
+                        const isSelected = selectedRenterUserId === renter.id;
+                        return (
+                          <div
+                            key={renter.id}
+                            onClick={() => setSelectedRenterUserId(renter.id)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                              isSelected
+                                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                                : 'border-border/70 hover:border-primary/40 bg-card hover:bg-muted/40 text-foreground'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                                isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                              }`}>
+                                <User className="w-3.5 h-3.5" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold">{renter.name}</p>
+                                <p className="text-[10px] text-muted-foreground font-mono" dir="ltr">{renter.phone}</p>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                                <Check className="w-3 h-3" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="cn-label mb-1">{language === 'ar' ? 'اسم المستأجر الكامل' : 'Full Name'}</label>
+                    <input
+                      type="text"
+                      value={newUnitRenterName}
+                      onChange={(e) => setNewUnitRenterName(e.target.value)}
+                      placeholder={language === 'ar' ? 'مثال: محمد أحمد علي' : 'e.g. John Doe'}
+                      className="cn-input text-xs h-9 bg-background"
+                    />
+                  </div>
+                  <div>
+                    <label className="cn-label mb-1">{language === 'ar' ? 'رقم الجوال' : 'Phone Number'}</label>
+                    <input
+                      type="text"
+                      value={newUnitRenterPhone}
+                      onChange={(e) => setNewUnitRenterPhone(e.target.value)}
+                      placeholder="0500000000"
+                      className="cn-input text-xs h-9 bg-background"
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-border bg-muted/20 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setUnitForRenterAssignment(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold border border-border hover:bg-muted text-foreground transition-colors cursor-pointer"
+              >
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveRenterToUnit}
+                disabled={isSavingRenterToUnit}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isSavingRenterToUnit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>{language === 'ar' ? 'حفظ وتعيين' : 'Save & Assign'}</span>
+              </button>
             </div>
           </div>
         </div>

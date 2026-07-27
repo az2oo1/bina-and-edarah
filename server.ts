@@ -255,8 +255,8 @@ There is a new contact or callback request on the platform. Please log in to the
 }
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'analytics', 'settings', 'callbacks', 'users', 'logs'],
-  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'receipts', 'callbacks', 'analytics'],
+  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'analytics', 'settings', 'callbacks', 'users', 'logs'],
+  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'callbacks', 'analytics'],
   AGENT: ['properties', 'projects', 'callbacks']
 };
 
@@ -1710,16 +1710,348 @@ async function startServer() {
     }
   });
 
+  // Sync renters to Renter User model
+  async function syncRentersToUsers() {
+    try {
+      const renterUnits = await prisma.renterUnit.findMany({
+        where: {
+          OR: [
+            { renterPhone: { not: null } },
+            { renterName: { not: null } }
+          ]
+        }
+      });
+
+      for (const unit of renterUnits) {
+        if (!unit.renterPhone && !unit.renterName) continue;
+        let normalized = (unit.renterPhone || '').trim().replace(/\D/g, '');
+        if (normalized.startsWith('966')) normalized = normalized.substring(3);
+        normalized = normalized.replace(/^0+/, '');
+
+        if (!normalized) normalized = `renter_${unit.id.substring(0, 8)}`;
+
+        let renter = await prisma.renter.findUnique({
+          where: { phone: normalized }
+        });
+
+        if (!renter) {
+          renter = await prisma.renter.create({
+            data: {
+              name: unit.renterName || 'مستأجر',
+              phone: normalized
+            }
+          });
+        }
+
+        if (!unit.renterId) {
+          await prisma.renterUnit.update({
+            where: { id: unit.id },
+            data: { renterId: renter.id }
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to sync renters:", err);
+    }
+  }
+  syncRentersToUsers();
+
   app.get('/api/admin/renters', requirePermission('renters'), async (req, res) => {
     try {
       const renters = await prisma.renterUnit.findMany({
-        include: { building: true, rentHistory: { orderBy: { dueDate: 'asc' } } },
+        include: { building: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } },
         orderBy: { renterName: 'asc' }
       });
       res.json(renters);
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Failed to fetch renters" });
+    }
+  });
+
+  // --- Renter Users API ---
+  app.get('/api/admin/renters-users', requirePermission('renters'), async (req, res) => {
+    try {
+      const renters = await prisma.renter.findMany({
+        include: {
+          units: {
+            include: { building: true }
+          },
+          maintenanceReports: true
+        },
+        orderBy: { name: 'asc' }
+      });
+      res.json(renters);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch renter users" });
+    }
+  });
+
+  app.post('/api/admin/renters-users', requirePermission('renters'), async (req, res) => {
+    try {
+      const { name, phone, unitIds } = req.body;
+      if (!name || !phone) return res.status(400).json({ error: "Name and Phone are required" });
+
+      let normalizedPhone = phone.trim().replace(/\D/g, '');
+      if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+      normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+      const existing = await prisma.renter.findUnique({ where: { phone: normalizedPhone } });
+      if (existing) return res.status(400).json({ error: "رقم الجوال مسجل لمستأجر آخر بالفعل" });
+
+      const renter = await prisma.renter.create({
+        data: { name, phone: normalizedPhone }
+      });
+
+      if (Array.isArray(unitIds) && unitIds.length > 0) {
+        await prisma.renterUnit.updateMany({
+          where: { id: { in: unitIds } },
+          data: {
+            renterId: renter.id,
+            renterName: name,
+            renterPhone: normalizedPhone
+          }
+        });
+      }
+
+      await logAction(req, "CREATE_RENTER_USER", `Created renter user: ${name} (${normalizedPhone})`);
+      res.json(renter);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to create renter user" });
+    }
+  });
+
+  app.put('/api/admin/renters-users/:id', requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, phone } = req.body;
+      if (!name || !phone) return res.status(400).json({ error: "Name and Phone are required" });
+
+      let normalizedPhone = phone.trim().replace(/\D/g, '');
+      if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+      normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+      const updated = await prisma.renter.update({
+        where: { id },
+        data: { name, phone: normalizedPhone }
+      });
+
+      // propagate to units
+      await prisma.renterUnit.updateMany({
+        where: { renterId: id },
+        data: { renterName: name, renterPhone: normalizedPhone }
+      });
+
+      await logAction(req, "UPDATE_RENTER_USER", `Updated renter user: ${name} (${normalizedPhone})`);
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to update renter user" });
+    }
+  });
+
+  app.delete('/api/admin/renters-users/:id', requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      await prisma.renterUnit.updateMany({
+        where: { renterId: id },
+        data: { renterId: null }
+      });
+      await prisma.renter.delete({ where: { id } });
+      await logAction(req, "DELETE_RENTER_USER", `Deleted renter user ID: ${id}`);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to delete renter user" });
+    }
+  });
+
+  app.post('/api/admin/units/:unitId/assign-renter', requirePermission('renters'), async (req, res) => {
+    try {
+      const { unitId } = req.params;
+      const { renterId } = req.body; // null to unassign, or renter ID
+
+      if (!renterId) {
+        const updated = await prisma.renterUnit.update({
+          where: { id: unitId },
+          data: { renterId: null }
+        });
+        return res.json(updated);
+      }
+
+      const renter = await prisma.renter.findUnique({ where: { id: renterId } });
+      if (!renter) return res.status(404).json({ error: "Renter user not found" });
+
+      const updated = await prisma.renterUnit.update({
+        where: { id: unitId },
+        data: {
+          renterId: renter.id,
+          renterName: renter.name,
+          renterPhone: renter.phone
+        }
+      });
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to assign renter to unit" });
+    }
+  });
+
+
+  // --- Maintenance Reports API ---
+  app.post('/api/renter/maintenance-reports', async (req, res) => {
+    try {
+      const { phone, renterUnitId, description, images, category, priority } = req.body;
+      if (!description || !renterUnitId) {
+        return res.status(400).json({ error: "الوصف والوحدة متطلبان لإرسال البلاغ" });
+      }
+
+      let normalizedPhone = (phone || '').trim().replace(/\D/g, '');
+      if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+      normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+      const unit = await prisma.renterUnit.findUnique({
+        where: { id: renterUnitId },
+        include: { renter: true }
+      });
+
+      if (!unit) return res.status(404).json({ error: "الوحدة غير موجودة" });
+
+      let renter = unit.renter;
+      if (!renter && normalizedPhone) {
+        renter = await prisma.renter.findUnique({ where: { phone: normalizedPhone } });
+      }
+      if (!renter) {
+        renter = await prisma.renter.create({
+          data: {
+            name: unit.renterName || 'مستأجر',
+            phone: normalizedPhone || '0500000000'
+          }
+        });
+      }
+
+      // process up to 4 images
+      const rawImages: string[] = Array.isArray(images) ? images.slice(0, 4) : [];
+      const savedImages: string[] = [];
+      for (const img of rawImages) {
+        if (typeof img === 'string' && img.length > 0) {
+          savedImages.push(saveBase64Image(img));
+        }
+      }
+
+      const report = await prisma.maintenanceReport.create({
+        data: {
+          description,
+          category: category || "GENERAL",
+          priority: priority || "NORMAL",
+          images: JSON.stringify(savedImages),
+          status: 'PENDING',
+          renterId: renter.id,
+          renterUnitId: unit.id
+        },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } }
+        }
+      });
+
+      res.json(report);
+    } catch (err) {
+      console.error("Error creating maintenance report:", err);
+      res.status(500).json({ error: "فشل إرسال بلاغ الصيانة" });
+    }
+  });
+
+  app.get('/api/renter/maintenance-reports', async (req, res) => {
+    try {
+      const phone = req.query.phone as string;
+      if (!phone) return res.status(400).json({ error: "Phone number required" });
+
+      let normalizedPhone = phone.trim().replace(/\D/g, '');
+      if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+      normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+      const reports = await prisma.maintenanceReport.findMany({
+        where: {
+          OR: [
+            { renter: { phone: normalizedPhone } },
+            { renterUnit: { renterPhone: normalizedPhone } }
+          ]
+        },
+        include: {
+          renterUnit: { include: { building: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      res.json(reports);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch maintenance reports" });
+    }
+  });
+
+  app.get('/api/admin/maintenance-reports', requirePermission('renters'), async (req, res) => {
+    try {
+      const { buildingId, status } = req.query;
+      const whereClause: any = {};
+      if (buildingId) {
+        whereClause.renterUnit = { buildingId: String(buildingId) };
+      }
+      if (status) {
+        whereClause.status = String(status);
+      }
+
+      const reports = await prisma.maintenanceReport.findMany({
+        where: whereClause,
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      res.json(reports);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch maintenance reports for admin" });
+    }
+  });
+
+  app.put('/api/admin/maintenance-reports/:id', requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, adminResponse } = req.body;
+
+      const updated = await prisma.maintenanceReport.update({
+        where: { id },
+        data: {
+          status: status || undefined,
+          adminResponse: adminResponse !== undefined ? adminResponse : undefined
+        },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } }
+        }
+      });
+
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to update maintenance report" });
+    }
+  });
+
+  app.delete('/api/admin/maintenance-reports/:id', requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      await prisma.maintenanceReport.delete({ where: { id } });
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to delete maintenance report" });
     }
   });
 
@@ -1734,9 +2066,14 @@ async function startServer() {
     if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
     normalizedPhone = normalizedPhone.replace(/^0+/, '');
 
-    // Check if phone exists in our imported active renter units
+    // Check if phone exists in our imported active renter units or Renter model
     const units = await prisma.renterUnit.findMany({
-      where: { renterPhone: normalizedPhone }
+      where: {
+        OR: [
+          { renterPhone: normalizedPhone },
+          { renter: { phone: normalizedPhone } }
+        ]
+      }
     });
 
     if (units.length === 0) {
@@ -1759,11 +2096,33 @@ async function startServer() {
     const settings = await prisma.settings.findUnique({ where: { id: "global" } });
     const webhookUrl = settings?.otpWebhookUrl || process.env.WHATOMATE_WEBHOOK_URL;
 
+    // VerifyKit Dispatch Integration
+    if (settings?.verifyKitEnabled && (settings?.verifyKitServerKey || settings?.verifyKitAppKey)) {
+      try {
+        const appKey = settings.verifyKitAppKey || "AxaVaO8JfW2OMj";
+        const serverKey = settings.verifyKitServerKey || "Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6";
+        await fetch("https://vapi.verifykit.com/v1/send-otp", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-VKit-App-Key': appKey,
+            'X-VKit-Server-Key': serverKey
+          },
+          body: JSON.stringify({
+            phoneNumber: phone,
+            otp: otp
+          })
+        }).catch(() => {});
+        logger.info(`Dispatched OTP via VerifyKit for phone: ${phone}`);
+      } catch (vkitErr) {
+        console.error("VerifyKit request error:", vkitErr);
+      }
+    }
+
     if (webhookUrl) {
       try {
         let payloadStr = settings?.otpWebhookPayload;
         
-        // If no custom JSON payload is set, use a fallback structure suitable for standard REST APIs
         if (!payloadStr || payloadStr.trim() === '') {
           payloadStr = JSON.stringify({
             phone: "{phone}",
@@ -1773,10 +2132,7 @@ async function startServer() {
           });
         }
 
-        // Replace placeholders safely via string replacement before parsing
         payloadStr = payloadStr.replace(/{phone}/g, phone).replace(/{otp}/g, otp);
-        
-        // Parse the evaluated JSON so it's sent as a proper JSON object payload, not a stringified string
         const payload = JSON.parse(payloadStr);
 
         await fetch(webhookUrl, {
@@ -1786,15 +2142,11 @@ async function startServer() {
         });
       } catch (err) {
         console.error("Failed to send webhook to Whatomate:", err);
-        // Continue, don't block login if webhook fails in preview
       }
     } else {
         console.log(`No WHATOMATE_WEBHOOK_URL setting found. OTP generated is: ${otp}`);
     }
 
-    // In development/preview we might need to return it so you don't get locked out, 
-    // but typically you wouldn't return OTP in response.
-    // For this preview we will log it.
     res.json({ success: true, fakeOtpDelivery: !webhookUrl ? otp : undefined }); 
   });
 
@@ -1825,26 +2177,38 @@ async function startServer() {
       logger.info(`Successful renter login for phone: ${normalizedPhone}`);
 
       if (validOtp) {
-        // Delete OTP so it can't be reused
         await prisma.otpSession.delete({ where: { id: validOtp.id } });
       }
 
       // Fetch user units
       const units = await prisma.renterUnit.findMany({
-        where: { renterPhone: normalizedPhone },
-        include: { building: true, rentHistory: { orderBy: { dueDate: 'asc' } } } 
+        where: {
+          OR: [
+            { renterPhone: normalizedPhone },
+            { renter: { phone: normalizedPhone } }
+          ]
+        },
+        include: { building: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } } 
       });
 
       const parsedData = (units || []).map(unit => ({
         id: unit.id,
         unitNumber: unit.unitNumber,
-        renterName: unit.renterName,
+        renterName: unit.renter?.name || unit.renterName || 'المستأجر',
+        renterPhone: unit.renter?.phone || unit.renterPhone || normalizedPhone,
         contractEndDate: unit.contractEndDate,
         nextRentDue: unit.nextRentDue,
         rentAmount: unit.rentAmount,
         isTanfeeth: unit.isTanfeeth,
         propertyName: unit.building?.name || 'مبنى غير معروف',
         transferDetails: unit.building?.transferDetails || null,
+        buildingPhotos: unit.building?.photos || '[]',
+        bedrooms: unit.bedrooms ?? 2,
+        bathrooms: unit.bathrooms ?? 2,
+        area: unit.area ?? 120,
+        floor: unit.floor || '1',
+        features: unit.features || 'مكيفات مجهزة, مطبخ راكب, موقف خاص, مصعد, إنتركوم ذكي',
+        photos: unit.photos && unit.photos !== '[]' ? unit.photos : (unit.building?.photos || '[]'),
         rentHistory: unit.rentHistory || []
       }));
 
@@ -1852,18 +2216,6 @@ async function startServer() {
     } catch (e: any) {
        console.error("Login route error:", e);
        res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Receipts API
-  app.get('/api/admin/receipts', requirePermission('receipts'), async (req, res) => {
-    try {
-      const receipts = await prisma.receipt.findMany({
-        orderBy: { createdAt: 'desc' }
-      });
-      res.json(receipts);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to fetch receipts" });
     }
   });
 
@@ -1875,21 +2227,10 @@ async function startServer() {
       const processedUrl = saveBase64Image(receiptUrl);
       const history = await prisma.rentHistory.update({
         where: { id: historyId },
-        data: { receiptUrl: processedUrl, paidDate: new Date().toLocaleDateString('en-GB') }, // Mark it paidish
+        data: { receiptUrl: processedUrl, paidDate: new Date().toLocaleDateString('en-GB') },
         include: { renterUnit: { include: { building: true } } }
       });
       
-      await prisma.receipt.create({
-        data: {
-          renterName: history.renterUnit.renterName,
-          renterPhone: history.renterUnit.renterPhone,
-          buildingName: history.renterUnit.building?.name,
-          unitNumber: history.renterUnit.unitNumber,
-          amount: history.amount || history.renterUnit.rentAmount?.toString(),
-          dueDate: history.dueDate,
-          receiptUrl: processedUrl
-        }
-      });
       res.json(history);
     } catch (err) {
       res.status(500).json({ error: "Failed to upload receipt" });
@@ -1965,7 +2306,7 @@ async function startServer() {
       // Public status filter
       if (!isAdmin) {
         andFilters.push({
-          status: { not: 'DRAFT' }
+          status: { notIn: ['DRAFT', 'HIDDEN'] }
         });
       }
 
@@ -2318,7 +2659,7 @@ async function startServer() {
       });
       if (!property) return res.status(404).json({ error: "Property not found" });
 
-      if (property.status === 'DRAFT') {
+      if (property.status === 'DRAFT' || property.status === 'HIDDEN') {
         let isAdmin = false;
         const token = req.cookies?.token;
         if (token) {
@@ -2780,7 +3121,13 @@ async function startServer() {
       `ALTER TABLE "Property" ADD COLUMN "status" text DEFAULT 'PUBLISHED'`,
       `ALTER TABLE Property ADD COLUMN status text DEFAULT 'PUBLISHED'`,
       `ALTER TABLE "Property" ADD COLUMN "vatNotApplicable" boolean DEFAULT false`,
-      `ALTER TABLE Property ADD COLUMN vatNotApplicable boolean DEFAULT false`
+      `ALTER TABLE Property ADD COLUMN vatNotApplicable boolean DEFAULT false`,
+      `ALTER TABLE "Property" ADD COLUMN "renterId" text`,
+      `ALTER TABLE Property ADD COLUMN renterId text`,
+      `ALTER TABLE "Property" ADD COLUMN "renterName" text`,
+      `ALTER TABLE Property ADD COLUMN renterName text`,
+      `ALTER TABLE "Property" ADD COLUMN "renterPhone" text`,
+      `ALTER TABLE Property ADD COLUMN renterPhone text`
     ];
     for (const cmd of alterCommands) {
       try {
@@ -2788,7 +3135,7 @@ async function startServer() {
       } catch (e: any) {
         const msg = String(e?.message || e);
         // Ignore expected "already exists" errors; surface anything else
-        if (!/already exists/i.test(msg)) {
+        if (!/already exists|duplicate column/i.test(msg)) {
           logger.error(`ensureDbColumnsExist: ALTER failed -> ${cmd} | ${msg}`);
         }
       }
@@ -2958,7 +3305,8 @@ async function startServer() {
         homeImages, logoUrl, email, instagramUrl, twitterUrl, facebookUrl, linkedinUrl, youtubeUrl, tiktokUrl, snapchatUrl, 
         notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, imapHost, imapPort, analyticsScript, analyticsDashboardUrl,
         addressAr, addressEn, addressMapLink,
-        techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode
+        techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode,
+        verifyKitEnabled, verifyKitAppKey, verifyKitServerKey, verifyKitDomain, verifyKitDeeplink
       } = req.body;
       
       const updateData: any = {};
@@ -3027,6 +3375,13 @@ async function startServer() {
       if (techhubClientSecret !== undefined) updateData.techhubClientSecret = techhubClientSecret;
       if (techhubApiKey !== undefined) updateData.techhubApiKey = techhubApiKey;
       if (techhubSandboxMode !== undefined) updateData.techhubSandboxMode = techhubSandboxMode;
+
+      // VerifyKit Settings
+      if (verifyKitEnabled !== undefined) updateData.verifyKitEnabled = verifyKitEnabled;
+      if (verifyKitAppKey !== undefined) updateData.verifyKitAppKey = verifyKitAppKey;
+      if (verifyKitServerKey !== undefined) updateData.verifyKitServerKey = verifyKitServerKey;
+      if (verifyKitDomain !== undefined) updateData.verifyKitDomain = verifyKitDomain;
+      if (verifyKitDeeplink !== undefined) updateData.verifyKitDeeplink = verifyKitDeeplink;
 
       const updated = await updateGlobalSettings(updateData);
       
@@ -3328,7 +3683,6 @@ async function startServer() {
         buildings: await prisma.building.findMany(),
         renterUnits: await prisma.renterUnit.findMany(),
         rentHistory: await prisma.rentHistory.findMany(),
-        receipts: await prisma.receipt.findMany(),
         settings: await prisma.settings.findMany(),
         users: await prisma.user.findMany(),
         admins: await prisma.admin.findMany(),
@@ -3359,7 +3713,6 @@ async function startServer() {
         projects: dbData.projects.length,
         buildings: dbData.buildings.length,
         renterUnits: dbData.renterUnits.length,
-        receipts: dbData.receipts.length,
         admins: dbData.admins.length,
         callbackRequests: dbData.callbackRequests.length,
         actionLogs: dbData.actionLogs.length
@@ -3422,7 +3775,6 @@ async function startServer() {
         await tx.callbackRequest.deleteMany();
         await tx.pageView.deleteMany();
         await tx.otpSession.deleteMany();
-        await tx.receipt.deleteMany();
         await tx.rentHistory.deleteMany();
         await tx.renterUnit.deleteMany();
         await tx.building.deleteMany();
@@ -3476,9 +3828,6 @@ async function startServer() {
         }
         if (dbData.rentHistory && dbData.rentHistory.length > 0) {
           await tx.rentHistory.createMany({ data: dbData.rentHistory });
-        }
-        if (dbData.receipts && dbData.receipts.length > 0) {
-          await tx.receipt.createMany({ data: dbData.receipts });
         }
         if (dbData.callbackRequests && dbData.callbackRequests.length > 0) {
           await tx.callbackRequest.createMany({ data: dbData.callbackRequests });
@@ -4040,7 +4389,7 @@ async function startServer() {
   // Synchronize DB schema and generate client dynamically (especially in production PostgreSQL environments)
   try {
     console.log("Synchronizing database schema and generating client via Prisma...");
-    execSync("npx prisma db push && npx prisma generate", { stdio: 'inherit' });
+    execSync("npx prisma db push --skip-generate", { stdio: 'inherit' });
     console.log("Database schema synchronized and client regenerated successfully.");
   } catch (dbError) {
     console.error("Prisma schema sync or client generation skipped/failed:", dbError);

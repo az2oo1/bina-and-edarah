@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { motion } from 'motion/react';
-import { Users, Search, Building2, Phone, Calendar, Wallet, X, CheckCircle2, ArrowRight, Trash2, Eye, Loader2 } from 'lucide-react';
-import { SrIcon } from '../components/SrIcon';
+import { Users, Search, Building2, Phone, Plus, UserPlus, Pencil, Trash2, Home, Check, Loader2, X, Wrench, Calendar, FileText } from 'lucide-react';
 import { useDialog } from '../context/DialogContext';
-import { getRentStatus } from '../utils/rentStatus';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -15,638 +12,535 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   >
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
   </svg>
-)
+);
 
-interface RentHistory {
-  id: string;
-  dueDate: string;
-  paidDate: string;
-  amount: string;
-  receiptUrl: string | null;
-}
-
-interface Renter {
+interface RenterUnit {
   id: string;
   unitNumber: string;
-  renterName: string;
-  renterPhone: string;
-  contractEndDate: string;
-  nextRentDue: string;
+  contractEndDate: string | null;
   rentAmount: number | null;
-  building: {
+  building?: {
+    id: string;
     name: string;
   };
-  rentHistory: RentHistory[];
 }
 
-export interface AdminRentersProps {
-  selectedBuildingId?: string;
-  selectedBuildingName?: string;
+interface RenterUser {
+  id: string;
+  name: string;
+  phone: string;
+  createdAt: string;
+  units: RenterUnit[];
 }
 
-export default function AdminRenters({ selectedBuildingId, selectedBuildingName }: AdminRentersProps = {}) {
+interface Building {
+  id: string;
+  name: string;
+  units?: RenterUnit[];
+}
+
+export default function AdminRenters() {
   const { language } = useLanguage();
-  const { showAlert } = useDialog();
-  const [renters, setRenters] = useState<Renter[]>([]);
+  const { showAlert, showConfirm } = useDialog();
+
+  const [renters, setRenters] = useState<RenterUser[]>([]);
+  const [allUnits, setAllUnits] = useState<RenterUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [deleteUnitConfirmId, setDeleteUnitConfirmId] = useState<string | null>(null);
-  
-  const [selectedRenterPhone, setSelectedRenterPhone] = useState<string | null>(null);
 
-  // Edit Renter State
-  const [editingRenter, setEditingRenter] = useState<Renter | null>(null);
-  const [editRenterName, setEditRenterName] = useState('');
-  const [editRenterPhone, setEditRenterPhone] = useState('');
-  const [propagateToAll, setPropagateToAll] = useState(true);
+  // Add / Edit Renter Modal
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingRenter, setEditingRenter] = useState<RenterUser | null>(null);
+  const [renterNameInput, setRenterNameInput] = useState('');
+  const [renterPhoneInput, setRenterPhoneInput] = useState('');
   const [savingRenter, setSavingRenter] = useState(false);
 
-  const handleSaveRenter = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingRenter) return;
-    setSavingRenter(true);
+  // Assign Unit Modal
+  const [assigningRenter, setAssigningRenter] = useState<RenterUser | null>(null);
+  const [selectedUnitIdToAssign, setSelectedUnitIdToAssign] = useState('');
+  const [unitSearchQuery, setUnitSearchQuery] = useState('');
+  const [assigningUnit, setAssigningUnit] = useState(false);
+
+  const fetchRenterUsers = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`/api/admin/renters/${editingRenter.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          renterName: editRenterName,
-          renterPhone: editRenterPhone,
-          propagateToAll
-        })
-      });
+      const res = await fetch('/api/admin/renters-users');
       if (res.ok) {
-        setEditingRenter(null);
-        fetchRenters();
-        if (selectedRenterPhone === editingRenter.renterPhone) {
-          let normalizedNewPhone = editRenterPhone.trim().replace(/\D/g, '');
-          if (normalizedNewPhone.startsWith('966')) normalizedNewPhone = normalizedNewPhone.substring(3);
-          normalizedNewPhone = normalizedNewPhone.replace(/^0+/, '');
-          setSelectedRenterPhone(normalizedNewPhone);
-        }
-      } else {
-        const data = await res.json().catch(() => ({}));
-        await showAlert(data.error || (language === 'ar' ? 'فشل تحديث بيانات المستأجر.' : 'Failed to update renter details.'));
+        const data = await res.json();
+        setRenters(data);
+      }
+      // Also fetch all units for assignment
+      const rentersUnitsRes = await fetch('/api/admin/renters');
+      if (rentersUnitsRes.ok) {
+        const unitsData = await rentersUnitsRes.json();
+        setAllUnits(unitsData);
       }
     } catch (err) {
       console.error(err);
-      await showAlert(language === 'ar' ? 'حدث خطأ في النظام.' : 'System error.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRenterUsers();
+  }, []);
+
+  const handleSaveRenterUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renterNameInput || !renterPhoneInput) return;
+
+    setSavingRenter(true);
+    try {
+      const isEdit = !!editingRenter;
+      const url = isEdit ? `/api/admin/renters-users/${editingRenter.id}` : '/api/admin/renters-users';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: renterNameInput,
+          phone: renterPhoneInput
+        })
+      });
+
+      if (res.ok) {
+        setIsAddModalOpen(false);
+        setEditingRenter(null);
+        setRenterNameInput('');
+        setRenterPhoneInput('');
+        fetchRenterUsers();
+        await showAlert(language === 'ar' ? 'تم حفظ بيانات المستأجر بنجاح' : 'Renter saved successfully');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        await showAlert(data.error || (language === 'ar' ? 'حدث خطأ أثناء الحفظ' : 'Failed to save renter'));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlert(language === 'ar' ? 'حدث خطأ في النظام' : 'System error');
     } finally {
       setSavingRenter(false);
     }
   };
 
-  const fetchRenters = () => {
-    setLoading(true);
-    fetch('/api/admin/renters')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          if (selectedBuildingId) {
-            setRenters(data.filter((r: any) => r.buildingId === selectedBuildingId));
-          } else {
-            setRenters(data);
-          }
-        } else {
-          setRenters([]);
-        }
-        setLoading(false);
-      });
-  };
+  const handleDeleteRenterUser = async (renterId: string) => {
+    const confirmed = await showConfirm(
+      language === 'ar' ? 'هل أنت تأكد من حذف هذا المستأجر من النظام؟' : 'Are you sure you want to delete this renter user?'
+    );
+    if (!confirmed) return;
 
-  useEffect(() => {
-    fetchRenters();
-  }, [selectedBuildingId]);
-
-  const executeDeleteUnit = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/units/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/renters-users/${renterId}`, {
+        method: 'DELETE'
+      });
       if (res.ok) {
-        setDeleteUnitConfirmId(null);
-        fetchRenters();
-        // If they just deleted the only unit for this customer, close the modal later or just let the empty state show.
-      } else {
-        await showAlert(language === 'ar' ? 'فشل حذف الوحدة' : 'Failed to delete unit.');
+        fetchRenterUsers();
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // Group renters by phone so we have a unified "accounts" list
-  const groupedRenters = React.useMemo(() => {
-    const acc = new Map<string, typeof renters[0] & { totalUnits: number, allBuildings: string[], allNames: string[], allUnitNumbers: string[], totalRentAmount: number }>();
-    for (const r of renters) {
-      const isAvailable = r.renterName.includes('متاح') || r.renterName.includes('فاضي') || r.renterName.includes('شاغر') || r.renterName.includes('غيرمؤجر') || r.renterName.includes('غير مؤجر');
-      if (isAvailable) continue;
-      const key = r.renterPhone && r.renterPhone.trim() !== '' ? r.renterPhone : `temp_unit_${r.id}`;
-      if (!acc.has(key)) {
-        acc.set(key, { ...r, totalUnits: 1, allBuildings: r.building?.name ? [r.building.name] : [], allNames: [r.renterName], allUnitNumbers: [r.unitNumber], totalRentAmount: r.rentAmount || 0 });
+  const handleAssignUnitToRenter = async () => {
+    if (!assigningRenter || !selectedUnitIdToAssign) return;
+    setAssigningUnit(true);
+    try {
+      const res = await fetch(`/api/admin/units/${selectedUnitIdToAssign}/assign-renter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ renterId: assigningRenter.id })
+      });
+
+      if (res.ok) {
+        setAssigningRenter(null);
+        setSelectedUnitIdToAssign('');
+        fetchRenterUsers();
+        await showAlert(language === 'ar' ? 'تم ربط الوحدة بالمستأجر بنجاح' : 'Unit assigned successfully');
       } else {
-        const existing = acc.get(key)!;
-        existing.totalUnits++;
-        if (r.building?.name && !existing.allBuildings.includes(r.building.name)) {
-          existing.allBuildings.push(r.building.name);
-        }
-        if (!existing.allNames.includes(r.renterName)) {
-          existing.allNames.push(r.renterName);
-        }
-        if (!existing.allUnitNumbers.includes(r.unitNumber)) {
-          existing.allUnitNumbers.push(r.unitNumber);
-        }
-        if (r.rentAmount) {
-          existing.totalRentAmount += r.rentAmount;
-        }
+        await showAlert(language === 'ar' ? 'فشل ربط الوحدة' : 'Failed to assign unit');
       }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAssigningUnit(false);
     }
-    return Array.from(acc.values());
-  }, [renters]);
-
-  const filtered = groupedRenters.filter(r => 
-    r.allNames.some(n => n.includes(search)) || 
-    (r.renterPhone && r.renterPhone.includes(search)) || 
-    r.unitNumber.includes(search) ||
-    r.allBuildings.some(b => b.includes(search))
-  );
-
-  // For the account popup
-  const customerUnits = selectedRenterPhone ? renters.filter(r => r.renterPhone === selectedRenterPhone) : [];
-  const customerNames: string[] = Array.from(new Set(customerUnits.map(u => u.renterName)));
-  const customerName = customerNames.join(' | ');
-  const customerHasCourtOrder = customerUnits.some(u => u.isTanfeeth);
-
-  const openWhatsApp = (phone: string, names: string[]) => {
-    const formatted = phone.replace(/^0+/, '');
-    const wsNumber = `966${formatted}`;
-    const message = language === 'ar' ? `مرحباً ${names.join(' / ')}،` : `Hello ${names.join(' / ')},`;
-    window.open(`https://wa.me/${wsNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
+
+  const handleUnassignUnit = async (unitId: string) => {
+    try {
+      const res = await fetch(`/api/admin/units/${unitId}/assign-renter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ renterId: null })
+      });
+
+      if (res.ok) {
+        fetchRenterUsers();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openWhatsApp = (phone: string, name: string) => {
+    let normalized = phone.replace(/\D/g, '');
+    if (normalized.startsWith('0')) normalized = '966' + normalized.substring(1);
+    if (!normalized.startsWith('966')) normalized = '966' + normalized;
+    window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(`مرحباً ${name}`)}`, '_blank');
+  };
+
+  const filteredRenters = renters.filter(r => {
+    const query = search.toLowerCase();
+    const nameMatch = (r.name || '').toLowerCase().includes(query);
+    const phoneMatch = (r.phone || '').toLowerCase().includes(query);
+    const unitMatch = r.units.some(u => 
+      (u.unitNumber || '').toLowerCase().includes(query) || 
+      (u.building?.name || '').toLowerCase().includes(query)
+    );
+    return nameMatch || phoneMatch || unitMatch;
+  });
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-8"
-    >
-      {selectedRenterPhone && customerUnits.length > 0 ? (
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 pb-4 border-b border-border mb-4">
-             <button onClick={() => { setSelectedRenterPhone(null); }} className="w-7 h-7 bg-white rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
-                <ArrowRight className="w-5 h-5 rtl:block hidden" />
-                <ArrowRight className="w-5 h-5 ltr:block hidden rotate-180" />
-             </button>
-             <h2 className="text-sm font-bold text-foreground">{language === 'ar' ? 'تفاصيل الحساب' : 'Account Details'}</h2>
-          </div>
-          
-          <div className="bg-card rounded-lg border border-border w-full overflow-hidden shadow-xs flex flex-col">
-             <div className="bg-slate-50 border-b border-border p-4 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded border border-border flex items-center justify-center ${customerHasCourtOrder ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-100 text-primary'}`}>
-                    <Users className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                      {customerName}
-                      {customerHasCourtOrder && (
-                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-md font-bold uppercase tracking-wider flex items-center gap-1">
-                           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                           {language === 'ar' ? 'يوجد أمر محكمة' : 'Court Order'}
-                        </span>
-                      )}
-                    </h3>
-                    <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1 flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <Phone className="w-4 h-4" /> 
-                        <span dir="ltr">
-                          {selectedRenterPhone?.startsWith('temp_') 
-                            ? (language === 'ar' ? 'رقم هاتف مؤقت / غير مسجل' : 'Temporary / Unregistered Phone') 
-                            : selectedRenterPhone}
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-1"><Building2 className="w-4 h-4" /> {customerUnits.length} {language === 'ar' ? 'وحدات' : 'Units'}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {selectedRenterPhone && !selectedRenterPhone.startsWith('temp_') && (
-                    <button 
-                      onClick={() => openWhatsApp(selectedRenterPhone!, customerNames)}
-                      className="w-7 h-7 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded flex items-center justify-center hover:bg-emerald-100/5 transition-colors cursor-pointer"
-                      title="WhatsApp"
-                      aria-label={language === 'ar' ? 'التواصل عبر الواتساب' : 'Contact via WhatsApp'}
-                    >
-                      <WhatsAppIcon className="w-5 h-5" />
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => {
-                      const firstUnit = customerUnits[0];
-                      if (firstUnit) {
-                        setEditingRenter(firstUnit);
-                        setEditRenterName(firstUnit.renterName);
-                        setEditRenterPhone(firstUnit.renterPhone);
-                        setPropagateToAll(true);
-                      }
-                    }}
-                    className="btn-outline px-3 h-8 text-[11px] rounded-md shadow-xs bg-black text-white hover:bg-gray-800 cursor-pointer font-bold flex items-center justify-center"
-                  >
-                    {language === 'ar' ? 'تعديل البيانات' : 'Edit Renter'}
-                  </button>
-                </div>
-             </div>
-             
-             <div className="p-5 bg-slate-50/30 flex-1 space-y-5">
-               {customerUnits.map((unit, idx) => (
-                 <div 
-                   key={unit.id || idx} 
-                   className="admin-card overflow-hidden admin-stagger-item"
-                   style={{ animationDelay: `${idx * 40}ms` }}
-                 >
-                   <div className="bg-slate-50 p-3 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
-                     <div>
-                       <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                         <Building2 className="w-4 h-4 text-primary" />
-                         {unit.building?.name || (language === 'ar' ? 'مبنى غير محدد' : 'Unknown Building')}
-                       </h4>
-                       <p className="text-muted-foreground text-sm mt-1 flex flex-wrap items-center gap-2 font-medium">
-                         <span className="bg-slate-100 border border-border text-foreground px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1">
-                           <Users className="w-3 h-3" />
-                           {unit.renterName}
-                         </span>
-                         <span className="bg-slate-100 border border-border text-foreground px-1.5 py-0.5 rounded text-[10px]">
-                           {language === 'ar' ? 'رقم الوحدة:' : 'Unit Number:'} {unit.unitNumber}
-                         </span>
-                         {unit.isTanfeeth && (
-                           <span className="text-red-500 font-bold flex items-center gap-1 text-xs">
-                             <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                             {language === 'ar' ? 'أمر تنفيذ/محكمة' : 'Court Order Active'}
-                           </span>
-                         )}
-                       </p>
-                     </div>
-                     <div className="flex gap-4 sm:flex-row flex-col text-sm md:text-right">
-                       <div>
-                         <span className="text-muted-foreground block text-[10px] uppercase font-bold">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</span>
-                         <span className="font-semibold text-xs text-foreground flex items-center gap-1 md:justify-end">
-                           {unit.rentAmount?.toLocaleString() || '-'} <SrIcon className="w-3 h-3 text-gray-400" />
-                         </span>
-                       </div>
-                       <div>
-                         <span className="text-muted-foreground block text-[10px] uppercase font-bold">{language === 'ar' ? 'نهاية العقد' : 'Contract Ends'}</span>
-                         <span className="font-semibold text-xs text-foreground flex items-center gap-1 md:justify-end">
-                           {unit.contractEndDate || '-'}
-                         </span>
-                       </div>
-                       <div>
-                         <span className="text-muted-foreground block text-[10px] uppercase font-bold">{language === 'ar' ? 'الدفعة القادمة' : 'Next Due'}</span>
-                         <span className="font-semibold text-orange-600 flex items-center gap-1 md:justify-end">
-                           {unit.nextRentDue || '-'}
-                         </span>
-                       </div>
-                     </div>
-                   </div>
-                   
-                   <div className="p-4">
-                     <h5 className="font-bold text-xs text-foreground mb-3 flex items-center gap-2">
-                       <Wallet className="w-4 h-4 text-gray-400" />
-                       {language === 'ar' ? 'الدفعات المستحقة والسجل' : 'Payments & History'}
-                     </h5>
-                     {unit.rentHistory && unit.rentHistory.length > 0 ? (
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
-                         {unit.rentHistory.map((h, i) => {
-                           const amountStr = typeof h.amount === 'string' ? h.amount : (h.amount?.toString() || '');
-                           const {
-                             isCourt,
-                             isLate,
-                             isPaid,
-                             isScheduled,
-                             isDue,
-                             statusText,
-                             actualPaidDate
-                           } = getRentStatus(h, language);
+    <div className="space-y-6">
+      {/* Header Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border p-5 rounded-2xl shadow-xs">
+        <div>
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary" />
+            {language === 'ar' ? 'إدارة المستأجرين (المستخدمين)' : 'Renter Users Management'}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            {language === 'ar'
+              ? 'عرض وإضافة المستأجرين كمستخدمين في النظام وتعيين الوحدات والمباني التابعة لهم'
+              : 'View, add, and manage renter user accounts and assign building units to them'}
+          </p>
+        </div>
 
-                           return (
-                             <div key={h.id || i} className={`border rounded-md p-3 flex flex-col justify-between gap-2 ${isPaid ? 'border-green-100 bg-green-50/30' : isCourt ? 'border-red-200 bg-red-50/50' : isLate ? 'border-orange-200 bg-orange-50/50' : isDue ? 'border-orange-200 bg-orange-50/50' : isScheduled ? 'border-blue-200 bg-blue-50/50' : 'border-border bg-card'}`}>
-                               <div className="flex items-start justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                     <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${isPaid ? 'bg-green-100 text-green-600' : isCourt ? 'bg-red-100 text-red-600' : isScheduled ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
-                                        {isPaid ? <CheckCircle2 className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
-                                     </div>
-                                     <div>
-                                        <p className="font-bold text-foreground text-sm whitespace-nowrap">{language === 'ar' ? `الدفعة (${i + 1})` : `Payment (${i + 1})`}</p>
-                                        <p className="text-sm text-muted-foreground" dir="ltr">{h.dueDate}</p>
-                                     </div>
-                                  </div>
-                                  {h.receiptUrl && (
-                                     <a href={h.receiptUrl} target="_blank" rel="noreferrer" className="btn-outline h-7 px-2.5 text-[10px] rounded-md shadow-xs shrink-0 inline-flex items-center justify-center gap-1 cursor-pointer">
-                                       <Eye className="w-3 h-3" />
-                                       {language === 'ar' ? 'عرض الإيصال' : 'Receipt'}
-                                     </a>
-                                  )}
-                               </div>
-                               <div className="pt-2 border-t border-border/50 flex flex-col gap-1 text-xs font-medium">
-                                 <div className="flex items-center gap-1">
-                                   <span className="text-muted-foreground">{language === 'ar' ? 'الحالة:' : 'Status:'}</span>
-                                   <span className={`font-bold ${isPaid ? 'text-green-600' : isCourt ? 'text-red-600' : isScheduled ? 'text-blue-600' : 'text-orange-600'}`}>
-                                     {statusText}
-                                   </span>
-                                 </div>
-                                 {isPaid && actualPaidDate && !isCourt && actualPaidDate !== statusText && (
-                                   <div className="flex items-center gap-1">
-                                     <span className="text-muted-foreground">{language === 'ar' ? 'تاريخ السداد / ملاحظات:' : 'Paid / Notes:'}</span>
-                                     <span className="text-foreground font-bold">{actualPaidDate}</span>
-                                   </div>
-                                 )}
-                                 {amountStr.trim() !== '' && !isCourt && !isLate && statusText !== amountStr && actualPaidDate !== amountStr && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-muted-foreground">{language === 'ar' ? 'المبلغ:' : 'Amount:'}</span>
-                                    <span className="text-foreground font-bold">{amountStr} {language === 'ar' ? 'ريال' : 'SAR'}</span>
-                                  </div>
-                                 )}
-                               </div>
-                             </div>
-                           )
-                         })}
-                       </div>
-                     ) : (
-                       <div className="text-center text-gray-400 py-6 text-sm">
-                          {language === 'ar' ? 'لا يوجد سجلات دفع لهذه الوحدة' : 'No payment records for this unit'}
-                       </div>
-                     )}
-                   </div>
-                 </div>
-               ))}
-             </div>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          {/* Search Input */}
+          <div className="flex items-center gap-2 border border-border rounded-xl px-3 bg-background focus-within:ring-1 focus-within:ring-primary w-full sm:w-64 h-9">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input 
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={language === 'ar' ? 'بحث بالاسم، رقم الجوال، الوحدة...' : 'Search name, phone, unit...'}
+              className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-xs text-foreground placeholder:text-muted-foreground"
+            />
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEditingRenter(null);
+              setRenterNameInput('');
+              setRenterPhoneInput('');
+              setIsAddModalOpen(true);
+            }}
+            className="w-full sm:w-auto h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>{language === 'ar' ? 'إضافة مستأجر جديد' : 'Add New Renter'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Renter Users Grid */}
+      {loading ? (
+        <div className="flex justify-center items-center py-20 bg-card border border-border rounded-2xl">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : filteredRenters.length === 0 ? (
+        <div className="text-center py-16 bg-card border border-border rounded-2xl text-muted-foreground">
+          <Users className="w-12 h-12 mx-auto mb-3 opacity-30 text-primary" />
+          <p className="text-sm font-bold">{language === 'ar' ? 'لا يوجد مستأجرين مسجلين' : 'No renters found'}</p>
         </div>
       ) : (
-        <>
-          <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-6 pb-4 border-b border-border">
-            {!selectedBuildingId ? (
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground">
-                    {language === 'ar' ? 'المستأجرين' : 'Renters'}
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {language === 'ar' ? 'عرض والبحث في جميع المستأجرين' : 'View and search all renters'}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <h3 className="font-bold text-sm text-foreground">
-                  {language === 'ar' ? 'مستأجري العقار والعقود' : 'Property Renters & Contracts'}
-                </h3>
-              </div>
-            )}
-
-            <div className="relative w-full md:w-72">
-              <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none text-gray-400">
-                <Search className="w-5 h-5" />
-              </div>
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="cn-input !ps-10 bg-background"
-                placeholder={language === 'ar' ? 'ابحث بالاسم، الرقم، الوحدة...' : 'Search name, phone, unit...'}
-              />
-            </div>
-          </div>
-
-      <div className="bg-card rounded-lg border border-border shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-muted-foreground">Loading...</div>
-        ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground">
-            {language === 'ar' ? 'لا يوجد مستأجرين' : 'No renters found'}
-          </div>
-        ) : (
-          <div className="overflow-x-auto overflow-y-hidden">
-            <table className="w-full ltr:text-left rtl:text-right border-collapse">
-              <thead>
-                <tr className="bg-muted/40 text-muted-foreground text-xs border-b border-border">
-                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
-                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'التواصل' : 'Contact'}</th>
-                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'المبنى / الوحدة' : 'Building / Unit'}</th>
-                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'قيمة الإيجار' : 'Rent Amount'}</th>
-                  <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wider">{language === 'ar' ? 'عرض الحساب' : 'Account'}</th>
-                </tr>
-              </thead>
-              <motion.tbody 
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  visible: { transition: { staggerChildren: 0.05 } }
-                }}
-              >
-                {filtered.map(r => (
-                  <motion.tr 
-                    key={r.id} 
-                    variants={{
-                      hidden: { opacity: 0, y: 10 },
-                      visible: { opacity: 1, y: 0 }
-                    }}
-                    className="border-b border-border hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-xs text-foreground">{r.allNames.join(' | ')}</p>
-                        {r.renterPhone && r.renterPhone.startsWith('temp_') && (
-                          <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">
-                            {language === 'ar' ? 'رقم مؤقت' : 'Temp Phone'}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground dir-ltr font-mono mt-0.5">
-                        {r.renterPhone && r.renterPhone.startsWith('temp_') ? (language === 'ar' ? 'غير مسجل' : 'Not Registered') : r.renterPhone}
-                      </p>
-                    </td>
-                    <td className="p-4">
-                      {r.renterPhone && r.renterPhone.startsWith('temp_') ? (
-                        <button 
-                          onClick={() => {
-                            setEditingRenter(r);
-                            setEditRenterName(r.allNames[0] || r.renterName);
-                            setEditRenterPhone(r.renterPhone);
-                            setPropagateToAll(true);
-                          }}
-                          className="btn-outline h-7 px-2 text-[10px] border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center gap-1 cursor-pointer font-bold rounded"
-                          title={language === 'ar' ? 'إضافة رقم جوال' : 'Set Phone Number'}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredRenters.map((renter) => (
+            <div key={renter.id} className="bg-card border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all space-y-4">
+              <div className="space-y-4">
+                {/* Renter Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
+                      {renter.name.charAt(0) || 'U'}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground text-base leading-tight">{renter.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span dir="ltr" className="text-xs font-mono text-muted-foreground">{renter.phone}</span>
+                        <button
+                          type="button"
+                          onClick={() => openWhatsApp(renter.phone, renter.name)}
+                          className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                          title="WhatsApp"
                         >
-                          {language === 'ar' ? 'إضافة رقم جوال' : 'Set Phone'}
+                          <WhatsAppIcon className="w-3.5 h-3.5" />
                         </button>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <a 
-                            href={`tel:${r.renterPhone}`}
-                            className="w-7 h-7 rounded bg-slate-100 border border-border text-foreground hover:bg-slate-200/50 flex flex-col items-center justify-center transition-colors"
-                            title={language === 'ar' ? 'اتصال' : 'Call'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingRenter(renter);
+                        setRenterNameInput(renter.name);
+                        setRenterPhoneInput(renter.phone);
+                        setIsAddModalOpen(true);
+                      }}
+                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted cursor-pointer"
+                      title={language === 'ar' ? 'تعديل البيانات' : 'Edit Renter'}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteRenterUser(renter.id)}
+                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"
+                      title={language === 'ar' ? 'حذف المستأجر' : 'Delete Renter'}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Assigned Units List */}
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <Home className="w-3.5 h-3.5 text-primary" />
+                      {language === 'ar' ? `الوحدات المستأجرة (${renter.units.length})` : `Assigned Units (${renter.units.length})`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssigningRenter(renter);
+                        setSelectedUnitIdToAssign('');
+                      }}
+                      className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                      {language === 'ar' ? 'ربط وحدة' : 'Assign Unit'}
+                    </button>
+                  </div>
+
+                  {renter.units.length > 0 ? (
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {renter.units.map((u) => (
+                        <div key={u.id} className="p-2.5 rounded-xl bg-muted/40 border border-border/70 flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-foreground">{u.building?.name || 'مبنى غير مسمى'}</p>
+                            <p className="text-[11px] text-muted-foreground font-bold">
+                              {language === 'ar' ? `وحدة رقم: ${u.unitNumber}` : `Unit #${u.unitNumber}`}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleUnassignUnit(u.id)}
+                            className="p-1 text-muted-foreground hover:text-red-500 rounded cursor-pointer"
+                            title={language === 'ar' ? 'إلغاء ربط الوحدة' : 'Unassign unit'}
                           >
-                            <Phone className="w-4 h-4" />
-                          </a>
-                          <button 
-                            onClick={() => openWhatsApp(r.renterPhone, r.allNames)}
-                            className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 flex flex-col items-center justify-center hover:bg-emerald-100/50 transition-colors cursor-pointer"
-                            title="WhatsApp"
-                            aria-label={language === 'ar' ? 'التواصل عبر الواتساب' : 'Contact via WhatsApp'}
-                          >
-                            <WhatsAppIcon className="w-4 h-4" />
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <p className="font-semibold text-xs text-foreground line-clamp-1 max-w-[200px]">
-                        {r.allBuildings.length > 1 ? r.allBuildings.join('، ') : (r.allBuildings[0] || (language === 'ar' ? 'غير محدد' : 'Unknown'))}
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1 max-w-[200px]">
-                        {renters.filter(u => r.renterPhone && r.renterPhone.startsWith('temp_') ? u.id === r.id : u.renterPhone === r.renterPhone).map((u, i) => (
-                           <span key={i} className="inline-flex items-center justify-center bg-slate-100 border border-border text-foreground text-[10px] px-1.5 py-0.5 rounded">
-                             {u.unitNumber}
-                           </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="p-4 text-foreground font-bold">
-                       {/* Calculate total rent by adding all units a renter owns, using real array not grouped ones for amount */}
-                       {(() => {
-                         const total = renters.filter(x => r.renterPhone && r.renterPhone.startsWith('temp_') ? x.id === r.id : x.renterPhone === r.renterPhone).reduce((sum, u) => sum + (u.rentAmount || 0), 0);
-                         return total > 0 ? (
-                           <div className="flex items-center gap-1">
-                             {total.toLocaleString()} <SrIcon className="w-4 h-4 text-gray-400" />
-                           </div>
-                         ) : (
-                           <span className="text-gray-400 font-medium">{language === 'ar' ? 'غير مسجل' : 'N/A'}</span>
-                         )
-                       })()}
-                    </td>
-                    <td className="p-4">
-                      <button 
-                        onClick={() => {
-                          setSelectedRenterPhone(r.renterPhone);
-                        }}
-                        className="btn-secondary px-3 py-1.5 text-xs rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Wallet className="w-4 h-4" />
-                        {language === 'ar' ? 'عرض الحساب' : 'View Account'}
-                      </button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </motion.tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      </>
-      )}
-
-      {deleteUnitConfirmId && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
-        >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-card rounded-lg border border-border shadow-md w-full max-w-md p-6"
-          >
-            <h3 className="text-sm font-bold text-foreground mb-3">{language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}</h3>
-            <p className="text-xs text-muted-foreground mb-6">{language === 'ar' ? 'هل أنت متأكد من حذف هذه الوحدة؟ لن تتمكن من استعادة البيانات المرتبطة بها مثل الإيصالات.' : 'Are you sure you want to delete this unit? You will not be able to recover associated data like receipts.'}</p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => executeDeleteUnit(deleteUnitConfirmId)}
-                className="flex-1 btn-primary bg-red-600 hover:bg-red-700 border-red-600 text-white h-9 px-4 text-xs font-semibold rounded-md shadow-xs cursor-pointer"
-              >
-                {language === 'ar' ? 'نعم، احذف الوحدة' : 'Yes, delete unit'}
-              </button>
-              <button
-                onClick={() => setDeleteUnitConfirmId(null)}
-                className="flex-1 btn-outline h-9 px-4 text-xs font-semibold rounded-md shadow-xs cursor-pointer"
-              >
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {editingRenter && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
-          <form onSubmit={handleSaveRenter} className="bg-card rounded-lg border border-border w-full max-w-md overflow-hidden shadow-md flex flex-col">
-            <div className="bg-muted/40 p-4 border-b border-border flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground">
-                {language === 'ar' ? 'تعديل بيانات المستأجر' : 'Edit Renter Details'}
-              </h3>
-              <button type="button" onClick={() => setEditingRenter(null)} className="w-7 h-7 bg-card border border-border rounded flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer" aria-label={language === 'ar' ? 'إغلاق' : 'Close'}>
-                 <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-5 bg-muted/10 space-y-4">
-              <div>
-                <label className="cn-label mb-2">{language === 'ar' ? 'اسم المستأجر' : 'Renter Name'}</label>
-                <input
-                  type="text"
-                  required
-                  value={editRenterName}
-                  onChange={(e) => setEditRenterName(e.target.value)}
-                  className="cn-input bg-background"
-                />
-              </div>
-
-              <div>
-                <label className="cn-label mb-2">{language === 'ar' ? 'رقم الجوال' : 'Phone Number'}</label>
-                <input
-                  type="text"
-                  value={editRenterPhone.startsWith('temp_') ? '' : editRenterPhone}
-                  onChange={(e) => setEditRenterPhone(e.target.value)}
-                  className="cn-input bg-background"
-                  placeholder="05xxxxxxx"
-                  required
-                />
-                {editRenterPhone.startsWith('temp_') && (
-                  <p className="text-[10px] text-red-500 font-bold mt-1">
-                    {language === 'ar' ? '⚠️ هذا الرقم مؤقت. يرجى إدخال رقم هاتف حقيقي.' : '⚠️ This is a temporary number. Please provide a real phone number.'}
-                  </p>
-                )}
-              </div>
-
-              {editingRenter.renterPhone && !editingRenter.renterPhone.startsWith('temp_') && (
-                <div className="flex items-center gap-2 pt-2">
-                  <input
-                    type="checkbox"
-                    id="propagateToAll"
-                    checked={propagateToAll}
-                    onChange={(e) => setPropagateToAll(e.target.checked)}
-                    className="rounded border-gray-300 text-black focus:ring-black h-4 w-4"
-                  />
-                  <label htmlFor="propagateToAll" className="text-[11px] font-bold text-muted-foreground cursor-pointer select-none">
-                    {language === 'ar' ? 'تحديث الاسم والرقم في جميع الوحدات التابعة لهذا المستأجر' : 'Apply changes to all units owned by this renter'}
-                  </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic py-2">
+                      {language === 'ar' ? 'لا يوجد وحدات مرتبطة بعد' : 'No units assigned yet'}
+                    </p>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-
-            <div className="p-4 bg-card border-t border-border flex justify-end gap-2">
-               <button type="button" onClick={() => setEditingRenter(null)} className="btn-outline px-4 h-9 text-xs font-semibold rounded-md shadow-xs cursor-pointer">
-                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
-               </button>
-               <button type="submit" disabled={savingRenter} className="btn-primary px-4 h-9 text-xs font-semibold rounded-md shadow-xs flex items-center gap-1.5 cursor-pointer bg-black text-white hover:bg-gray-800">
-                  {savingRenter ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                  {language === 'ar' ? 'حفظ' : 'Save'}
-               </button>
-            </div>
-          </form>
+          ))}
         </div>
       )}
-    </motion.div>
+
+      {/* Add / Edit Renter Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-primary" />
+                {editingRenter 
+                  ? (language === 'ar' ? 'تعديل بيانات المستأجر' : 'Edit Renter') 
+                  : (language === 'ar' ? 'إضافة مستأجر جديد للنظام' : 'Add New Renter User')}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRenterUser} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1">
+                  {language === 'ar' ? 'اسم المستأجر الثلاثي / الكامل' : 'Full Name'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={renterNameInput}
+                  onChange={(e) => setRenterNameInput(e.target.value)}
+                  placeholder={language === 'ar' ? 'مثال: محمد عبدالله أحمد' : 'e.g. John Doe'}
+                  className="cn-input text-xs h-10 bg-background"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1">
+                  {language === 'ar' ? 'رقم الجوال المسجل (للدخول برمز OTP)' : 'Phone Number (for OTP Login)'}
+                </label>
+                <input
+                  type="tel"
+                  required
+                  dir="ltr"
+                  value={renterPhoneInput}
+                  onChange={(e) => setRenterPhoneInput(e.target.value)}
+                  placeholder="0500000000"
+                  className="cn-input text-xs h-10 bg-background"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl border border-border hover:bg-muted cursor-pointer"
+                >
+                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingRenter}
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {savingRenter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  <span>{language === 'ar' ? 'حفظ البيانات' : 'Save'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Unit Modal */}
+      {assigningRenter && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Home className="w-5 h-5 text-primary" />
+                {language === 'ar' ? `ربط وحدة للمستأجر: ${assigningRenter.name}` : `Assign Unit to ${assigningRenter.name}`}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setAssigningRenter(null)}
+                className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 border border-border rounded-xl px-3 bg-background focus-within:ring-1 focus-within:ring-primary h-9">
+                  <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <input
+                    type="text"
+                    value={unitSearchQuery}
+                    onChange={(e) => setUnitSearchQuery(e.target.value)}
+                    placeholder={language === 'ar' ? 'ابحث عن اسم المبنى أو رقم الوحدة...' : 'Search by building name or unit number...'}
+                    className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-xs text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+
+                <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
+                  {(() => {
+                    const filteredUnits = allUnits.filter(u => {
+                      const q = unitSearchQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      const bName = u.building?.name ? u.building.name.toLowerCase() : '';
+                      const uNum = String(u.unitNumber).toLowerCase();
+                      return bName.includes(q) || uNum.includes(q);
+                    });
+
+                    if (filteredUnits.length === 0) {
+                      return (
+                        <div className="text-center py-6 text-xs text-muted-foreground">
+                          {language === 'ar' ? 'لم يتم العثور على وحدة مطابقة' : 'No matching units found'}
+                        </div>
+                      );
+                    }
+
+                    return filteredUnits.map(u => {
+                      const isSelected = selectedUnitIdToAssign === u.id;
+                      return (
+                        <div
+                          key={u.id}
+                          onClick={() => setSelectedUnitIdToAssign(u.id)}
+                          className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                              : 'border-border/70 hover:border-primary/40 bg-card hover:bg-muted/40 text-foreground'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                              isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                            }`}>
+                              <Building2 className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold">{u.building?.name || (language === 'ar' ? 'مبنى' : 'Building')}</p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {language === 'ar' ? `وحدة رقم: ${u.unitNumber}` : `Unit #${u.unitNumber}`}
+                              </p>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                              <Check className="w-3 h-3" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAssigningRenter(null)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl border border-border hover:bg-muted cursor-pointer"
+                >
+                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignUnitToRenter}
+                  disabled={assigningUnit || !selectedUnitIdToAssign}
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {assigningUnit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  <span>{language === 'ar' ? 'تأكيد الربط' : 'Confirm Assignment'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

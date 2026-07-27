@@ -281,17 +281,15 @@ export default function AdminCallbacks() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Search bar with dynamic glow on focus */}
-          <div className="relative w-full md:w-56 focus-within:scale-[1.01] transition-all duration-200">
-            <div className="absolute inset-y-0 start-0 ps-2.5 flex items-center pointer-events-none text-muted-foreground">
-              <Search className="h-3 w-3" />
-            </div>
+          {/* Search bar */}
+          <div className="flex items-center gap-1.5 border border-border rounded-lg px-2.5 bg-card focus-within:ring-1 focus-within:ring-primary w-full md:w-56 h-8">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={language === 'ar' ? 'بحث بالاسم، الجوال، أو الرسالة...' : 'Search by name, phone...'}
-              className="block w-full bg-card border border-border rounded-lg py-1 ps-8 pe-3 text-[10px] text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1.5 focus:ring-primary/45 focus:border-primary shadow-xs h-7"
+              className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-[11px] text-foreground placeholder:text-muted-foreground"
             />
           </div>
         </div>
