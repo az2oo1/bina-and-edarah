@@ -263,7 +263,7 @@ export default function PropertyDetails() {
 
   const visibleSubProperties = useMemo(() => {
     if (!property) return [];
-    const subs = property.subProperties?.filter(unit => unit.status !== 'DRAFT') || [];
+    const subs = property.subProperties?.filter(unit => unit.status !== 'DRAFT' && unit.status !== 'HIDDEN' && unit.status !== 'RENTED' && unit.status !== 'SOLD') || [];
     return subs.map(unit => {
       let unitImages: string[] = [];
       try {

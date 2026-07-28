@@ -2333,6 +2333,98 @@ async function startServer() {
     }
   });
 
+  // Dedicated Renter API: Get units & properties connected to a specific renter
+  app.get('/api/renter/my-units', async (req, res) => {
+    try {
+      const phone = req.query.phone as string;
+      if (!phone) return res.status(400).json({ error: "Phone number is required." });
+
+      let normalizedPhone = phone.trim().replace(/\D/g, '');
+      if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+      normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+      const phoneVariants = Array.from(new Set([
+        normalizedPhone,
+        '0' + normalizedPhone,
+        '966' + normalizedPhone,
+        '+966' + normalizedPhone,
+        '00966' + normalizedPhone,
+        phone.trim()
+      ]));
+
+      // 1. Fetch units from RenterUnit model belonging to this renter
+      const units = await prisma.renterUnit.findMany({
+        where: {
+          OR: [
+            { renterPhone: { in: phoneVariants } },
+            { renter: { phone: { in: phoneVariants } } }
+          ]
+        },
+        include: { building: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } }
+      });
+
+      const parsedUnits = (units || []).map(unit => ({
+        id: unit.id,
+        unitNumber: unit.unitNumber,
+        renterName: unit.renter?.name || unit.renterName || 'المستأجر',
+        renterPhone: unit.renter?.phone || unit.renterPhone || normalizedPhone,
+        contractEndDate: unit.contractEndDate,
+        nextRentDue: unit.nextRentDue,
+        rentAmount: unit.rentAmount,
+        isTanfeeth: unit.isTanfeeth,
+        propertyName: unit.building?.name || 'مبنى غير معروف',
+        transferDetails: unit.building?.transferDetails || null,
+        buildingPhotos: unit.building?.photos || '[]',
+        bedrooms: unit.bedrooms ?? 2,
+        bathrooms: unit.bathrooms ?? 2,
+        area: unit.area ?? 120,
+        floor: unit.floor || '1',
+        features: unit.features || 'مكيفات مجهزة, مطبخ راكب, موقف خاص, مصعد, إنتركوم ذكي',
+        photos: unit.photos && unit.photos !== '[]' ? unit.photos : (unit.building?.photos || '[]'),
+        rentHistory: unit.rentHistory || []
+      }));
+
+      // 2. Fetch properties from Property model assigned to this renter phone
+      const properties = await prisma.property.findMany({
+        where: {
+          renterPhone: { in: phoneVariants }
+        }
+      });
+
+      const parsedProperties = (properties || []).map(prop => ({
+        id: prop.id,
+        unitNumber: prop.titleAr || 'عقار مؤجر',
+        renterName: prop.renterName || 'المستأجر',
+        renterPhone: prop.renterPhone || normalizedPhone,
+        contractEndDate: null,
+        nextRentDue: null,
+        rentAmount: prop.price,
+        isTanfeeth: false,
+        propertyName: prop.titleAr || prop.titleEn || 'عقار مسجل',
+        transferDetails: null,
+        buildingPhotos: prop.imageUrls || '[]',
+        bedrooms: 2,
+        bathrooms: 2,
+        area: prop.area || 120,
+        floor: '1',
+        features: prop.features || 'مكيفات مجهزة, مطبخ راكب, موقف خاص',
+        photos: prop.imageUrls || '[]',
+        rentHistory: []
+      }));
+
+      // Deduplicate by ID
+      const allItemsMap = new Map();
+      for (const item of [...parsedUnits, ...parsedProperties]) {
+        allItemsMap.set(item.id, item);
+      }
+
+      res.json(Array.from(allItemsMap.values()));
+    } catch (e: any) {
+      console.error("Error fetching renter units:", e);
+      res.status(500).json({ error: "Failed to fetch renter units" });
+    }
+  });
+
   app.post('/api/renter/upload-receipt', async (req, res) => {
     try {
       const { historyId, receiptUrl } = req.body;
@@ -2460,7 +2552,7 @@ async function startServer() {
               subProperties: {
                 some: {
                   price: priceRange,
-                  status: { notIn: ['DRAFT', 'HIDDEN'] }
+                  status: { notIn: ['DRAFT', 'HIDDEN', 'RENTED', 'SOLD'] }
                 }
               }
             }
@@ -2589,7 +2681,7 @@ async function startServer() {
         const allSubUnits = await prisma.property.findMany({
           where: {
             parentId: { in: parentIds },
-            status: { notIn: ['DRAFT', 'HIDDEN'] }
+            status: { notIn: ['DRAFT', 'HIDDEN', 'RENTED', 'SOLD'] }
           },
           select: { parentId: true, price: true }
         });
@@ -2757,7 +2849,7 @@ async function startServer() {
       const property = await prisma.property.findUnique({
         where: { id: req.params.id },
         include: {
-          subProperties: { where: { status: { notIn: ['DRAFT', 'HIDDEN'] } } },
+          subProperties: { where: { status: { notIn: ['DRAFT', 'HIDDEN', 'RENTED', 'SOLD'] } } },
           parent: true
         }
       });

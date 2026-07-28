@@ -802,7 +802,7 @@ export default function Admin() {
     setTimeout(() => setSubmitMessage(null), 5000);
   };
 
-  const saveProperty = async (e: React.FormEvent | null, statusVal: 'PUBLISHED' | 'DRAFT') => {
+  const saveProperty = async (e: React.FormEvent | null, statusVal?: string) => {
     if (e) e.preventDefault();
     setSubmitMessage(null);
     if (isUploadingImages) {
@@ -832,9 +832,11 @@ export default function Admin() {
       }
     }
 
+    const finalStatus = statusVal || formData.status || 'PUBLISHED';
+
     const payload = {
       ...formData,
-      status: statusVal,
+      status: finalStatus,
       utilityBills: utilityPayload,
       electricityCost: (formData.includeElectricity ? (parseFloat(formData.electricityCostVal) || 0) : 0) + (formData.includeWater ? (parseFloat(formData.waterCostVal) || 0) : 0),
       electricityFrequency: formData.includeElectricity ? formData.electricityFrequencyVal : (formData.includeWater ? formData.waterFrequencyVal : null),
@@ -857,8 +859,8 @@ export default function Admin() {
       if (res.ok) {
         showSubmitMessage('success', isEditing 
           ? (language === 'ar' ? 'تم تحديث العقار بنجاح' : 'Property updated successfully!') 
-          : (statusVal === 'DRAFT' 
-              ? (language === 'ar' ? 'تم حفظ المسودة بنجاح!' : 'Draft saved successfully!')
+          : (finalStatus === 'HIDDEN'
+              ? (language === 'ar' ? 'تم حفظ العقار كمخفي بنجاح!' : 'Property saved as hidden successfully!')
               : (language === 'ar' ? 'تم إضافة العقار بنجاح' : 'Property added successfully!'))
         );
         resetForm();
@@ -880,7 +882,7 @@ export default function Admin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveProperty(e, formData.status as 'PUBLISHED' | 'DRAFT' || 'PUBLISHED');
+    await saveProperty(e, formData.status);
   };
 
   const renderIcon = (iconName?: string, key?: string) => {
@@ -1845,7 +1847,6 @@ export default function Admin() {
                       >
                         <option value="PUBLISHED">{language === 'ar' ? 'منشور (ظاهر للمستخدمين)' : 'Published (Visible)'}</option>
                         <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في صفحة العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
-                        <option value="DRAFT">{language === 'ar' ? 'مسودة' : 'Draft'}</option>
                       </select>
                       <button
                         onClick={() => handleEditClick(selectedParentProperty)}
@@ -2041,9 +2042,11 @@ export default function Admin() {
                                         className="bg-background border border-border text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground"
                                       >
                                         <option value="PUBLISHED">{language === 'ar' ? 'متاح' : 'Available'}</option>
-                                        <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
-                                        <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
-                                        <option value="DRAFT">{language === 'ar' ? 'مخفي (مسودة)' : 'Hidden (Draft)'}</option>
+                                        {selectedParentProperty?.type === 'SALE'
+                                          ? <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
+                                          : <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
+                                        }
+                                        <option value="HIDDEN">{language === 'ar' ? 'مخفي' : 'Hidden'}</option>
                                       </select>
                                     </td>
                                     <td className="p-3 text-center">
@@ -2124,9 +2127,9 @@ export default function Admin() {
                                   >
                                     {property.titleAr}
                                   </p>
-                                  {property.status === 'DRAFT' && (
+                                  {(property.status === 'DRAFT' || property.status === 'HIDDEN') && (
                                     <span className="inline-flex bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 text-[9px] px-1.5 py-0.5 rounded font-bold">
-                                      {language === 'ar' ? 'مسودة' : 'Draft'}
+                                      {language === 'ar' ? 'مخفي' : 'Hidden'}
                                     </span>
                                   )}
                                 </div>
@@ -2196,7 +2199,7 @@ export default function Admin() {
                                       <thead>
                                         <tr className="bg-muted/50 border-b border-border text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
                                           <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'اسم الوحدة' : 'Unit Title'}</th>
-                                          <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
+                                            <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
                                           <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
                                           <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'الحالة' : 'Status'}</th>
                                           <th className="p-2.5 text-center font-bold">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
@@ -2231,10 +2234,11 @@ export default function Admin() {
                                                 className="bg-card border border-border text-[11px] rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-semibold"
                                               >
                                                 <option value="PUBLISHED">{language === 'ar' ? 'متاح' : 'Available'}</option>
-                                                <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
-                                                <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
-                                                <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
-                                     <option value="DRAFT">{language === 'ar' ? 'مسودة' : 'Draft'}</option>
+                                                 {property.type === 'SALE'
+                                                   ? <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
+                                                   : <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
+                                                 }
+                                                 <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
                                               </select>
                                             </td>
                                             <td className="p-2.5 text-center">
@@ -2411,6 +2415,18 @@ export default function Admin() {
                           <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="cn-input">
                             <option value="SALE">{t('common.sale')}</option>
                             <option value="RENT">{t('common.rent')}</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="cn-label mb-2">{language === 'ar' ? 'حالة الظهور والإتاحة' : 'Listing Status'}</label>
+                          <select value={formData.status || 'PUBLISHED'} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="cn-input font-bold">
+                            <option value="PUBLISHED">{language === 'ar' ? 'متاح / منشور (يظهر للجميع)' : 'Available / Published (Public)'}</option>
+                            {(formData.type === 'SALE' || !formData.parentId)
+                              ? <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
+                              : <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
+                            }
+                            <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
                           </select>
                         </div>
 
@@ -3435,9 +3451,11 @@ export default function Admin() {
                                     className="cn-input text-xs h-9 bg-background"
                                   >
                                     <option value="PUBLISHED">{language === 'ar' ? 'متاح / منشور' : 'Available / Published'}</option>
-                                    <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
-                                    <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
-                                    <option value="DRAFT">{language === 'ar' ? 'مخفي' : 'Hidden (Draft)'}</option>
+                                    {selectedParentProperty?.type === 'SALE'
+                                      ? <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
+                                      : <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
+                                    }
+                                    <option value="HIDDEN">{language === 'ar' ? 'مخفي' : 'Hidden'}</option>
                                   </select>
                                 </div>
                               </div>
