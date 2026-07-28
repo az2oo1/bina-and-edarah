@@ -31,3 +31,8 @@
 **Vulnerability:** SQL injection vulnerability found in `server.ts` within the `updateGlobalSettings` fallback block. The function used `prisma.$executeRawUnsafe` with manually escaped strings and dynamically interpolated column names directly derived from object keys (`Object.keys(data)`).
 **Learning:** This occurred because Prisma client updates can sometimes fail or require fallbacks in this specific setup, leading developers to rely on raw SQL. Using `$executeRawUnsafe` with dynamic column names enables attackers to pass malicious keys in request payloads to execute arbitrary SQL.
 **Prevention:** Always validate dynamic column names against a hardcoded allowlist (e.g., derived from the Prisma schema) before execution. Use `prisma.$executeRaw(Prisma.sql...)` instead of `executeRawUnsafe`, and safely interpolate the validated column name using `Prisma.raw(field)`.
+
+## 2024-05-18 - Hardcoded JWT Secret Fallback Removed
+**Vulnerability:** The application used a hardcoded string as a fallback for the `JWT_SECRET` environment variable in `server.ts`.
+**Learning:** Having a fallback for critical secrets like a JWT signing key defeats the purpose of environment variables. If the environment variable fails to load, the application will silently fall back to the known insecure key, allowing attackers to forge valid tokens and completely compromise authentication.
+**Prevention:** Always fail securely by throwing a critical error on startup if required secrets are missing, rather than falling back to default, insecure values.
