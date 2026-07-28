@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mail } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 // Inline SVG icons for platforms not in lucide-react
 export const IgIcon = ({ className = 'w-5 h-5' }) => (
@@ -79,65 +80,66 @@ interface SocialIconsRowProps {
 }
 
 export function SocialIconsRow({ links, size = 'md' }: SocialIconsRowProps) {
+  const { language } = useLanguage();
   const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
   const btnBase = size === 'sm'
-    ? 'w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-0.5'
-    : 'w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-1 shadow-md';
+    ? 'w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+    : 'w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-1 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
   const items = [
     links.whatsappNumber && {
       href: `https://wa.me/${links.whatsappNumber.replace(/\+/g, '')}`,
       icon: <WaIcon className={iconSize} />,
       style: { backgroundColor: '#25D366' },
-      label: 'WhatsApp',
+      label: language === 'ar' ? 'واتساب' : 'WhatsApp',
     },
     links.instagramUrl && {
       href: links.instagramUrl,
       icon: <IgIcon className={iconSize} />,
       style: { background: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' },
-      label: 'Instagram',
+      label: language === 'ar' ? 'إنستغرام' : 'Instagram',
     },
     links.twitterUrl && {
       href: links.twitterUrl,
       icon: <XIcon className={iconSize} />,
       style: { backgroundColor: '#000' },
-      label: 'X',
+      label: language === 'ar' ? 'إكس' : 'X',
     },
     links.facebookUrl && {
       href: links.facebookUrl,
       icon: <FbIcon className={iconSize} />,
       style: { backgroundColor: '#1877F2' },
-      label: 'Facebook',
+      label: language === 'ar' ? 'فيسبوك' : 'Facebook',
     },
     links.linkedinUrl && {
       href: links.linkedinUrl,
       icon: <LiIcon className={iconSize} />,
       style: { backgroundColor: '#0A66C2' },
-      label: 'LinkedIn',
+      label: language === 'ar' ? 'لينكد إن' : 'LinkedIn',
     },
     links.youtubeUrl && {
       href: links.youtubeUrl,
       icon: <YtIcon className={iconSize} />,
       style: { backgroundColor: '#FF0000' },
-      label: 'YouTube',
+      label: language === 'ar' ? 'يوتيوب' : 'YouTube',
     },
     links.tiktokUrl && {
       href: links.tiktokUrl,
       icon: <TkIcon className={iconSize} />,
       style: { backgroundColor: '#010101' },
-      label: 'TikTok',
+      label: language === 'ar' ? 'تيك توك' : 'TikTok',
     },
     links.snapchatUrl && {
       href: links.snapchatUrl,
       icon: <SnapIcon className={iconSize} />,
       style: { backgroundColor: '#FFFC00', color: '#fff' },
-      label: 'Snapchat',
+      label: language === 'ar' ? 'سناب شات' : 'Snapchat',
     },
     links.email && {
       href: `mailto:${links.email}`,
       icon: <MailIcon className={iconSize} />,
       style: { backgroundColor: '#2C4A5E' },
-      label: 'Email',
+      label: language === 'ar' ? 'البريد الإلكتروني' : 'Email',
     },
   ].filter(Boolean) as { href: string; icon: React.ReactNode; style: React.CSSProperties; label: string }[];
 
@@ -152,6 +154,7 @@ export function SocialIconsRow({ links, size = 'md' }: SocialIconsRowProps) {
           target={item.href.startsWith('mailto') ? undefined : '_blank'}
           rel="noopener noreferrer"
           title={item.label}
+          aria-label={item.label}
           className={`${btnBase} text-white`}
           style={item.style}
         >
