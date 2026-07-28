@@ -87,7 +87,6 @@ const MAINTENANCE_CATEGORIES = [
   { id: 'PLUMBING', nameAr: 'سباكة ومياه', nameEn: 'Plumbing', icon: '🚿' },
   { id: 'ELECTRICAL', nameAr: 'كهرباء وإضاءة', nameEn: 'Electrical', icon: '⚡' },
   { id: 'HVAC', nameAr: 'تكييف وتبريد', nameEn: 'Air Conditioning', icon: '❄️' },
-  { id: 'CARPENTRY', nameAr: 'أبواب ونجارة', nameEn: 'Carpentry', icon: '🚪' },
   { id: 'CLEANING', nameAr: 'نظافة ورش آفات', nameEn: 'Cleaning & Pest', icon: '🧹' },
   { id: 'ELEVATOR', nameAr: 'مصاعد ومرافق', nameEn: 'Elevator & Facilities', icon: '🏢' },
   { id: 'GENERAL', nameAr: 'صيانة عامة', nameEn: 'General Repair', icon: '🔧' },
