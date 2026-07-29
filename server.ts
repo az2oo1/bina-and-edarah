@@ -25,7 +25,10 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("CRITICAL: JWT_SECRET environment variable is missing.");
+}
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
@@ -4339,21 +4342,6 @@ async function startServer() {
          logger.info(`User login successful for ${username}`);
          return res.json({ ...userPayload, token });
        }
- 
-       // Hardcoded admin fallback for preview if DB is empty
-       if (username === 'admin' && password === 'admin') {
-         const userPayload = { 
-           id: 'admin-fallback', 
-           username: 'admin', 
-           role: 'ADMIN', 
-           name: 'Administrator',
-           permissions: ROLE_PERMISSIONS['ADMIN']
-         };
-         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-         res.cookie('token', token, cookieOptions);
-         logger.info(`Fallback admin login successful`);
-         return res.json({ ...userPayload, token });
-       }
 
       logger.warn(`Failed login attempt for username: ${username}`);
       res.status(401).json({ error: "Invalid credentials" });
@@ -4372,11 +4360,6 @@ async function startServer() {
   app.put("/api/admin/credentials", async (req, res) => {
     try {
       const { adminId, currentUsername, newUsername, newPassword } = req.body;
-
-      // Handle fallback admin
-      if (adminId === 'admin-fallback' || currentUsername === 'admin') {
-        return res.status(400).json({ error: "Cannot change fallback admin credentials. Please create a real admin in DB." });
-      }
 
       const admin = await prisma.admin.findUnique({ where: { username: currentUsername } });
       if (!admin || admin.id !== adminId) {
