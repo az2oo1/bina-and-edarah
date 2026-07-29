@@ -375,6 +375,7 @@ export default function AdminUsers() {
                                 onClick={() => handleEdit(u)}
                                 className="w-8 h-8 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-transform active:scale-[0.97] cursor-pointer"
                                 title={language === 'ar' ? 'تعديل' : 'Edit'}
+                                aria-label={language === 'ar' ? 'تعديل' : 'Edit'}
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
@@ -384,6 +385,7 @@ export default function AdminUsers() {
                                 disabled={u.id === currentUserId}
                                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-transform active:scale-[0.97] ${u.id === currentUserId ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-destructive/10 hover:bg-destructive/20 text-destructive cursor-pointer'}`}
                                 title={language === 'ar' ? 'حذف' : 'Delete'}
+                                aria-label={language === 'ar' ? 'حذف' : 'Delete'}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
