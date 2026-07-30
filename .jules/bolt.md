@@ -5,3 +5,7 @@
 ## 2026-07-26 - Pre-parsing JSON in properties mapping
 **Learning:** Extracting JSON.parse from mapping logic during React renders prevents O(N^2) parsing operations when renders are triggered.
 **Action:** Use a helper function during API data fetching and state setting to pre-parse `details` and extract fields like `thumbnail` to be attached to the item object.
+
+## 2024-05-18 - Removing JSON.parse from render cycles
+**Learning:** Calling `JSON.parse()` inline within React `.map()` iteration limits rendering performance to O(N^2) complexity and frequently blocks the main thread on longer lists.
+**Action:** When extracting data from JSON encoded DB fields (e.g. `imageUrls`, `details`), pre-parse the strings either directly during the API data fetch response `.map()` block or utilizing a `React.useMemo` hook to extract properties prior to entering components render return statements.

@@ -23,9 +23,6 @@ importers:
       '@types/archiver':
         specifier: ^8.0.0
         version: 8.0.0
-      '@types/compression':
-        specifier: ^1.8.1
-        version: 1.8.1
       '@types/cookie-parser':
         specifier: ^1.4.10
         version: 1.4.10(@types/express@4.17.25)
@@ -111,6 +108,9 @@ importers:
         specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
         version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
     devDependencies:
+      '@types/compression':
+        specifier: ^1.8.1
+        version: 1.8.1
       '@types/dompurify':
         specifier: ^3.0.5
         version: 3.2.0
