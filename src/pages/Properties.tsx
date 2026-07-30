@@ -394,30 +394,33 @@ export default function Properties() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
             <input
               type="text"
+              aria-label={language === 'ar' ? 'بحث عن عقار' : 'Search properties'}
               placeholder={language === 'ar' ? 'بحث عن عقار...' : 'Search properties...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
+              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
             />
             <select
+              aria-label={language === 'ar' ? 'تصفية حسب نوع العقار' : 'Filter by property type'}
               value={typeFilter}
               onChange={(e) => {
                 setTypeFilter(e.target.value);
                 updateImmediateFilter('type', e.target.value);
               }}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
+              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
             >
               <option value="ALL">{language === 'ar' ? 'جميع الأنواع' : 'All Types'}</option>
               <option value="SALE">{t('common.sale')}</option>
               <option value="RENT">{t('common.rent')}</option>
             </select>
             <select
+              aria-label={language === 'ar' ? 'تصفية حسب فئة العقار' : 'Filter by property category'}
               value={categoryFilter}
               onChange={(e) => {
                 setCategoryFilter(e.target.value);
                 updateImmediateFilter('category', e.target.value);
               }}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
+              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
             >
               <option value="ALL">{language === 'ar' ? 'جميع الفئات' : 'All Categories'}</option>
               <option value="VILLA">{t('cat.VILLA')}</option>
@@ -438,17 +441,19 @@ export default function Properties() {
             </select>
             <input
               type="number"
+              aria-label={language === 'ar' ? 'السعر الأدنى' : 'Minimum Price'}
               placeholder={language === 'ar' ? 'السعر الأدنى' : 'Min Price'}
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
+              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
             />
             <input
               type="number"
+              aria-label={language === 'ar' ? 'السعر الأعلى' : 'Maximum Price'}
               placeholder={language === 'ar' ? 'السعر الأعلى' : 'Max Price'}
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
+              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
             />
           </div>
           {!parentIdParam && (
