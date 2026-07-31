@@ -4,3 +4,6 @@
 ## 2026-07-25 - Adding Accessible Names to Icon-only Buttons
 **Learning:** Icon-only action buttons (like WhatsApp launch buttons) lacked `aria-label` attributes, impacting screen reader users. The application natively supports both Arabic and English through a `language` context variable, meaning ARIA attributes must dynamically support both via conditionals.
 **Action:** Always verify if an icon-only button uses `aria-label` or `title`. In localized apps, use the localization context (e.g. `language === 'ar' ? 'عربي' : 'English'`) when adding ARIA attributes to ensure the accessible name matches the interface language.
+## 2026-07-31 - Adding ARIA labels to dynamically generated icon-only links
+**Learning:** When generating a list of icon-only links dynamically via a map (e.g. social media icons in a footer), the underlying `<a>` or `<button>` elements must receive an `aria-label` describing their purpose, otherwise screen readers will just announce them as "link". Since the `aria-label` needs to match the visual purpose (which is absent in text form), the dynamic data structure must include a `label` or `name` field to populate it.
+**Action:** Always ensure that data arrays driving icon-only UI components include descriptive text fields specifically for accessibility, and explicitly bind them to `aria-label` during mapping.
