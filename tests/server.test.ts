@@ -1,6 +1,10 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
+import { test, describe, beforeEach, afterEach, before } from 'node:test';
 import assert from 'node:assert';
 import { getSiteUrl } from '../server.js';
+
+before(() => {
+    process.env.JWT_SECRET = 'test-secret';
+});
 
 describe('getSiteUrl', () => {
     let originalEnv: NodeJS.ProcessEnv;
