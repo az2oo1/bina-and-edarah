@@ -81,8 +81,8 @@ interface SocialIconsRowProps {
 export function SocialIconsRow({ links, size = 'md' }: SocialIconsRowProps) {
   const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
   const btnBase = size === 'sm'
-    ? 'w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-0.5'
-    : 'w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-1 shadow-md';
+    ? 'w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:outline-none'
+    : 'w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-1 shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:outline-none';
 
   const items = [
     links.whatsappNumber && {
@@ -152,6 +152,7 @@ export function SocialIconsRow({ links, size = 'md' }: SocialIconsRowProps) {
           target={item.href.startsWith('mailto') ? undefined : '_blank'}
           rel="noopener noreferrer"
           title={item.label}
+          aria-label={item.label}
           className={`${btnBase} text-white`}
           style={item.style}
         >
