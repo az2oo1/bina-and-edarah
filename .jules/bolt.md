@@ -5,3 +5,6 @@
 ## 2026-07-26 - Pre-parsing JSON in properties mapping
 **Learning:** Extracting JSON.parse from mapping logic during React renders prevents O(N^2) parsing operations when renders are triggered.
 **Action:** Use a helper function during API data fetching and state setting to pre-parse `details` and extract fields like `thumbnail` to be attached to the item object.
+## 2026-08-02 - Pre-parsing JSON arrays in lists to prevent O(N^2) parsing
+**Learning:** In React apps, inline JSON string parsing on lists combined with child components triggering state updates (like an image on-load flag) can cause O(N^2) parses which block the thread.
+**Action:** Use map inside API fetch chains to pre-parse stringified objects into structured elements (like thumbnails) before updating React state, removing it from the view completely.
