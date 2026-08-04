@@ -3925,7 +3925,7 @@ async function startServer() {
           attachments: processDocumentUrls(body.attachments),
           aqarLink: body.aqarLink || null,
           allowedPaymentPlans: body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]",
-          videoUrl: body.videoUrl || null,
+          videoUrl: body.videoUrl ? saveBase64Image(body.videoUrl) : null,
           userId: body.userId || null,
           parentId: body.parentId || null,
           status: body.status || "PUBLISHED",
@@ -4015,7 +4015,7 @@ async function startServer() {
       if ('attachments' in body) updateData.attachments = processDocumentUrls(body.attachments);
       if ('aqarLink' in body) updateData.aqarLink = body.aqarLink || null;
       if ('allowedPaymentPlans' in body) updateData.allowedPaymentPlans = body.allowedPaymentPlans ? (typeof body.allowedPaymentPlans === 'string' ? body.allowedPaymentPlans : JSON.stringify(body.allowedPaymentPlans)) : "[\"1\",\"2\",\"4\"]";
-      if ('videoUrl' in body) updateData.videoUrl = body.videoUrl || null;
+      if ('videoUrl' in body) updateData.videoUrl = body.videoUrl ? saveBase64Image(body.videoUrl) : null;
       if ('userId' in body) updateData.userId = body.userId || null;
       if ('parentId' in body) updateData.parentId = body.parentId || null;
       if ('status' in body) updateData.status = body.status || "PUBLISHED";
