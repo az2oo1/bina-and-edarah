@@ -4511,83 +4511,6 @@ async function startServer() {
     }
   });
 
-  // Settings
-  // ---- Settings SQL Fallbacks & Database Auto-Correction ----
-  async function ensureDbColumnsExist() {
-    const alterCommands = [
-      `ALTER TABLE "Settings" ADD COLUMN "analyticsDashboardUrl" text`,
-      `ALTER TABLE Settings ADD COLUMN analyticsDashboardUrl text`,
-      `ALTER TABLE "Settings" ADD COLUMN "addressAr" text`,
-      `ALTER TABLE Settings ADD COLUMN addressAr text`,
-      `ALTER TABLE "Settings" ADD COLUMN "addressEn" text`,
-      `ALTER TABLE Settings ADD COLUMN addressEn text`,
-      `ALTER TABLE "Settings" ADD COLUMN "addressMapLink" text`,
-      `ALTER TABLE Settings ADD COLUMN addressMapLink text`,
-      `ALTER TABLE "Admin" ADD COLUMN "email" text`,
-      `ALTER TABLE Admin ADD COLUMN email text`,
-      `ALTER TABLE "Property" ADD COLUMN "allowedPaymentPlans" text DEFAULT '["1","2","4"]'`,
-      `ALTER TABLE Property ADD COLUMN allowedPaymentPlans text DEFAULT '["1","2","4"]'`,
-      `ALTER TABLE "Property" ADD COLUMN "videoUrl" text`,
-      `ALTER TABLE Property ADD COLUMN videoUrl text`,
-      `ALTER TABLE "Settings" ADD COLUMN "imapHost" text`,
-      `ALTER TABLE Settings ADD COLUMN imapHost text`,
-      `ALTER TABLE "Settings" ADD COLUMN "imapPort" integer`,
-      `ALTER TABLE Settings ADD COLUMN imapPort integer`,
-      `ALTER TABLE "Property" ADD COLUMN "status" text DEFAULT 'PUBLISHED'`,
-      `ALTER TABLE Property ADD COLUMN status text DEFAULT 'PUBLISHED'`,
-      `ALTER TABLE "Property" ADD COLUMN "vatNotApplicable" boolean DEFAULT false`,
-      `ALTER TABLE Property ADD COLUMN vatNotApplicable boolean DEFAULT false`,
-      `ALTER TABLE "Property" ADD COLUMN "renterId" text`,
-      `ALTER TABLE Property ADD COLUMN renterId text`,
-      `ALTER TABLE "Property" ADD COLUMN "renterName" text`,
-      `ALTER TABLE Property ADD COLUMN renterName text`,
-      `ALTER TABLE "Property" ADD COLUMN "renterPhone" text`,
-      `ALTER TABLE Property ADD COLUMN renterPhone text`
-    ];
-    for (const cmd of alterCommands) {
-      try {
-        await prisma.$executeRawUnsafe(cmd);
-      } catch (e: any) {
-        const msg = String(e?.message || e);
-        // Ignore expected "already exists" errors; surface anything else
-        if (!/already exists|duplicate column/i.test(msg)) {
-          logger.error(`ensureDbColumnsExist: ALTER failed -> ${cmd} | ${msg}`);
-        }
-      }
-    }
-
-    try {
-      await prisma.settings.upsert({
-        where: { id: "global" },
-        update: {
-          whatsappNumber: "966556467063",
-          callingNumber: "920015314",
-          email: "rbmc@rbmc.sa",
-          addressAr: "السعودية, الرياض, النرجس, عثمان بن عفان 13336",
-          addressEn: "Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia",
-          addressMapLink: "https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D"
-        },
-        create: {
-          id: "global",
-          whatsappNumber: "966556467063",
-          callingNumber: "920015314",
-          email: "rbmc@rbmc.sa",
-          addressAr: "السعودية, الرياض, النرجس, عثمان بن عفان 13336",
-          addressEn: "Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia",
-          addressMapLink: "https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D"
-        }
-      });
-    } catch (_) {
-      try {
-        await prisma.$executeRawUnsafe(`UPDATE "Settings" SET "whatsappNumber" = '966556467063', "callingNumber" = '920015314', "email" = 'rbmc@rbmc.sa', "addressAr" = 'السعودية, الرياض, النرجس, عثمان بن عفان 13336', "addressEn" = 'Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia', "addressMapLink" = 'https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D' WHERE id = 'global'`);
-      } catch(_) {
-        try {
-          await prisma.$executeRawUnsafe(`UPDATE Settings SET whatsappNumber = '966556467063', callingNumber = '920015314', email = 'rbmc@rbmc.sa', addressAr = 'السعودية, الرياض, النرجس, عثمان بن عفان 13336', addressEn = 'Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia', addressMapLink = 'https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D' WHERE id = 'global'`);
-        } catch (_) {}
-      }
-    }
-  }
-
   async function getGlobalSettings() {
     if (dbCache.settingsCached) return dbCache.settings;
     let result: any = null;
@@ -5922,13 +5845,23 @@ async function startServer() {
     console.error("Prisma schema sync or client generation skipped/failed:", dbError);
   }
 
-  // Dynamically check and add missing columns directly in the SQL database (failsafe)
+  // Seed default settings row if it doesn't exist yet
   try {
-    console.log("Checking and correcting SQL database tables for missing columns...");
-    await ensureDbColumnsExist();
-    console.log("Database table checks complete.");
+    await prisma.settings.upsert({
+      where: { id: "global" },
+      update: {},
+      create: {
+        id: "global",
+        whatsappNumber: "966556467063",
+        callingNumber: "920015314",
+        email: "rbmc@rbmc.sa",
+        addressAr: "السعودية, الرياض, النرجس, عثمان بن عفان 13336",
+        addressEn: "Al Narjis, Othman Bin Affan, 13336, Riyadh, Saudi Arabia",
+        addressMapLink: "https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%86%D8%A7%D8%A1+%D9%88%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9+%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A%D8%A9%E2%80%AD/@24.8712414,46.6578121,17z/data=!3m1!4b1!4m6!3m5!1s0x3e2efd81973e3b15:0xd22a28ed75702190!8m2!3d24.8712414!4d46.660387!16s%2Fg%2F11llp6_lp0?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D"
+      }
+    });
   } catch (err) {
-    console.error("SQL database table checking failed:", err);
+    logger.error("Failed to seed default settings:", err);
   }
 
   const httpServer = createHttpServer(app);
