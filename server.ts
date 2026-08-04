@@ -5167,27 +5167,36 @@ async function startServer() {
           }
         };
 
+        const parseDates = (item: any) => {
+          if (!item || typeof item !== 'object') return item;
+          const cleaned: any = { ...item };
+          if (cleaned.createdAt) cleaned.createdAt = new Date(cleaned.createdAt);
+          if (cleaned.updatedAt) cleaned.updatedAt = new Date(cleaned.updatedAt);
+          if (cleaned.startDate) cleaned.startDate = new Date(cleaned.startDate);
+          if (cleaned.endDate) cleaned.endDate = new Date(cleaned.endDate);
+          if (cleaned.date) cleaned.date = new Date(cleaned.date);
+          if (cleaned.expiresAt) cleaned.expiresAt = new Date(cleaned.expiresAt);
+          return cleaned;
+        };
+
         // Restore tables with chunking to stay below database SQL message size limits
         if (dbData.admins && dbData.admins.length > 0) {
-          await insertBatch(tx.admin, dbData.admins);
+          await insertBatch(tx.admin, dbData.admins.map(parseDates));
         }
         if (dbData.users && dbData.users.length > 0) {
-          await insertBatch(tx.user, dbData.users);
+          await insertBatch(tx.user, dbData.users.map(parseDates));
         }
         if (dbData.settings && dbData.settings.length > 0) {
-          await insertBatch(tx.settings, dbData.settings);
+          await insertBatch(tx.settings, dbData.settings.map(parseDates));
         }
         if (dbData.services && dbData.services.length > 0) {
-          await insertBatch(tx.service, dbData.services);
+          await insertBatch(tx.service, dbData.services.map(parseDates));
         }
         if (dbData.projects && dbData.projects.length > 0) {
-          await insertBatch(tx.project, dbData.projects);
+          await insertBatch(tx.project, dbData.projects.map(parseDates));
         }
         if (dbData.properties && dbData.properties.length > 0) {
-          const allProperties = dbData.properties.map((p: any) => ({
-            ...p,
-            createdAt: p.createdAt ? new Date(p.createdAt) : new Date()
-          }));
+          const allProperties = dbData.properties.map(parseDates);
 
           // Insert all properties with parentId null first in small batches
           await insertBatch(tx.property, allProperties.map((p: any) => ({ ...p, parentId: null })), 5);
@@ -5203,22 +5212,22 @@ async function startServer() {
           }
         }
         if (dbData.buildings && dbData.buildings.length > 0) {
-          await insertBatch(tx.building, dbData.buildings);
+          await insertBatch(tx.building, dbData.buildings.map(parseDates));
         }
         if (dbData.renterUnits && dbData.renterUnits.length > 0) {
-          await insertBatch(tx.renterUnit, dbData.renterUnits);
+          await insertBatch(tx.renterUnit, dbData.renterUnits.map(parseDates));
         }
         if (dbData.rentHistory && dbData.rentHistory.length > 0) {
-          await insertBatch(tx.rentHistory, dbData.rentHistory);
+          await insertBatch(tx.rentHistory, dbData.rentHistory.map(parseDates));
         }
         if (dbData.callbackRequests && dbData.callbackRequests.length > 0) {
-          await insertBatch(tx.callbackRequest, dbData.callbackRequests);
+          await insertBatch(tx.callbackRequest, dbData.callbackRequests.map(parseDates));
         }
         if (dbData.callbackNotes && dbData.callbackNotes.length > 0) {
-          await insertBatch(tx.callbackNote, dbData.callbackNotes);
+          await insertBatch(tx.callbackNote, dbData.callbackNotes.map(parseDates));
         }
         if (dbData.actionLogs && dbData.actionLogs.length > 0) {
-          await insertBatch(tx.actionLog, dbData.actionLogs);
+          await insertBatch(tx.actionLog, dbData.actionLogs.map(parseDates));
         }
       }, { timeout: 120000 });
 
