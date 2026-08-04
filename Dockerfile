@@ -24,7 +24,7 @@ RUN npm run build
 FROM node:20-alpine AS runner
 
 # Install system dependencies required by Prisma and other native modules
-RUN apk add --no-cache openssl libc6-compat
+RUN apk add --no-cache openssl libc6-compat curl
 
 WORKDIR /app
 
@@ -39,11 +39,13 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/uploads ./uploads
 
+# Copy and prepare the entrypoint script
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
+
 
 # Expose port
 EXPOSE 3000
 
-# Start script
-# Run prisma db push first to create/sync all tables, then start the app.
-# This ensures the database schema is fully applied before the app boots.
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npm start"]
+# Entrypoint: creates/syncs DB schema with retries, then starts the app.
+CMD ["/app/docker-entrypoint.sh"]

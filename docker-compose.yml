@@ -2,9 +2,6 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: ghcr.io/az2oo1/bina-and-edarah:latest
     container_name: bina_edarah_app
     restart: always
@@ -33,7 +30,13 @@ services:
     image: cockroachdb/cockroach:v24.1.3
     container_name: cockroach_db
     restart: always
-    command: start-single-node --insecure
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        /cockroach/cockroach start-single-node --insecure --http-addr=0.0.0.0:8080 &
+        until /cockroach/cockroach sql --insecure --execute="SELECT 1" >/dev/null 2>&1; do sleep 1; done &&
+        /cockroach/cockroach sql --insecure --execute="CREATE DATABASE IF NOT EXISTS bina_db;" &&
+        wait
     ports:
       - "26257:26257"
       - "8080:8080"
@@ -44,7 +47,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 15s
 
   rustfs_storage:
     image: minio/minio:latest
