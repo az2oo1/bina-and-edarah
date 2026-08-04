@@ -773,6 +773,38 @@ const homeVideoUpload = multer({
   limits: { fileSize: 500 * 1024 * 1024 }
 });
 
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+const s3Client = new S3Client({
+  endpoint: process.env.S3_ENDPOINT || "http://rustfs_storage:9000",
+  region: process.env.S3_REGION || "us-east-1",
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY || "rustfsaccesskey",
+    secretAccessKey: process.env.S3_SECRET_KEY || "rustfssecretkey"
+  },
+  forcePathStyle: true
+});
+
+const S3_BUCKET = process.env.S3_BUCKET || "bina-assets";
+
+function uploadToStorage(buffer: Buffer, filename: string, contentType: string): string {
+  // Always save locally to ensure availability via static express server
+  const filepath = path.join(UPLOADS_DIR, filename);
+  fs.writeFileSync(filepath, buffer);
+
+  // Upload to S3 Object Storage asynchronously
+  s3Client.send(new PutObjectCommand({
+    Bucket: S3_BUCKET,
+    Key: filename,
+    Body: buffer,
+    ContentType: contentType
+  })).catch(err => {
+    logger.warn(`Failed to sync ${filename} to RustFS Object Storage:`, err?.message || err);
+  });
+
+  return `/uploads/${filename}`;
+}
+
 function saveBase64Image(dataStr: string): string {
   if (!dataStr || typeof dataStr !== 'string') return dataStr;
   
@@ -782,9 +814,7 @@ function saveBase64Image(dataStr: string): string {
     const ext = videoMatch[1];
     const base64Data = videoMatch[2];
     const filename = `${crypto.randomUUID()}.${ext}`;
-    const filepath = path.join(UPLOADS_DIR, filename);
-    fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
-    return `/uploads/${filename}`;
+    return uploadToStorage(Buffer.from(base64Data, 'base64'), filename, `video/${ext}`);
   }
 
   // Check if it's a base64 data URL
@@ -796,9 +826,7 @@ function saveBase64Image(dataStr: string): string {
       const ext = docMatch[1];
       const base64Data = docMatch[2];
       const filename = `${crypto.randomUUID()}.${ext}`;
-      const filepath = path.join(UPLOADS_DIR, filename);
-      fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
-      return `/uploads/${filename}`;
+      return uploadToStorage(Buffer.from(base64Data, 'base64'), filename, `application/${ext}`);
     }
     return dataStr;
   }
@@ -806,10 +834,7 @@ function saveBase64Image(dataStr: string): string {
   const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
   const base64Data = match[2];
   const filename = `${crypto.randomUUID()}.${ext}`;
-  const filepath = path.join(UPLOADS_DIR, filename);
-  
-  fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
-  return `/uploads/${filename}`;
+  return uploadToStorage(Buffer.from(base64Data, 'base64'), filename, `image/${ext}`);
 }
 
 function parseImageArray(input: string | any[] | null | undefined): string[] {
@@ -4741,8 +4766,16 @@ async function startServer() {
     });
   }, async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No video file uploaded' });
+      if (req.file) {
+        const videoBuffer = fs.readFileSync(path.join(UPLOADS_DIR, req.file.filename));
+        s3Client.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: req.file.filename,
+          Body: videoBuffer,
+          ContentType: req.file.mimetype || 'video/mp4'
+        })).catch(err => {
+          logger.warn(`Failed to sync home video ${req.file?.filename} to RustFS Object Storage:`, err?.message || err);
+        });
       }
 
       res.json({
@@ -5127,30 +5160,37 @@ async function startServer() {
         await tx.user.deleteMany();
         await tx.admin.deleteMany();
 
-        // Restore tables
+        const insertBatch = async (modelDelegate: any, items: any[], batchSize = 25) => {
+          for (let i = 0; i < items.length; i += batchSize) {
+            const chunk = items.slice(i, i + batchSize);
+            await modelDelegate.createMany({ data: chunk });
+          }
+        };
+
+        // Restore tables with chunking to stay below database SQL message size limits
         if (dbData.admins && dbData.admins.length > 0) {
-          await tx.admin.createMany({ data: dbData.admins });
+          await insertBatch(tx.admin, dbData.admins);
         }
         if (dbData.users && dbData.users.length > 0) {
-          await tx.user.createMany({ data: dbData.users });
+          await insertBatch(tx.user, dbData.users);
         }
         if (dbData.settings && dbData.settings.length > 0) {
-          await tx.settings.createMany({ data: dbData.settings });
+          await insertBatch(tx.settings, dbData.settings);
         }
         if (dbData.services && dbData.services.length > 0) {
-          await tx.service.createMany({ data: dbData.services });
+          await insertBatch(tx.service, dbData.services);
         }
         if (dbData.projects && dbData.projects.length > 0) {
-          await tx.project.createMany({ data: dbData.projects });
+          await insertBatch(tx.project, dbData.projects);
         }
         if (dbData.properties && dbData.properties.length > 0) {
-          const allProperties = dbData.properties;
+          const allProperties = dbData.properties.map((p: any) => ({
+            ...p,
+            createdAt: p.createdAt ? new Date(p.createdAt) : new Date()
+          }));
 
-          // Insert all properties with parentId null first, then restore parent links.
-          // This prevents foreign-key ordering issues for self-referenced properties.
-          await tx.property.createMany({
-            data: allProperties.map((p: any) => ({ ...p, parentId: null }))
-          });
+          // Insert all properties with parentId null first in small batches
+          await insertBatch(tx.property, allProperties.map((p: any) => ({ ...p, parentId: null })), 5);
 
           const insertedIds = new Set(allProperties.map((p: any) => p.id));
           for (const p of allProperties) {
@@ -5163,24 +5203,24 @@ async function startServer() {
           }
         }
         if (dbData.buildings && dbData.buildings.length > 0) {
-          await tx.building.createMany({ data: dbData.buildings });
+          await insertBatch(tx.building, dbData.buildings);
         }
         if (dbData.renterUnits && dbData.renterUnits.length > 0) {
-          await tx.renterUnit.createMany({ data: dbData.renterUnits });
+          await insertBatch(tx.renterUnit, dbData.renterUnits);
         }
         if (dbData.rentHistory && dbData.rentHistory.length > 0) {
-          await tx.rentHistory.createMany({ data: dbData.rentHistory });
+          await insertBatch(tx.rentHistory, dbData.rentHistory);
         }
         if (dbData.callbackRequests && dbData.callbackRequests.length > 0) {
-          await tx.callbackRequest.createMany({ data: dbData.callbackRequests });
+          await insertBatch(tx.callbackRequest, dbData.callbackRequests);
         }
         if (dbData.callbackNotes && dbData.callbackNotes.length > 0) {
-          await tx.callbackNote.createMany({ data: dbData.callbackNotes });
+          await insertBatch(tx.callbackNote, dbData.callbackNotes);
         }
         if (dbData.actionLogs && dbData.actionLogs.length > 0) {
-          await tx.actionLog.createMany({ data: dbData.actionLogs });
+          await insertBatch(tx.actionLog, dbData.actionLogs);
         }
-      });
+      }, { timeout: 120000 });
 
       // Reset API caches so restored data is visible immediately.
       invalidateCache('properties');
