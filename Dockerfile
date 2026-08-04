@@ -44,7 +44,6 @@ COPY --from=builder /app/uploads ./uploads
 EXPOSE 3000
 
 # Start script
-# This pushes schema changes to the db before starting the app.
-# Using '|| true' ensures that if there's a schema discrepancy warning (e.g. data loss warnings on outdated container images),
-# the container won't crash on boot and will instead start the app safely.
-CMD npx prisma db push --skip-generate || true && npm start
+# Run prisma db push first to create/sync all tables, then start the app.
+# This ensures the database schema is fully applied before the app boots.
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npm start"]
