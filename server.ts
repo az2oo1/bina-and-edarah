@@ -25,7 +25,10 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
+if (!process.env.JWT_SECRET) {
+  throw new Error("CRITICAL: JWT_SECRET environment variable is missing.");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
@@ -5313,21 +5316,6 @@ async function startServer() {
          const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
          res.cookie('token', token, cookieOptions);
          logger.info(`User login successful for ${username}`);
-         return res.json({ ...userPayload, token });
-       }
- 
-       // Hardcoded admin fallback for preview if DB is empty
-       if (username === 'admin' && password === 'admin') {
-         const userPayload = { 
-           id: 'admin-fallback', 
-           username: 'admin', 
-           role: 'ADMIN', 
-           name: 'Administrator',
-           permissions: ROLE_PERMISSIONS['ADMIN']
-         };
-         const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-         res.cookie('token', token, cookieOptions);
-         logger.info(`Fallback admin login successful`);
          return res.json({ ...userPayload, token });
        }
 
