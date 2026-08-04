@@ -5080,15 +5080,17 @@ async function startServer() {
       let dbData: any = null;
       let zip: AdmZip | null = null;
 
-      if (req.file.originalname.endsWith('.zip')) {
+      if (req.file.originalname.toLowerCase().endsWith('.zip')) {
         zip = new AdmZip(req.file.buffer);
         const entry = zip.getEntries().find(e => e.entryName === 'db-data.json');
         if (!entry) {
-          return res.status(400).json({ error: 'No db-data.json file found in ZIP' });
+          return res.status(400).json({ error: 'No db-data.json file found inside uploaded ZIP' });
         }
         dbData = JSON.parse(entry.getData().toString('utf8'));
+      } else if (req.file.originalname.toLowerCase().endsWith('.json')) {
+        dbData = JSON.parse(req.file.buffer.toString('utf8'));
       } else {
-        return res.status(400).json({ error: 'Please upload a valid backup .zip file' });
+        return res.status(400).json({ error: 'Please upload a valid backup .zip or .json file' });
       }
 
       if (!dbData) {

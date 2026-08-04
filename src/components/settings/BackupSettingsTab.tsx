@@ -69,15 +69,15 @@ export const BackupSettingsTab: React.FC<BackupSettingsTabProps> = ({
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {language === 'ar'
-                ? 'رفع ملف نسخة احتياطية (JSON) لاستعادة قاعدة البيانات وتحديث النظام.'
-                : 'Upload a backup JSON file to restore the database and update system state.'}
+                ? 'رفع ملف نسخة احتياطية (ZIP) لاستعادة قاعدة البيانات والملفات وتحديث النظام.'
+                : 'Upload a backup ZIP file to restore the database, uploads, and update system state.'}
             </p>
           </div>
 
           <label className="w-full cursor-pointer">
             <input
               type="file"
-              accept=".json"
+              accept=".zip,.json"
               onChange={handleRestoreDatabase}
               disabled={restoringDb}
               className="hidden"
