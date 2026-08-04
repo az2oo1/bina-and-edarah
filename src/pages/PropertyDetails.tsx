@@ -436,13 +436,7 @@ export default function PropertyDetails() {
                         return (
                           <>
                             <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-10 select-none flex items-center gap-1.5">
-                              <span className={`text-[9.5px] font-extrabold px-3 py-0.5 rounded-full shadow-2xs backdrop-blur-md border ${
-                                isSold ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30' :
-                                isRented ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' :
-                                unit.type === 'SALE' ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30' :
-                                isAvailable ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' :
-                                'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30'
-                              }`}>
+                              <span className="bg-card/95 text-foreground px-2.5 py-0.5 rounded text-[10px] font-bold shadow-xs border border-border">
                                 {isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
                                  isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
                                  unit.type === 'SALE' ? (language === 'ar' ? 'للبيع' : 'For Sale') :
@@ -592,11 +586,7 @@ export default function PropertyDetails() {
         {/* Title Section */}
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className={`px-3 py-1 rounded-full text-xs font-extrabold shadow-2xs backdrop-blur-md border ${
-              property.type === 'SALE' 
-                ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30' 
-                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-            }`}>
+            <span className="bg-card/95 text-foreground px-2.5 py-0.5 rounded text-xs font-bold shadow-xs border border-border">
               {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
             </span>
             <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-xs font-semibold">

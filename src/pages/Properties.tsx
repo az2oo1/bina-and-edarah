@@ -600,11 +600,7 @@ export default function Properties() {
                         </>
                       )}
                       <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-20 flex flex-wrap gap-1.5">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-2xs backdrop-blur-md border ${
-                          property.type === 'SALE' 
-                            ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30' 
-                            : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                        }`}>
+                        <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-bold shadow-xs border border-border">
                           {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                         </span>
                         <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
