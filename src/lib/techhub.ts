@@ -1,5 +1,3 @@
-import { prisma } from "./db.js";
-
 export interface TechHubProject {
   id: string;
   nameAr: string;

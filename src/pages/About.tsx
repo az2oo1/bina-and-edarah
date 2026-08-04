@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../LanguageContext';
-import { Building2, ShieldCheck, KeySquare, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
+import { Building2, ShieldCheck, KeySquare, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
 
 export default function About() {

@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, Building, KeySquare, Hammer, Headphones, Mail, Layers, ChevronDown } from 'lucide-react';
+import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, Building, KeySquare, Hammer } from 'lucide-react';
 import { Link } from 'react-router';
-import { SocialIconsRow } from '../components/SocialIcons';
 
 const DEFAULT_IMAGES = {
   hero: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop',
@@ -52,22 +51,10 @@ function ProjectsSkeleton() {
   );
 }
 
-interface SocialSettings {
-  email?: string;
-  instagramUrl?: string;
-  twitterUrl?: string;
-  facebookUrl?: string;
-  linkedinUrl?: string;
-  youtubeUrl?: string;
-  tiktokUrl?: string;
-  whatsappNumber?: string;
-}
-
 export default function Home() {
   const { t, language } = useLanguage();
   const Arrow = language === 'ar' ? ArrowLeft : ArrowRight;
   const [images, setImages] = useState<HomeImages>(DEFAULT_IMAGES);
-  const [social, setSocial] = useState<SocialSettings>({});
 
   const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -147,16 +134,6 @@ export default function Home() {
             setImages(prev => ({ ...prev, ...parsed }));
           } catch (_) {}
         }
-        setSocial({
-          email: data.email,
-          instagramUrl: data.instagramUrl,
-          twitterUrl: data.twitterUrl,
-          facebookUrl: data.facebookUrl,
-          linkedinUrl: data.linkedinUrl,
-          youtubeUrl: data.youtubeUrl,
-          tiktokUrl: data.tiktokUrl,
-          whatsappNumber: data.whatsappNumber,
-        });
       })
       .catch(() => {});
   }, []);
@@ -290,8 +267,7 @@ export default function Home() {
 
           {/* Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {services.map((service, index) => {
-              const isEven = index % 2 === 0;
+            {services.map((service) => {
               return (
                 <div 
                   key={service.id} 

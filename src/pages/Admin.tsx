@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { useLanguage } from '../LanguageContext';
-import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, EyeOff, Info, CheckCircle, Download, Upload, LogOut, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Video, Plus, Building2, Check, DollarSign, FileText, Image, LayoutGrid, User, UserPlus, Search, Copy } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Home, MapPin, Settings as SettingsIcon, ImagePlus, X, BarChart3, Eye, Info, CheckCircle, Upload, Mail, ArrowLeft, ArrowRight, Pencil, MessageSquare, KeyRound, Database, RefreshCw, Plus, Building2, Check, DollarSign, FileText, Image, LayoutGrid, User, UserPlus, Search, Copy, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as LucideIcons from 'lucide-react';
 import { SrIcon } from '../components/SrIcon';
-import { IgIcon, XIcon, FbIcon, LiIcon, YtIcon, TkIcon, SnapIcon } from '../components/SocialIcons';
 import { useDialog } from '../context/DialogContext';
 
 import AdminProjects from './AdminProjects';
@@ -14,6 +14,14 @@ import AdminMaintenance from './AdminMaintenance';
 import AdminUsers from './AdminUsers';
 import AdminLogs from './AdminLogs';
 import { compressImage } from '../lib/image';
+import { CustomSelect } from '../components/CustomSelect';
+
+import { WhatsAppSettingsTab } from '../components/settings/WhatsAppSettingsTab';
+import { EmailSettingsTab } from '../components/settings/EmailSettingsTab';
+import { OtpSettingsTab } from '../components/settings/OtpSettingsTab';
+import { ImagesSettingsTab } from '../components/settings/ImagesSettingsTab';
+import { BackupSettingsTab } from '../components/settings/BackupSettingsTab';
+import { TechHubSettingsTab } from '../components/settings/TechHubSettingsTab';
 
 interface Property {
   id: string;
@@ -102,7 +110,7 @@ const TAB_TO_PERMISSION: Record<string, string> = {
   projects: 'projects',
   buildings: 'buildings',
   renters: 'renters',
-  maintenance: 'renters',
+  maintenance: 'maintenance',
   analytics: 'analytics',
   settings: 'settings',
   callbacks: 'callbacks',
@@ -111,9 +119,10 @@ const TAB_TO_PERMISSION: Record<string, string> = {
 };
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'analytics', 'settings', 'callbacks', 'users', 'logs'],
-  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'callbacks', 'analytics'],
-  AGENT: ['properties', 'projects', 'callbacks']
+  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'analytics', 'settings', 'callbacks', 'users', 'logs', 'maintenance'],
+  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'callbacks', 'analytics', 'maintenance'],
+  AGENT: ['properties', 'projects', 'callbacks'],
+  MAINTENANCE: ['maintenance', 'buildings', 'renters']
 };
 
 const POPULAR_ICONS = [
@@ -153,22 +162,65 @@ export default function Admin() {
   const { t, language } = useLanguage();
   const { showAlert, showConfirm } = useDialog();
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/logout', { method: 'POST' });
-    } catch (err) {}
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-  };
   const [loading, setLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [fetching, setFetching] = useState(true);
+  const { tab: routeTab, subtab: routeSubtab } = useParams<{ tab?: string; subtab?: string }>();
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState<'manage' | 'projects' | 'buildings' | 'renters' | 'maintenance' | 'settings' | 'callbacks' | 'users' | 'logs'>('manage');
   const [userRole, setUserRole] = useState<string>('ADMIN');
+
+  // Sync URL parameters to activeTab & activeSettingsSection
+  useEffect(() => {
+    if (!routeTab) {
+      setActiveTab('manage');
+      return;
+    }
+    const lower = routeTab.toLowerCase();
+    if (lower === 'buildings' || lower === 'properties' || lower === 'manage') {
+      setActiveTab('manage');
+    } else if (lower === 'projects') {
+      setActiveTab('projects');
+    } else if (lower === 'renters' || lower === 'renter') {
+      setActiveTab('renters');
+    } else if (lower === 'maintenance' || lower === 'mentainens') {
+      setActiveTab('maintenance');
+    } else if (lower === 'messages' || lower === 'callbacks' || lower === 'requests') {
+      setActiveTab('callbacks');
+    } else if (lower === 'users') {
+      setActiveTab('users');
+    } else if (lower === 'analytics') {
+      setActiveTab('analytics');
+    } else if (lower === 'settings') {
+      setActiveTab('settings');
+      if (routeSubtab) {
+        const sub = routeSubtab.toLowerCase();
+        if (['whatsapp', 'email', 'otp', 'images', 'backup', 'techhub'].includes(sub)) {
+          setActiveSettingsSection(sub as any);
+        }
+      }
+    } else if (lower === 'logs') {
+      setActiveTab('logs');
+    }
+  }, [routeTab, routeSubtab]);
+
+  const handleTabChange = (tab: 'manage' | 'projects' | 'renters' | 'maintenance' | 'analytics' | 'callbacks' | 'users' | 'logs' | 'settings') => {
+    setActiveTab(tab);
+    if (tab === 'manage') navigate('/admin/buildings');
+    else if (tab === 'callbacks') navigate('/admin/messages');
+    else if (tab === 'settings') navigate(`/admin/settings/${activeSettingsSection}`);
+    else navigate(`/admin/${tab}`);
+  };
+
+  const handleSettingsSectionChange = (section: string) => {
+    setActiveSettingsSection(section as any);
+    navigate(`/admin/settings/${section}`);
+  };
   const [selectedParentProperty, setSelectedParentProperty] = useState<Property | null>(null);
   const [selectedParentTab, setSelectedParentTab] = useState<'units' | 'details'>('units');
   const [selectedParentUnits, setSelectedParentUnits] = useState<Property[]>([]);
+  const [buildingDetailSubTab, setBuildingDetailSubTab] = useState<'units' | 'maintenance'>('units');
   const [loadingUnits, setLoadingUnits] = useState(false);
 
   const fetchUnitsForParent = async (parentId: string) => {
@@ -326,10 +378,20 @@ export default function Admin() {
           }
         }
 
-        showSubmitMessage('success', language === 'ar' ? 'تم تعيين المستأجر للوحدة بنجاح' : 'Renter assigned to unit successfully');
+        showSubmitMessage('success', language === 'ar' ? 'تم تعيين المستأجر للعقار بنجاح' : 'Renter assigned to property successfully');
         setUnitForRenterAssignment(null);
+        fetchProperties();
         if (selectedParentProperty) {
-          fetchUnitsForParent(selectedParentProperty.id);
+          if (selectedParentProperty.id === unitForRenterAssignment.id) {
+            setSelectedParentProperty({
+              ...selectedParentProperty,
+              renterId: rId,
+              renterName: rName,
+              renterPhone: rPhone
+            });
+          } else {
+            fetchUnitsForParent(selectedParentProperty.id);
+          }
         }
       }
     } catch (err) {
@@ -341,7 +403,7 @@ export default function Admin() {
   };
 
   const handleUnassignRenterFromPropertyUnit = async (unit: any) => {
-    const confirmed = await showConfirm(language === 'ar' ? 'هل أنت تأكد من إلغاء تعيين هذا المستأجر من الوحدة؟' : 'Are you sure you want to unassign this renter from the unit?');
+    const confirmed = await showConfirm(language === 'ar' ? 'هل أنت تأكد من إلغاء تعيين هذا المستأجر من العقار؟' : 'Are you sure you want to unassign this renter from the property?');
     if (!confirmed) return;
     try {
       const updateRes = await fetch(`/api/admin/properties/${unit.id}`, {
@@ -360,7 +422,7 @@ export default function Admin() {
             const rUnitsRes = await fetch('/api/admin/renters');
             if (rUnitsRes.ok) {
               const rUnits = await rUnitsRes.json();
-              const targetRUnit = rUnits.find((u: any) => u.buildingId === matchingBuilding.id && (u.unitNumber === unit.titleAr || u.unitNumber === unit.titleEn));
+              const targetRUnit = rUnits.find((u: any) => u.buildingId === matchingBuilding.id && (u.unitNumber === unit.titleAr || u.unitNumber === unit.titleEn || u.unitNumber === 'كامل العقار'));
               if (targetRUnit) {
                 await fetch(`/api/admin/units/${targetRUnit.id}/assign-renter`, {
                   method: 'POST',
@@ -374,8 +436,18 @@ export default function Admin() {
           }
         }
 
+        fetchProperties();
         if (selectedParentProperty) {
-          fetchUnitsForParent(selectedParentProperty.id);
+          if (selectedParentProperty.id === unit.id) {
+            setSelectedParentProperty({
+              ...selectedParentProperty,
+              renterId: null,
+              renterName: null,
+              renterPhone: null
+            });
+          } else {
+            fetchUnitsForParent(selectedParentProperty.id);
+          }
         }
       }
     } catch (err) {
@@ -453,13 +525,15 @@ export default function Admin() {
   const [techhubClientId, setTechhubClientId] = useState('');
   const [techhubClientSecret, setTechhubClientSecret] = useState('');
   const [techhubApiKey, setTechhubApiKey] = useState('');
+  const [techhubEndpointUrl, setTechhubEndpointUrl] = useState('');
   const [techhubSandboxMode, setTechhubSandboxMode] = useState(true);
-  const [syncingTechHub, setSyncingTechHub] = useState(false);
+  const [, setSyncingTechHub] = useState(false);
 
   // VerifyKit Settings State
   const [verifyKitEnabled, setVerifyKitEnabled] = useState(true);
   const [verifyKitAppKey, setVerifyKitAppKey] = useState('AxaVaO8JfW2OMj');
   const [verifyKitServerKey, setVerifyKitServerKey] = useState('Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6');
+  const [showVerifyKitServerKey, setShowVerifyKitServerKey] = useState(false);
   const [verifyKitDomain, setVerifyKitDomain] = useState('https://rbmc.sa');
   const [verifyKitDeeplink, setVerifyKitDeeplink] = useState('vfk300403://welcome');
 
@@ -477,7 +551,6 @@ export default function Admin() {
   // Analytics Settings State
   const [analyticsScript, setAnalyticsScript] = useState('');
   const [analyticsDashboardUrl, setAnalyticsDashboardUrl] = useState('');
-  const [analyticsSource, setAnalyticsSource] = useState<'external' | 'internal'>('external');
 
   // Home Images & Logo State
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -509,7 +582,7 @@ export default function Admin() {
   // Backup / Restore State
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
-  const [restoreMessage, setRestoreMessage] = useState<{type:'success'|'error', text:string} | null>(null);
+  const [, setRestoreMessage] = useState<{type:'success'|'error', text:string} | null>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -1609,28 +1682,11 @@ export default function Admin() {
     <div className="bg-background text-foreground min-h-screen pt-4 pb-12">
       <div className={`${activeTab === 'callbacks' ? 'max-w-[1440px]' : 'max-w-6xl'} mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-300`}>
         
-        {/* Header Title & Logout */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-border select-none">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <h1 className="text-lg font-bold text-foreground">
-              {language === 'ar' ? 'لوحة إدارة النظام' : 'Admin Control Panel'}
-            </h1>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-red-500/30 text-red-500 hover:bg-red-500/10 cursor-pointer transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>{language === 'ar' ? 'تسجيل الخروج' : 'Logout'}</span>
-          </button>
-        </div>
-
         {/* Navigation Tabs */}
         <div className="inline-flex items-center justify-start rounded-xl bg-card border border-border p-1 text-muted-foreground mb-8 overflow-x-auto select-none scrollbar-none gap-1 w-max max-w-full">
           {hasTabPermission('manage', userRole) && (
             <button 
-              onClick={() => setActiveTab('manage')}
+              onClick={() => handleTabChange('manage')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'manage' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1642,7 +1698,7 @@ export default function Admin() {
           )}
           {hasTabPermission('projects', userRole) && (
             <button 
-              onClick={() => setActiveTab('projects')}
+              onClick={() => handleTabChange('projects')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'projects' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1654,7 +1710,7 @@ export default function Admin() {
           )}
           {hasTabPermission('renters', userRole) && (
             <button 
-              onClick={() => setActiveTab('renters')}
+              onClick={() => handleTabChange('renters')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'renters' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1667,7 +1723,7 @@ export default function Admin() {
 
           {hasTabPermission('maintenance', userRole) && (
             <button 
-              onClick={() => setActiveTab('maintenance')}
+              onClick={() => handleTabChange('maintenance')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'maintenance' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1679,7 +1735,7 @@ export default function Admin() {
           )}
           {hasTabPermission('analytics', userRole) && (
             <button 
-              onClick={() => setActiveTab('analytics')}
+              onClick={() => handleTabChange('analytics')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'analytics' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1691,7 +1747,7 @@ export default function Admin() {
           )}
           {hasTabPermission('callbacks', userRole) && (
             <button 
-              onClick={() => setActiveTab('callbacks')}
+              onClick={() => handleTabChange('callbacks')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'callbacks' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1703,7 +1759,7 @@ export default function Admin() {
           )}
           {hasTabPermission('users', userRole) && (
             <button 
-              onClick={() => setActiveTab('users')}
+              onClick={() => handleTabChange('users')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'users' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1715,7 +1771,7 @@ export default function Admin() {
           )}
           {hasTabPermission('logs', userRole) && (
             <button 
-              onClick={() => setActiveTab('logs')}
+              onClick={() => handleTabChange('logs')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'logs' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1727,7 +1783,7 @@ export default function Admin() {
           )}
           {hasTabPermission('settings', userRole) && (
             <button 
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleTabChange('settings')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'settings' 
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold' 
@@ -1752,19 +1808,25 @@ export default function Admin() {
             {activeTab === 'maintenance' && <AdminMaintenance />}
 
             {activeTab === 'manage' && (
-          <div className="min-h-[500px]">
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-border">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
-                  <Home className="w-6 h-6 text-primary" />
+          <div className="min-h-[500px] space-y-6">
+            {/* Standard Admin Header Block */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border select-none">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                  <Home className="w-5 h-5 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">
-                  {showAddForm 
-                    ? (editingId ? (language === 'ar' ? 'تعديل العقار' : 'Edit Property') : (selectedParentProperty ? (language === 'ar' ? 'إضافة وحدة جديدة' : 'Add New Unit') : t('admin.addProperty'))) 
-                    : (selectedParentProperty 
-                        ? (language === 'ar' ? `إدارة وحدات: ${selectedParentProperty.titleAr}` : `Manage Units of: ${selectedParentProperty.titleEn}`)
-                        : t('admin.propertiesList'))}
-                </h2>
+                <div>
+                  <h1 className="text-xl font-extrabold text-foreground tracking-tight">
+                    {showAddForm 
+                      ? (editingId ? (language === 'ar' ? 'تعديل العقار' : 'Edit Property') : (selectedParentProperty ? (language === 'ar' ? 'إضافة وحدة جديدة' : 'Add New Unit') : t('admin.addProperty'))) 
+                      : (selectedParentProperty 
+                          ? (language === 'ar' ? `إدارة وحدات: ${selectedParentProperty.titleAr}` : `Manage Units of: ${selectedParentProperty.titleEn}`)
+                          : t('admin.propertiesList'))}
+                  </h1>
+                  <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                    {language === 'ar' ? 'إدارة المباني والعقارات، إضافة الوحدات وتحديد حالات الإيجار والمستأجرين' : 'Manage buildings and properties, add units, set rental statuses and renters'}
+                  </p>
+                </div>
               </div>
               {(!selectedParentProperty || selectedParentTab === 'units') && (
                 <button 
@@ -1784,12 +1846,18 @@ export default function Admin() {
                       setShowAddForm(true);
                     }
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md shadow-xs bg-primary text-white hover:opacity-90 cursor-pointer transition-colors"
+                  className={`h-9 px-4 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs ${
+                    showAddForm 
+                      ? 'border border-border bg-card text-foreground hover:bg-muted' 
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  }`}
                 >
-                  {showAddForm ? <X className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
-                  {showAddForm 
-                    ? (language === 'ar' ? 'إلغاء' : 'Cancel') 
-                    : (selectedParentProperty ? (language === 'ar' ? 'إضافة وحدة' : 'Add Unit') : t('admin.addProperty'))}
+                  {showAddForm ? <X className="w-3.5 h-3.5" /> : <PlusCircle className="w-3.5 h-3.5" />}
+                  <span>
+                    {showAddForm 
+                      ? (language === 'ar' ? 'إلغاء' : 'Cancel') 
+                      : (selectedParentProperty ? (language === 'ar' ? 'إضافة وحدة' : 'Add Unit') : t('admin.addProperty'))}
+                  </span>
                 </button>
               )}
             </div>
@@ -1813,9 +1881,28 @@ export default function Admin() {
                       </button>
                       <div className="h-6 w-px bg-border"></div>
                       <div>
-                        <h3 className="text-sm font-extrabold text-foreground">
-                          {language === 'ar' ? selectedParentProperty.titleAr : selectedParentProperty.titleEn}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-extrabold text-foreground">
+                            {language === 'ar' ? selectedParentProperty.titleAr : selectedParentProperty.titleEn}
+                          </h3>
+                          {(selectedParentProperty.renterName || selectedParentProperty.status === 'RENTED' || (selectedParentUnits.length > 0 && selectedParentUnits.every(u => u.status === 'RENTED' || !!u.renterName))) ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-2xs">
+                              {language === 'ar' ? 'مؤجر' : 'Rented'}
+                            </span>
+                          ) : selectedParentProperty.status === 'SOLD' ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 shadow-2xs">
+                              {language === 'ar' ? 'مباع' : 'Sold'}
+                            </span>
+                          ) : selectedParentProperty.type === 'SALE' ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 shadow-2xs">
+                              {language === 'ar' ? 'للبيع' : 'For Sale'}
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
+                              {language === 'ar' ? 'للإيجار' : 'For Rent'}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
                           {language === 'ar' 
                             ? `فئة العقار: ${t(`cat.${selectedParentProperty.propertyCategory}`)} • النوع: ${selectedParentProperty.type === 'SALE' ? 'للبيع' : 'للإيجار'}`
@@ -1825,10 +1912,32 @@ export default function Admin() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <select
+                      {selectedParentProperty.renterName ? (
+                        <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg text-xs font-bold text-primary">
+                          <span>{selectedParentProperty.renterName}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleUnassignRenterFromPropertyUnit(selectedParentProperty)}
+                            className="text-red-400 hover:text-red-500 p-0.5 rounded transition-colors cursor-pointer"
+                            title={language === 'ar' ? 'إلغاء تعيين المستأجر' : 'Unassign Renter'}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAssignRenterModal(selectedParentProperty)}
+                          className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-primary/40 text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap h-9"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>{language === 'ar' ? 'تعيين مستأجر' : 'Assign Renter'}</span>
+                        </button>
+                      )}
+
+                      <CustomSelect
                         value={selectedParentProperty.status || 'PUBLISHED'}
-                        onChange={async (e) => {
-                          const newStatus = e.target.value;
+                        onChange={async (newStatus) => {
                           try {
                             const updateRes = await fetch(`/api/admin/properties/${selectedParentProperty.id}`, {
                               method: 'PUT',
@@ -1843,11 +1952,21 @@ export default function Admin() {
                             console.error("Failed to update status:", err);
                           }
                         }}
-                        className="bg-background border border-border text-[11px] rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground h-9"
+                        options={[
+                          { value: 'PUBLISHED', label: language === 'ar' ? 'متاح (منشور)' : 'Available (Published)' },
+                          ...(selectedParentProperty.type === 'SALE'
+                            ? [{ value: 'SOLD', label: language === 'ar' ? 'مباع (مخفي من صفحة العرض)' : 'Sold (Hidden from Listings)' }]
+                            : [{ value: 'RENTED', label: language === 'ar' ? 'مؤجر (مخفي من صفحة العرض)' : 'Rented (Hidden from Listings)' }])
+                        ]}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateParentUnit(selectedParentProperty)}
+                        className="p-2 text-muted-foreground hover:text-emerald-500 hover:border-emerald-500/30 rounded-lg border border-border bg-background cursor-pointer transition-all inline-flex items-center justify-center h-9 w-9"
+                        title={language === 'ar' ? 'تكرار العقار' : 'Duplicate Property'}
                       >
-                        <option value="PUBLISHED">{language === 'ar' ? 'منشور (ظاهر للمستخدمين)' : 'Published (Visible)'}</option>
-                        <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في صفحة العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
-                      </select>
+                        <Copy className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleEditClick(selectedParentProperty)}
                         className="p-2 text-muted-foreground hover:text-sky-400 hover:border-sky-500/30 rounded-lg border border-border bg-background cursor-pointer transition-all inline-flex items-center justify-center h-9 w-9"
@@ -1878,12 +1997,33 @@ export default function Admin() {
                   </div>
 
                   <div className="flex border-b border-border gap-2 select-none mb-4">
-                    <div className="px-4 py-2 text-xs font-black border-b-2 border-primary text-primary">
+                    <button
+                      type="button"
+                      onClick={() => setBuildingDetailSubTab('units')}
+                      className={`px-4 py-2 text-xs font-black transition-all cursor-pointer ${
+                        buildingDetailSubTab === 'units' ? 'border-b-2 border-primary text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
                       {language === 'ar' ? 'وحدات العقار' : 'Property Units'}
-                    </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBuildingDetailSubTab('maintenance')}
+                      className={`px-4 py-2 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                        buildingDetailSubTab === 'maintenance' ? 'border-b-2 border-primary text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Wrench className="w-3.5 h-3.5" />
+                      <span>{language === 'ar' ? 'تذاكر صيانة المبنى والوحدات' : 'Building Maintenance Requests'}</span>
+                    </button>
                   </div>
 
-                  {selectedParentTab === 'units' && (
+                  {buildingDetailSubTab === 'maintenance' ? (
+                    <div className="animate-in fade-in duration-300">
+                      <AdminMaintenance buildingIdFilter={selectedParentProperty.id} />
+                    </div>
+                  ) : (
                     <div className="space-y-6">
                       {/* Floors definitions editor */}
                       <div className="bg-card border border-border p-5 rounded-xl space-y-4 shadow-xs animate-in fade-in">
@@ -2042,11 +2182,10 @@ export default function Admin() {
                                         className="bg-background border border-border text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-bold text-foreground"
                                       >
                                         <option value="PUBLISHED">{language === 'ar' ? 'متاح' : 'Available'}</option>
-                                        {selectedParentProperty?.type === 'SALE'
+                                        {selectedParentProperty?.type === 'SALE' || unit.type === 'SALE'
                                           ? <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
                                           : <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
                                         }
-                                        <option value="HIDDEN">{language === 'ar' ? 'مخفي' : 'Hidden'}</option>
                                       </select>
                                     </td>
                                     <td className="p-3 text-center">
@@ -2104,9 +2243,10 @@ export default function Admin() {
                     <thead>
                       <tr className="bg-card text-muted-foreground text-xs border-b border-border">
                         <th className="p-4 font-bold ltr:rounded-tl-xl rtl:rounded-tr-xl">#</th>
-                        <th className="p-4 font-bold">{language === 'ar' ? 'اسم العقار' : 'Title (Ar/En)'}</th>
-                        <th className="p-4 font-bold">{language === 'ar' ? 'النوع' : 'Type'}</th>
+                        <th className="p-4 font-bold">{language === 'ar' ? 'اسم العقار / المبنى' : 'Title (Ar/En)'}</th>
+                        <th className="p-4 font-bold text-center">{language === 'ar' ? 'النوع والحالة' : 'Type & Status'}</th>
                         <th className="p-4 font-bold">{t('admin.placeholder.price')}</th>
+                        <th className="p-4 font-bold text-center">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
                         <th className="p-4 font-bold text-center ltr:rounded-tr-xl rtl:rounded-tl-xl">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
                       </tr>
                     </thead>
@@ -2114,6 +2254,9 @@ export default function Admin() {
                       {properties.filter(p => !p.parentId).map((property, index) => {
                         const isExpanded = !!expandedParents[property.id];
                         const subUnits = properties.filter(p => p.parentId === property.id);
+                        const isPropertyRented = property.status === 'RENTED' || !!property.renterName || (subUnits.length > 0 && subUnits.every(u => u.status === 'RENTED' || !!u.renterName));
+                        const isPropertySold = property.status === 'SOLD';
+
                         return (
                           <React.Fragment key={property.id}>
                             <tr className="border-b border-border hover:bg-muted/40 transition-colors">
@@ -2127,11 +2270,6 @@ export default function Admin() {
                                   >
                                     {property.titleAr}
                                   </p>
-                                  {(property.status === 'DRAFT' || property.status === 'HIDDEN') && (
-                                    <span className="inline-flex bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 text-[9px] px-1.5 py-0.5 rounded font-bold">
-                                      {language === 'ar' ? 'مخفي' : 'Hidden'}
-                                    </span>
-                                  )}
                                 </div>
                                 <p className="text-[10px] text-muted-foreground font-sans mt-0.5" dir="ltr">{property.titleEn}</p>
                                 {subUnits.length > 0 && (
@@ -2147,12 +2285,24 @@ export default function Admin() {
                                   </button>
                                 )}
                               </td>
-                              <td className="p-4">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                                  property.type === 'SALE' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                }`}>
-                                  {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
-                                </span>
+                              <td className="p-4 text-center">
+                                {isPropertyRented ? (
+                                  <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                    {language === 'ar' ? 'مؤجر' : 'Rented'}
+                                  </span>
+                                ) : isPropertySold ? (
+                                  <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                    {language === 'ar' ? 'مباع' : 'Sold'}
+                                  </span>
+                                ) : property.type === 'SALE' ? (
+                                  <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                    {language === 'ar' ? 'للبيع' : 'For Sale'}
+                                  </span>
+                                ) : (
+                                  <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                    {language === 'ar' ? 'للإيجار' : 'For Rent'}
+                                  </span>
+                                )}
                               </td>
                               <td className="px-4 py-3 font-semibold text-xs text-foreground font-mono flex items-center gap-1.5 justify-start">
                                 {property.price > 0 ? (
@@ -2166,6 +2316,33 @@ export default function Admin() {
                                 )}
                               </td>
                               <td className="p-4 text-center">
+                                {property.renterName ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <div className="text-right rtl:text-right ltr:text-left">
+                                      <p className="leading-tight text-xs font-bold text-foreground">{property.renterName}</p>
+                                      {property.renterPhone && <p className="text-[9px] font-mono opacity-80 leading-none mt-0.5" dir="ltr">{property.renterPhone}</p>}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUnassignRenterFromPropertyUnit(property)}
+                                      className="text-red-400 hover:text-red-500 p-0.5 ml-1 rounded transition-colors cursor-pointer"
+                                      title={language === 'ar' ? 'إلغاء تعيين المستأجر' : 'Unassign Renter'}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAssignRenterModal(property)}
+                                    className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-primary/40 text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                                  >
+                                    <UserPlus className="w-3.5 h-3.5" />
+                                    <span>{language === 'ar' ? 'تعيين مستأجر' : 'Assign Renter'}</span>
+                                  </button>
+                                )}
+                              </td>
+                              <td className="p-4 text-center">
                                 <div className="flex items-center justify-center gap-2">
                                   <button
                                     onClick={() => setSelectedParentProperty(property)}
@@ -2173,6 +2350,14 @@ export default function Admin() {
                                     title={language === 'ar' ? 'عرض وإدارة الوحدات السكنية' : 'View & Manage Units'}
                                   >
                                     <Building2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDuplicateParentUnit(property)}
+                                    className="p-2 text-muted-foreground hover:text-emerald-500 hover:border-emerald-500/30 rounded-lg border border-border bg-card/50 cursor-pointer transition-all inline-flex items-center justify-center"
+                                    title={language === 'ar' ? 'تكرار العقار' : 'Duplicate Property'}
+                                  >
+                                    <Copy className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => handleEditClick(property)}
@@ -2193,7 +2378,7 @@ export default function Admin() {
                             </tr>
                             {isExpanded && subUnits.length > 0 && (
                               <tr className="bg-muted/20">
-                                <td colSpan={5} className="px-8 py-3">
+                                <td colSpan={6} className="px-8 py-3">
                                   <div className="border border-border rounded-xl overflow-hidden shadow-xs bg-card/40">
                                     <table className="w-full text-xs">
                                       <thead>
@@ -2238,8 +2423,7 @@ export default function Admin() {
                                                    ? <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
                                                    : <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
                                                  }
-                                                 <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
-                                              </select>
+                                                                                               </select>
                                             </td>
                                             <td className="p-2.5 text-center">
                                               <div className="flex items-center justify-center gap-1.5">
@@ -2412,43 +2596,53 @@ export default function Admin() {
                         
                         <div>
                           <label className="cn-label mb-2">{language === 'ar' ? 'نوع العرض' : 'Type'}</label>
-                          <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="cn-input">
-                            <option value="SALE">{t('common.sale')}</option>
-                            <option value="RENT">{t('common.rent')}</option>
-                          </select>
+                          <CustomSelect
+                            value={formData.type}
+                            onChange={(val) => setFormData({ ...formData, type: val })}
+                            options={[
+                              { value: 'SALE', label: t('common.sale') },
+                              { value: 'RENT', label: t('common.rent') }
+                            ]}
+                          />
                         </div>
 
                         <div>
                           <label className="cn-label mb-2">{language === 'ar' ? 'حالة الظهور والإتاحة' : 'Listing Status'}</label>
-                          <select value={formData.status || 'PUBLISHED'} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="cn-input font-bold">
-                            <option value="PUBLISHED">{language === 'ar' ? 'متاح / منشور (يظهر للجميع)' : 'Available / Published (Public)'}</option>
-                            {(formData.type === 'SALE' || !formData.parentId)
-                              ? <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
-                              : <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
-                            }
-                            <option value="HIDDEN">{language === 'ar' ? 'مخفي (لا يظهر في العرض والبحث)' : 'Hidden (Not in Listings)'}</option>
-                          </select>
+                          <CustomSelect
+                            value={formData.status || 'PUBLISHED'}
+                            onChange={(val) => setFormData({ ...formData, status: val })}
+                            options={[
+                              { value: 'PUBLISHED', label: language === 'ar' ? 'متاح / منشور (يظهر للجميع)' : 'Available / Published (Public)' },
+                              ...((formData.type === 'SALE' || !formData.parentId)
+                                ? [{ value: 'SOLD', label: language === 'ar' ? 'مباع (يخفى تلقائياً من صفحة العرض)' : 'Sold (Auto-hidden from Sales)' }]
+                                : [{ value: 'RENTED', label: language === 'ar' ? 'مؤجر (يخفى تلقائياً من صفحة العرض)' : 'Rented (Auto-hidden from Sales)' }])
+                            ]}
+                          />
                         </div>
 
                         <div>
                           <label className="cn-label mb-2">{t('admin.placeholder.category')}</label>
-                          <select value={formData.propertyCategory} onChange={(e) => setFormData({ ...formData, propertyCategory: e.target.value })} className="cn-input">
-                            <option value="VILLA">{t('cat.VILLA')}</option>
-                            <option value="APARTMENT">{t('cat.APARTMENT')}</option>
-                            <option value="COMPOUND">{t('cat.COMPOUND')}</option>
-                            <option value="TOWER">{t('cat.TOWER')}</option>
-                            <option value="BUILDING">{t('cat.BUILDING')}</option>
-                            <option value="MALL">{t('cat.MALL')}</option>
-                            <option value="SHOP">{t('cat.SHOP')}</option>
-                            <option value="OFFICE">{t('cat.OFFICE')}</option>
-                            <option value="RESORT">{t('cat.RESORT')}</option>
-                            <option value="HOTEL">{t('cat.HOTEL')}</option>
-                            <option value="HOSPITAL">{t('cat.HOSPITAL')}</option>
-                            <option value="WAREHOUSE">{t('cat.WAREHOUSE')}</option>
-                            <option value="FARM">{t('cat.FARM')}</option>
-                            <option value="LAND">{t('cat.LAND')}</option>
-                            <option value="ROOM">{t('cat.ROOM')}</option>
-                          </select>
+                          <CustomSelect
+                            value={formData.propertyCategory}
+                            onChange={(val) => setFormData({ ...formData, propertyCategory: val })}
+                            options={[
+                              { value: 'VILLA', label: t('cat.VILLA') },
+                              { value: 'APARTMENT', label: t('cat.APARTMENT') },
+                              { value: 'COMPOUND', label: t('cat.COMPOUND') },
+                              { value: 'TOWER', label: t('cat.TOWER') },
+                              { value: 'BUILDING', label: t('cat.BUILDING') },
+                              { value: 'MALL', label: t('cat.MALL') },
+                              { value: 'SHOP', label: t('cat.SHOP') },
+                              { value: 'OFFICE', label: t('cat.OFFICE') },
+                              { value: 'RESORT', label: t('cat.RESORT') },
+                              { value: 'HOTEL', label: t('cat.HOTEL') },
+                              { value: 'HOSPITAL', label: t('cat.HOSPITAL') },
+                              { value: 'WAREHOUSE', label: t('cat.WAREHOUSE') },
+                              { value: 'FARM', label: t('cat.FARM') },
+                              { value: 'LAND', label: t('cat.LAND') },
+                              { value: 'ROOM', label: t('cat.ROOM') }
+                            ]}
+                          />
                         </div>
 
 
@@ -3038,8 +3232,6 @@ export default function Admin() {
                           {formData.imageUrls.map((url, i) => {
                             const isVideo = url && (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm') || url.endsWith('.avi'));
                             const isRtl = language === 'ar';
-                            const leftDisabled = isRtl ? (i === formData.imageUrls.length - 1) : (i === 0);
-                            const rightDisabled = isRtl ? (i === 0) : (i === formData.imageUrls.length - 1);
                             return (
                               <div key={i} className="flex flex-col space-y-2">
                                 <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden border border-border group shadow-sm hover:shadow-md transition-all duration-300">
@@ -3451,11 +3643,10 @@ export default function Admin() {
                                     className="cn-input text-xs h-9 bg-background"
                                   >
                                     <option value="PUBLISHED">{language === 'ar' ? 'متاح / منشور' : 'Available / Published'}</option>
-                                    {selectedParentProperty?.type === 'SALE'
+                                    {selectedParentProperty?.type === 'SALE' || unitFormData.type === 'SALE'
                                       ? <option value="SOLD">{language === 'ar' ? 'مباع' : 'Sold'}</option>
                                       : <option value="RENTED">{language === 'ar' ? 'مؤجر' : 'Rented'}</option>
                                     }
-                                    <option value="HIDDEN">{language === 'ar' ? 'مخفي' : 'Hidden'}</option>
                                   </select>
                                 </div>
                               </div>
@@ -3491,7 +3682,7 @@ export default function Admin() {
                   const isBuildingCategory = !formData.parentId && (formData.propertyCategory === 'BUILDING' || formData.propertyCategory === 'COMPOUND' || formData.propertyCategory === 'TOWER' || formData.propertyCategory === 'MALL');
                   const totalSteps = isBuildingCategory ? 5 : 4;
                   return (
-                    <div className="sticky bottom-0 left-0 right-0 z-30 bg-background border-t border-border py-4 mt-12 -mx-4 sm:-mx-6 lg:-mx-8 shadow-md select-none">
+                    <div className="sticky bottom-0 left-0 right-0 z-30 bg-background border-t border-border py-4 mt-12 -mx-4 sm:-mx-6 lg:-mx-8 select-none">
                       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3 flex-wrap">
                         {/* Cancel or Previous Button */}
                         {currentStep > 1 ? (
@@ -3757,7 +3948,7 @@ export default function Admin() {
                           key={idx}
                           className={`flex justify-between items-center p-4 bg-card hover:bg-muted/40 rounded-xl border border-border/40 hover:border-indigo-500/20 dark:hover:border-indigo-500/30 transition-all duration-200 group active:scale-[0.99] ${prop ? 'cursor-pointer' : 'pointer-events-none'}`}
                         >
-                          <span className="font-bold text-foreground truncate pr-4 text-sm">{title}</span>
+                          <span className="font-semibold text-sm truncate text-foreground">{title}</span>
                           <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1 rounded-full text-xs flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-950 transition-colors">
                             {item._count.propertyId} {language === 'ar' ? 'مشاهدة' : 'views'}
                           </span>
@@ -3805,7 +3996,7 @@ export default function Admin() {
                   <button
                     key={item.section}
                     type="button"
-                    onClick={() => setActiveSettingsSection(item.section as any)}
+                    onClick={() => handleSettingsSectionChange(item.section)}
                     className={`relative flex items-center gap-2 py-2.5 px-4 text-xs font-bold rounded-xl transition-all cursor-pointer select-none active:scale-[0.97] duration-150 ${
                       isActive 
                         ? 'text-primary-foreground font-extrabold shadow-xs' 
@@ -3841,807 +4032,219 @@ export default function Admin() {
                     className="space-y-6 min-w-0"
                   >
                     {activeSettingsSection === 'whatsapp' && (
-                      <div className="space-y-6">
-                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">{language === 'ar' ? 'إعدادات الواتساب والتواصل والموقع' : 'WhatsApp, Social & Location Settings'}</h3>
-                        
-                        {/* WhatsApp Fields Group (Side-by-Side) */}
-                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
-                          <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">{language === 'ar' ? 'أرقام التواصل والرسائل' : 'Contact Numbers & Templates'}</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="cn-label">{t('admin.placeholder.whatsapp')}</label>
-                              <div className="relative">
-                                <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
-                                  <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                                </div>
-                                <input
-                                  required
-                                  type="text"
-                                  value={whatsappNumber}
-                                  onChange={(e) => setWhatsappNumber(e.target.value)}
-                                  className="cn-input font-mono pl-12 pr-4 h-11 bg-background transition-all"
-                                  placeholder="966500000000"
-                                  dir="ltr"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="cn-label">{language === 'ar' ? 'رقم الاتصال المباشر' : 'Direct Calling Number'}</label>
-                              <div className="relative">
-                                <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
-                                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                                </div>
-                                <input
-                                  required
-                                  type="text"
-                                  value={callingNumber}
-                                  onChange={(e) => setCallingNumber(e.target.value)}
-                                  className="cn-input font-mono pl-12 pr-4 h-11 bg-background transition-all"
-                                  placeholder="966500000000"
-                                  dir="ltr"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="cn-label">{language === 'ar' ? 'نص رسالة الواتساب الافتراضي' : 'Default WhatsApp Message'}</label>
-                            <textarea
-                              required
-                              rows={3}
-                              value={whatsappMessage}
-                              onChange={(e) => setWhatsappMessage(e.target.value)}
-                              className="cn-input resize-none min-h-[90px] font-medium"
-                              placeholder={language === 'ar' ? 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}' : 'Hello, I am interested in this property: {title} - {link}'}
-                            />
-                            <div className="mt-2 text-xs text-muted-foreground bg-muted/40 p-3 rounded-xl border border-border/50">
-                              <p className="font-bold flex items-center gap-1.5 mb-1.5 text-foreground">
-                                <Info className="w-3.5 h-3.5 text-primary" />
-                                {language === 'ar' ? 'المتغيرات المدعومة:' : 'Supported Variables:'}
-                              </p>
-                              <div className="flex gap-2 font-mono text-[10px]">
-                                <span className="text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{'{title}'}</span>
-                                <span className="text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{'{link}'}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Social Networks Group (Side-by-Side Grid) */}
-                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
-                          <div>
-                            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                              {language === 'ar' ? 'وسائل التواصل الاجتماعي والبريد الإلكتروني' : 'Social Media & Email'}
-                            </h4>
-                            <p className="text-[11px] text-muted-foreground mt-1">{language === 'ar' ? 'ستظهر الخانات المعبأة فقط على الصفحة الرئيسية.' : 'Only filled fields will appear on the home page.'}</p>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {[
-                              { label: language === 'ar' ? 'البريد الإلكتروني' : 'Email Address', value: socialEmail, setter: setSocialEmail, placeholder: 'info@benaa-edara.com', type: 'email', icon: <Mail className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                              { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/benaandedara', type: 'url', icon: <IgIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                              { label: 'Twitter / X', value: twitterUrl, setter: setTwitterUrl, placeholder: 'https://x.com/benaandedara', type: 'url', icon: <XIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                              { label: 'Facebook', value: facebookUrl, setter: setFacebookUrl, placeholder: 'https://facebook.com/benaandedara', type: 'url', icon: <FbIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                              { label: 'LinkedIn', value: linkedinUrl, setter: setLinkedinUrl, placeholder: 'https://linkedin.com/company/benaandedara', type: 'url', icon: <LiIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                              { label: 'YouTube', value: youtubeUrl, setter: setYoutubeUrl, placeholder: 'https://youtube.com/@benaandedara', type: 'url', icon: <YtIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                              { label: 'TikTok', value: tiktokUrl, setter: setTiktokUrl, placeholder: 'https://tiktok.com/@benaandedara', type: 'url', icon: <TkIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                              { label: 'Snapchat', value: snapchatUrl, setter: setSnapchatUrl, placeholder: 'https://snapchat.com/add/benaandedara', type: 'url', icon: <SnapIcon className="w-4 h-4 text-muted-foreground inline-block align-middle mr-1.5 ml-1.5" /> },
-                            ].map(field => (
-                              <div key={field.label} className="space-y-1.5">
-                                <label className="block text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                                  {field.icon} <span>{field.label}</span>
-                                </label>
-                                <input
-                                  type={field.type}
-                                  value={field.value}
-                                  onChange={e => field.setter(e.target.value)}
-                                  className="cn-input text-xs h-10 bg-background"
-                                  placeholder={field.placeholder}
-                                  dir="ltr"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Headquarters Location Group (Side-by-Side Address) */}
-                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
-                          <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">{language === 'ar' ? 'مقر الشركة وعنوانها' : 'Company HQ & Address'}</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="block text-xs font-bold text-muted-foreground">
-                                {language === 'ar' ? 'العنوان (بالعربية)' : 'Address (Arabic)'}
-                              </label>
-                              <input
-                                type="text"
-                                value={addressAr}
-                                onChange={e => setAddressAr(e.target.value)}
-                                className="cn-input text-xs h-10 bg-background"
-                                placeholder={language === 'ar' ? 'المملكة العربية السعودية، الرياض، طريق الملك عبد العزيز...' : 'Saudi Arabia, Riyadh, King Abdul Aziz Road...'}
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="block text-xs font-bold text-muted-foreground">
-                                {language === 'ar' ? 'العنوان (بالإنجليزي)' : 'Address (English)'}
-                              </label>
-                              <input
-                                type="text"
-                                value={addressEn}
-                                onChange={e => setAddressEn(e.target.value)}
-                                className="cn-input text-xs h-10 bg-background"
-                                placeholder="King Abdul Aziz Road, Al Yasmin district, Riyadh..."
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="block text-xs font-bold text-muted-foreground">
-                              {language === 'ar' ? 'رابط خريطة جوجل' : 'Google Maps Location Link'}
-                            </label>
-                            <input
-                              type="text"
-                              value={addressMapLink}
-                              onChange={e => setAddressMapLink(e.target.value)}
-                              className="cn-input text-xs h-10 bg-background"
-                              placeholder="https://maps.google.com/?q=..."
-                              dir="ltr"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                      <WhatsAppSettingsTab
+                        t={t}
+                        whatsappNumber={whatsappNumber}
+                        setWhatsappNumber={setWhatsappNumber}
+                        callingNumber={callingNumber}
+                        setCallingNumber={setCallingNumber}
+                        whatsappMessage={whatsappMessage}
+                        setWhatsappMessage={setWhatsappMessage}
+                        socialEmail={socialEmail}
+                        setSocialEmail={setSocialEmail}
+                        instagramUrl={instagramUrl}
+                        setInstagramUrl={setInstagramUrl}
+                        twitterUrl={twitterUrl}
+                        setTwitterUrl={setTwitterUrl}
+                        facebookUrl={facebookUrl}
+                        setFacebookUrl={setFacebookUrl}
+                        linkedinUrl={linkedinUrl}
+                        setLinkedinUrl={setLinkedinUrl}
+                        youtubeUrl={youtubeUrl}
+                        setYoutubeUrl={setYoutubeUrl}
+                        tiktokUrl={tiktokUrl}
+                        setTiktokUrl={setTiktokUrl}
+                        snapchatUrl={snapchatUrl}
+                        setSnapchatUrl={setSnapchatUrl}
+                        addressAr={addressAr}
+                        setAddressAr={setAddressAr}
+                        addressEn={addressEn}
+                        setAddressEn={setAddressEn}
+                        addressMapLink={addressMapLink}
+                        setAddressMapLink={setAddressMapLink}
+                      />
                     )}
 
                     {activeSettingsSection === 'email' && (
-                      <div className="space-y-6">
-                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">{language === 'ar' ? 'إعدادات البريد الإلكتروني للطلبات' : 'Callback Notification Email Settings'}</h3>
-                        
-                        {/* SMTP Config Group (Side-by-Side columns) */}
-                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
-                          <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم SMTP' : 'SMTP Server Settings'}</h4>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'خادم SMTP (Host)' : 'SMTP Host'}</label>
-                              <input
-                                type="text"
-                                value={smtpHost}
-                                onChange={(e) => setSmtpHost(e.target.value)}
-                                className="cn-input font-mono text-xs bg-background"
-                                placeholder="smtp.gmail.com"
-                                dir="ltr"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'منفذ SMTP (Port)' : 'SMTP Port'}</label>
-                              <input
-                                type="number"
-                                value={smtpPort}
-                                onChange={(e) => setSmtpPort(e.target.value)}
-                                className="cn-input font-mono text-xs bg-background"
-                                placeholder="587"
-                                dir="ltr"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'بريد المرسل (From)' : 'Sender Email (From)'}</label>
-                              <input
-                                type="email"
-                                value={smtpFrom}
-                                onChange={(e) => setSmtpFrom(e.target.value)}
-                                className="cn-input font-mono text-xs bg-background"
-                                placeholder="no-reply@yourdomain.com"
-                                dir="ltr"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'اسم المستخدم (User)' : 'SMTP Username'}</label>
-                              <input
-                                type="text"
-                                value={smtpUser}
-                                onChange={(e) => setSmtpUser(e.target.value)}
-                                className="cn-input font-mono text-xs bg-background"
-                                placeholder="user@example.com"
-                                dir="ltr"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'كلمة المرور (Password)' : 'SMTP Password'}</label>
-                              <div className="relative">
-                                <input
-                                  type={showSmtpPass ? 'text' : 'password'}
-                                  value={smtpPass}
-                                  onChange={(e) => setSmtpPass(e.target.value)}
-                                  className="cn-input font-mono text-xs bg-background pe-10"
-                                  placeholder="••••••••"
-                                  dir="ltr"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setShowSmtpPass(!showSmtpPass)}
-                                  className="absolute inset-y-0 end-0 flex items-center pe-3 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                                >
-                                  {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* IMAP Config Group (Side-by-Side columns) */}
-                        <div className="bg-muted/10 p-5 rounded-2xl space-y-4">
-                          <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات خادم البريد الوارد IMAP (لاستلام الردود)' : 'IMAP Inbound Mail Settings (For replies)'}</h4>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'خادم IMAP (Host)' : 'IMAP Host'}</label>
-                              <input
-                                type="text"
-                                value={imapHost}
-                                onChange={(e) => setImapHost(e.target.value)}
-                                className="cn-input font-mono text-xs bg-background"
-                                placeholder="imap.gmail.com"
-                                dir="ltr"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'منفذ IMAP (Port)' : 'IMAP Port'}</label>
-                              <input
-                                type="number"
-                                value={imapPort}
-                                onChange={(e) => setImapPort(e.target.value)}
-                                className="cn-input font-mono text-xs bg-background"
-                                placeholder="993"
-                                dir="ltr"
-                              />
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground bg-muted/30 p-2.5 rounded-xl border border-border/55 leading-relaxed">
-                            {language === 'ar' 
-                              ? 'سيتم استخدام اسم المستخدم وكلمة المرور الخاصة بخادم SMTP تلقائياً لتسجيل الدخول إلى خادم IMAP.' 
-                              : 'The SMTP Username and Password will be automatically used to authenticate with the IMAP server.'}
-                          </p>
-                        </div>
-                      </div>
+                      <EmailSettingsTab
+                        smtpHost={smtpHost}
+                        setSmtpHost={setSmtpHost}
+                        smtpPort={smtpPort}
+                        setSmtpPort={setSmtpPort}
+                        smtpFrom={smtpFrom}
+                        setSmtpFrom={setSmtpFrom}
+                        smtpUser={smtpUser}
+                        setSmtpUser={setSmtpUser}
+                        smtpPass={smtpPass}
+                        setSmtpPass={setSmtpPass}
+                        showSmtpPass={showSmtpPass}
+                        setShowSmtpPass={setShowSmtpPass}
+                        imapHost={imapHost}
+                        setImapHost={setImapHost}
+                        imapPort={imapPort}
+                        setImapPort={setImapPort}
+                      />
                     )}
 
                     {activeSettingsSection === 'otp' && (
-                      <div className="space-y-6">
-                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">
-                          {language === 'ar' ? 'إعدادات تسجيل المستأجرين (OTP Webhook)' : 'Renter Login Settings (OTP Webhook)'}
-                        </h3>
-                        
-                        {/* 2-Column Split: Webhook & template left, Code editor right */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          <div className="space-y-5 bg-muted/10 p-5 rounded-2xl flex flex-col justify-between">
-                            <div className="space-y-4">
-                              <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'إعدادات الويب هوك والقالب' : 'Webhook & Template Settings'}</h4>
-                              
-                              <div className="space-y-1.5">
-                                <label className="cn-label">
-                                   {language === 'ar' ? 'رابط الويب هوك (Whatomate URL)' : 'Webhook URL (Whatomate)'}
-                                </label>
-                                <input
-                                  type="url"
-                                  value={otpWebhookUrl}
-                                  onChange={(e) => setOtpWebhookUrl(e.target.value)}
-                                  className="cn-input font-medium h-11 dir-ltr"
-                                  placeholder="https://hook.us2.make.com/..."
-                                />
-                                <p className="text-[10px] text-muted-foreground leading-none">
-                                  {language === 'ar' ? 'اتركه فارغاً لتعطيل إرسال الرسائل عبر الويب هوك.' : 'Leave empty to disable sending webhooks.'}
-                                </p>
-                              </div>
-
-                              <div className="space-y-1.5">
-                                <label className="cn-label">
-                                  {language === 'ar' ? 'قالب رسالة رمز التحقق' : 'OTP Message Template'}
-                                </label>
-                                <textarea
-                                  required
-                                  rows={3}
-                                  value={otpMessageTemplate}
-                                  onChange={(e) => setOtpMessageTemplate(e.target.value)}
-                                  className="cn-input resize-none min-h-[90px] font-medium"
-                                  placeholder={language === 'ar' ? 'رمز التحقق الخاص بك هو: {otp}' : 'Your verification code is: {otp}'}
-                                />
-                              </div>
-                            </div>
-                            
-                            <div className="mt-4 text-[11px] text-muted-foreground bg-muted/30 p-3 rounded-xl border border-border/55">
-                              <p className="font-bold flex items-center gap-1.5 mb-1 text-foreground">
-                                <Info className="w-3.5 h-3.5 text-primary" />
-                                {language === 'ar' ? 'المتغيرات المدعومة في القالب:' : 'Supported Variables in Template:'}
-                              </p>
-                              <span className="font-mono text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/10 inline-block">{'{otp}'}</span>
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5 bg-muted/10 p-5 rounded-2xl flex flex-col justify-between">
-                            <div className="space-y-4">
-                              <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">{language === 'ar' ? 'قالب حزمة البيانات (JSON Payload)' : 'JSON Webhook Payload'}</h4>
-                              <textarea
-                                required
-                                rows={6}
-                                value={otpWebhookPayload}
-                                onChange={(e) => setOtpWebhookPayload(e.target.value)}
-                                className="w-full border border-border/80 rounded-2xl p-4 transition-all font-mono text-xs dir-ltr bg-zinc-950 text-emerald-400 focus:ring-2 focus:ring-primary focus:border-primary shadow-inner min-h-[160px]"
-                                placeholder={'{\n  "phone": "{phone}",\n  "type": "template"\n}'}
-                              />
-                            </div>
-                            <div className="mt-4 text-xs text-muted-foreground bg-muted/30 p-3.5 rounded-2xl border border-border/60">
-                              <p className="font-bold flex items-center gap-1.5 mb-2 text-foreground">
-                                <Info className="w-4 h-4 text-primary" />
-                                {language === 'ar' ? 'المتغيرات المدعومة في قالب JSON:' : 'Supported Variables in JSON:'}
-                              </p>
-                              <div className="flex flex-wrap gap-2 mb-3">
-                                <span className="font-mono text-[10px] bg-primary/10 text-primary border border-primary/25 px-2 py-0.5 rounded-lg select-all cursor-pointer" title={language === 'ar' ? 'انقر للنسخ' : 'Click to copy'}>{'{phone}'}</span>
-                                <span className="font-mono text-[10px] bg-primary/10 text-primary border border-primary/25 px-2 py-0.5 rounded-lg select-all cursor-pointer" title={language === 'ar' ? 'انقر للنسخ' : 'Click to copy'}>{'{otp}'}</span>
-                              </div>
-                              <p className="text-[11px] leading-relaxed">
-                                {language === 'ar' 
-                                   ? 'يمكنك وضع صيغة JSON المطلوبة من Whatomate (مثلاً الرسائل القالبية WhatsApp Templates)، وسيتم استبدال المتغيرات قبل الإرسال.' 
-                                   : 'You can define the exact JSON payload expected by Whatomate (e.g. WhatsApp Templates) and variables will be replaced before sending.'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      <OtpSettingsTab
+                        otpWebhookUrl={otpWebhookUrl}
+                        setOtpWebhookUrl={setOtpWebhookUrl}
+                        otpMessageTemplate={otpMessageTemplate}
+                        setOtpMessageTemplate={setOtpMessageTemplate}
+                        otpWebhookPayload={otpWebhookPayload}
+                        setOtpWebhookPayload={setOtpWebhookPayload}
+                        verifyKitEnabled={verifyKitEnabled}
+                        setVerifyKitEnabled={setVerifyKitEnabled}
+                        verifyKitAppKey={verifyKitAppKey}
+                        setVerifyKitAppKey={setVerifyKitAppKey}
+                        verifyKitServerKey={verifyKitServerKey}
+                        setVerifyKitServerKey={setVerifyKitServerKey}
+                        showVerifyKitServerKey={showVerifyKitServerKey}
+                        setShowVerifyKitServerKey={setShowVerifyKitServerKey}
+                      />
                     )}
 
-                    {activeSettingsSection === 'images' && (() => {
-                      const imageSlots = [
-                        {
-                          key: 'logo' as const,
-                          labelAr: 'شعار الموقع (Logo)',
-                          labelEn: 'Site Logo',
-                          hintAr: 'يظهر في شريط التنقل والتذييل. يفضل PNG بخلفية شفافة.',
-                          hintEn: 'Appears in navbar & footer. PNG with transparent background preferred.',
-                          current: logoUrl,
-                          onUpload: (base64: string) => setLogoUrl(base64),
-                          onRemove: () => setLogoUrl(null),
-                        },
-                        {
-                          key: 'hero' as const,
-                          labelAr: 'صورة الخلفية الرئيسية (Hero)',
-                          labelEn: 'Hero Background Image',
-                          hintAr: 'الصورة الكبيرة خلف عنوان الصفحة الرئيسية.',
-                          hintEn: 'The large background image behind the main page title.',
-                          current: homeImages.hero,
-                          onUpload: (base64: string) => setHomeImages(p => ({ ...p, hero: base64 })),
-                          onRemove: () => setHomeImages(p => ({ ...p, hero: null })),
-                        },
-                        {
-                          key: 'promoVideo' as const,
-                          labelAr: 'فيديو العرض التعريفي في الصفحة الرئيسية',
-                          labelEn: 'Promotional Video for Home Page',
-                          hintAr: 'يمكنك رفع ملف فيديو (MP4) أو إدخال رابط فيديو مباشر في الحقل أدناه.',
-                          hintEn: 'You can upload a video file (MP4) or enter a direct video URL in the field below.',
-                          current: homeImages.promoVideo,
-                          isVideo: true,
-                          onUpload: (val: string) => setHomeImages(p => ({ ...p, promoVideo: val })),
-                          onRemove: () => setHomeImages(p => ({ ...p, promoVideo: null })),
-                        },
-                      ];
+                    {activeSettingsSection === 'images' && (
+                      <ImagesSettingsTab
+                        logoUrl={logoUrl}
+                        setLogoUrl={setLogoUrl}
+                        homeImages={homeImages}
+                        setHomeImages={setHomeImages}
+                        imageSlotUploading={imageSlotUploading}
+                        uploadProgress={uploadProgress}
+                        handleSlotUpload={async (e, slotKey, isVideo, onUpload) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const maxSize = isVideo ? 500 * 1024 * 1024 : 250 * 1024 * 1024;
+                          if (file.size > maxSize) {
+                            await showAlert(
+                              language === 'ar'
+                                ? `حجم الملف يتجاوز ${isVideo ? '500MB' : '250MB'}`
+                                : `File exceeds ${isVideo ? '500MB' : '250MB'} limit`
+                            );
+                            return;
+                          }
+                          setImageSlotUploading(slotKey);
+                          let base64 = '';
+                          if (isVideo) {
+                            try {
+                              const fd = new FormData();
+                              fd.append('file', file);
+                              await new Promise<void>((resolve, reject) => {
+                                const xhr = new XMLHttpRequest();
+                                xhr.open('POST', '/api/admin/upload-home-video');
+                                xhr.upload.onprogress = (event) => {
+                                  if (event.lengthComputable) {
+                                    setUploadProgress(Math.round((event.loaded / event.total) * 100));
+                                  }
+                                };
+                                xhr.onload = () => {
+                                  if (xhr.status >= 200 && xhr.status < 300) {
+                                    try {
+                                      const data = JSON.parse(xhr.responseText);
+                                      onUpload(data.url);
+                                      resolve();
+                                    } catch (err) {
+                                      reject(new Error('Invalid response format'));
+                                    }
+                                  } else {
+                                    try {
+                                      const data = JSON.parse(xhr.responseText);
+                                      reject(new Error(data.error || 'Upload failed'));
+                                    } catch (_) {
+                                      reject(new Error('Upload failed'));
+                                    }
+                                  }
+                                };
+                                xhr.onerror = () => reject(new Error('Network error during upload'));
+                                xhr.send(fd);
+                              });
+                            } catch (uploadErr: any) {
+                              console.error(uploadErr);
+                              await showAlert(
+                                language === 'ar'
+                                  ? `فشل رفع الفيديو: ${uploadErr.message || ''}`
+                                  : `Failed to upload video: ${uploadErr.message || ''}`
+                              );
+                            } finally {
+                              setImageSlotUploading(null);
+                              setUploadProgress(null);
+                              e.target.value = '';
+                            }
+                            return;
+                          } else if (slotKey === 'hero') {
+                            base64 = await compressImage(file, 2560, 1440, 0.92);
+                          } else if (slotKey === 'logo') {
+                            base64 = await compressImage(file, 512, 512, 0.95);
+                          }
+                          onUpload(base64);
+                          setImageSlotUploading(null);
+                          e.target.value = '';
+                        }}
+                      />
+                    )}
 
-                                            const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string, isVideo: boolean, onUpload: (b: string) => void) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const maxSize = isVideo ? 500 * 1024 * 1024 : 250 * 1024 * 1024;
-                        if (file.size > maxSize) {
-                          await showAlert(
-                            language === 'ar'
-                              ? `حجم الملف يتجاوز ${isVideo ? '500MB' : '250MB'}`
-                              : `File exceeds ${isVideo ? '500MB' : '250MB'} limit`
-                          );
-                          return;
-                        }
-                        setImageSlotUploading(slotKey);
-                        let base64 = '';
-                        if (isVideo) {
+                    {activeSettingsSection === 'backup' && (
+                      <BackupSettingsTab
+                        exportingDb={backupLoading}
+                        handleExportDatabase={async () => {
+                          setBackupLoading(true);
+                          try {
+                            const res = await fetch('/api/admin/backup');
+                            if (!res.ok) throw new Error('Failed');
+                            const blob = await res.blob();
+                            const cd = res.headers.get('Content-Disposition') || '';
+                            const match = cd.match(/filename="(.+?)"/);
+                            const filename = match ? match[1] : 'backup.zip';
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url; a.download = filename; a.click();
+                            URL.revokeObjectURL(url);
+                          } catch (e) {
+                            await showAlert(language === 'ar' ? 'فشل تنزيل النسخة.' : 'Backup download failed.');
+                          } finally { setBackupLoading(false); }
+                        }}
+                        restoringDb={restoreLoading}
+                        handleRestoreDatabase={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const confirmed = await showConfirm(language === 'ar' ? 'هل أنت متأكد؟ سيتم استبدال قاعدة البيانات الحالية.' : 'Are you sure? This will replace the current database.');
+                          if (!confirmed) return;
+                          setRestoreLoading(true);
+                          setRestoreMessage(null);
                           try {
                             const fd = new FormData();
                             fd.append('file', file);
-                            
-                            await new Promise<void>((resolve, reject) => {
-                              const xhr = new XMLHttpRequest();
-                              xhr.open('POST', '/api/admin/upload-home-video');
-                              
-                              xhr.upload.onprogress = (event) => {
-                                if (event.lengthComputable) {
-                                  const percentComplete = Math.round((event.loaded / event.total) * 100);
-                                  setUploadProgress(percentComplete);
-                                }
-                              };
-                              
-                              xhr.onload = () => {
-                                if (xhr.status >= 200 && xhr.status < 300) {
-                                  try {
-                                    const data = JSON.parse(xhr.responseText);
-                                    onUpload(data.url);
-                                    resolve();
-                                  } catch (err) {
-                                    reject(new Error('Invalid response format'));
-                                  }
-                                } else {
-                                  try {
-                                    const data = JSON.parse(xhr.responseText);
-                                    reject(new Error(data.error || 'Upload failed'));
-                                  } catch (_) {
-                                    reject(new Error('Upload failed'));
-                                  }
-                                }
-                              };
-                              
-                              xhr.onerror = () => {
-                                reject(new Error('Network error during upload'));
-                              };
-                              
-                              xhr.send(fd);
-                            });
-                          } catch (uploadErr: any) {
-                            console.error(uploadErr);
-                            await showAlert(
-                              language === 'ar'
-                                ? `فشل رفع الفيديو: ${uploadErr.message || ''}`
-                                : `Failed to upload video: ${uploadErr.message || ''}`
-                            );
+                            const res = await fetch('/api/admin/restore', { method: 'POST', body: fd });
+                            const data = await res.json();
+                            if (res.ok) {
+                              setRestoreMessage({ type: 'success', text: language === 'ar' ? 'تمت الاستعادة بنجاح. أعد تحميل الصفحة.' : 'Restore successful! Please reload the page.' });
+                            } else {
+                              setRestoreMessage({ type: 'error', text: data.error || 'Restore failed' });
+                            }
+                          } catch (err) {
+                            setRestoreMessage({ type: 'error', text: 'Network error' });
                           } finally {
-                            setImageSlotUploading(null);
-                            setUploadProgress(null);
+                            setRestoreLoading(false);
                             e.target.value = '';
                           }
-                          return;
-                        } else if (slotKey === 'hero') {
-                          base64 = await compressImage(file, 2560, 1440, 0.92);
-                        } else if (slotKey === 'logo') {
-                          base64 = await compressImage(file, 512, 512, 0.95);
-                        }
-                        onUpload(base64);
-                        setImageSlotUploading(null);
-                        e.target.value = '';
-                      };
-
-                      return (
-                        <div className="space-y-6">
-                          <div>
-                            <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">
-                              {language === 'ar' ? 'وسائط الصفحة الرئيسية والشعار' : 'Home Page Media & Logo'}
-                            </h3>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {language === 'ar'
-                                ? 'ارفع شعار الموقع، صورة الخلفية الرئيسية، وفيديو العرض التعريفي لتهيئة المظهر البصري للموقع.'
-                                : 'Upload site logo, hero background image, and homepage video to set up your visual branding.'}
-                            </p>
-                          </div>
-                          
-                          {/* 3-Column side-by-side Layout */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {imageSlots.map(slot => { return (
-                              <div key={slot.key} className="rounded-2xl p-5 bg-muted/10 hover:bg-card/50 transition-all duration-300 shadow-xs flex flex-col justify-between h-full">
-                                <div>
-                                  <p className="font-bold text-foreground text-sm mb-1">
-                                    {language === 'ar' ? slot.labelAr : slot.labelEn}
-                                  </p>
-                                  {(slot.hintAr || slot.hintEn) && (
-                                    <p className="text-xs text-muted-foreground leading-relaxed mb-4 min-h-[48px]">
-                                      {language === 'ar' ? slot.hintAr : slot.hintEn}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex flex-col items-center gap-4 mt-2">
-                                  {slot.current ? (
-                                    <div className="relative w-full h-32 rounded-2xl overflow-hidden border-2 border-primary/85 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center shadow-xs transition-transform duration-300 hover:scale-[1.02] group/preview">
-                                      {slot.isVideo ? (
-                                        <video src={slot.current} className="w-full h-full object-cover" muted autoPlay loop playsInline />
-                                      ) : (
-                                        <img src={slot.current} alt="preview" className="w-full h-full object-cover" />
-                                      )}
-                                      <button
-                                        type="button"
-                                        onClick={slot.onRemove}
-                                        className="absolute top-1.5 end-1.5 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-all duration-200 cursor-pointer shadow-md backdrop-blur-xs"
-                                        title={language === 'ar' ? (slot.isVideo ? 'حذف الفيديو' : 'حذف الصورة') : (slot.isVideo ? 'Remove video' : 'Remove image')}
-                                      >
-                                        <X className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div className="w-full h-32 rounded-2xl border-2 border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center">
-                                      <ImagePlus className="w-8 h-8 text-muted-foreground/50" />
-                                      <span className="text-xs text-muted-foreground/60 mt-1.5 font-bold">{language === 'ar' ? 'افتراضية' : 'Default'}</span>
-                                    </div>
-                                  )}
-                                  <div className="w-full space-y-2 text-center">
-                                    <input
-                                      type="file"
-                                      accept={slot.isVideo ? "video/*" : "image/*"}
-                                      id={`img-slot-${slot.key}`}
-                                      className="hidden"
-                                      onChange={(e) => handleSlotUpload(e, slot.key, Boolean(slot.isVideo), slot.onUpload)}
-                                      disabled={imageSlotUploading === slot.key}
-                                    />
-                                    <label
-                                      htmlFor={`img-slot-${slot.key}`}
-                                      className={`inline-flex items-center justify-center gap-2 w-full py-2.5 border border-border/80 hover:border-primary/30 bg-card hover:bg-muted/40 text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-97 select-none ${
-                                        imageSlotUploading === slot.key ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
-                                      }`}
-                                    >
-                                      {imageSlotUploading === slot.key ? (
-                                        <div className="flex items-center gap-1.5 justify-center">
-                                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                                          <span>
-                                            {uploadProgress !== null
-                                              ? (language === 'ar' ? `جاري الرفع: ${uploadProgress}%` : `Uploading: ${uploadProgress}%`)
-                                              : (language === 'ar' ? 'جاري الرفع...' : 'Uploading...')}
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <ImagePlus className="w-4 h-4 text-muted-foreground" />
-                                          {slot.current
-                                            ? (slot.isVideo ? (language === 'ar' ? 'تغيير الفيديو' : 'Change Video') : (language === 'ar' ? 'تغيير الصورة' : 'Change Image'))
-                                            : (slot.isVideo ? (language === 'ar' ? 'رفع فيديو' : 'Upload Video') : (language === 'ar' ? 'رفع صورة' : 'Upload Image'))
-                                          }
-                                        </>
-                                      )}</label>
-                                    <p className="text-[10px] text-muted-foreground leading-none">{language === 'ar' ? (slot.isVideo ? 'الحد الأقصى 500MB' : 'الحد الأقصى 250MB') : (slot.isVideo ? 'Max 500MB' : 'Max 250MB')}</p>
-                                                                        </div>
-                                </div>
-                              </div>
-                            ); })}
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {activeSettingsSection === 'backup' && (
-                      <div className="space-y-6">
-                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">
-                          {language === 'ar' ? 'نسخة احتياطية واستعادة' : 'Backup & Restore'}
-                        </h3>
-
-                        {/* 2-Column side-by-side Layout */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Download Backup */}
-                          <div className="rounded-2xl p-5 bg-muted/10 hover:bg-card/50 transition-all duration-300 shadow-xs flex flex-col justify-between gap-5">
-                            <div className="space-y-1">
-                              <h4 className="font-bold text-foreground text-sm">{language === 'ar' ? 'تنزيل نسخة احتياطية' : 'Download Backup'}</h4>
-                              <p className="text-xs text-muted-foreground leading-relaxed">
-                                {language === 'ar'
-                                  ? 'تحميل ملف ZIP يحتوي على قاعدة البيانات كاملة (مع جميع الصور) وملفات الصور كملفات حقيقية.'
-                                  : 'Downloads a ZIP containing the full database (with all images embedded) plus extracted image files for convenience.'}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              disabled={backupLoading}
-                              onClick={async () => {
-                                setBackupLoading(true);
-                                try {
-                                  const res = await fetch('/api/admin/backup');
-                                  if (!res.ok) throw new Error('Failed');
-                                  const blob = await res.blob();
-                                  const cd = res.headers.get('Content-Disposition') || '';
-                                  const match = cd.match(/filename="(.+?)"/);
-                                  const filename = match ? match[1] : 'backup.zip';
-                                  const url = URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url; a.download = filename; a.click();
-                                  URL.revokeObjectURL(url);
-                                } catch(e) {
-                                  await showAlert(language === 'ar' ? 'فشل تنزيل النسخة.' : 'Backup download failed.');
-                                } finally { setBackupLoading(false); }
-                              }}
-                              className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-primary hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-xs transition-all duration-150 disabled:opacity-50 active:scale-[0.97] cursor-pointer"
-                            >
-                              {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                              {language === 'ar' ? 'تنزيل ZIP' : 'Download ZIP'}
-                            </button>
-                          </div>
-
-                          {/* Restore */}
-                          <div className="rounded-2xl p-5 bg-red-50/40 dark:bg-red-950/10 backdrop-blur-md shadow-xs flex flex-col justify-between gap-5">
-                            <div className="space-y-4">
-                              <div className="flex gap-3">
-                                <div className="w-10 h-10 bg-red-100 dark:bg-red-950/60 rounded-xl flex items-center justify-center flex-shrink-0 text-red-600 dark:text-red-400">
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                </div>
-                                <div className="space-y-1 flex-1">
-                                  <h4 className="font-bold text-red-700 dark:text-red-400 text-sm">{language === 'ar' ? 'استعادة نسخة احتياطية' : 'Restore from Backup'}</h4>
-                                  <p className="text-xs text-red-600 dark:text-red-400/80 leading-relaxed">
-                                    {language === 'ar'
-                                      ? 'تحذير: سيتم مسح واستبدال قاعدة البيانات الحالية بالكامل. يرجى التأكد من رفع ملف ZIP صحيح تم تنزيله من نسخة احتياطية سابقة.'
-                                      : 'Warning: This will overwrite and completely replace the current database. Make sure you upload a valid .zip file.'}
-                                  </p>
-                                </div>
-                              </div>
-                              
-                              {restoreMessage && (
-                                <div className={`p-3 rounded-xl text-xs font-bold ${restoreMessage.type === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'}`}>
-                                  {restoreMessage.text}
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div>
-                              <input
-                                type="file"
-                                id="restore-file-input"
-                                accept=".zip"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  const confirmed = await showConfirm(language === 'ar' ? 'هل أنت متأكد؟ سيتم استبدال قاعدة البيانات الحالية.' : 'Are you sure? This will replace the current database.');
-                                  if (!confirmed) return;
-                                  setRestoreLoading(true);
-                                  setRestoreMessage(null);
-                                  try {
-                                    const fd = new FormData();
-                                    fd.append('file', file);
-                                    const res = await fetch('/api/admin/restore', { method: 'POST', body: fd });
-                                    const data = await res.json();
-                                    if (res.ok) {
-                                      setRestoreMessage({ type: 'success', text: language === 'ar' ? 'تمت الاستعادة بنجاح. أعد تحميل الصفحة.' : 'Restore successful! Please reload the page.' });
-                                    } else {
-                                      setRestoreMessage({ type: 'error', text: data.error || 'Restore failed' });
-                                    }
-                                  } catch(err) {
-                                    setRestoreMessage({ type: 'error', text: 'Network error' });
-                                  } finally {
-                                    setRestoreLoading(false);
-                                    e.target.value = '';
-                                  }
-                                }}
-                              />
-                              <label
-                                htmlFor="restore-file-input"
-                                className={`inline-flex items-center justify-center gap-2 w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors shadow-xs active:scale-[0.97] select-none ${restoreLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                              >
-                                {restoreLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                {language === 'ar' ? 'اختر ملف للاستعادة' : 'Choose File to Restore'}
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                        }}
+                      />
                     )}
 
                     {activeSettingsSection === 'techhub' && (
-                      <div className="space-y-6">
-                        <h3 className="text-sm font-bold text-foreground border-b border-border/60 pb-2 mb-4 inline-block">{language === 'ar' ? 'إعدادات ربط ومزامنة TechHub API' : 'TechHub API Integration Settings'}</h3>
-                        
-                        <div className="bg-muted/10 p-5 rounded-2xl space-y-6">
-                          {/* 2-Column side-by-side Status Toggles */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/60 hover:bg-muted/30 transition-colors rounded-2xl shadow-xs">
-                              <div className="flex flex-col gap-1 pr-4">
-                                <span className="text-sm font-bold text-foreground">
-                                  {language === 'ar' ? 'تفعيل ربط TechHub' : 'Enable TechHub Integration'}
-                                </span>
-                                <span className="text-xs text-muted-foreground leading-none">
-                                  {language === 'ar' ? 'تمكين استيراد ومزامنة البيانات.' : 'Enable API integration and data syncing.'}
-                                </span>
-                              </div>
-                              <label className="relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer flex-shrink-0 select-none" dir="ltr">
-                                <input
-                                  type="checkbox"
-                                  checked={techhubEnabled}
-                                  onChange={() => setTechhubEnabled(!techhubEnabled)}
-                                  className="sr-only"
-                                />
-                                <span className={`absolute inset-0 rounded-full transition-colors duration-200 ${
-                                  techhubEnabled ? 'bg-primary' : 'bg-gray-200 dark:bg-zinc-800'
-                                }`} />
-                                <span
-                                  className={`absolute left-0 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${
-                                    techhubEnabled ? 'translate-x-6' : 'translate-x-1'
-                                  }`}
-                                />
-                              </label>
-                            </div>
-                            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/60 hover:bg-muted/30 transition-colors rounded-2xl shadow-xs">
-                              <div className="flex flex-col gap-1 pr-4">
-                                <span className="text-sm font-bold text-foreground">
-                                  {language === 'ar' ? 'تفعيل وضع التجربة (Sandbox Mode)' : 'Enable Sandbox / Test Mode'}
-                                </span>
-                                <span className="text-xs text-muted-foreground leading-none">
-                                  {language === 'ar' 
-                                    ? 'استخدام بيانات تجريبية وهمية دون استهلاك رصيد واجهة التطبيق.' 
-                                    : 'Use simulated test data instead of hitting production.'}
-                                </span>
-                              </div>
-                              <label className="relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer flex-shrink-0 select-none" dir="ltr">
-                                <input
-                                  type="checkbox"
-                                  checked={techhubSandboxMode}
-                                  onChange={() => setTechhubSandboxMode(!techhubSandboxMode)}
-                                  className="sr-only"
-                                />
-                                <span className={`absolute inset-0 rounded-full transition-colors duration-200 ${
-                                  techhubSandboxMode ? 'bg-primary' : 'bg-gray-200 dark:bg-zinc-800'
-                                }`} />
-                                <span
-                                  className={`absolute left-0 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${
-                                    techhubSandboxMode ? 'translate-x-6' : 'translate-x-1'
-                                  }`}
-                                />
-                              </label>
-                          </div>
-                        </div>
-
-                          {/* Credentials inputs with smooth lock transition (3-Column side-by-side layout) */}
-                          <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 transition-all duration-350 ${
-                            techhubSandboxMode ? 'opacity-40 pointer-events-none filter blur-[0.4px]' : 'opacity-100'
-                          }`}>
-                            <div className="space-y-1.5">
-                              <label className="cn-label">{language === 'ar' ? 'معرف العميل (Client ID)' : 'Client ID'}</label>
-                              <input
-                                type="text"
-                                value={techhubClientId}
-                                onChange={(e) => setTechhubClientId(e.target.value)}
-                                className="cn-input bg-background font-mono h-11"
-                                placeholder="e.g. client_abc123"
-                                disabled={techhubSandboxMode}
-                                required={techhubEnabled && !techhubSandboxMode}
-                              />
-                            </div>
-
-                              <div className="space-y-1.5">
-                                <label className="cn-label">{language === 'ar' ? 'الرمز السري للعميل (Client Secret)' : 'Client Secret'}</label>
-                                <input
-                                  type="password"
-                                  value={techhubClientSecret}
-                                  onChange={(e) => setTechhubClientSecret(e.target.value)}
-                                  className="cn-input bg-background font-mono h-11"
-                                  placeholder="••••••••••••••••"
-                                  disabled={techhubSandboxMode}
-                                  required={techhubEnabled && !techhubSandboxMode}
-                                />
-                              </div>
-
-                              <div className="space-y-1.5">
-                                <label className="cn-label">{language === 'ar' ? 'مفتاح واجهة التطبيق (API Key)' : 'API Key'}</label>
-                                <input
-                                  type="password"
-                                  value={techhubApiKey}
-                                  onChange={(e) => setTechhubApiKey(e.target.value)}
-                                  className="cn-input bg-background font-mono h-11"
-                                  placeholder="••••••••••••••••"
-                                  disabled={techhubSandboxMode}
-                                  required={techhubEnabled && !techhubSandboxMode}
-                                />
-                              </div>
-                            </div>
-
-                            {techhubEnabled && (
-                              <div className="pt-5 border-t border-border mt-6 bg-muted/15 p-5 rounded-2xl border border-border/60">
-                                <h4 className="text-xs font-bold text-foreground mb-1.5">
-                                  {language === 'ar' ? 'مزامنة البيانات الفورية' : 'Instant Data Synchronization'}
-                                </h4>
-                                <p className="text-[11px] text-muted-foreground leading-relaxed mb-4">
-                                  {language === 'ar' 
-                                    ? 'جلب العقارات والمستأجرين (عقود إيجار) من TechHub ومزامنتهم مباشرة مع قاعدة بيانات التطبيق.' 
-                                    : 'Fetch properties and contract renters from TechHub and sync them with your database.'}
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={handleTechHubSync}
-                                  disabled={syncingTechHub}
-                                  className="inline-flex items-center gap-2 h-10 px-5 text-xs font-bold rounded-xl shadow-xs bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 cursor-pointer active:scale-[0.97] transition-all"
-                                >
-                                  {syncingTechHub ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                  {language === 'ar' ? 'ابدأ المزامنة الآن' : 'Start Sync Now'}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
+                      <TechHubSettingsTab
+                        techHubApiKey={techhubApiKey}
+                        setTechHubApiKey={setTechhubApiKey}
+                        techHubEndpointUrl={techhubEndpointUrl || ''}
+                        setTechHubEndpointUrl={(val) => setTechhubEndpointUrl?.(val)}
+                        techHubSyncEnabled={techhubEnabled}
+                      />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
 
               <div className="pt-6 border-t border-border">
                 <button

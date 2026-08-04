@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { FileText, Search, Clock, Shield, RefreshCw, Loader2, Calendar } from 'lucide-react';
-import { motion } from 'motion/react';
+import { FileText, Search, Clock, Shield, RefreshCw, Loader2 } from 'lucide-react';
 
 interface ActionLog {
   id: string;
@@ -101,17 +100,17 @@ export default function AdminLogs() {
   return (
     <div className="space-y-6">
       
-      {/* Header and Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
-            <FileText className="w-6 h-6 text-primary" />
+      {/* Standard Admin Header Block */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border select-none">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">
-              {language === 'ar' ? 'سجل عمليات النظام (Audit Logs)' : 'System Audit Logs'}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">
+              {language === 'ar' ? 'سجل عمليات النظام' : 'System Audit Logs'}
+            </h1>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {language === 'ar' ? 'متابعة سجل العمليات وتعديلات الموظفين بالتفصيل' : 'Monitor all staff activities, edits, additions, and updates'}
             </p>
           </div>
@@ -119,21 +118,21 @@ export default function AdminLogs() {
 
         <div className="flex items-center gap-2">
           {/* Search bar */}
-          <div className="flex items-center gap-2 border border-border rounded-xl px-3 bg-card focus-within:ring-1 focus-within:ring-primary w-full md:w-64 h-9">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2 border border-border rounded-full px-3.5 bg-muted/30 focus-within:bg-card focus-within:ring-1 focus-within:ring-primary w-full md:w-64 h-9 transition-all">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={language === 'ar' ? 'ابحث بالموظف، الإجراء، أو التفاصيل...' : 'Search by staff, action, detail...'}
-              className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-xs text-foreground placeholder:text-muted-foreground"
+              className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-[11px] text-foreground placeholder:text-muted-foreground font-medium"
             />
           </div>
 
           <button
             onClick={fetchLogs}
             disabled={loading}
-            className="w-9 h-9 border border-border rounded-lg flex items-center justify-center bg-card text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="w-9 h-9 border border-border rounded-full flex items-center justify-center bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer shadow-2xs"
             title={language === 'ar' ? 'تحديث' : 'Refresh'}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />

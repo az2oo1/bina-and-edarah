@@ -3,6 +3,7 @@ import { useLanguage } from '../LanguageContext';
 import { MapPin, Building2, Maximize, CalendarDays, Coins, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { SrIcon } from '../components/SrIcon';
+import { CustomSelect } from '../components/CustomSelect';
 
 interface Property {
   id: string;
@@ -399,43 +400,43 @@ export default function Properties() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
             />
-            <select
+            <CustomSelect
               value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                updateImmediateFilter('type', e.target.value);
+              onChange={(val) => {
+                setTypeFilter(val);
+                updateImmediateFilter('type', val);
               }}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
-            >
-              <option value="ALL">{language === 'ar' ? 'جميع الأنواع' : 'All Types'}</option>
-              <option value="SALE">{t('common.sale')}</option>
-              <option value="RENT">{t('common.rent')}</option>
-            </select>
-            <select
+              options={[
+                { value: 'ALL', label: language === 'ar' ? 'جميع الأنواع' : 'All Types' },
+                { value: 'SALE', label: t('common.sale') },
+                { value: 'RENT', label: t('common.rent') }
+              ]}
+            />
+            <CustomSelect
               value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value);
-                updateImmediateFilter('category', e.target.value);
+              onChange={(val) => {
+                setCategoryFilter(val);
+                updateImmediateFilter('category', val);
               }}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
-            >
-              <option value="ALL">{language === 'ar' ? 'جميع الفئات' : 'All Categories'}</option>
-              <option value="VILLA">{t('cat.VILLA')}</option>
-              <option value="APARTMENT">{t('cat.APARTMENT')}</option>
-              <option value="COMPOUND">{t('cat.COMPOUND')}</option>
-              <option value="TOWER">{t('cat.TOWER')}</option>
-              <option value="BUILDING">{t('cat.BUILDING')}</option>
-              <option value="MALL">{t('cat.MALL')}</option>
-              <option value="SHOP">{t('cat.SHOP')}</option>
-              <option value="OFFICE">{t('cat.OFFICE')}</option>
-              <option value="RESORT">{t('cat.RESORT')}</option>
-              <option value="HOTEL">{t('cat.HOTEL')}</option>
-              <option value="HOSPITAL">{t('cat.HOSPITAL')}</option>
-              <option value="WAREHOUSE">{t('cat.WAREHOUSE')}</option>
-              <option value="FARM">{t('cat.FARM')}</option>
-              <option value="LAND">{t('cat.LAND')}</option>
-              <option value="ROOM">{t('cat.ROOM')}</option>
-            </select>
+              options={[
+                { value: 'ALL', label: language === 'ar' ? 'جميع الفئات' : 'All Categories' },
+                { value: 'VILLA', label: t('cat.VILLA') },
+                { value: 'APARTMENT', label: t('cat.APARTMENT') },
+                { value: 'COMPOUND', label: t('cat.COMPOUND') },
+                { value: 'TOWER', label: t('cat.TOWER') },
+                { value: 'BUILDING', label: t('cat.BUILDING') },
+                { value: 'MALL', label: t('cat.MALL') },
+                { value: 'SHOP', label: t('cat.SHOP') },
+                { value: 'OFFICE', label: t('cat.OFFICE') },
+                { value: 'RESORT', label: t('cat.RESORT') },
+                { value: 'HOTEL', label: t('cat.HOTEL') },
+                { value: 'HOSPITAL', label: t('cat.HOSPITAL') },
+                { value: 'WAREHOUSE', label: t('cat.WAREHOUSE') },
+                { value: 'FARM', label: t('cat.FARM') },
+                { value: 'LAND', label: t('cat.LAND') },
+                { value: 'ROOM', label: t('cat.ROOM') }
+              ]}
+            />
             <input
               type="number"
               placeholder={language === 'ar' ? 'السعر الأدنى' : 'Min Price'}
@@ -599,7 +600,11 @@ export default function Properties() {
                         </>
                       )}
                       <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-20 flex flex-wrap gap-1.5">
-                        <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-2xs backdrop-blur-md border ${
+                          property.type === 'SALE' 
+                            ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30' 
+                            : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                        }`}>
                           {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                         </span>
                         <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">

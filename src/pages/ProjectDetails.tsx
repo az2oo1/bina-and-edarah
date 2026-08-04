@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
-import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone, Compass, Ruler, DoorOpen, Armchair, Bath } from 'lucide-react';
+import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone } from 'lucide-react';
 import { ImageViewer } from '../components/ImageViewer';
 import { formatExternalLink } from '../utils/link';
 

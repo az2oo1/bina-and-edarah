@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { useDialog } from '../context/DialogContext';
 
 export default function Contact() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { showAlert } = useDialog();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

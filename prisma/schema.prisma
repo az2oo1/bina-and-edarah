@@ -59,13 +59,14 @@ model Service {
 }
 
 model Admin {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String   // Plain or Hashed
-  name      String   @default("Administrator")
-  role      String   @default("ADMIN") // ADMIN, MANAGER, AGENT
-  email     String?
-  createdAt DateTime @default(now())
+  id                String     @id @default(uuid())
+  username          String     @unique
+  password          String     // Plain or Hashed
+  name              String     @default("Administrator")
+  role              String     @default("ADMIN") // ADMIN, MANAGER, AGENT, MAINTENANCE
+  email             String?
+  assignedBuildings Building[] @relation("BuildingMaintenanceUsers")
+  createdAt         DateTime   @default(now())
 }
 
 model User {
@@ -161,6 +162,7 @@ model Building {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   units           RenterUnit[]
+  assignedUsers   Admin[]  @relation("BuildingMaintenanceUsers")
 }
 
 model Renter {
@@ -211,22 +213,82 @@ model RentHistory {
 }
 
 model MaintenanceReport {
-  id            String     @id @default(uuid())
-  category      String?    @default("GENERAL")
-  priority      String?    @default("NORMAL")
-  description   String
-  images        String     @default("[]") // JSON stringified array of 1-4 images
-  status        String     @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
-  adminResponse String?
+  id              String               @id @default(uuid())
+  requestCode     String?              @unique
+  category        String?              @default("GENERAL")
+  priority        String?              @default("NORMAL")
+  description     String
+  images          String               @default("[]") // JSON stringified array of 1-4 images
+  status          String               @default("PENDING") // PENDING, APPROVED, IN_PROGRESS, COMPLETED, CANCELLED, REJECTED
+  adminResponse   String?
+  technicianName  String?
+  technicianPhone String?
+  scheduledDate   DateTime?
+  completedAt     DateTime?
+  estimatedCost   Float?               @default(0)
+  actualCost      Float?               @default(0)
+  costPayer       String?              @default("OWNER") // 'OWNER', 'RENTER', 'PROPERTY_MANAGEMENT', 'WARRANTY_VENDOR'
+  paymentStatus   String?              @default("UNPAID") // 'UNPAID', 'PAID', 'DEDUCTED_FROM_DEPOSIT', 'REIMBURSED'
+  invoiceNumber   String?
+  vendorName      String?
+  taxAmount       Float?               @default(0)
+  taxRate         Float?               @default(15)
+  costBreakdown   String?              @default("[]") // JSON stringified array of line items: { id, title, category, amount, supplier }
+  receipts        String?              @default("[]") // JSON stringified array of receipt attachments: { id, name, url, uploadedAt, amount }
+  expenses        String?              @default("[]") // JSON stringified array of ExpenseRecord ledger items
+  receiptUrl      String?
+  proofImages     String               @default("[]") // JSON stringified array of completion proof photos
+  rating          Int?
+  feedback        String?
+  claimedBy       String?              // Staff member who approved/claimed the ticket for private chat
+  claimedAt       DateTime?            // When ticket was claimed
+  internalNote    String?              // Private staff-only internal note
 
-  renterId      String
-  renter        Renter     @relation(fields: [renterId], references: [id], onDelete: Cascade)
+  approvedById    String?
+  approvedByName  String?
+  approvedAt      DateTime?
+  assignedToId    String?
+  assignedToName  String?
+  assignedAt      DateTime?
+  denialReason    String?
+  expectedStartDate String?
+  estimatedDuration String?
 
-  renterUnitId  String
-  renterUnit    RenterUnit @relation(fields: [renterUnitId], references: [id], onDelete: Cascade)
+  renterId        String
+  renter          Renter               @relation(fields: [renterId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  renterUnitId    String
+  renterUnit      RenterUnit           @relation(fields: [renterUnitId], references: [id], onDelete: Cascade)
+
+  messages        MaintenanceMessage[]
+  logs            MaintenanceLog[]
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model MaintenanceMessage {
+  id          String            @id @default(uuid())
+  reportId    String
+  report      MaintenanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  senderRole  String            // 'RENTER', 'ADMIN', 'TECHNICIAN'
+  senderName  String
+  message     String
+  attachments String            @default("[]") // JSON stringified array of attachments/photos
+  isRead      Boolean           @default(false)
+  deliveredAt DateTime?         @default(now())
+  readAt      DateTime?
+  createdAt   DateTime          @default(now())
+}
+
+model MaintenanceLog {
+  id          String            @id @default(uuid())
+  reportId    String
+  report      MaintenanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  action      String            // 'STATUS_CHANGED', 'TECHNICIAN_ASSIGNED', 'COST_ADDED', 'RECEIPT_UPLOADED'
+  details     String
+  performedBy String            // User or system name
+  createdAt   DateTime          @default(now())
 }
 
 model OtpSession {
@@ -246,6 +308,7 @@ model CallbackRequest {
   createdAt DateTime @default(now())
   status    String   @default("PENDING") // PENDING, REPLIED_WHATSAPP, STILL_GOING, CLOSED
   handledBy String?  // Name of the user who handled it
+  internalNote String? // Private staff-only internal note
   notes     CallbackNote[]
 }
 
@@ -255,6 +318,8 @@ model CallbackNote {
   callbackRequest   CallbackRequest @relation(fields: [callbackRequestId], references: [id], onDelete: Cascade)
   text              String          // HTML/Plain Text reply content
   authorName        String          // Name of the user who replied
+  authorId          String?         // Unique ID or username of the user who replied
+  senderRole        String          @default("ADMIN") // 'ADMIN' or 'CUSTOMER'
   createdAt         DateTime        @default(now())
 }
 

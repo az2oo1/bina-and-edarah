@@ -3,11 +3,10 @@ import { useNavigate, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import { 
   Lock, User, Phone, AlertTriangle, Building2, Calendar, FileText, ChevronLeft, ChevronRight, 
-  CreditCard, History, Banknote, Landmark, CheckCircle2, UploadCloud, Loader2, Eye, ArrowLeft, 
+  CreditCard, History, Landmark, CheckCircle2, UploadCloud, Loader2, Eye, ArrowLeft, 
   ArrowRight, Wrench, Plus, X, Image as ImageIcon, Clock, XCircle, MessageSquare, Bed, Bath, 
-  Maximize2, ShieldCheck, MapPin, Sparkles, Send, Check, Filter, Trash2, ExternalLink, CheckSquare
+  Maximize2, ShieldCheck, MapPin, Sparkles, Send, Check, Filter, Star, DollarSign
 } from 'lucide-react';
-import { SrIcon } from '../components/SrIcon';
 import { useDialog } from '../context/DialogContext';
 import { getRentStatus } from '../utils/rentStatus';
 
@@ -51,16 +50,55 @@ interface RenterUnit {
   rentHistory: RentHistory[];
 }
 
+interface MaintenanceMessage {
+  id: string;
+  senderRole: 'RENTER' | 'ADMIN' | 'TECHNICIAN';
+  senderName: string;
+  message: string;
+  attachments: string; // JSON string
+  isRead: boolean;
+  createdAt: string;
+}
+
+interface MaintenanceLog {
+  id: string;
+  action: string;
+  details: string;
+  performedBy: string;
+  createdAt: string;
+}
+
 interface MaintenanceReport {
   id: string;
+  requestCode?: string | null;
   description: string;
   category?: string;
   priority?: string;
   images: string; // JSON string
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   adminResponse: string | null;
+  technicianName?: string | null;
+  technicianPhone?: string | null;
+  scheduledDate?: string | null;
+  completedAt?: string | null;
+  estimatedCost?: number | null;
+  actualCost?: number | null;
+  costPayer?: string | null;
+  paymentStatus?: string | null;
+  invoiceNumber?: string | null;
+  vendorName?: string | null;
+  taxAmount?: number | null;
+  taxRate?: number | null;
+  costBreakdown?: string | null;
+  receipts?: string | null;
+  receiptUrl?: string | null;
+  proofImages?: string; // JSON string
+  rating?: number | null;
+  feedback?: string | null;
   createdAt: string;
   updatedAt?: string;
+  messages?: MaintenanceMessage[];
+  logs?: MaintenanceLog[];
   renter?: {
     id: string;
     name: string;
@@ -120,8 +158,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Renter Dashboard Active View Tab: 'apartment' | 'maintenance' | 'payments'
-  const [renterViewTab, setRenterViewTab] = useState<'apartment' | 'maintenance' | 'payments'>('apartment');
+  // Renter Dashboard Active View Tab: 'home' | 'apartment' | 'maintenance-new' | 'maintenance-list' | 'payments'
+  const [renterViewTab, setRenterViewTab] = useState<'home' | 'apartment' | 'maintenance-new' | 'maintenance-list' | 'payments'>('home');
 
   // Maintenance States
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
@@ -134,11 +172,24 @@ export default function Login() {
   const [submittingReport, setSubmittingReport] = useState(false);
   const [maintenanceReportsList, setMaintenanceReportsList] = useState<MaintenanceReport[]>([]);
   const [reportStatusFilter, setReportStatusFilter] = useState<string>('ALL');
+  const [reportUnitFilter, setReportUnitFilter] = useState<string>('ALL');
 
   // Photo gallery active index per unit
   const [activePhotoIndices, setActivePhotoIndices] = useState<Record<string, number>>({});
   // Lightbox Image viewer modal
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Renter Direct Chat Modal
+  const [renterChatReport, setRenterChatReport] = useState<MaintenanceReport | null>(null);
+  const [renterChatMessage, setRenterChatMessage] = useState('');
+  const [renterChatAttachments, setRenterChatAttachments] = useState<string[]>([]);
+  const [sendingRenterMessage, setSendingRenterMessage] = useState(false);
+
+  // Rating & Feedback State
+  const [ratingReportId, setRatingReportId] = useState<string | null>(null);
+  const [ratingValue, setRatingValue] = useState<number>(5);
+  const [ratingFeedback, setRatingFeedback] = useState<string>('');
+  const [submittingRating, setSubmittingRating] = useState(false);
 
   const fetchMaintenanceReports = (phoneNum: string) => {
     if (!phoneNum) return;
@@ -147,6 +198,94 @@ export default function Login() {
       .then(data => setMaintenanceReportsList(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
   };
+
+  const handleSendRenterMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renterChatReport || (!renterChatMessage.trim() && renterChatAttachments.length === 0)) return;
+
+    setSendingRenterMessage(true);
+    try {
+      const renterName = (units && units.length > 0 ? units[0].renterName : 'المستأجر');
+      const res = await fetch(`/api/maintenance-reports/${renterChatReport.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderRole: 'RENTER',
+          senderName: renterName,
+          message: renterChatMessage,
+          attachments: renterChatAttachments
+        })
+      });
+
+      if (res.ok) {
+        setRenterChatMessage('');
+        setRenterChatAttachments([]);
+        const repRes = await fetch(`/api/maintenance-reports/${renterChatReport.id}`);
+        if (repRes.ok) {
+          const updated = await repRes.json();
+          setRenterChatReport(updated);
+        }
+        fetchMaintenanceReports(phoneNumber);
+      } else {
+        await showAlert(language === 'ar' ? 'فشل إرسال الرسالة' : 'Failed to send message');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSendingRenterMessage(false);
+    }
+  };
+
+  const handleSubmitRating = async (reportId: string) => {
+    setSubmittingRating(true);
+    try {
+      const res = await fetch(`/api/renter/maintenance-reports/${reportId}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating: ratingValue,
+          feedback: ratingFeedback
+        })
+      });
+
+      if (res.ok) {
+        await showAlert(language === 'ar' ? 'شكراً لتقييمكم لمستوى خدمة الصيانة!' : 'Thank you for rating our maintenance service!');
+        setRatingReportId(null);
+        setRatingFeedback('');
+        fetchMaintenanceReports(phoneNumber);
+      } else {
+        await showAlert(language === 'ar' ? 'فشل إرسال التقييم' : 'Failed to submit rating');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
+  useEffect(() => {
+    if (units && units.length > 0 && !selectedUnitForReport) {
+      setSelectedUnitForReport(units[0].id);
+    }
+  }, [units, selectedUnitForReport]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    if (view === 'maintenance-new') {
+      setRenterViewTab('maintenance');
+      setIsMaintenanceModalOpen(true);
+      setMaintenanceActiveTab('new');
+    } else if (view === 'maintenance-list') {
+      setRenterViewTab('maintenance');
+      setIsMaintenanceModalOpen(true);
+      setMaintenanceActiveTab('list');
+    } else if (view === 'payments') {
+      setRenterViewTab('payments');
+    } else if (view === 'apartment') {
+      setRenterViewTab('apartment');
+    }
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -164,6 +303,9 @@ export default function Login() {
           .then(data => {
             if (data && !data.error) {
               setUnits(data);
+              if (Array.isArray(data) && data.length > 0) {
+                setSelectedUnitForReport(data[0].id);
+              }
               setPhoneNumber(u.phone);
               fetchMaintenanceReports(u.phone);
             } else {
@@ -320,13 +462,15 @@ export default function Login() {
       });
 
       if (res.ok) {
+        const createdReport = await res.json().catch(() => ({}));
         setMaintenanceDesc('');
         setMaintenanceImages([]);
         fetchMaintenanceReports(phoneNumber);
         setMaintenanceActiveTab('list');
+        const codeText = createdReport.requestCode ? ` (رمز الطلب: #${createdReport.requestCode})` : '';
         await showAlert(language === 'ar' 
-          ? 'تم تقديم بلاغ الصيانة بنجاح. يمكنك متابعة حالته والردود من هذه الصفحة.' 
-          : 'Maintenance report submitted successfully. You can track status & replies here.');
+          ? `تم تقديم بلاغ الصيانة بنجاح${codeText}. يمكنك متابعة حالته والردود من هذه الصفحة.` 
+          : `Maintenance report submitted successfully${codeText ? ` (Request Code: #${createdReport.requestCode})` : ''}. You can track status & replies here.`);
       } else {
         const data = await res.json().catch(() => ({}));
         await showAlert(data.error || (language === 'ar' ? 'فشل تقديم البلاغ' : 'Failed to submit report'));
@@ -529,135 +673,31 @@ export default function Login() {
             </div>
           </div>
 
-          {/* BIG BUTTONS FOR QUICK ACCESS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            {/* Big Button 1: Submit Maintenance */}
-            <button
-              onClick={() => openMaintenanceModal('new')}
-              className="bg-card border border-primary/20 hover:border-primary p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-primary to-blue-500" />
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Wrench className="w-6 h-6" />
-                </div>
-                <Plus className="w-5 h-5 text-primary opacity-60 group-hover:opacity-100" />
-              </div>
-              <div>
-                <h3 className="font-black text-lg text-foreground mb-1">{language === 'ar' ? 'تقديم طلب صيانة' : 'Request Maintenance'}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {language === 'ar' ? 'تقديم بلاغ صيانة جديد مرفق بالصور' : 'Submit issue report with attached photos'}
-                </p>
-              </div>
-            </button>
+          {/* BACK TO MAIN MENU BUTTON BAR (when inside a section) */}
+          {renterViewTab !== 'home' && (
+            <div className="flex items-center justify-between bg-card border border-border rounded-2xl p-4 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setRenterViewTab('home');
+                  setIsMaintenanceModalOpen(false);
+                }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+                <span>{language === 'ar' ? 'العودة للقائمة الرئيسية (الأزرار)' : 'Back to Main Menu'}</span>
+              </button>
+              <span className="text-xs font-black text-muted-foreground px-2">
+                {renterViewTab === 'maintenance-new' && (language === 'ar' ? 'تقديم طلب صيانة جديد' : 'New Maintenance Request')}
+                {renterViewTab === 'maintenance-list' && (language === 'ar' ? 'طلبات الصيانة والردود' : 'Requests & Replies')}
+                {renterViewTab === 'payments' && (language === 'ar' ? 'سجل الدفعات والإيصالات' : 'Rent Payments & Receipts')}
+                {renterViewTab === 'apartment' && (language === 'ar' ? 'مواصفات وصور الشقة' : 'Apartment Specs & Details')}
+              </span>
+            </div>
+          )}
 
-            {/* Big Button 2: Maintenance Requests & Replies */}
-            <button
-              onClick={() => openMaintenanceModal('list')}
-              className="bg-card border border-border hover:border-blue-500 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform relative">
-                  <MessageSquare className="w-6 h-6" />
-                  {openReportsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-amber-500 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-card">
-                      {openReportsCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs font-bold bg-muted px-2.5 py-1 rounded-full text-foreground">
-                  {maintenanceReportsList.length} {language === 'ar' ? 'طلب' : 'Requests'}
-                </span>
-              </div>
-              <div>
-                <h3 className="font-black text-lg text-foreground mb-1">{language === 'ar' ? 'طلباتي والردود' : 'Requests & Replies'}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {language === 'ar' ? 'متابعة حالة الطلبات وردود فريق الصيانة' : 'Check status & responses from tech team'}
-                </p>
-              </div>
-            </button>
-
-            {/* Big Button 3: Rent Payment History */}
-            <button
-              onClick={() => {
-                setRenterViewTab('payments');
-                document.getElementById('payments-section')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="bg-card border border-border hover:border-emerald-500 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <CreditCard className="w-6 h-6" />
-                </div>
-                <History className="w-5 h-5 text-emerald-500 opacity-60 group-hover:opacity-100" />
-              </div>
-              <div>
-                <h3 className="font-black text-lg text-foreground mb-1">{language === 'ar' ? 'سجل الدفعات والإيصالات' : 'Payments & Receipts'}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {language === 'ar' ? 'مواعيد الاستحقاق ورفع إيصالات السداد' : 'Due dates & receipt uploads'}
-                </p>
-              </div>
-            </button>
-
-            {/* Big Button 4: Apartment Specs & Details */}
-            <button
-              onClick={() => {
-                setRenterViewTab('apartment');
-                document.getElementById('apartment-section')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="bg-card border border-border hover:border-purple-500 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <Sparkles className="w-5 h-5 text-purple-500 opacity-60 group-hover:opacity-100" />
-              </div>
-              <div>
-                <h3 className="font-black text-lg text-foreground mb-1">{language === 'ar' ? 'مواصفات وصور الشقة' : 'Apartment Details'}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {language === 'ar' ? 'المساحة، الغرف، المزايا وصور العقار' : 'Area, rooms, amenities & photo gallery'}
-                </p>
-              </div>
-            </button>
-
-          </div>
-
-          {/* MAIN NAVIGATION TAB CONTROLS */}
-          <div className="flex border-b border-border gap-2 bg-card p-1.5 rounded-2xl border shadow-xs">
-            <button
-              onClick={() => setRenterViewTab('apartment')}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${renterViewTab === 'apartment' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              <Building2 className="w-4 h-4" />
-              <span>{language === 'ar' ? 'شقتي والمواصفات' : 'My Apartment & Specs'}</span>
-            </button>
-
-            <button
-              onClick={() => setRenterViewTab('maintenance')}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${renterViewTab === 'maintenance' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              <Wrench className="w-4 h-4" />
-              <span>{language === 'ar' ? 'مركز خدمات الصيانة' : 'Maintenance Center'}</span>
-              {openReportsCount > 0 && (
-                <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-black">
-                  {openReportsCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setRenterViewTab('payments')}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${renterViewTab === 'payments' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              <CreditCard className="w-4 h-4" />
-              <span>{language === 'ar' ? 'سجل الدفعات' : 'Payment History'}</span>
-            </button>
-          </div>
-
-          {/* SECTION 1: APARTMENT SHOWCASE & SPECIFICATIONS */}
-          {(renterViewTab === 'apartment' || renterViewTab === 'payments') && (
+          {/* HOME PAGE PROPERTY SHOWCASE (ABOVE THE BUTTONS) */}
+          {(renterViewTab === 'home' || renterViewTab === 'apartment') && (
             <div id="apartment-section" className="space-y-8">
               {units.length === 0 ? (
                 <div className="bg-card border-2 border-dashed border-amber-500/30 rounded-3xl p-8 sm:p-12 text-center space-y-6 shadow-sm">
@@ -688,275 +728,378 @@ export default function Login() {
                 </div>
               ) : (
                 units.map((unit, i) => {
-                const photos = parsePhotos(unit.photos || unit.buildingPhotos);
-                const currentPhotoIdx = activePhotoIndices[unit.id] || 0;
-                const featuresList = (unit.features || 'مكيفات مجهزة, مطبخ راكب, موقف خاص, مصعد, إنتركوم ذكي').split(',').map(f => f.trim());
+                  const photos = parsePhotos(unit.photos || unit.buildingPhotos);
+                  const currentPhotoIdx = activePhotoIndices[unit.id] || 0;
+                  const featuresList = (unit.features || 'مكيفات مجهزة, مطبخ راكب, موقف خاص, مصعد, إنتركوم ذكي').split(',').map(f => f.trim());
 
-                return (
-                  <div key={unit.id || i} className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden relative">
-                    
-                    {unit.isTanfeeth && (
-                      <div className="bg-red-500 text-white font-bold text-center px-4 py-3 flex items-center justify-center gap-2 shadow-inner text-sm">
-                        <AlertTriangle className="w-5 h-5 shrink-0 animate-bounce" />
-                        <span>{language === 'ar' ? 'تنبيه: يوجد مطالبة مالية نشطة ضد الوحدة. يرجى التواصل معنا فوراً لتسوية الوضع.' : 'Notice: Active financial claim against this unit. Please contact management immediately.'}</span>
+                  return (
+                    <div key={unit.id || i} className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden relative">
+                      
+                      {unit.isTanfeeth && (
+                        <div className="bg-red-500 text-white font-bold text-center px-4 py-3 flex items-center justify-center gap-2 shadow-inner text-sm">
+                          <AlertTriangle className="w-5 h-5 shrink-0 animate-bounce" />
+                          <span>{language === 'ar' ? 'تنبيه: يوجد مطالبة مالية نشطة ضد الوحدة. يرجى التواصل معنا فوراً لتسوية الوضع.' : 'Notice: Active financial claim against this unit. Please contact management immediately.'}</span>
+                        </div>
+                      )}
+
+                      {/* APARTMENT HERO PHOTO GALLERY & SHOWCASE */}
+                      <div className="relative group bg-zinc-900 overflow-hidden h-72 sm:h-96 md:h-[450px]">
+                        <img 
+                          src={photos[currentPhotoIdx] || DEFAULT_APARTMENT_PHOTOS[0]} 
+                          alt={unit.propertyName}
+                          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                        
+                        {/* Fullscreen Button */}
+                        <button 
+                          onClick={() => setLightboxImage(photos[currentPhotoIdx] || DEFAULT_APARTMENT_PHOTOS[0])}
+                          className="absolute top-4 left-4 bg-black/60 hover:bg-black/80 text-white p-3 rounded-2xl backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
+                          title={language === 'ar' ? 'تكبير الصورة' : 'View Fullscreen'}
+                        >
+                          <Maximize2 className="w-5 h-5" />
+                        </button>
+
+                        {/* Prev / Next Controls */}
+                        {photos.length > 1 && (
+                          <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none">
+                            <button
+                              onClick={() => {
+                                const nextIdx = (currentPhotoIdx - 1 + photos.length) % photos.length;
+                                setActivePhotoIndices(prev => ({ ...prev, [unit.id]: nextIdx }));
+                              }}
+                              className="pointer-events-auto w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
+                            >
+                              <ChevronRight className="w-6 h-6 rtl:rotate-180" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const nextIdx = (currentPhotoIdx + 1) % photos.length;
+                                setActivePhotoIndices(prev => ({ ...prev, [unit.id]: nextIdx }));
+                              }}
+                              className="pointer-events-auto w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
+                            >
+                              <ChevronLeft className="w-6 h-6 rtl:rotate-180" />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Title & Info Banner */}
+                        <div className="absolute bottom-6 inset-x-6 text-white space-y-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="bg-primary/90 text-primary-foreground text-xs font-black px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
+                              {unit.buildingName || unit.propertyName}
+                            </span>
+                            <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border border-white/20">
+                              {language === 'ar' ? `وحدة رقم ${unit.unitNumber}` : `Unit #${unit.unitNumber}`}
+                            </span>
+                          </div>
+                          <h2 className="text-2xl sm:text-3xl font-black drop-shadow-md">
+                            {unit.propertyName} - {unit.unitNumber}
+                          </h2>
+                          {unit.address && (
+                            <p className="text-xs sm:text-sm text-white/90 font-medium flex items-center gap-1.5 drop-shadow-xs">
+                              <MapPin className="w-4 h-4 text-primary shrink-0" />
+                              <span>{unit.address}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* APARTMENT SPECIFICATIONS & FEATURES GRID */}
+                      <div className="p-6 md:p-8 space-y-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          <div className="bg-muted/50 p-4 rounded-2xl border border-border flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              <Maximize2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-muted-foreground font-bold">{language === 'ar' ? 'المساحة الإجمالية' : 'Total Area'}</p>
+                              <p className="text-sm font-black text-foreground">{unit.area ? `${unit.area} م²` : 'غير محدد'}</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-muted/50 p-4 rounded-2xl border border-border flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                              <Bed className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-muted-foreground font-bold">{language === 'ar' ? 'عدد الغرف' : 'Bedrooms'}</p>
+                              <p className="text-sm font-black text-foreground">{unit.rooms ? `${unit.rooms} غرف` : 'غير محدد'}</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-muted/50 p-4 rounded-2xl border border-border flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center shrink-0">
+                              <Bath className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-muted-foreground font-bold">{language === 'ar' ? 'دورات المياه' : 'Bathrooms'}</p>
+                              <p className="text-sm font-black text-foreground">{unit.bathrooms ? `${unit.bathrooms} حمام` : 'غير محدد'}</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-muted/50 p-4 rounded-2xl border border-border flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                              <Building2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-muted-foreground font-bold">{language === 'ar' ? 'رقم الدور' : 'Floor'}</p>
+                              <p className="text-sm font-black text-foreground">{unit.floor ? `الدور ${unit.floor}` : 'الفيلا / الأرضي'}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* FEATURES BADGES */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-black text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-primary" />
+                            <span>{language === 'ar' ? 'مزايا وتجهيزات العقار' : 'Amenities & Features'}</span>
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {featuresList.map((feat, fIdx) => (
+                              <span key={fIdx} className="bg-card border border-border text-foreground px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>{feat}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* BIG BUTTONS FOR QUICK ACCESS (rendered when in home view) */}
+          {renterViewTab === 'home' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              
+              {/* Big Button 1: Submit Maintenance */}
+              <button
+                onClick={() => {
+                  setRenterViewTab('maintenance-new');
+                  setMaintenanceActiveTab('new');
+                  setIsMaintenanceModalOpen(true);
+                }}
+                className="bg-card border border-primary/20 hover:border-primary p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-primary to-blue-500" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Wrench className="w-6 h-6" />
+                  </div>
+                  <Plus className="w-5 h-5 text-primary opacity-60 group-hover:opacity-100" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-foreground mb-1">{language === 'ar' ? 'تقديم طلب صيانة' : 'Request Maintenance'}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {language === 'ar' ? 'تقديم بلاغ صيانة جديد مرفق بالصور' : 'Submit issue report with attached photos'}
+                  </p>
+                </div>
+              </button>
+
+              {/* Big Button 2: Maintenance Requests & Replies */}
+              <button
+                onClick={() => {
+                  setRenterViewTab('maintenance-list');
+                  setMaintenanceActiveTab('list');
+                  setIsMaintenanceModalOpen(true);
+                }}
+                className="bg-card border border-border hover:border-blue-500 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between relative overflow-hidden"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform relative">
+                    <MessageSquare className="w-6 h-6" />
+                    {openReportsCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-amber-500 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-card">
+                        {openReportsCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold bg-muted px-2.5 py-1 rounded-full text-foreground">
+                    {maintenanceReportsList.length} {language === 'ar' ? 'طلب' : 'Requests'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-foreground mb-1">{language === 'ar' ? 'طلباتي والردود' : 'Requests & Replies'}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {language === 'ar' ? 'متابعة حالة الطلبات وردود فريق الصيانة' : 'Check status & responses from tech team'}
+                  </p>
+                </div>
+              </button>
+
+              {/* Big Button 3: Rent Payment History */}
+              <button
+                onClick={() => setRenterViewTab('payments')}
+                className="bg-card border border-border hover:border-emerald-500 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <CreditCard className="w-6 h-6" />
+                  </div>
+                  <History className="w-5 h-5 text-emerald-500 opacity-60 group-hover:opacity-100" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-foreground mb-1">{language === 'ar' ? 'سجل الدفعات والإيصالات' : 'Payments & Receipts'}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {language === 'ar' ? 'مواعيد الاستحقاق ورفع إيصالات السداد' : 'Due dates & receipt uploads'}
+                  </p>
+                </div>
+              </button>
+
+              {/* Big Button 4: Apartment Specs & Details */}
+              <button
+                onClick={() => setRenterViewTab('apartment')}
+                className="bg-card border border-border hover:border-purple-500 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <Sparkles className="w-5 h-5 text-purple-500 opacity-60 group-hover:opacity-100" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-foreground mb-1">{language === 'ar' ? 'مواصفات وصور الشقة' : 'Apartment Details'}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {language === 'ar' ? 'المساحة، الغرف، المزايا وصور العقار' : 'Area, rooms, amenities & photo gallery'}
+                  </p>
+                </div>
+              </button>
+
+            </div>
+          )}
+
+          {/* RENT PAYMENT HISTORY SECTION */}
+          {renterViewTab === 'payments' && (
+            <div id="payments-section" className="bg-card rounded-3xl border border-border shadow-sm p-6 md:p-8 space-y-6">
+              {!units || units.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-2xl border border-dashed">
+                  <p className="text-sm font-bold">{language === 'ar' ? 'لم يتم ربط عقار بحسابك حتى الآن' : 'No Property Connected Yet'}</p>
+                </div>
+              ) : (
+                units.map((unit, uIdx) => (
+                  <div key={unit.id || uIdx} className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+                      <div>
+                        <h3 className="text-xl font-black flex items-center gap-2 text-foreground">
+                          <CreditCard className="w-6 h-6 text-emerald-600" />
+                          <span>{language === 'ar' ? `سجل الدفعات والإيصالات - ${unit.propertyName} (وحدة ${unit.unitNumber})` : `Payment History - ${unit.propertyName} (Unit ${unit.unitNumber})`}</span>
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {language === 'ar' ? 'متابعة مواعيد استحقاق الإيجارات ورفع إيصالات التحويل البنكي' : 'Track rent due dates and upload bank payment transfer receipts'}
+                        </p>
+                      </div>
+                      <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold px-3 py-1 rounded-full w-fit">
+                        {unit.rentHistory?.length || 0} {language === 'ar' ? 'دفعات مسجلة' : 'Payments Recorded'}
+                      </span>
+                    </div>
+
+                    {/* BANK TRANSFER DETAILS */}
+                    {unit.transferDetails && (
+                      <div className="p-6 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-start gap-4">
+                        <Landmark className="w-8 h-8 text-blue-600 shrink-0 mt-1" />
+                        <div>
+                          <h4 className="font-bold text-blue-900 dark:text-blue-200 mb-1">{language === 'ar' ? 'تفاصيل الحساب والتحويل البنكي' : 'Bank Account Details'}</h4>
+                          <p className="text-sm text-blue-800 dark:text-blue-300 whitespace-pre-wrap leading-relaxed">{unit.transferDetails}</p>
+                        </div>
                       </div>
                     )}
 
-                    {/* APARTMENT HERO PHOTO GALLERY & SHOWCASE */}
-                    <div className="relative group bg-zinc-900 overflow-hidden h-72 sm:h-96 md:h-[450px]">
-                      <img 
-                        src={photos[currentPhotoIdx] || DEFAULT_APARTMENT_PHOTOS[0]} 
-                        alt={unit.propertyName}
-                        className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                      
-                      {/* Fullscreen Button */}
-                      <button 
-                        onClick={() => setLightboxImage(photos[currentPhotoIdx] || DEFAULT_APARTMENT_PHOTOS[0])}
-                        className="absolute top-4 left-4 bg-black/60 hover:bg-black text-white p-2.5 rounded-full backdrop-blur-md transition-all cursor-pointer shadow-lg"
-                        title={language === 'ar' ? 'تكبير الصورة' : 'Full Screen'}
-                      >
-                        <Maximize2 className="w-5 h-5" />
-                      </button>
+                    {/* RENT PAYMENT HISTORY CARDS */}
+                    {unit.rentHistory && unit.rentHistory.length > 0 ? (
+                      <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                        {unit.rentHistory.map((h, hIdx) => {
+                          const amountStr = typeof h.amount === 'string' ? h.amount : (h.amount?.toString() || '');
+                          const {
+                            isCourt,
+                            isLate,
+                            isPaid,
+                            isDue,
+                            statusText,
+                            actualPaidDate
+                          } = getRentStatus(h, language);
 
-                      {/* Photo Navigation Controls */}
-                      {photos.length > 1 && (
-                        <>
-                          <button
-                            onClick={() => {
-                              const nextIdx = (currentPhotoIdx - 1 + photos.length) % photos.length;
-                              setActivePhotoIndices(prev => ({ ...prev, [unit.id]: nextIdx }));
-                            }}
-                            className="absolute top-1/2 right-4 -translate-y-1/2 bg-black/50 hover:bg-black text-white p-3 rounded-full backdrop-blur-md transition-all cursor-pointer"
-                          >
-                            <ChevronRight className="w-6 h-6" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const nextIdx = (currentPhotoIdx + 1) % photos.length;
-                              setActivePhotoIndices(prev => ({ ...prev, [unit.id]: nextIdx }));
-                            }}
-                            className="absolute top-1/2 left-4 -translate-y-1/2 bg-black/50 hover:bg-black text-white p-3 rounded-full backdrop-blur-md transition-all cursor-pointer"
-                          >
-                            <ChevronLeft className="w-6 h-6" />
-                          </button>
-                        </>
-                      )}
-
-                      {/* Apartment Overlay Title */}
-                      <div className="absolute bottom-6 right-6 left-6 text-white flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className="bg-primary text-primary-foreground font-black text-xs px-3 py-1 rounded-full shadow-sm">
-                              {language === 'ar' ? `وحدة رقم ${unit.unitNumber}` : `Unit #${unit.unitNumber}`}
-                            </span>
-                            <span className="bg-white/20 backdrop-blur-md text-white font-bold text-xs px-3 py-1 rounded-full">
-                              {unit.propertyName}
-                            </span>
-                          </div>
-                          <h2 className="text-2xl sm:text-4xl font-black">{language === 'ar' ? 'شقتك السكنية' : 'Rented Apartment'}</h2>
-                        </div>
-
-                        {/* Photo Thumbnails Strip */}
-                        {photos.length > 1 && (
-                          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-                            {photos.map((p, pIdx) => (
-                              <button
-                                key={pIdx}
-                                onClick={() => setActivePhotoIndices(prev => ({ ...prev, [unit.id]: pIdx }))}
-                                className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${currentPhotoIdx === pIdx ? 'border-primary scale-105 shadow-md' : 'border-white/40 opacity-70 hover:opacity-100'}`}
-                              >
-                                <img src={p} alt="" className="w-full h-full object-cover" />
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="p-6 md:p-8 space-y-8">
-                      
-                      {/* SPECIFICATIONS GRID */}
-                      <div>
-                        <h3 className="text-lg font-black text-foreground mb-4 flex items-center gap-2">
-                          <Building2 className="w-5 h-5 text-primary" />
-                          <span>{language === 'ar' ? 'المواصفات الفنية والتفاصيل' : 'Apartment Specifications'}</span>
-                        </h3>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                          
-                          <div className="bg-muted/50 border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                            <Bed className="w-6 h-6 text-primary mb-2" />
-                            <span className="text-xs text-muted-foreground font-bold">{language === 'ar' ? 'غرف النوم' : 'Bedrooms'}</span>
-                            <span className="text-lg font-black text-foreground mt-0.5">{unit.bedrooms || 2}</span>
-                          </div>
-
-                          <div className="bg-muted/50 border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                            <Bath className="w-6 h-6 text-blue-500 mb-2" />
-                            <span className="text-xs text-muted-foreground font-bold">{language === 'ar' ? 'دورات المياه' : 'Bathrooms'}</span>
-                            <span className="text-lg font-black text-foreground mt-0.5">{unit.bathrooms || 2}</span>
-                          </div>
-
-                          <div className="bg-muted/50 border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                            <Maximize2 className="w-6 h-6 text-emerald-500 mb-2" />
-                            <span className="text-xs text-muted-foreground font-bold">{language === 'ar' ? 'المساحة' : 'Area'}</span>
-                            <span className="text-lg font-black text-foreground mt-0.5">{unit.area || 120} م²</span>
-                          </div>
-
-                          <div className="bg-muted/50 border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                            <Building2 className="w-6 h-6 text-purple-500 mb-2" />
-                            <span className="text-xs text-muted-foreground font-bold">{language === 'ar' ? 'الطابق' : 'Floor'}</span>
-                            <span className="text-lg font-black text-foreground mt-0.5">{unit.floor || 'الاول'}</span>
-                          </div>
-
-                          <div className="bg-muted/50 border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                            <Banknote className="w-6 h-6 text-emerald-600 mb-2" />
-                            <span className="text-xs text-muted-foreground font-bold">{language === 'ar' ? 'قيمة الإيجار' : 'Rent'}</span>
-                            <span className="text-base font-black text-foreground mt-0.5">
-                              {unit.rentAmount ? Math.floor(unit.rentAmount).toLocaleString() : '---'} <span className="text-xs font-normal">ريال</span>
-                            </span>
-                          </div>
-
-                          <div className="bg-muted/50 border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                            <Calendar className="w-6 h-6 text-orange-500 mb-2" />
-                            <span className="text-xs text-muted-foreground font-bold">{language === 'ar' ? 'انتهاء العقد' : 'Contract End'}</span>
-                            <span className="text-xs font-black text-foreground mt-0.5" dir="ltr">{unit.contractEndDate || '---'}</span>
-                          </div>
-
-                        </div>
-                      </div>
-
-                      {/* FEATURES AND AMENITIES */}
-                      <div>
-                        <h4 className="text-sm font-bold text-muted-foreground mb-3">{language === 'ar' ? 'التجهيزات والخدمات المتاحة:' : 'Features & Amenities:'}</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {featuresList.map((feat, fIdx) => (
-                            <span key={fIdx} className="bg-card border border-border text-foreground px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                              <span>{feat}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* BANK TRANSFER DETAILS */}
-                      {unit.transferDetails && (
-                        <div className="p-6 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-start gap-4">
-                          <Landmark className="w-8 h-8 text-blue-600 shrink-0 mt-1" />
-                          <div>
-                            <h4 className="font-bold text-blue-900 dark:text-blue-200 mb-1">{language === 'ar' ? 'تفاصيل الحساب والتحويل البنكي' : 'Bank Account Details'}</h4>
-                            <p className="text-sm text-blue-800 dark:text-blue-300 whitespace-pre-wrap leading-relaxed">{unit.transferDetails}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* RENT PAYMENT HISTORY */}
-                      <div id="payments-section" className="pt-6 border-t border-border">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-black flex items-center gap-2 text-foreground">
-                            <History className="w-6 h-6 text-primary" />
-                            <span>{language === 'ar' ? 'سجل الدفعات والإيصالات' : 'Rent Payment History'}</span>
-                          </h3>
-                          <span className="text-xs text-muted-foreground font-bold">
-                            {unit.rentHistory?.length || 0} {language === 'ar' ? 'دفعات مجهزة' : 'Payments'}
-                          </span>
-                        </div>
-
-                        {unit.rentHistory && unit.rentHistory.length > 0 ? (
-                          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-                            {unit.rentHistory.map((h, hIdx) => {
-                              const amountStr = typeof h.amount === 'string' ? h.amount : (h.amount?.toString() || '');
-                              const {
-                                isCourt,
-                                isLate,
-                                isPaid,
-                                isScheduled,
-                                isDue,
-                                statusText,
-                                actualPaidDate
-                              } = getRentStatus(h, language);
-
-                              return (
-                                <div key={h.id || hIdx} className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${isPaid ? 'border-emerald-500/20 bg-emerald-500/5' : isCourt ? 'border-red-500/30 bg-red-500/5' : isLate ? 'border-orange-500/30 bg-orange-500/5' : isDue ? 'border-amber-500/30 bg-amber-500/5' : 'border-border bg-card'}`}>
-                                  <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isPaid ? 'bg-emerald-500/20 text-emerald-600' : isCourt ? 'bg-red-500/20 text-red-600' : 'bg-amber-500/20 text-amber-600'}`}>
-                                      {isPaid ? <CheckCircle2 className="w-6 h-6" /> : <Calendar className="w-6 h-6" />}
-                                    </div>
-                                    <div className="space-y-1">
-                                      <p className="font-bold text-foreground m-0">
-                                        {language === 'ar' ? `تاريخ الاستحقاق:` : `Due Date:`} <span dir="ltr" className="ml-1 text-foreground font-black">{h.dueDate}</span>
-                                      </p>
-                                      <div className="text-xs flex items-center gap-3 text-muted-foreground flex-wrap">
-                                        <span className={`font-black ${isPaid ? 'text-emerald-600' : isCourt ? 'text-red-600' : 'text-amber-600'}`}>
-                                          {statusText}
-                                        </span>
-                                        {isPaid && actualPaidDate && (
-                                          <span>• {language === 'ar' ? 'تاريخ السداد:' : 'Paid:'} {actualPaidDate}</span>
-                                        )}
-                                        {amountStr && (
-                                          <span>• {language === 'ar' ? 'المبلغ:' : 'Amount:'} <strong className="text-foreground">{amountStr} ريال</strong></span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    {h.receiptUrl ? (
-                                      <>
-                                        <a 
-                                          href={h.receiptUrl} 
-                                          target="_blank" 
-                                          rel="noreferrer" 
-                                          className="text-xs bg-muted hover:bg-muted/80 text-foreground font-bold px-4 py-2.5 rounded-xl border border-border transition-colors flex items-center gap-1.5"
-                                        >
-                                          <Eye className="w-4 h-4 text-primary" />
-                                          {language === 'ar' ? 'عرض الإيصال' : 'Preview'}
-                                        </a>
-                                        <label className="relative cursor-pointer text-xs px-4 py-2.5 bg-card hover:bg-muted text-foreground font-bold rounded-xl border border-border transition-colors flex items-center gap-1.5 shadow-2xs">
-                                          <input 
-                                            type="file" 
-                                            accept="image/*,application/pdf"
-                                            onChange={(e) => handleUploadReceipt(h.id, e)}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                          />
-                                          {uploadingReceiptFor === h.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                                          {language === 'ar' ? 'إعادة رفع' : 'Reupload'}
-                                        </label>
-                                      </>
-                                    ) : (
-                                      <label className="relative cursor-pointer text-xs px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl shadow-md hover:bg-primary/90 transition-all flex items-center gap-2">
-                                        <input 
-                                          type="file" 
-                                          accept="image/*,application/pdf"
-                                          onChange={(e) => handleUploadReceipt(h.id, e)}
-                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        />
-                                        {uploadingReceiptFor === h.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                                        {language === 'ar' ? 'رفع إيصال التحويل' : 'Upload Receipt'}
-                                      </label>
+                          return (
+                            <div key={h.id || hIdx} className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${isPaid ? 'border-emerald-500/20 bg-emerald-500/5' : isCourt ? 'border-red-500/30 bg-red-500/5' : isLate ? 'border-orange-500/30 bg-orange-500/5' : isDue ? 'border-amber-500/30 bg-amber-500/5' : 'border-border bg-card'}`}>
+                              <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isPaid ? 'bg-emerald-500/20 text-emerald-600' : isCourt ? 'bg-red-500/20 text-red-600' : 'bg-amber-500/20 text-amber-600'}`}>
+                                  {isPaid ? <CheckCircle2 className="w-6 h-6" /> : <Calendar className="w-6 h-6" />}
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="font-bold text-foreground m-0">
+                                    {language === 'ar' ? `تاريخ الاستحقاق:` : `Due Date:`} <span dir="ltr" className="ml-1 text-foreground font-black">{h.dueDate}</span>
+                                  </p>
+                                  <div className="text-xs flex items-center gap-3 text-muted-foreground flex-wrap">
+                                    <span className={`font-black ${isPaid ? 'text-emerald-600' : isCourt ? 'text-red-600' : 'text-amber-600'}`}>
+                                      {statusText}
+                                    </span>
+                                    {isPaid && actualPaidDate && (
+                                      <span>• {language === 'ar' ? 'تاريخ السداد:' : 'Paid:'} {actualPaidDate}</span>
+                                    )}
+                                    {amountStr && (
+                                      <span>• {language === 'ar' ? 'المبلغ:' : 'Amount:'} <strong className="text-foreground">{amountStr} ريال</strong></span>
                                     )}
                                   </div>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-2xl border border-dashed">
-                            <p className="text-sm font-bold">{language === 'ar' ? 'لا يوجد دفعات مسجلة حالياً' : 'No rent payment records found'}</p>
-                          </div>
-                        )}
-                      </div>
+                              </div>
 
-                    </div>
+                              <div className="flex items-center gap-2">
+                                {h.receiptUrl ? (
+                                  <>
+                                    <a 
+                                      href={h.receiptUrl} 
+                                      target="_blank" 
+                                      rel="noreferrer" 
+                                      className="text-xs bg-muted hover:bg-muted/80 text-foreground font-bold px-4 py-2.5 rounded-xl border border-border transition-colors flex items-center gap-1.5"
+                                    >
+                                      <Eye className="w-4 h-4 text-primary" />
+                                      {language === 'ar' ? 'عرض الإيصال' : 'Preview'}
+                                    </a>
+                                    <label className="relative cursor-pointer text-xs px-4 py-2.5 bg-card hover:bg-muted text-foreground font-bold rounded-xl border border-border transition-colors flex items-center gap-1.5 shadow-2xs">
+                                      <input 
+                                        type="file" 
+                                        accept="image/*,application/pdf"
+                                        onChange={(e) => handleUploadReceipt(h.id, e)}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                      />
+                                      {uploadingReceiptFor === h.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                      {language === 'ar' ? 'إعادة رفع' : 'Reupload'}
+                                    </label>
+                                  </>
+                                ) : (
+                                  <label className="relative cursor-pointer text-xs px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl shadow-md hover:bg-primary/90 transition-all flex items-center gap-2">
+                                    <input 
+                                      type="file" 
+                                      accept="image/*,application/pdf"
+                                      onChange={(e) => handleUploadReceipt(h.id, e)}
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    {uploadingReceiptFor === h.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                    {language === 'ar' ? 'رفع إيصال التحويل' : 'Upload Receipt'}
+                                  </label>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-2xl border border-dashed">
+                        <p className="text-sm font-bold">{language === 'ar' ? 'لا يوجد دفعات مسجلة حالياً' : 'No rent payment records found'}</p>
+                      </div>
+                    )}
                   </div>
-                );
-              }))}
+                ))
+              )}
             </div>
           )}
 
           {/* SECTION 2: MAINTENANCE CENTER HUB */}
-          {(renterViewTab === 'maintenance' || isMaintenanceModalOpen) && (
+          {(renterViewTab === 'maintenance-new' || renterViewTab === 'maintenance-list' || isMaintenanceModalOpen) && (
             <div className="bg-card rounded-3xl border border-border shadow-sm p-6 md:p-8 space-y-6">
               
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
@@ -993,21 +1136,60 @@ export default function Login() {
               {maintenanceActiveTab === 'new' && (
                 <form onSubmit={handleSubmitMaintenanceReport} className="space-y-6">
                   
-                  {/* Select Unit if multiple */}
-                  {units.length > 1 && (
-                    <div>
-                      <label className="block text-xs font-bold text-muted-foreground mb-2">{language === 'ar' ? 'اختر الوحدة المعنية' : 'Select Rented Unit'}</label>
-                      <select
-                        value={selectedUnitForReport}
-                        onChange={(e) => setSelectedUnitForReport(e.target.value)}
-                        className="w-full bg-background border border-border rounded-xl p-3 text-sm font-bold text-foreground outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        {units.map(u => (
-                          <option key={u.id} value={u.id}>
-                            {u.propertyName} - {language === 'ar' ? `وحدة ${u.unitNumber}` : `Unit ${u.unitNumber}`}
-                          </option>
-                        ))}
-                      </select>
+                  {/* Select Rented Property / Unit */}
+                  {units && units.length > 0 && (
+                    <div className="bg-muted/40 border border-border rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-primary" />
+                          <span>{language === 'ar' ? 'اختر العقار / الوحدة السكنية المعنية بالبلاغ:' : 'Select Target Rented Property / Unit:'}</span>
+                        </label>
+                        <span className="text-xs bg-primary/10 text-primary font-bold px-2.5 py-0.5 rounded-full">
+                          {language === 'ar' ? `${units.length} وحدة مسجلة` : `${units.length} Unit(s)`}
+                        </span>
+                      </div>
+
+                      {/* Interactive Unit Picker Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {units.map((u) => {
+                          const activeUnitId = selectedUnitForReport || (units.length > 0 ? units[0].id : '');
+                          const isSelected = activeUnitId === u.id;
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => setSelectedUnitForReport(u.id)}
+                              className={`p-4 rounded-xl border text-right rtl:text-right ltr:text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                                isSelected 
+                                  ? 'bg-card border-primary ring-2 ring-primary/30 shadow-md' 
+                                  : 'bg-background hover:bg-card border-border text-muted-foreground'
+                              }`}
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`font-black text-sm ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>
+                                    {u.propertyName}
+                                  </span>
+                                  <span className="bg-primary/10 text-primary font-bold text-xs px-2 py-0.5 rounded-md">
+                                    {language === 'ar' ? `وحدة ${u.unitNumber}` : `Unit ${u.unitNumber}`}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                                  <span>{language === 'ar' ? `الدور: ${u.floor || '1'}` : `Floor: ${u.floor || '1'}`}</span>
+                                  <span>•</span>
+                                  <span>{language === 'ar' ? `${u.area || 120} م²` : `${u.area || 120} m²`}</span>
+                                </p>
+                              </div>
+
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border transition-colors ${
+                                isSelected ? 'bg-primary text-primary-foreground border-primary' : 'border-border bg-muted/50'
+                              }`}>
+                                {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
@@ -1124,27 +1306,53 @@ export default function Login() {
               {maintenanceActiveTab === 'list' && (
                 <div className="space-y-6">
                   
-                  {/* Status Filter Header */}
-                  <div className="flex items-center justify-between flex-wrap gap-3 bg-muted/40 p-3 rounded-2xl border border-border">
-                    <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                      <Filter className="w-4 h-4" />
-                      {language === 'ar' ? 'تصفية حسب الحالة:' : 'Filter status:'}
-                    </span>
+                  {/* Status & Unit Filter Header */}
+                  <div className="flex items-center justify-between flex-wrap gap-3 bg-muted/40 p-3.5 rounded-2xl border border-border">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      {/* Status Filters */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                          <Filter className="w-3.5 h-3.5" />
+                          {language === 'ar' ? 'الحالة:' : 'Status:'}
+                        </span>
+                        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                          {['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map(st => (
+                            <button
+                              key={st}
+                              onClick={() => setReportStatusFilter(st)}
+                              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${reportStatusFilter === st ? 'bg-primary text-primary-foreground shadow-2xs' : 'text-muted-foreground hover:bg-muted'}`}
+                            >
+                              {st === 'ALL' && (language === 'ar' ? 'الكل' : 'All')}
+                              {st === 'PENDING' && (language === 'ar' ? 'قيد الانتظار' : 'Pending')}
+                              {st === 'IN_PROGRESS' && (language === 'ar' ? 'جاري المعالجة' : 'In Progress')}
+                              {st === 'COMPLETED' && (language === 'ar' ? 'مكتمل' : 'Completed')}
+                              {st === 'CANCELLED' && (language === 'ar' ? 'ملغى' : 'Cancelled')}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-                    <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
-                      {['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map(st => (
-                        <button
-                          key={st}
-                          onClick={() => setReportStatusFilter(st)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${reportStatusFilter === st ? 'bg-primary text-primary-foreground shadow-2xs' : 'text-muted-foreground hover:bg-muted'}`}
-                        >
-                          {st === 'ALL' && (language === 'ar' ? 'الكل' : 'All')}
-                          {st === 'PENDING' && (language === 'ar' ? 'قيد الانتظار' : 'Pending')}
-                          {st === 'IN_PROGRESS' && (language === 'ar' ? 'جاري المعالجة' : 'In Progress')}
-                          {st === 'COMPLETED' && (language === 'ar' ? 'مكتمل' : 'Completed')}
-                          {st === 'CANCELLED' && (language === 'ar' ? 'ملغى' : 'Cancelled')}
-                        </button>
-                      ))}
+                      {/* Unit Filter if multiple */}
+                      {units && units.length > 1 && (
+                        <div className="flex items-center gap-1.5 border-t sm:border-t-0 sm:border-r rtl:sm:border-r-0 rtl:sm:border-l border-border pt-2 sm:pt-0 pr-0 sm:pr-4 rtl:sm:pl-4">
+                          <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                            <Building2 className="w-3.5 h-3.5" />
+                            {language === 'ar' ? 'الوحدة:' : 'Unit:'}
+                          </span>
+                          <select
+                            value={reportUnitFilter}
+                            onChange={(e) => setReportUnitFilter(e.target.value)}
+                            className="bg-card border border-border rounded-xl px-2.5 py-1 text-xs font-bold text-foreground outline-none cursor-pointer"
+                          >
+                            <option value="ALL">{language === 'ar' ? 'جميع الوحدات' : 'All Units'}</option>
+                            {units.map(u => (
+                              <option key={u.id} value={u.id}>
+                                {u.propertyName} - {language === 'ar' ? `وحدة ${u.unitNumber}` : `Unit ${u.unitNumber}`}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1165,7 +1373,7 @@ export default function Login() {
                   ) : (
                     <div className="space-y-4">
                       {maintenanceReportsList
-                        .filter(r => reportStatusFilter === 'ALL' || r.status === reportStatusFilter)
+                        .filter(r => (reportStatusFilter === 'ALL' || r.status === reportStatusFilter) && (reportUnitFilter === 'ALL' || r.renterUnit?.id === reportUnitFilter))
                         .map(report => {
                           const imgs = parseReportImages(report.images);
                           const catObj = MAINTENANCE_CATEGORIES.find(c => c.id === report.category) || MAINTENANCE_CATEGORIES[6];
@@ -1180,9 +1388,19 @@ export default function Login() {
                                     {catObj.icon}
                                   </div>
                                   <div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                       <span className="font-black text-sm text-foreground">{language === 'ar' ? catObj.nameAr : catObj.nameEn}</span>
-                                      <span className="text-xs text-muted-foreground font-mono">#{report.id.substring(0, 8)}</span>
+                                      {report.renterUnit && (
+                                        <span className="bg-primary/10 border border-primary/20 text-primary font-bold text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                          <Building2 className="w-3 h-3" />
+                                          <span>{report.renterUnit.building?.name || 'عقار'}</span>
+                                          <span>•</span>
+                                          <span>{language === 'ar' ? `وحدة ${report.renterUnit.unitNumber}` : `Unit ${report.renterUnit.unitNumber}`}</span>
+                                        </span>
+                                      )}
+                                      <span className="text-xs font-mono font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                                        #{report.requestCode || report.id.substring(0, 8)}
+                                      </span>
                                     </div>
                                     <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                                       <Clock className="w-3 h-3" />
@@ -1246,6 +1464,195 @@ export default function Login() {
                                 </div>
                               </div>
 
+                              {/* ASSIGNED TECHNICIAN & APPOINTMENT BLOCK */}
+                              {report.technicianName && (
+                                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
+                                      <User className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                      <p className="font-black text-xs text-amber-950 dark:text-amber-100 flex items-center gap-1">
+                                        <span>{language === 'ar' ? 'الفني المعين:' : 'Assigned Technician:'}</span>
+                                        <span className="text-sm">{report.technicianName}</span>
+                                      </p>
+                                      {report.scheduledDate && (
+                                        <p className="text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-1 mt-0.5">
+                                          <Clock className="w-3 h-3" />
+                                          <span>{language === 'ar' ? 'موعد الزيارة:' : 'Visit:'} {new Date(report.scheduledDate).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {report.technicianPhone && (
+                                    <div className="flex items-center gap-2">
+                                      <a
+                                        href={`https://wa.me/${report.technicianPhone.replace(/\D/g, '')}?text=${encodeURIComponent(language === 'ar' ? `مرحباً، أنا المستأجر بخصوص بلاغ الصيانة #${report.id.substring(0, 8)}` : `Hello, I am the tenant regarding maintenance report #${report.id.substring(0, 8)}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs"
+                                      >
+                                        <WhatsAppIcon className="w-4 h-4 fill-current" />
+                                        <span>{language === 'ar' ? 'واتساب' : 'WhatsApp'}</span>
+                                      </a>
+                                      <a
+                                        href={`tel:${report.technicianPhone}`}
+                                        className="bg-card border border-border text-foreground hover:bg-muted text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5"
+                                      >
+                                        <Phone className="w-3.5 h-3.5 text-primary" />
+                                        <span>{language === 'ar' ? 'اتصال' : 'Call'}</span>
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                               {/* COSTS & FINANCIAL STATEMENT BLOCK FOR TENANT */}
+                               {(report.estimatedCost || report.actualCost || report.receiptUrl || report.expenses) && (
+                                 <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-3">
+                                   <div className="flex items-center justify-between flex-wrap gap-2 border-b border-border/60 pb-2">
+                                     <div className="flex items-center gap-2">
+                                       <DollarSign className="w-4 h-4 text-emerald-600" />
+                                       <span className="font-extrabold text-xs text-foreground">
+                                         {language === 'ar' ? 'كشف حساب وسندات مصاريف الصيانة:' : 'Maintenance Expenses & Receipts Ledger:'}
+                                       </span>
+                                     </div>
+
+                                     {/* Overall Payer Responsibility Badge */}
+                                     {report.costPayer === 'RENTER' ? (
+                                       <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 border border-amber-500/20 text-xs font-extrabold rounded-xl">
+                                         {language === 'ar' ? 'مستحقة على المستأجر' : 'Owed by Tenant'}
+                                       </span>
+                                     ) : (
+                                       <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-extrabold rounded-xl">
+                                         {language === 'ar' ? 'مغطاة بالكامل بواسطة المالك / إدارة الأملاك' : 'Fully Covered by Management'}
+                                       </span>
+                                     )}
+                                   </div>
+
+                                   <div className="flex items-center justify-between flex-wrap gap-3 text-xs">
+                                     <div className="flex items-center gap-4 flex-wrap">
+                                       {report.estimatedCost && (
+                                         <div>
+                                           <span className="text-muted-foreground font-bold">{language === 'ar' ? 'التكلفة التقديرية:' : 'Est. Cost:'}</span>
+                                           <span className="font-black text-foreground ml-1">{report.estimatedCost} ريال</span>
+                                         </div>
+                                       )}
+                                       {report.actualCost !== null && report.actualCost !== undefined && (
+                                         <div>
+                                           <span className="text-muted-foreground font-bold">{language === 'ar' ? 'إجمالي التكلفة الشاملة:' : 'Actual Gross Total:'}</span>
+                                           <span className="font-black text-emerald-600 dark:text-emerald-400 ml-1 text-sm">{report.actualCost} ريال</span>
+                                         </div>
+                                       )}
+                                     </div>
+                                   </div>
+
+                                   {/* Multi-Receipt Expenses List */}
+                                   {(() => {
+                                     let exps: any[] = [];
+                                     try { exps = report.expenses ? JSON.parse(report.expenses) : []; } catch (_) {}
+                                     if (Array.isArray(exps) && exps.length > 0) {
+                                       return (
+                                         <div className="pt-2 border-t border-border/50 space-y-2">
+                                           <span className="text-[11px] font-bold text-muted-foreground">{language === 'ar' ? 'تفاصيل السندات والإيصالات المرفقة:' : 'Itemized Receipt Charges:'}</span>
+                                           <div className="space-y-1.5">
+                                             {exps.map((exp: any, eIdx: number) => (
+                                               <div key={eIdx} className="flex justify-between items-center bg-background p-2.5 rounded-xl text-xs border border-border/50 flex-wrap gap-2">
+                                                 <div className="flex items-center gap-2">
+                                                   {exp.receiptUrl && (
+                                                     <button
+                                                       type="button"
+                                                       onClick={() => setLightboxImage(exp.receiptUrl)}
+                                                       className="w-9 h-9 rounded-lg overflow-hidden border border-border shrink-0 cursor-pointer"
+                                                       title={language === 'ar' ? 'عرض صوة الإيصال' : 'View Receipt'}
+                                                     >
+                                                       <img src={exp.receiptUrl} alt="Receipt" className="w-full h-full object-cover" />
+                                                     </button>
+                                                   )}
+                                                   <div>
+                                                     <p className="font-extrabold text-foreground">{exp.title}</p>
+                                                     <p className="text-[9.5px] text-muted-foreground">{exp.category} {exp.vendorName ? `• ${exp.vendorName}` : ''}</p>
+                                                   </div>
+                                                 </div>
+
+                                                 <div className="flex items-center gap-2">
+                                                   <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md ${
+                                                     exp.costPayer === 'RENTER' ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600'
+                                                   }`}>
+                                                     {exp.costPayer === 'RENTER' ? 'المستأجر' : 'مغطاة من المالك'}
+                                                   </span>
+                                                   <span className="font-mono font-black text-primary text-xs">{Number(exp.totalAmount || 0).toFixed(2)} SAR</span>
+                                                 </div>
+                                               </div>
+                                             ))}
+                                           </div>
+                                         </div>
+                                       );
+                                     }
+                                     return null;
+                                   })()}
+                                 </div>
+                               )}
+
+                              {/* WORK COMPLETION PROOF PHOTOS */}
+                              {parseReportImages(report.proofImages).length > 0 && (
+                                <div className="space-y-2">
+                                  <h4 className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>{language === 'ar' ? 'صور إثبات إنجاز صيانة العطل:' : 'Work Completion Proof Photos:'}</span>
+                                  </h4>
+                                  <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                                    {parseReportImages(report.proofImages).map((proofImg, pIdx) => (
+                                      <button
+                                        key={pIdx}
+                                        onClick={() => setLightboxImage(proofImg)}
+                                        className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-emerald-500/30 hover:scale-105 transition-transform shrink-0 cursor-pointer"
+                                      >
+                                        <img src={proofImg} alt="Completion Proof" className="w-full h-full object-cover" />
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* DIRECT CHAT & RATING ACTION BUTTONS */}
+                              <div className="flex items-center justify-between pt-2 border-t border-border flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setRenterChatReport(report)}
+                                  className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                  <span>{language === 'ar' ? 'محادثة مباشرة مع الفني والإدارة' : 'Direct Chat with Tech & Support'}</span>
+                                  {(report.messages?.length || 0) > 0 && (
+                                    <span className="bg-primary text-primary-foreground font-black text-[10px] px-2 py-0.5 rounded-full">
+                                      {report.messages?.length}
+                                    </span>
+                                  )}
+                                </button>
+
+                                {report.status === 'COMPLETED' && (
+                                  <div>
+                                    {report.rating ? (
+                                      <div className="flex items-center gap-1 bg-amber-500/10 text-amber-600 border border-amber-500/20 px-3 py-1.5 rounded-2xl text-xs font-bold">
+                                        <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                                        <span>{report.rating} / 5</span>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => { setRatingReportId(report.id); setRatingValue(5); setRatingFeedback(''); }}
+                                        className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-md"
+                                      >
+                                        <Star className="w-4 h-4" />
+                                        <span>{language === 'ar' ? 'تقييم خدمة الصيانة' : 'Rate Service'}</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
                             </div>
                           );
                         })}
@@ -1255,6 +1662,198 @@ export default function Login() {
                 </div>
               )}
 
+            </div>
+          )}
+
+          {/* RENTER RATING MODAL */}
+          {ratingReportId && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-card border border-border rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    <span>{language === 'ar' ? 'تقييم خدمة الصيانة' : 'Rate Maintenance Service'}</span>
+                  </h3>
+                  <button onClick={() => setRatingReportId(null)} className="p-1 text-muted-foreground hover:text-foreground">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="text-center space-y-2">
+                  <p className="text-xs text-muted-foreground">{language === 'ar' ? 'كيف كانت تجربتك مع الفني وإنجاز العمل؟' : 'How was your experience with the technician and repair quality?'}</p>
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRatingValue(star)}
+                        className="p-1 transition-transform hover:scale-125 cursor-pointer"
+                      >
+                        <Star className={`w-8 h-8 ${star <= ratingValue ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground/30'}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <textarea
+                    value={ratingFeedback}
+                    onChange={(e) => setRatingFeedback(e.target.value)}
+                    placeholder={language === 'ar' ? 'اكتب انطباعك أو أي ملاحظات حول الخدمة...' : 'Write your feedback or notes...'}
+                    className="w-full bg-background border border-border rounded-2xl p-3 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary min-h-[80px]"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRatingReportId(null)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-border hover:bg-muted cursor-pointer"
+                  >
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSubmitRating(ratingReportId)}
+                    disabled={submittingRating}
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-amber-500 text-white hover:bg-amber-600 flex items-center gap-1.5 shadow-md cursor-pointer"
+                  >
+                    {submittingRating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    <span>{language === 'ar' ? 'إرسال التقييم' : 'Submit Rating'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* RENTER DIRECT CHAT MODAL */}
+          {renterChatReport && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-card border border-border rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95">
+                <div className="p-4 border-b border-border flex items-center justify-between bg-muted/20">
+                  <div>
+                    <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-primary" />
+                      <span>{language === 'ar' ? 'محادثة الصيانة المباشرة' : 'Maintenance Ticket Chat'}</span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      #{renterChatReport.requestCode || renterChatReport.id.substring(0, 8)} - {renterChatReport.renterUnit?.building?.name || 'عقار'} (وحدة {renterChatReport.renterUnit?.unitNumber})
+                    </p>
+                  </div>
+                  <button onClick={() => setRenterChatReport(null)} className="p-2 text-muted-foreground hover:text-foreground">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-background max-h-[420px]">
+                  {(!renterChatReport.messages || renterChatReport.messages.length === 0) ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30 text-primary" />
+                      <p className="text-xs font-bold">{language === 'ar' ? 'لا يوجد رسائل سابقة. أرسل استفسارك للفني والإدارة.' : 'No messages yet. Send a message to team.'}</p>
+                    </div>
+                  ) : (
+                    renterChatReport.messages.map((msg) => {
+                      const isMe = msg.senderRole === 'RENTER';
+                      const msgImgs = parseReportImages(msg.attachments);
+
+                      return (
+                        <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                          <div className="flex items-center gap-1.5 mb-1 text-[11px] text-muted-foreground">
+                            <span className="font-bold text-foreground">{msg.senderName}</span>
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                              isMe ? 'bg-primary/10 text-primary' : msg.senderRole === 'TECHNICIAN' ? 'bg-amber-500/10 text-amber-600' : 'bg-blue-500/10 text-blue-600'
+                            }`}>
+                              {isMe ? (language === 'ar' ? 'أنت' : 'You') : msg.senderRole === 'TECHNICIAN' ? (language === 'ar' ? 'الفني' : 'Tech') : (language === 'ar' ? 'الإدارة' : 'Admin')}
+                            </span>
+                            <span>•</span>
+                            <span>{new Date(msg.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+
+                          <div className={`p-3.5 rounded-2xl max-w-md text-xs space-y-2 ${
+                            isMe 
+                              ? 'bg-primary text-primary-foreground rounded-tl-none' 
+                              : 'bg-muted/70 text-foreground border border-border rounded-tr-none'
+                          }`}>
+                            <p className="whitespace-pre-wrap leading-relaxed m-0 font-medium">{msg.message}</p>
+                            {msgImgs.length > 0 && (
+                              <div className="flex items-center gap-2 pt-1 overflow-x-auto">
+                                {msgImgs.map((attachment, aIdx) => (
+                                  <button
+                                    key={aIdx}
+                                    type="button"
+                                    onClick={() => setLightboxImage(attachment)}
+                                    className="w-16 h-16 rounded-xl overflow-hidden border border-white/20 shrink-0 cursor-pointer"
+                                  >
+                                    <img src={attachment} alt="" className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleSendRenterMessage} className="p-3 border-t border-border bg-card space-y-2">
+                  {renterChatAttachments.length > 0 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                      {renterChatAttachments.map((img, idx) => (
+                        <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0">
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setRenterChatAttachments(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-0 right-0 bg-red-500 text-white p-0.5 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <label className="p-2 text-muted-foreground hover:text-primary rounded-xl hover:bg-muted cursor-pointer transition-colors shrink-0">
+                      <input type="file" accept="image/*" multiple onChange={(e) => {
+                        const files = e.target.files;
+                        if (!files) return;
+                        Array.from(files).forEach(f => {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            if (typeof ev.target?.result === 'string') {
+                              setRenterChatAttachments(prev => [...prev, ev.target!.result as string]);
+                            }
+                          };
+                          reader.readAsDataURL(f as File);
+                        });
+                        e.target.value = '';
+                      }} className="hidden" />
+                      <ImageIcon className="w-4 h-4" />
+                    </label>
+
+                    <input
+                      type="text"
+                      value={renterChatMessage}
+                      onChange={(e) => setRenterChatMessage(e.target.value)}
+                      placeholder={language === 'ar' ? 'اكتب تفاصيل الاستفسار أو التنسيق مع الفني...' : 'Type message to team...'}
+                      className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={sendingRenterMessage || (!renterChatMessage.trim() && renterChatAttachments.length === 0)}
+                      className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1 shrink-0 cursor-pointer"
+                    >
+                      {sendingRenterMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      <span>{language === 'ar' ? 'إرسال' : 'Send'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 

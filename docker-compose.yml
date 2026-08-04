@@ -2,37 +2,66 @@ version: '3.8'
 
 services:
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ghcr.io/az2oo1/bina-and-edarah:latest
+    container_name: bina_edarah_app
+    restart: always
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:postgres@postgres_db:5432/bina_db?schema=public&connection_limit=10&pool_timeout=15
+      - DATABASE_URL=postgresql://root@cockroach_db:26257/bina_db?sslmode=disable
+      - S3_ENDPOINT=http://rustfs_storage:9000
+      - S3_BUCKET=bina-assets
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-rustfsaccesskey}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-rustfssecretkey}
+      - S3_REGION=${S3_REGION:-us-east-1}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET:-bina-edara-jwt-secret-key-1337}
     volumes:
       - app_data:/data
+      - uploads_data:/app/uploads
     depends_on:
-      postgres_db:
+      cockroach_db:
         condition: service_healthy
+      rustfs_storage:
+        condition: service_started
 
-  postgres_db:
-    image: postgres:15-alpine
-    container_name: postgres_db
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=bina_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+  cockroach_db:
+    image: cockroachdb/cockroach:v24.1.3
+    container_name: cockroach_db
+    restart: always
+    command: start-single-node --insecure
     ports:
-      - "127.0.0.1:5432:5432"
+      - "26257:26257"
+      - "8080:8080"
+    volumes:
+      - cockroach_data:/cockroach/cockroach-data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d bina_db"]
-      interval: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+      interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 5s
+      start_period: 10s
+
+  rustfs_storage:
+    image: minio/minio:latest
+    container_name: rustfs_storage
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${S3_ACCESS_KEY:-rustfsaccesskey}
+      - MINIO_ROOT_PASSWORD=${S3_SECRET_KEY:-rustfssecretkey}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs_data:/data
 
 volumes:
   app_data:
-  postgres_data:
+  uploads_data:
+  cockroach_data:
+  rustfs_data:

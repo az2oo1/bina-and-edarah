@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
-import { PlusCircle, Loader2, Trash2, MapPin, ImagePlus, X, Building2 } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, ImagePlus, X, Building2 } from 'lucide-react';
 import { compressImage } from '../lib/image';
 import { useDialog } from '../context/DialogContext';
+import { CustomSelect } from '../components/CustomSelect';
 
 interface Project {
   id: string;
@@ -295,16 +296,23 @@ export default function AdminProjects() {
   };
 
   return (
-    <div className="min-h-[500px]">
-      <div className="flex items-center justify-between mb-8 pb-6 border-b border-border">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-primary" />
+    <div className="min-h-[500px] space-y-6">
+      {/* Standard Admin Header Block */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border select-none">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-primary" />
           </div>
-          <h2 className="text-3xl font-bold text-foreground">
-            {showAddForm ? (editingId ? (language === 'ar' ? 'تعديل مشروع' : 'Edit Project') : (language === 'ar' ? 'إضافة مشروع' : 'Add Project')) : (language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects')}
-          </h2>
+          <div>
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">
+              {showAddForm ? (editingId ? (language === 'ar' ? 'تعديل مشروع' : 'Edit Project') : (language === 'ar' ? 'إضافة مشروع' : 'Add Project')) : (language === 'ar' ? 'إدارة المشاريع' : 'Manage Projects')}
+            </h1>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
+              {language === 'ar' ? 'عرض وإضافة المشاريع العقارية والريادية وتحديث تفاصيلها' : 'Create, update, and showcase flagship and featured real estate projects'}
+            </p>
+          </div>
         </div>
+
         <button 
           onClick={() => {
             if (showAddForm) {
@@ -315,16 +323,16 @@ export default function AdminProjects() {
               setShowAddForm(true);
             }
           }}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all shadow-md cursor-pointer ${
+          className={`h-9 px-4 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs ${
             showAddForm 
-              ? 'btn-secondary text-foreground' 
-              : 'btn-primary text-white hover:opacity-90'
+              ? 'border border-border bg-card text-foreground hover:bg-muted' 
+              : 'bg-primary text-primary-foreground hover:bg-primary/90'
           }`}
         >
           {showAddForm ? (
             <>{language === 'ar' ? 'إلغاء' : 'Cancel'}</>
           ) : (
-            <><PlusCircle className="w-5 h-5" />{language === 'ar' ? 'إضافة مشروع' : 'Add Project'}</>
+            <><PlusCircle className="w-4 h-4" /><span>{language === 'ar' ? 'إضافة مشروع' : 'Add Project'}</span></>
           )}
         </button>
       </div>
@@ -349,31 +357,39 @@ export default function AdminProjects() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="cn-label mb-2">{language === 'ar' ? 'تصنيف المشروع (Tier)' : 'Project Tier'}</label>
-                  <select value={formData.tier} onChange={(e) => setFormData({...formData, tier: e.target.value})} className="cn-input">
-                    <option value="BIG" className="bg-card text-foreground">{language === 'ar' ? 'مشروع ريادي (Flagship)' : 'Flagship Project'}</option>
-                    <option value="MID" className="bg-card text-foreground">{language === 'ar' ? 'مشروع مميز (Featured)' : 'Featured Project'}</option>
-                    <option value="OTHER" className="bg-card text-foreground">{language === 'ar' ? 'مشاريع أخرى (Other)' : 'Other Projects'}</option>
-                  </select>
+                  <CustomSelect
+                    value={formData.tier}
+                    onChange={(val) => setFormData({...formData, tier: val})}
+                    options={[
+                      { value: 'BIG', label: language === 'ar' ? 'مشروع ريادي (Flagship)' : 'Flagship Project' },
+                      { value: 'MID', label: language === 'ar' ? 'مشروع مميز (Featured)' : 'Featured Project' },
+                      { value: 'OTHER', label: language === 'ar' ? 'مشاريع أخرى (Other)' : 'Other Projects' }
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="cn-label mb-2">{t('admin.placeholder.category') || 'Property Category'}</label>
-                  <select value={formData.propertyCategory} onChange={(e) => setFormData({...formData, propertyCategory: e.target.value})} className="cn-input">
-                    <option value="VILLA" className="bg-card text-foreground">{t('cat.VILLA') || 'Villa'}</option>
-                    <option value="APARTMENT" className="bg-card text-foreground">{t('cat.APARTMENT') || 'Apartment'}</option>
-                    <option value="COMPOUND" className="bg-card text-foreground">{t('cat.COMPOUND') || 'Compound'}</option>
-                    <option value="TOWER" className="bg-card text-foreground">{t('cat.TOWER') || 'Tower'}</option>
-                    <option value="BUILDING" className="bg-card text-foreground">{t('cat.BUILDING') || 'Building'}</option>
-                    <option value="MALL" className="bg-card text-foreground">{t('cat.MALL') || 'Mall'}</option>
-                    <option value="SHOP" className="bg-card text-foreground">{t('cat.SHOP') || 'Shop'}</option>
-                    <option value="OFFICE" className="bg-card text-foreground">{t('cat.OFFICE') || 'Office'}</option>
-                    <option value="RESORT" className="bg-card text-foreground">{t('cat.RESORT') || 'Resort'}</option>
-                    <option value="HOTEL" className="bg-card text-foreground">{t('cat.HOTEL') || 'Hotel'}</option>
-                    <option value="HOSPITAL" className="bg-card text-foreground">{t('cat.HOSPITAL') || 'Hospital'}</option>
-                    <option value="WAREHOUSE" className="bg-card text-foreground">{t('cat.WAREHOUSE') || 'Warehouse'}</option>
-                    <option value="FARM" className="bg-card text-foreground">{t('cat.FARM') || 'Farm'}</option>
-                    <option value="LAND" className="bg-card text-foreground">{t('cat.LAND') || 'Land'}</option>
-                    <option value="ROOM" className="bg-card text-foreground">{t('cat.ROOM') || 'Room'}</option>
-                  </select>
+                  <CustomSelect
+                    value={formData.propertyCategory}
+                    onChange={(val) => setFormData({...formData, propertyCategory: val})}
+                    options={[
+                      { value: 'VILLA', label: t('cat.VILLA') || 'Villa' },
+                      { value: 'APARTMENT', label: t('cat.APARTMENT') || 'Apartment' },
+                      { value: 'COMPOUND', label: t('cat.COMPOUND') || 'Compound' },
+                      { value: 'TOWER', label: t('cat.TOWER') || 'Tower' },
+                      { value: 'BUILDING', label: t('cat.BUILDING') || 'Building' },
+                      { value: 'MALL', label: t('cat.MALL') || 'Mall' },
+                      { value: 'SHOP', label: t('cat.SHOP') || 'Shop' },
+                      { value: 'OFFICE', label: t('cat.OFFICE') || 'Office' },
+                      { value: 'RESORT', label: t('cat.RESORT') || 'Resort' },
+                      { value: 'HOTEL', label: t('cat.HOTEL') || 'Hotel' },
+                      { value: 'HOSPITAL', label: t('cat.HOSPITAL') || 'Hospital' },
+                      { value: 'WAREHOUSE', label: t('cat.WAREHOUSE') || 'Warehouse' },
+                      { value: 'FARM', label: t('cat.FARM') || 'Farm' },
+                      { value: 'LAND', label: t('cat.LAND') || 'Land' },
+                      { value: 'ROOM', label: t('cat.ROOM') || 'Room' }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -487,7 +503,7 @@ export default function AdminProjects() {
                     <div className="w-10"></div>
                   </div>
                 )}
-                {formData.detailsList.map((detail, index) => (
+                {formData.detailsList.map((detail) => (
                   <div key={detail.id} className="grid grid-cols-[40px_1.5fr_3fr_auto] gap-3 items-center">
                     <button
                       type="button"

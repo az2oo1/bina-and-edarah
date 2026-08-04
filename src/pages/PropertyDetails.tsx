@@ -2,8 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
-import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, Search, LayoutGrid, List, ArrowUpDown, SlidersHorizontal, X, Car, ArrowUpCircle } from 'lucide-react';
-import { SrIcon } from '../components/SrIcon';
+import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, Eye, Car, ArrowUpCircle, Wrench, User } from 'lucide-react';
 import { ImageViewer } from '../components/ImageViewer';
 import { formatExternalLink } from '../utils/link';
 
@@ -75,9 +74,9 @@ export default function PropertyDetails() {
   const [callingNumber, setCallingNumber] = useState('966500000000');
   const [whatsappMessage, setWhatsappMessage] = useState('مرحباً، أنا مهتم بهذا العقار: {title} - {link}');
   const [activeImage, setActiveImage] = useState(0);
-  const [selectedPlan, setSelectedPlan] = useState<string>("1");
+  const [, setSelectedPlan] = useState<string>("1");
   const [isViewerOpen, setIsViewerOpen] = useState(false);
-  const [expandedUnitId, setExpandedUnitId] = useState<string | null>(null);
+  const [, setExpandedUnitId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'details' | 'units'>('details');
 
   const thumbnailContainerRef = useRef<HTMLDivElement | null>(null);
@@ -179,6 +178,20 @@ export default function PropertyDetails() {
         setLoading(false);
       });
   }, [id]);
+
+  const [propertyMaintenanceReports, setPropertyMaintenanceReports] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!property?.id) return;
+    fetch(`/api/properties/${property.id}/maintenance-reports`)
+      .then(res => res.ok ? res.json() : [])
+      .then((reports: any[]) => {
+        if (Array.isArray(reports)) {
+          setPropertyMaintenanceReports(reports);
+        }
+      })
+      .catch(console.error);
+  }, [property?.id]);
 
   const memoizedParsedData = useMemo(() => {
     if (!property) {
@@ -400,7 +413,7 @@ export default function PropertyDetails() {
           {/* Units Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {visibleSubProperties.map((unit, idx) => {
-              const { unitImages, cover, unitDetails, isAvailable, isSold, isRented } = unit as any;
+              const { cover, unitDetails, isAvailable, isSold, isRented } = unit as any;
 
               return (
                 <div
@@ -420,24 +433,20 @@ export default function PropertyDetails() {
                       style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
                     />
                       {(() => {
-                        const unitName = unitDetails.find((d: any) => {
-                          if (!d || !d.key) return false;
-                          const k = String(d.key).trim().toLowerCase();
-                          return k === 'رقم الوحدة' || k === 'unit name' || k === 'unit number' || k === 'رقم الشقة' || k === 'شقة' || k === 'unit' || k === 'apartment number' || k === 'apt number';
-                        })?.value || '';
-
                         return (
                           <>
                             <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-10 select-none flex items-center gap-1.5">
-                              <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-md ${
-                                isAvailable ? 'bg-emerald-600/90 text-white' :
-                                isSold ? 'bg-destructive/90 text-white' :
-                                isRented ? 'bg-amber-600/90 text-white' :
-                                'bg-slate-600/90 text-white'
+                              <span className={`text-[9.5px] font-extrabold px-3 py-0.5 rounded-full shadow-2xs backdrop-blur-md border ${
+                                isSold ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30' :
+                                isRented ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' :
+                                unit.type === 'SALE' ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30' :
+                                isAvailable ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' :
+                                'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30'
                               }`}>
-                                {isAvailable ? (language === 'ar' ? 'متاح' : 'Available') :
-                                 isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
+                                {isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
                                  isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
+                                 unit.type === 'SALE' ? (language === 'ar' ? 'للبيع' : 'For Sale') :
+                                 isAvailable ? (language === 'ar' ? 'للإيجار' : 'For Rent') :
                                  (language === 'ar' ? 'مخفي' : 'Hidden')}
                               </span>
                             </div>
@@ -583,7 +592,11 @@ export default function PropertyDetails() {
         {/* Title Section */}
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-xs font-semibold">
+            <span className={`px-3 py-1 rounded-full text-xs font-extrabold shadow-2xs backdrop-blur-md border ${
+              property.type === 'SALE' 
+                ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30' 
+                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+            }`}>
               {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
             </span>
             <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-xs font-semibold">
@@ -908,6 +921,68 @@ export default function PropertyDetails() {
                 </div>
               )}
             </div>
+
+            {/* Maintenance Reports Section */}
+            {propertyMaintenanceReports.length > 0 && (
+              <div className="shadcn-card p-6 border border-amber-500/30 bg-amber-500/5 rounded-2xl space-y-4 mt-6">
+                <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center shrink-0">
+                      <Wrench className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-foreground">
+                        {language === 'ar' ? 'بلاغات الصيانة الخاصة بهذا العقار' : 'Property Maintenance Tickets'}
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground">
+                        {language === 'ar' ? `يوجد ${propertyMaintenanceReports.length} بلاغات صيانة مرتبطة بهذا العقار` : `${propertyMaintenanceReports.length} maintenance tickets linked to this property`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/admin/callbacks?type=maintenance"
+                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-full shadow-xs transition-colors flex items-center gap-1 shrink-0"
+                  >
+                    <span>{language === 'ar' ? 'مركز الصيانة' : 'Maintenance Hub'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {propertyMaintenanceReports.map((report) => (
+                    <div key={report.id} className="bg-card p-3.5 rounded-xl border border-border space-y-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-extrabold text-foreground flex items-center gap-1.5 truncate">
+                          <User className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="truncate">{report.renter?.name || report.renterUnit?.renterName || 'مستأجر'}</span>
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border shrink-0 ${
+                          report.status === 'COMPLETED' ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30' :
+                          report.status === 'IN_PROGRESS' ? 'bg-sky-500/15 text-sky-600 border-sky-500/30' :
+                          'bg-amber-500/15 text-amber-600 border-amber-500/30'
+                        }`}>
+                          {report.status === 'COMPLETED' ? (language === 'ar' ? 'مكتمل' : 'Completed') :
+                           report.status === 'IN_PROGRESS' ? (language === 'ar' ? 'جاري المعالجة' : 'In Progress') :
+                           (language === 'ar' ? 'قيد الانتظار' : 'Pending')}
+                        </span>
+                      </div>
+
+                      <p className="text-muted-foreground line-clamp-2 text-[11px] leading-relaxed">
+                        {report.description}
+                      </p>
+
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50 font-mono">
+                        <span>{new Date(report.createdAt).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
+                        {report.renterUnit?.unitNumber && (
+                          <span className="font-bold text-foreground">وحدة {report.renterUnit.unitNumber}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar / Info */}

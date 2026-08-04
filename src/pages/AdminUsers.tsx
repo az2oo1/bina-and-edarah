@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { Users, Plus, Loader2, Trash2, Edit2, Shield, X, Lock, CheckCircle2 } from 'lucide-react';
+import { Users, Plus, Loader2, Trash2, Edit2, Shield, X, CheckCircle2, Building2, Save, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialog } from '../context/DialogContext';
+import { CustomSelect } from '../components/CustomSelect';
 
 interface PlatformUser {
   id: string;
@@ -10,6 +11,7 @@ interface PlatformUser {
   name: string;
   role: string;
   email?: string;
+  assignedBuildings?: { id: string; name: string }[];
   createdAt: string;
 }
 
@@ -17,6 +19,8 @@ export default function AdminUsers() {
   const { language } = useLanguage();
   const { showAlert, showConfirm } = useDialog();
   const [users, setUsers] = useState<PlatformUser[]>([]);
+  const [allBuildings, setAllBuildings] = useState<{ id: string; name: string }[]>([]);
+  const [buildingSearch, setBuildingSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +35,7 @@ export default function AdminUsers() {
   const [name, setName] = useState('');
   const [role, setRole] = useState('ADMIN');
   const [email, setEmail] = useState('');
+  const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
 
   // Get current logged in user from localStorage
   const currentUserId = (() => {
@@ -60,8 +65,27 @@ export default function AdminUsers() {
     }
   };
 
+  const fetchBuildings = async () => {
+    try {
+      const res = await fetch('/api/admin/buildings');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          // Unique by ID to show every building in system
+          const uniqueById = Array.from(new Map(data.map((b: any) => [b.id, b])).values());
+          setAllBuildings(uniqueById);
+        } else {
+          setAllBuildings([]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch buildings", err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchBuildings();
   }, []);
 
   const resetForm = () => {
@@ -70,6 +94,7 @@ export default function AdminUsers() {
     setName('');
     setRole('ADMIN');
     setEmail('');
+    setSelectedBuildingIds([]);
     setEditingId(null);
     setShowAddForm(false);
   };
@@ -80,6 +105,7 @@ export default function AdminUsers() {
     setName(user.name);
     setRole(user.role);
     setEmail(user.email || '');
+    setSelectedBuildingIds(user.assignedBuildings?.map(b => b.id) || []);
     setPassword(''); // leave blank if no password change
     setShowAddForm(true);
   };
@@ -123,6 +149,7 @@ export default function AdminUsers() {
       name,
       role,
       email,
+      assignedBuildingIds: selectedBuildingIds,
       ...(password ? { password } : {})
     };
 
@@ -156,17 +183,18 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center">
-            <Users className="w-6 h-6 text-primary" />
+      {/* Standard Admin Header Block */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border select-none">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">
               {language === 'ar' ? 'مستخدمو المنصة (الموظفون)' : 'Platform Users & Staff'}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              {language === 'ar' ? 'إدارة حسابات الموظفين والمسؤولين وصلاحياتهم' : 'Manage administrator and staff accounts and permissions'}
+            </h1>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
+              {language === 'ar' ? 'إدارة حسابات الموظفين والمسؤولين وصلاحياتهم وتعيينهم للمباني' : 'Manage administrator and staff accounts, permissions, and building assignments'}
             </p>
           </div>
         </div>
@@ -176,16 +204,20 @@ export default function AdminUsers() {
             if (showAddForm) resetForm();
             else setShowAddForm(true);
           }}
-          className="btn-primary flex items-center gap-1.5 h-10 px-5 text-xs font-bold rounded-lg shadow-sm"
+          className={`h-9 px-4 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs ${
+            showAddForm 
+              ? 'border border-border bg-card text-foreground hover:bg-muted' 
+              : 'bg-primary text-primary-foreground hover:bg-primary/90'
+          }`}
         >
           {showAddForm ? (
             <>
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
               <span>{language === 'ar' ? 'إلغاء' : 'Cancel'}</span>
             </>
           ) : (
             <>
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               <span>{language === 'ar' ? 'إضافة مستخدم جديد' : 'Add New User'}</span>
             </>
           )}
@@ -213,98 +245,217 @@ export default function AdminUsers() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             onSubmit={handleSubmit}
-            className="bg-card border border-border rounded-2xl p-6 shadow-sm max-w-xl space-y-5"
+            className="bg-card border border-border rounded-2xl p-6 shadow-sm w-full space-y-5"
           >
-            <h3 className="font-bold text-sm text-foreground border-b border-border pb-2 mb-4">
-              {editingId ? (language === 'ar' ? 'تعديل بيانات الحساب' : 'Edit Account Details') : (language === 'ar' ? 'إنشاء حساب موظف جديد' : 'Create New Staff Account')}
+            <h3 className="font-bold text-sm text-foreground border-b border-border pb-3 flex items-center justify-between">
+              <span>
+                {editingId ? (language === 'ar' ? 'تعديل بيانات الحساب' : 'Edit Account Details') : (language === 'ar' ? 'إنشاء حساب موظف جديد' : 'Create New Staff Account')}
+              </span>
+              <span className="text-xs text-muted-foreground font-normal hidden sm:inline">
+                {language === 'ar' ? 'قم بتعبئة البيانات وتحديد المباني المشرف عليها الموظف' : 'Fill account details & select assigned buildings'}
+              </span>
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'الاسم الكامل' : 'Full Name'}</label>
-                <input
-                  required
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="input-field"
-                  placeholder={language === 'ar' ? 'الاسم المعروض للموظف' : 'Staff display name'}
-                />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Account Credentials Column */}
+              <div className="lg:col-span-6 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'الاسم الكامل' : 'Full Name'}</label>
+                    <input
+                      required
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      className="input-field"
+                      placeholder={language === 'ar' ? 'الاسم المعروض للموظف' : 'Staff display name'}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'اسم المستخدم' : 'Username'}</label>
+                    <input
+                      required
+                      type="text"
+                      value={username}
+                      onChange={e => setUsername(e.target.value)}
+                      className="input-field"
+                      placeholder={language === 'ar' ? 'اسم تسجيل الدخول' : 'Login username'}
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700">
+                      {language === 'ar' ? 'كلمة المرور' : 'Password'}
+                      {editingId && <span className="text-[10px] text-muted-foreground font-normal ml-1">({language === 'ar' ? 'اتركه فارغاً بعدم التعديل' : 'leave blank to keep unchanged'})</span>}
+                    </label>
+                    <input
+                      required={!editingId}
+                      type="password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className="input-field"
+                      placeholder={editingId ? '********' : (language === 'ar' ? 'كلمة السر' : 'Password')}
+                      dir="ltr"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'الدور / الصلاحيات' : 'Role / Permissions'}</label>
+                    <CustomSelect
+                      value={role}
+                      onChange={val => setRole(val)}
+                      options={[
+                        { value: 'MAINTENANCE', label: language === 'ar' ? 'مسؤول / فني صيانة (Maintenance Staff)' : 'Maintenance Staff' },
+                        { value: 'MANAGER', label: language === 'ar' ? 'مدير مكتب (Manager)' : 'Office Manager' },
+                        { value: 'ADMIN', label: language === 'ar' ? 'مسؤول النظام (Admin)' : 'System Admin' },
+                        { value: 'AGENT', label: language === 'ar' ? 'وكيل عقاري (Agent)' : 'Real Estate Agent' }
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'البريد الإلكتروني للتنبيهات' : 'Notification Email Address'}</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="input-field"
+                    placeholder="employee@yourdomain.com"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="btn-primary h-10 px-6 text-xs font-extrabold flex items-center gap-2 cursor-pointer"
+                  >
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{editingId ? (language === 'ar' ? 'تحديث البيانات' : 'Update User') : (language === 'ar' ? 'حفظ الحساب الجديد' : 'Save New User')}</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="btn-outline h-10 px-5 text-xs font-bold cursor-pointer"
+                  >
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'اسم المستخدم' : 'Username'}</label>
-                <input
-                  required
-                  type="text"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  className="input-field"
-                  placeholder={language === 'ar' ? 'اسم تسجيل الدخول' : 'Login username'}
-                  dir="ltr"
-                />
+              {/* Building Overseer Selection Panel */}
+              <div className="lg:col-span-6 bg-primary/5 p-4 rounded-2xl border border-primary/20 h-full flex flex-col justify-between space-y-3">
+                <div>
+                  <div className="flex items-center justify-between pb-2 border-b border-primary/10 mb-3">
+                    <label className="text-xs font-black text-foreground flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-primary" />
+                      <span>{language === 'ar' ? 'تحديد المباني التي يشرف عليها الموظف:' : 'Select Buildings Overseen by Staff:'}</span>
+                      <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 font-bold px-2 py-0.5 rounded-full ml-1">
+                        {selectedBuildingIds.length} {language === 'ar' ? 'مبنى محدد' : 'selected'}
+                      </span>
+                    </label>
+                    
+                    {allBuildings.length > 0 && (
+                      <div className="flex items-center gap-2 text-[11px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBuildingIds(allBuildings.map(b => b.id))}
+                          className="text-primary hover:underline cursor-pointer"
+                        >
+                          {language === 'ar' ? 'تحديد الكل' : 'Select All'}
+                        </button>
+                        <span className="text-muted-foreground">•</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBuildingIds([])}
+                          className="text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+                        >
+                          {language === 'ar' ? 'إلغاء الكل' : 'Clear All'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Real-time Search Input */}
+                  <div className="relative mb-3">
+                    <Search className="w-3.5 h-3.5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 rtl:right-3 rtl:left-auto ltr:left-3 ltr:right-auto pointer-events-none" />
+                    <input
+                      type="text"
+                      value={buildingSearch}
+                      onChange={e => setBuildingSearch(e.target.value)}
+                      placeholder={language === 'ar' ? 'ابحث باسم المبنى...' : 'Search building by full name...'}
+                      className="w-full bg-card border border-border rounded-xl py-2 px-9 text-xs font-semibold outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground shadow-2xs"
+                    />
+                    {buildingSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setBuildingSearch('')}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 rtl:left-3 rtl:right-auto ltr:right-3 ltr:left-auto text-muted-foreground hover:text-foreground p-0.5"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Full Name Vertical List Layout */}
+                  <div className="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar p-1">
+                    {allBuildings.length === 0 ? (
+                      <span className="text-[11px] text-muted-foreground py-4 text-center">{language === 'ar' ? 'لا توجد مباني مضافة حتى الآن' : 'No buildings created yet'}</span>
+                    ) : (() => {
+                      const filtered = allBuildings.filter(b => b.name.toLowerCase().includes(buildingSearch.toLowerCase()));
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="py-6 text-center text-xs text-muted-foreground font-medium">
+                            {language === 'ar' ? 'لا يوجد مبنى يطابق نتيجة البحث' : 'No building matches search query'}
+                          </div>
+                        );
+                      }
+                      return filtered.map(b => {
+                        const checked = selectedBuildingIds.includes(b.id);
+                        return (
+                          <label key={b.id} className={`flex items-center gap-3 text-xs font-extrabold cursor-pointer select-none p-3 rounded-xl border transition-all ${
+                            checked 
+                              ? 'bg-primary/10 border-primary/40 text-primary shadow-2xs ring-1 ring-primary/30' 
+                              : 'bg-card border-border/80 text-foreground hover:bg-muted/50'
+                          }`}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setSelectedBuildingIds(prev => [...prev, b.id]);
+                                } else {
+                                  setSelectedBuildingIds(prev => prev.filter(id => id !== b.id));
+                                }
+                              }}
+                              className="rounded text-primary focus:ring-primary h-4 w-4 shrink-0 cursor-pointer"
+                            />
+                            <Building2 className="w-4 h-4 shrink-0 opacity-70" />
+                            <div className="flex-1 flex items-center justify-between gap-2 overflow-hidden">
+                              <span className="break-words leading-snug">{b.name}</span>
+                              <span className="text-[10px] text-muted-foreground font-mono font-normal bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 shrink-0">
+                                #{b.id.slice(0, 6)}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-primary/10 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="font-semibold">{language === 'ar' ? 'إجمالي المباني في المنصة:' : 'Total Platform Buildings:'} {allBuildings.length}</span>
+                  <span className="font-mono font-bold text-primary">{selectedBuildingIds.length} / {allBuildings.length}</span>
+                </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700">
-                  {language === 'ar' ? 'كلمة المرور' : 'Password'}
-                  {editingId && <span className="text-[10px] text-muted-foreground font-normal ml-1">({language === 'ar' ? 'اتركه فارغاً بعدم التعديل' : 'leave blank to keep unchanged'})</span>}
-                </label>
-                <input
-                  required={!editingId}
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="input-field"
-                  placeholder={editingId ? '********' : (language === 'ar' ? 'كلمة السر' : 'Password')}
-                  dir="ltr"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'الدور / الصلاحيات' : 'Role / Permissions'}</label>
-                <select
-                  value={role}
-                  onChange={e => setRole(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="ADMIN">{language === 'ar' ? 'مسؤول النظام (Admin)' : 'System Admin'}</option>
-                  <option value="MANAGER">{language === 'ar' ? 'مدير مكتب (Manager)' : 'Office Manager'}</option>
-                  <option value="AGENT">{language === 'ar' ? 'وكيل عقاري (Agent)' : 'Real Estate Agent'}</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-700">{language === 'ar' ? 'البريد الإلكتروني للتنبيهات' : 'Notification Email Address'}</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="input-field"
-                placeholder="employee@yourdomain.com"
-                dir="ltr"
-              />
-            </div>
-
-            <div className="pt-2 border-t border-border flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="btn-outline h-9 px-4 text-xs font-semibold rounded-lg"
-              >
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
-              </button>
-              <button
-                type="submit"
-                disabled={actionLoading}
-                className="btn-primary h-9 px-6 text-xs font-semibold rounded-lg flex items-center gap-1.5"
-              >
-                {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {editingId ? (language === 'ar' ? 'حفظ التعديلات' : 'Save Changes') : (language === 'ar' ? 'إنشاء الحساب' : 'Create Account')}
-              </button>
             </div>
           </motion.form>
         ) : (
@@ -335,7 +486,7 @@ export default function AdminUsers() {
                         <th className="px-6 py-4">{language === 'ar' ? 'الاسم الكامل' : 'Full Name'}</th>
                         <th className="px-6 py-4">{language === 'ar' ? 'اسم المستخدم' : 'Username'}</th>
                         <th className="px-6 py-4">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</th>
-                        <th className="px-6 py-4">{language === 'ar' ? 'الدور / الصلاحية' : 'Role'}</th>
+                        <th className="px-6 py-4">{language === 'ar' ? 'الدور والتعيينات' : 'Role & Assignments'}</th>
                         <th className="px-6 py-4 text-center">{language === 'ar' ? 'التحكم' : 'Actions'}</th>
                       </tr>
                     </thead>
@@ -347,12 +498,12 @@ export default function AdminUsers() {
                           style={{ animationDelay: `${idx * 25}ms` }}
                         >
                           <td className="px-6 py-4 font-bold text-foreground flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-primary">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-primary shrink-0">
                               {u.name.charAt(0)}
                             </div>
                             <span>{u.name}</span>
                             {u.id === currentUserId && (
-                              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium shrink-0">
                                 {language === 'ar' ? 'أنت' : 'You'}
                               </span>
                             )}
@@ -364,10 +515,22 @@ export default function AdminUsers() {
                             {u.email || '—'}
                           </td>
                           <td className="px-6 py-4 text-muted-foreground">
-                            <span className="inline-flex items-center gap-1 bg-slate-100 border border-border px-2.5 py-1 rounded-md text-[11px] font-semibold text-gray-800">
-                              <Shield className="w-3.5 h-3.5 text-primary" />
-                              {u.role === 'ADMIN' ? (language === 'ar' ? 'مسؤول نظام' : 'System Admin') : u.role === 'MANAGER' ? (language === 'ar' ? 'مدير مكتب' : 'Manager') : (language === 'ar' ? 'موظف/وكيل' : 'Agent')}
-                            </span>
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className="inline-flex items-center gap-1 bg-slate-100 border border-border px-2.5 py-1 rounded-md text-[11px] font-semibold text-gray-800">
+                                <Shield className="w-3.5 h-3.5 text-primary" />
+                                {u.role === 'ADMIN' ? (language === 'ar' ? 'مسؤول نظام' : 'System Admin') : u.role === 'MANAGER' ? (language === 'ar' ? 'مدير مكتب' : 'Manager') : u.role === 'MAINTENANCE' ? (language === 'ar' ? 'مسؤول صيانة' : 'Maintenance Staff') : (language === 'ar' ? 'موظف/وكيل' : 'Agent')}
+                              </span>
+                              {u.assignedBuildings && u.assignedBuildings.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {u.assignedBuildings.map(b => (
+                                    <span key={b.id} className="inline-flex items-center gap-1 text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full">
+                                      <Building2 className="w-3 h-3" />
+                                      <span>{b.name}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-center gap-2">
@@ -402,3 +565,4 @@ export default function AdminUsers() {
     </div>
   );
 }
+

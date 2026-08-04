@@ -3,9 +3,6 @@ import { prisma, propertyService, auditService } from '../services/dbServices.js
 
 export const propertyRouter = Router();
 
-// Middleware placeholder for permission check (or pass in app context)
-const requirePermission = (permission: string) => (req: any, res: any, next: any) => next();
-
 // GET /api/properties
 propertyRouter.get('/', async (req, res) => {
   try {

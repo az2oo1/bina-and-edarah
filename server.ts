@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express from "express";
+import { createServer as createHttpServer } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import path from "path";
 import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
@@ -10,8 +12,6 @@ import fs from "fs";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { execSync } from "child_process";
-import csvParser from "csv-parser";
-import { Readable } from "stream";
 import { createRequire } from "module";
 const cjsRequire = typeof module !== "undefined" && typeof require !== "undefined"
   ? require
@@ -255,9 +255,10 @@ There is a new contact or callback request on the platform. Please log in to the
 }
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'analytics', 'settings', 'callbacks', 'users', 'logs'],
-  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'callbacks', 'analytics'],
-  AGENT: ['properties', 'projects', 'callbacks']
+  ADMIN: ['properties', 'projects', 'buildings', 'renters', 'analytics', 'settings', 'callbacks', 'users', 'logs', 'maintenance'],
+  MANAGER: ['properties', 'projects', 'buildings', 'renters', 'callbacks', 'analytics', 'maintenance'],
+  AGENT: ['properties', 'projects', 'callbacks'],
+  MAINTENANCE: ['maintenance', 'renters', 'buildings']
 };
 
 async function sendReplyEmailNotification(callbackRequest: any, replyText: string, senderName?: string, req?: any) {
@@ -811,6 +812,23 @@ function saveBase64Image(dataStr: string): string {
   return `/uploads/${filename}`;
 }
 
+function parseImageArray(input: string | any[] | null | undefined): string[] {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.filter(item => typeof item === 'string' && item.length > 0);
+  if (typeof input === 'string') {
+    try {
+      const parsed = JSON.parse(input);
+      if (Array.isArray(parsed)) return parsed.filter(item => typeof item === 'string' && item.length > 0);
+    } catch (e) {}
+  }
+  return [];
+}
+
+function stringifyImageArray(input: any): string {
+  const arr = parseImageArray(input);
+  return JSON.stringify(arr);
+}
+
 function processImageUrls(urlsInput: string | string[] | null | undefined): string {
   if (!urlsInput) return JSON.stringify([]);
   try {
@@ -1348,8 +1366,17 @@ async function startServer() {
   app.post('/api/admin/buildings', requirePermission('buildings'), async (req, res) => {
     try {
       const { name } = req.body;
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "اسم المبنى مطلوب" });
+      }
+      const existing = await prisma.building.findFirst({
+        where: { name: { equals: name.trim(), mode: 'insensitive' } }
+      });
+      if (existing) {
+        return res.status(200).json(existing);
+      }
       const building = await prisma.building.create({
-        data: { name }
+        data: { name: name.trim() }
       });
       await logAction(req, "ADD_BUILDING", `Added building: ${building.name} (${building.id})`);
       res.status(201).json(building);
@@ -1760,10 +1787,14 @@ async function startServer() {
           });
         }
 
-        if (!unit.renterId) {
+        if (!unit.renterId || unit.renterName !== renter.name || unit.renterPhone !== renter.phone) {
           await prisma.renterUnit.update({
             where: { id: unit.id },
-            data: { renterId: renter.id }
+            data: {
+              renterId: renter.id,
+              renterName: renter.name,
+              renterPhone: renter.phone
+            }
           });
         }
       }
@@ -1803,11 +1834,11 @@ async function startServer() {
         if (pUnit.parent) {
           const buildingName = pUnit.parent.titleAr || pUnit.parent.titleEn;
           let building = await prisma.building.findFirst({
-            where: { name: buildingName }
+            where: { name: { equals: buildingName.trim(), mode: 'insensitive' } }
           });
           if (!building) {
             building = await prisma.building.create({
-              data: { name: buildingName }
+              data: { name: buildingName.trim() }
             });
           }
 
@@ -1988,6 +2019,78 @@ async function startServer() {
   });
 
 
+  // --- Maintenance Request Code Helpers ---
+  async function generateNextRequestCode(): Promise<string> {
+    try {
+      const reports = await prisma.maintenanceReport.findMany({
+        where: { requestCode: { not: null } },
+        select: { requestCode: true }
+      });
+
+      let maxNum = 1000;
+      for (const r of reports) {
+        if (r.requestCode) {
+          const match = r.requestCode.match(/\d+/);
+          if (match) {
+            const num = parseInt(match[0], 10);
+            if (num > maxNum) maxNum = num;
+          }
+        }
+      }
+      return `MR-${maxNum + 1}`;
+    } catch (err) {
+      console.error("Error generating requestCode:", err);
+      return `MR-${Date.now().toString().slice(-4)}`;
+    }
+  }
+
+  async function ensureMaintenanceRequestCodes() {
+    try {
+      const uncoded = await prisma.maintenanceReport.findMany({
+        where: {
+          OR: [
+            { requestCode: null },
+            { requestCode: "" }
+          ]
+        },
+        orderBy: { createdAt: 'asc' }
+      });
+
+      if (uncoded.length === 0) return;
+
+      console.log(`Assigning request codes to ${uncoded.length} existing maintenance reports...`);
+
+      const coded = await prisma.maintenanceReport.findMany({
+        where: { requestCode: { not: null } },
+        select: { requestCode: true }
+      });
+
+      let currentMax = 1000;
+      for (const r of coded) {
+        if (r.requestCode) {
+          const match = r.requestCode.match(/\d+/);
+          if (match) {
+            const num = parseInt(match[0], 10);
+            if (num > currentMax) currentMax = num;
+          }
+        }
+      }
+
+      for (const report of uncoded) {
+        currentMax++;
+        const code = `MR-${currentMax}`;
+        await prisma.maintenanceReport.update({
+          where: { id: report.id },
+          data: { requestCode: code }
+        });
+      }
+      console.log("Finished assigning maintenance request codes.");
+    } catch (err) {
+      console.error("Failed to ensure maintenance request codes:", err);
+    }
+  }
+  ensureMaintenanceRequestCodes();
+
   // --- Maintenance Reports API ---
   app.post('/api/renter/maintenance-reports', async (req, res) => {
     try {
@@ -2021,7 +2124,7 @@ async function startServer() {
       }
 
       // process up to 4 images
-      const rawImages: string[] = Array.isArray(images) ? images.slice(0, 4) : [];
+      const rawImages: string[] = parseImageArray(images).slice(0, 4);
       const savedImages: string[] = [];
       for (const img of rawImages) {
         if (typeof img === 'string' && img.length > 0) {
@@ -2029,12 +2132,15 @@ async function startServer() {
         }
       }
 
+      const requestCode = await generateNextRequestCode();
+
       const report = await prisma.maintenanceReport.create({
         data: {
+          requestCode,
           description,
           category: category || "GENERAL",
           priority: priority || "NORMAL",
-          images: JSON.stringify(savedImages),
+          images: stringifyImageArray(savedImages),
           status: 'PENDING',
           renterId: renter.id,
           renterUnitId: unit.id
@@ -2069,7 +2175,10 @@ async function startServer() {
           ]
         },
         include: {
-          renterUnit: { include: { building: true } }
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -2081,49 +2190,407 @@ async function startServer() {
     }
   });
 
-  app.get('/api/admin/maintenance-reports', requirePermission('renters'), async (req, res) => {
+  app.get('/api/admin/maintenance-reports', requirePermission('maintenance'), async (req, res) => {
     try {
       const { buildingId, status } = req.query;
       const whereClause: any = {};
-      if (buildingId) {
-        whereClause.renterUnit = { buildingId: String(buildingId) };
-      }
-      if (status) {
+      if (status && status !== 'ALL') {
         whereClause.status = String(status);
       }
 
-      const reports = await prisma.maintenanceReport.findMany({
+      const userRole = (req as any).user?.role;
+      const userId = (req as any).user?.id;
+
+      if (userRole === 'MAINTENANCE' && userId) {
+        const maintenanceUser = await prisma.admin.findUnique({
+          where: { id: userId },
+          include: { assignedBuildings: true }
+        });
+        if (maintenanceUser && maintenanceUser.assignedBuildings && maintenanceUser.assignedBuildings.length > 0) {
+          const buildingIds = maintenanceUser.assignedBuildings.map(b => b.id);
+          whereClause.OR = [
+            { renterUnit: { buildingId: { in: buildingIds } } },
+            { assignedToId: userId }
+          ];
+        } else {
+          whereClause.assignedToId = userId;
+        }
+      }
+
+      const allReports = await prisma.maintenanceReport.findMany({
         where: whereClause,
         include: {
           renter: true,
-          renterUnit: { include: { building: true } }
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
         },
         orderBy: { createdAt: 'desc' }
       });
 
-      res.json(reports);
+      if (!buildingId) {
+        return res.json(allReports);
+      }
+
+      const bIdStr = String(buildingId);
+      const property = await prisma.property.findUnique({
+        where: { id: bIdStr },
+        include: { subProperties: true, parent: true }
+      });
+      const buildingObj = await prisma.building.findUnique({
+        where: { id: bIdStr }
+      });
+
+      const cleanStr = (s?: string | null) => (s || '').toLowerCase().replace(/[,.#!$%^&*;:{}=\-_`~()]/g, ' ').replace(/\s+/g, ' ').trim();
+      const normalize = (p?: string | null) => (p || '').replace(/\D/g, '').replace(/^966/, '').replace(/^0+/, '');
+
+      const namesToMatch: string[] = [];
+      const phonesToMatch: string[] = [];
+
+      if (property) {
+        if (property.titleAr) namesToMatch.push(cleanStr(property.titleAr));
+        if (property.titleEn) namesToMatch.push(cleanStr(property.titleEn));
+        if (property.parent?.titleAr) namesToMatch.push(cleanStr(property.parent.titleAr));
+        if (property.parent?.titleEn) namesToMatch.push(cleanStr(property.parent.titleEn));
+        if (property.renterPhone) phonesToMatch.push(normalize(property.renterPhone));
+        if (property.subProperties) {
+          property.subProperties.forEach(sub => {
+            if (sub.titleAr) namesToMatch.push(cleanStr(sub.titleAr));
+            if (sub.titleEn) namesToMatch.push(cleanStr(sub.titleEn));
+            if (sub.renterPhone) phonesToMatch.push(normalize(sub.renterPhone));
+          });
+        }
+      }
+
+      if (buildingObj && buildingObj.name) {
+        namesToMatch.push(cleanStr(buildingObj.name));
+      }
+
+      const matched = allReports.filter(rep => {
+        const bId = rep.renterUnit?.buildingId;
+        if (bId === bIdStr) return true;
+
+        const bName = cleanStr(rep.renterUnit?.building?.name);
+        const uNum = cleanStr(rep.renterUnit?.unitNumber);
+        const rPhone = normalize(rep.renter?.phone || rep.renterUnit?.renterPhone);
+        const rName = cleanStr(rep.renter?.name || rep.renterUnit?.renterName);
+
+        if (rPhone && phonesToMatch.some(p => p && (p.includes(rPhone) || rPhone.includes(p)))) return true;
+
+        if (bName && namesToMatch.length > 0) {
+          for (const name of namesToMatch) {
+            if (name && (name.includes(bName) || bName.includes(name))) return true;
+          }
+        }
+
+        if (uNum && uNum !== 'كامل العقار' && namesToMatch.length > 0) {
+          for (const name of namesToMatch) {
+            if (name && name.includes(uNum)) return true;
+          }
+        }
+
+        if (rName && property && cleanStr(property.renterName).includes(rName)) return true;
+
+        return false;
+      });
+
+      return res.json(matched);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch maintenance reports for admin" });
     }
   });
 
-  app.put('/api/admin/maintenance-reports/:id', requirePermission('renters'), async (req, res) => {
+  app.get('/api/maintenance-reports/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, adminResponse } = req.body;
-
-      const updated = await prisma.maintenanceReport.update({
-        where: { id },
-        data: {
-          status: status || undefined,
-          adminResponse: adminResponse !== undefined ? adminResponse : undefined
+      const report = await prisma.maintenanceReport.findFirst({
+        where: {
+          OR: [
+            { id },
+            { requestCode: id }
+          ]
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } }
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
         }
       });
+      if (!report) return res.status(404).json({ error: "Report not found" });
+      res.json(report);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch maintenance report" });
+    }
+  });
+
+  app.post('/api/maintenance-reports/:id/messages', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { senderRole, senderName, message, attachments } = req.body;
+      if (!message || !message.trim()) {
+        return res.status(400).json({ error: "محتوى الرسالة مطلوب" });
+      }
+
+      const report = await prisma.maintenanceReport.findFirst({
+        where: {
+          OR: [
+            { id },
+            { requestCode: id }
+          ]
+        }
+      });
+      if (!report) return res.status(404).json({ error: "البلاغ غير موجود" });
+
+      const rawAttachments: string[] = parseImageArray(attachments);
+      const savedAttachments: string[] = [];
+      for (const img of rawAttachments) {
+        if (typeof img === 'string' && img.length > 0) {
+          savedAttachments.push(saveBase64Image(img));
+        }
+      }
+
+      const newMessage = await prisma.maintenanceMessage.create({
+        data: {
+          reportId: report.id,
+          senderRole: senderRole || 'RENTER',
+          senderName: senderName || (senderRole === 'RENTER' ? 'المستأجر' : 'فريق الصيانة'),
+          message: message.trim(),
+          attachments: stringifyImageArray(savedAttachments)
+        }
+      });
+
+      // Add log entry
+      await prisma.maintenanceLog.create({
+        data: {
+          reportId: report.id,
+          action: 'MESSAGE_SENT',
+          details: `رسالة جديدة من ${newMessage.senderName}: "${newMessage.message.substring(0, 50)}${newMessage.message.length > 50 ? '...' : ''}"`,
+          performedBy: newMessage.senderName
+        }
+      });
+
+      // Broadcast over Socket.IO real-time engine
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`ticket_${report.id}`).emit("new_message", newMessage);
+        if (report.requestCode) {
+          io.to(`ticket_${report.requestCode}`).emit("new_message", newMessage);
+        }
+      }
+
+      res.json(newMessage);
+    } catch (err) {
+      console.error("Error creating maintenance message:", err);
+      res.status(500).json({ error: "فشل إرسال الرسالة" });
+    }
+  });
+
+  app.post('/api/maintenance-reports/:id/messages/read', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body; // Reader role (e.g. 'ADMIN' or 'RENTER')
+
+      // Mark unread messages sent by opposing role as read
+      const updated = await prisma.maintenanceMessage.updateMany({
+        where: {
+          reportId: id,
+          isRead: false,
+          NOT: role ? { senderRole: role } : undefined
+        },
+        data: {
+          isRead: true,
+          readAt: new Date()
+        }
+      });
+
+      res.json({ success: true, count: updated.count });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "فشل تحديث قراءة الرسائل" });
+    }
+  });
+
+  app.put('/api/admin/maintenance-reports/:id', requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { 
+        status, 
+        adminResponse, 
+        technicianName, 
+        technicianPhone, 
+        scheduledDate, 
+        estimatedCost, 
+        actualCost, 
+        receiptUrl, 
+        proofImages,
+        costPayer,
+        paymentStatus,
+        invoiceNumber,
+        vendorName,
+        taxAmount,
+        taxRate,
+        costBreakdown,
+        receipts,
+        expenses
+      } = req.body;
+
+      const existing = await prisma.maintenanceReport.findUnique({ where: { id } });
+      if (!existing) return res.status(404).json({ error: "Report not found" });
+
+      const updateData: any = {};
+      if (status !== undefined) updateData.status = status;
+      if (adminResponse !== undefined) updateData.adminResponse = adminResponse;
+      if (technicianName !== undefined) updateData.technicianName = technicianName;
+      if (technicianPhone !== undefined) updateData.technicianPhone = technicianPhone;
+      if (scheduledDate !== undefined) updateData.scheduledDate = scheduledDate ? new Date(scheduledDate) : null;
+      if (estimatedCost !== undefined) updateData.estimatedCost = estimatedCost !== null ? parseFloat(estimatedCost) : null;
+      if (actualCost !== undefined) updateData.actualCost = actualCost !== null ? parseFloat(actualCost) : null;
+      
+      if (costPayer !== undefined) updateData.costPayer = costPayer;
+      if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+      if (invoiceNumber !== undefined) updateData.invoiceNumber = invoiceNumber;
+      if (vendorName !== undefined) updateData.vendorName = vendorName;
+      if (taxAmount !== undefined) updateData.taxAmount = taxAmount !== null ? parseFloat(taxAmount) : 0;
+      if (taxRate !== undefined) updateData.taxRate = taxRate !== null ? parseFloat(taxRate) : 15;
+
+      if (costBreakdown !== undefined) {
+        updateData.costBreakdown = typeof costBreakdown === 'string' ? costBreakdown : JSON.stringify(costBreakdown);
+      }
+
+      if (receipts !== undefined) {
+        let receiptsArr = Array.isArray(receipts) ? receipts : (typeof receipts === 'string' ? JSON.parse(receipts || '[]') : []);
+        receiptsArr = receiptsArr.map((r: any) => ({
+          ...r,
+          url: r.url ? saveBase64Image(r.url) : r.url
+        }));
+        updateData.receipts = JSON.stringify(receiptsArr);
+      }
+
+      if (expenses !== undefined) {
+        let expensesArr = Array.isArray(expenses) ? expenses : (typeof expenses === 'string' ? JSON.parse(expenses || '[]') : []);
+        expensesArr = expensesArr.map((exp: any) => ({
+          ...exp,
+          receiptUrl: exp.receiptUrl ? saveBase64Image(exp.receiptUrl) : exp.receiptUrl
+        }));
+        updateData.expenses = JSON.stringify(expensesArr);
+
+        if (expensesArr.length > 0) {
+          const totalSpent = expensesArr.reduce((sum: number, e: any) => sum + (Number(e.totalAmount) || 0), 0);
+          updateData.actualCost = totalSpent;
+
+          const hasRenter = expensesArr.some((e: any) => e.costPayer === 'RENTER');
+          if (costPayer === undefined) {
+            updateData.costPayer = hasRenter ? 'RENTER' : (expensesArr[0]?.costPayer || 'OWNER');
+          }
+
+          const hasUnpaid = expensesArr.some((e: any) => e.paymentStatus === 'UNPAID');
+          if (paymentStatus === undefined) {
+            updateData.paymentStatus = hasUnpaid ? 'UNPAID' : 'PAID';
+          }
+        }
+      }
+
+      if (status === 'COMPLETED' && existing.status !== 'COMPLETED') {
+        updateData.completedAt = new Date();
+      }
+
+      if (receiptUrl) {
+        updateData.receiptUrl = saveBase64Image(receiptUrl);
+      } else if (receiptUrl === null) {
+        updateData.receiptUrl = null;
+      }
+
+      if (proofImages !== undefined) {
+        const rawProofs: string[] = parseImageArray(proofImages);
+        const savedProofs: string[] = [];
+        for (const img of rawProofs) {
+          if (typeof img === 'string' && img.length > 0) {
+            savedProofs.push(saveBase64Image(img));
+          }
+        }
+        updateData.proofImages = stringifyImageArray(savedProofs);
+      }
+
+      const updated = await prisma.maintenanceReport.update({
+        where: { id },
+        data: updateData,
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+
+      // Create Audit Logs
+      const adminName = (req as any).user?.name || (req as any).user?.username || 'الإدارة';
+
+      if (status && status !== existing.status) {
+        const statusNames: Record<string, string> = {
+          PENDING: 'قيد الانتظار',
+          IN_PROGRESS: 'جاري المعالجة',
+          COMPLETED: 'مكتمل',
+          CANCELLED: 'ملغى'
+        };
+        await prisma.maintenanceLog.create({
+          data: {
+            reportId: id,
+            action: 'STATUS_CHANGED',
+            details: `تحديث حالة البلاغ إلى: ${statusNames[status] || status}`,
+            performedBy: adminName
+          }
+        });
+      }
+
+      if (technicianName !== undefined && technicianName !== existing.technicianName) {
+        await prisma.maintenanceLog.create({
+          data: {
+            reportId: id,
+            action: 'TECHNICIAN_ASSIGNED',
+            details: `تعيين الفني: ${technicianName || 'غير معين'} (${technicianPhone || ''})`,
+            performedBy: adminName
+          }
+        });
+      }
+
+      if ((estimatedCost !== undefined && estimatedCost !== existing.estimatedCost) ||
+          (actualCost !== undefined && actualCost !== existing.actualCost) ||
+          (costPayer !== undefined && costPayer !== existing.costPayer) ||
+          (paymentStatus !== undefined && paymentStatus !== existing.paymentStatus)) {
+        await prisma.maintenanceLog.create({
+          data: {
+            reportId: id,
+            action: 'COST_UPDATED',
+            details: `تحديث المالية والمصاريف - التكلفة الفعلية: ${actualCost ?? existing.actualCost ?? 0} ريال، المسؤول عن الدفع: ${costPayer ?? existing.costPayer ?? 'OWNER'}، حالة السداد: ${paymentStatus ?? existing.paymentStatus ?? 'UNPAID'}`,
+            performedBy: adminName
+          }
+        });
+      }
+
+      if (receiptUrl && receiptUrl !== existing.receiptUrl) {
+        await prisma.maintenanceLog.create({
+          data: {
+            reportId: id,
+            action: 'RECEIPT_UPLOADED',
+            details: 'تم رفع إيصال/فاتورة تكاليف الصيانة',
+            performedBy: adminName
+          }
+        });
+      }
+
+      if (proofImages !== undefined) {
+        await prisma.maintenanceLog.create({
+          data: {
+            reportId: id,
+            action: 'PROOF_UPLOADED',
+            details: 'تم تحديث صور إثبات إنجاز العمل',
+            performedBy: adminName
+          }
+        });
+      }
 
       res.json(updated);
     } catch (err) {
@@ -2132,7 +2599,149 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/admin/maintenance-reports/:id', requirePermission('renters'), async (req, res) => {
+  app.post('/api/renter/maintenance-reports/:id/rate', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rating, feedback } = req.body;
+      if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "التقييم يجب أن يكون بين 1 و 5 نجوم" });
+      }
+
+      const updated = await prisma.maintenanceReport.update({
+        where: { id },
+        data: {
+          rating: rating,
+          feedback: feedback ? String(feedback).trim() : null
+        },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+
+      await prisma.maintenanceLog.create({
+        data: {
+          reportId: id,
+          action: 'RATING_SUBMITTED',
+          details: `قام المستأجر بتقييم الخدمة بـ ${rating} نجوم: "${feedback || 'بدون تعليق'}"`,
+          performedBy: updated.renter?.name || 'المستأجر'
+        }
+      });
+
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "فشل حفظ التقييم" });
+    }
+  });
+
+  app.post('/api/admin/maintenance-reports/:id/claim', requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const staffName = req.body.claimedBy || (req as any).user?.name || (req as any).user?.username || 'الموظف';
+
+      const updated = await prisma.maintenanceReport.update({
+        where: { id },
+        data: {
+          claimedBy: staffName,
+          claimedAt: new Date()
+        },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+
+      await prisma.maintenanceLog.create({
+        data: {
+          reportId: id,
+          action: 'TICKET_CLAIMED',
+          details: `قام الموظف (${staffName}) بالموافقة والاستحواذ على تذكرة الصيانة كمحادثة خاصة`,
+          performedBy: staffName
+        }
+      });
+
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "فشل الاستحواذ على التذكرة" });
+    }
+  });
+
+  app.post('/api/admin/maintenance-reports/:id/unclaim', requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const staffName = (req as any).user?.name || (req as any).user?.username || 'الموظف';
+
+      const updated = await prisma.maintenanceReport.update({
+        where: { id },
+        data: {
+          claimedBy: null,
+          claimedAt: null
+        },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+
+      await prisma.maintenanceLog.create({
+        data: {
+          reportId: id,
+          action: 'TICKET_UNCLAIMED',
+          details: `إعادة التذكرة لقائمة الطلبات المتاحة للجميع بواسطة (${staffName})`,
+          performedBy: staffName
+        }
+      });
+
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "فشل إلغاء الاستحواذ" });
+    }
+  });
+
+  app.post('/api/callback-requests/:id/claim', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const staffName = req.body.handledBy || (req as any).user?.name || (req as any).user?.username || 'الموظف';
+
+      const updated = await prisma.callbackRequest.update({
+        where: { id },
+        data: { handledBy: staffName },
+        include: { notes: { orderBy: { createdAt: 'asc' } } }
+      });
+
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "فشل الاستحواذ على طلب التواصل" });
+    }
+  });
+
+  app.post('/api/callback-requests/:id/unclaim', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await prisma.callbackRequest.update({
+        where: { id },
+        data: { handledBy: null },
+        include: { notes: { orderBy: { createdAt: 'asc' } } }
+      });
+
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "فشل إلغاء الاستحواذ على طلب التواصل" });
+    }
+  });
+
+  app.delete('/api/admin/maintenance-reports/:id', requirePermission('maintenance'), async (req, res) => {
     try {
       const { id } = req.params;
       await prisma.maintenanceReport.delete({ where: { id } });
@@ -2143,116 +2752,344 @@ async function startServer() {
     }
   });
 
+  // ---- Maintenance Approval, Denial & Staff Assignment Endpoints ----
+  app.get('/api/admin/maintenance-users', requirePermission('maintenance'), async (req, res) => {
+    try {
+      const { buildingId } = req.query;
+      
+      // Return STRICTLY users with MAINTENANCE role (maintenance crew only)
+      const staffList = await prisma.admin.findMany({
+        where: { role: 'MAINTENANCE' },
+        select: {
+          id: true, name: true, username: true, role: true, email: true,
+          assignedBuildings: { select: { id: true, name: true } }
+        },
+        orderBy: { name: 'asc' }
+      });
+
+      if (buildingId) {
+        const bIdStr = String(buildingId);
+        staffList.sort((a, b) => {
+          const aAssigned = a.assignedBuildings.some(b => b.id === bIdStr);
+          const bAssigned = b.assignedBuildings.some(b => b.id === bIdStr);
+          if (aAssigned && !bAssigned) return -1;
+          if (!aAssigned && bAssigned) return 1;
+          return 0;
+        });
+      }
+
+      res.json(staffList);
+    } catch (error) {
+      logger.error("Failed to fetch maintenance users", error);
+      res.status(500).json({ error: "Failed to fetch maintenance users" });
+    }
+  });
+
+  app.post('/api/admin/maintenance-reports/:id/approve', requirePermission('maintenance'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { assignedToId, internalNote, expectedStartDate, estimatedDuration, priority } = req.body;
+      const adminUser = (req as any).user || { id: 'unknown', name: 'المسؤول' };
+      const adminName = adminUser.name || adminUser.username || 'المسؤول';
+
+      let assignedStaff: any = null;
+      if (assignedToId) {
+        assignedStaff = await prisma.admin.findUnique({ where: { id: assignedToId } });
+      }
+
+      const updated = await prisma.maintenanceReport.update({
+        where: { id },
+        data: {
+          status: 'APPROVED',
+          approvedById: adminUser.id,
+          approvedByName: adminName,
+          approvedAt: new Date(),
+          assignedToId: assignedStaff ? assignedStaff.id : undefined,
+          assignedToName: assignedStaff ? assignedStaff.name : undefined,
+          assignedAt: assignedStaff ? new Date() : undefined,
+          internalNote: internalNote !== undefined ? internalNote : undefined,
+          expectedStartDate: expectedStartDate || undefined,
+          estimatedDuration: estimatedDuration || undefined,
+          priority: priority || undefined
+        },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+
+      let logDetails = assignedStaff
+        ? `تم قبول بلاغ الصيانة من قبل (${adminName}) وتم تعيينه للموظف (${assignedStaff.name})`
+        : `تم قبول بلاغ الصيانة من قبل (${adminName})`;
+
+      const approvalMsgText = (internalNote && internalNote.trim())
+        ? internalNote.trim()
+        : 'تم قبول طلب الصيانة وتوجيه الطلب للمعالجة والتنفيذ.';
+
+      if (internalNote && internalNote.trim()) {
+        logDetails += ` | رسالة القبول: ${internalNote.trim()}`;
+      }
+
+      await prisma.maintenanceLog.create({
+        data: {
+          reportId: id,
+          action: 'REPORT_APPROVED',
+          details: logDetails,
+          performedBy: adminName
+        }
+      });
+
+      // Automatically post approval message to customer chat thread
+      await prisma.maintenanceMessage.create({
+        data: {
+          reportId: id,
+          senderRole: 'ADMIN',
+          senderName: adminName,
+          message: approvalMsgText
+        }
+      });
+
+      // Refetch updated report with messages
+      const finalUpdated = await prisma.maintenanceReport.findUnique({
+        where: { id },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+
+      res.json(finalUpdated);
+    } catch (err) {
+      logger.error("Failed to approve maintenance report:", err);
+      res.status(500).json({ error: "فشل قبول بلاغ الصيانة" });
+    }
+  });
+
+  app.post('/api/admin/maintenance-reports/:id/deny', requirePermission('maintenance'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { denialReason } = req.body;
+      if (!denialReason || !denialReason.trim()) {
+        return res.status(400).json({ error: "الرجاء تقديم سبب رفض طلب الصيانة" });
+      }
+      const adminUser = (req as any).user || { id: 'unknown', name: 'المسؤول' };
+      const adminName = adminUser.name || adminUser.username || 'المسؤول';
+
+      await prisma.maintenanceReport.update({
+        where: { id },
+        data: {
+          status: 'REJECTED',
+          approvedById: adminUser.id,
+          approvedByName: adminName,
+          approvedAt: new Date(),
+          denialReason: denialReason.trim()
+        }
+      });
+
+      await prisma.maintenanceLog.create({
+        data: {
+          reportId: id,
+          action: 'REPORT_DENIED',
+          details: `تم رفض بلاغ الصيانة من قبل (${adminName}) - السبب: ${denialReason.trim()}`,
+          performedBy: adminName
+        }
+      });
+
+      // Automatically post denial message to customer chat thread
+      await prisma.maintenanceMessage.create({
+        data: {
+          reportId: id,
+          senderRole: 'ADMIN',
+          senderName: adminName,
+          message: `تم رفض طلب الصيانة. السبب: ${denialReason.trim()}`
+        }
+      });
+
+      // Refetch updated report with messages
+      const finalUpdated = await prisma.maintenanceReport.findUnique({
+        where: { id },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+
+      res.json(finalUpdated);
+    } catch (err) {
+      logger.error("Failed to deny maintenance report:", err);
+      res.status(500).json({ error: "فشل رفض بلاغ الصيانة" });
+    }
+  });
+
+  app.post('/api/admin/maintenance-reports/:id/assign', requirePermission('maintenance'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { assignedToId } = req.body;
+      const adminUser = (req as any).user || { id: 'unknown', name: 'المسؤول' };
+      const adminName = adminUser.name || adminUser.username || 'المسؤول';
+
+      if (!assignedToId) {
+        return res.status(400).json({ error: "الرجاء اختيار الموظف الموكل له البلاغ" });
+      }
+
+      const assignedStaff = await prisma.admin.findUnique({ where: { id: assignedToId } });
+      if (!assignedStaff) {
+        return res.status(404).json({ error: "الموظف غير موجود" });
+      }
+
+      const updated = await prisma.maintenanceReport.update({
+        where: { id },
+        data: {
+          assignedToId: assignedStaff.id,
+          assignedToName: assignedStaff.name,
+          assignedAt: new Date()
+        },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+          logs: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+
+      await prisma.maintenanceLog.create({
+        data: {
+          reportId: id,
+          action: 'STAFF_ASSIGNED',
+          details: `تم تعيين/إعادة تعيين بلاغ الصيانة للموظف (${assignedStaff.name}) بواسطة (${adminName})`,
+          performedBy: adminName
+        }
+      });
+
+      res.json(updated);
+    } catch (err) {
+      logger.error("Failed to assign maintenance report:", err);
+      res.status(500).json({ error: "فشل تعيين بلاغ الصيانة" });
+    }
+  });
+
 
   // --- Renter Portal (OTP and Login) ---
   app.post('/api/renter/request-otp', otpLimiter, async (req, res) => {
-    const { phone } = req.body;
-    logger.info(`OTP request for phone: ${phone}`);
-    if (!phone) return res.status(400).json({ error: "Phone number is required." });
+    try {
+      const { phone } = req.body;
+      logger.info(`OTP request for phone: ${phone}`);
+      if (!phone) return res.status(400).json({ error: "Phone number is required." });
 
-    let normalizedPhone = phone.trim().replace(/\D/g, '');
-    if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
-    normalizedPhone = normalizedPhone.replace(/^0+/, '');
+      let normalizedPhone = phone.trim().replace(/\D/g, '');
+      if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+      normalizedPhone = normalizedPhone.replace(/^0+/, '');
 
-    const phoneVariants = Array.from(new Set([
-      normalizedPhone,
-      '0' + normalizedPhone,
-      '966' + normalizedPhone,
-      '+966' + normalizedPhone,
-      '00966' + normalizedPhone,
-      phone.trim()
-    ]));
+      const phoneVariants = Array.from(new Set([
+        normalizedPhone,
+        '0' + normalizedPhone,
+        '966' + normalizedPhone,
+        '+966' + normalizedPhone,
+        '00966' + normalizedPhone,
+        phone.trim()
+      ]));
 
-    // Check if phone exists in active renter units, Renter model, or Property model
-    const units = await prisma.renterUnit.findMany({
-      where: {
-        OR: [
-          { renterPhone: { in: phoneVariants } },
-          { renter: { phone: { in: phoneVariants } } }
-        ]
-      }
-    });
-
-    const renterUser = await prisma.renter.findFirst({
-      where: { phone: { in: phoneVariants } }
-    });
-
-    const propertyUnit = await prisma.property.findFirst({
-      where: { renterPhone: { in: phoneVariants } }
-    });
-
-    if (units.length === 0 && !renterUser && !propertyUnit) {
-      return res.status(404).json({ error: "لا يوجد حساب مستأجر مسجل بهذا الرقم. (No renter account found for this phone number)" });
-    }
-
-    // Generate 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-
-    // Store in DB, expires in 5 minutes
-    await prisma.otpSession.create({
-      data: {
-        phone: normalizedPhone,
-        otp: otp,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000)
-      }
-    });
-
-    // Send to Whatomate (or any other webhook)
-    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
-    const webhookUrl = settings?.otpWebhookUrl || process.env.WHATOMATE_WEBHOOK_URL;
-
-    // VerifyKit Dispatch Integration
-    if (settings?.verifyKitEnabled && (settings?.verifyKitServerKey || settings?.verifyKitAppKey)) {
-      try {
-        const appKey = settings.verifyKitAppKey || "AxaVaO8JfW2OMj";
-        const serverKey = settings.verifyKitServerKey || "Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6";
-        await fetch("https://vapi.verifykit.com/v1/send-otp", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-VKit-App-Key': appKey,
-            'X-VKit-Server-Key': serverKey
-          },
-          body: JSON.stringify({
-            phoneNumber: phone,
-            otp: otp
-          })
-        }).catch(() => {});
-        logger.info(`Dispatched OTP via VerifyKit for phone: ${phone}`);
-      } catch (vkitErr) {
-        console.error("VerifyKit request error:", vkitErr);
-      }
-    }
-
-    if (webhookUrl) {
-      try {
-        let payloadStr = settings?.otpWebhookPayload;
-        
-        if (!payloadStr || payloadStr.trim() === '') {
-          payloadStr = JSON.stringify({
-            phone: "{phone}",
-            otp: "{otp}",
-            type: "template",
-            message: settings?.otpMessageTemplate || "رمز التحقق الخاص بك هو: {otp}"
-          });
+      // Check if phone exists in active renter units, Renter model, or Property model
+      const units = await prisma.renterUnit.findMany({
+        where: {
+          OR: [
+            { renterPhone: { in: phoneVariants } },
+            { renter: { phone: { in: phoneVariants } } }
+          ]
         }
+      });
 
-        payloadStr = payloadStr.replace(/{phone}/g, phone).replace(/{otp}/g, otp);
-        const payload = JSON.parse(payloadStr);
+      const renterUser = await prisma.renter.findFirst({
+        where: { phone: { in: phoneVariants } }
+      });
 
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      } catch (err) {
-        console.error("Failed to send webhook to Whatomate:", err);
+      const propertyUnit = await prisma.property.findFirst({
+        where: { renterPhone: { in: phoneVariants } }
+      });
+
+      if (units.length === 0 && !renterUser && !propertyUnit) {
+        return res.status(404).json({ error: "لا يوجد حساب مستأجر مسجل بهذا الرقم. (No renter account found for this phone number)" });
       }
-    } else {
-        console.log(`No WHATOMATE_WEBHOOK_URL setting found. OTP generated is: ${otp}`);
-    }
 
-    res.json({ success: true, fakeOtpDelivery: !webhookUrl ? otp : undefined }); 
+      // Generate 4-digit OTP
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+      // Store in DB, expires in 5 minutes
+      await prisma.otpSession.create({
+        data: {
+          phone: normalizedPhone,
+          otp: otp,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+        }
+      });
+
+      // Send to Whatomate (or any other webhook)
+      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const webhookUrl = settings?.otpWebhookUrl || process.env.WHATOMATE_WEBHOOK_URL;
+
+      // VerifyKit Dispatch Integration
+      if (settings?.verifyKitEnabled && (settings?.verifyKitServerKey || settings?.verifyKitAppKey)) {
+        try {
+          const appKey = settings.verifyKitAppKey || "AxaVaO8JfW2OMj";
+          const serverKey = settings.verifyKitServerKey || "Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6";
+          await fetch("https://vapi.verifykit.com/v1/send-otp", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-VKit-App-Key': appKey,
+              'X-VKit-Server-Key': serverKey
+            },
+            body: JSON.stringify({
+              phoneNumber: phone,
+              otp: otp
+            })
+          }).catch(() => {});
+          logger.info(`Dispatched OTP via VerifyKit for phone: ${phone}`);
+        } catch (vkitErr) {
+          console.error("VerifyKit request error:", vkitErr);
+        }
+      }
+
+      if (webhookUrl) {
+        try {
+          let payloadStr = settings?.otpWebhookPayload;
+          
+          if (!payloadStr || payloadStr.trim() === '') {
+            payloadStr = JSON.stringify({
+              phone: "{phone}",
+              otp: "{otp}",
+              type: "template",
+              message: settings?.otpMessageTemplate || "رمز التحقق الخاص بك هو: {otp}"
+            });
+          }
+
+          payloadStr = payloadStr.replace(/{phone}/g, phone).replace(/{otp}/g, otp);
+          const payload = JSON.parse(payloadStr);
+
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (err) {
+          console.error("Failed to send webhook to Whatomate:", err);
+        }
+      }
+
+      console.log(`\n=====================================================\n🔑 [OTP CODE] Phone: ${phone} (${normalizedPhone}) ---> OTP CODE: ${otp}\n=====================================================\n`);
+      logger.info(`🔑 [OTP CODE] Phone: ${phone} (${normalizedPhone}) ---> OTP: ${otp}`);
+
+      res.json({ success: true, otp: otp, fakeOtpDelivery: otp });
+    } catch (error) {
+      logger.error("Failed to process request-otp:", error);
+      res.status(500).json({ error: "Failed to process OTP request" });
+    }
   });
 
   app.post('/api/renter/login', authLimiter, async (req, res) => {
@@ -2498,9 +3335,9 @@ async function startServer() {
       // Build Prisma Filters
       const andFilters: any[] = [];
 
-      // Public status filter: strictly exclude DRAFT & HIDDEN listings for ALL visitors
+      // Public status filter: strictly exclude DRAFT, HIDDEN, SOLD & RENTED listings for ALL visitors
       andFilters.push({
-        status: { notIn: ['DRAFT', 'HIDDEN'] }
+        status: { notIn: ['DRAFT', 'HIDDEN', 'SOLD', 'RENTED'] }
       });
 
       // Parent ID Param
@@ -2869,6 +3706,79 @@ async function startServer() {
     }
   });
 
+  app.get("/api/properties/:id/maintenance-reports", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const property = await prisma.property.findUnique({
+        where: { id },
+        include: {
+          subProperties: true,
+          parent: true
+        }
+      });
+      if (!property) return res.json([]);
+
+      const cleanStr = (s?: string | null) => (s || '').toLowerCase().replace(/[,.#!$%^&*;:{}=\-_`~()]/g, ' ').replace(/\s+/g, ' ').trim();
+      const normalize = (p?: string | null) => (p || '').replace(/\D/g, '').replace(/^966/, '').replace(/^0+/, '');
+
+      const namesToMatch: string[] = [];
+      if (property.titleAr) namesToMatch.push(cleanStr(property.titleAr));
+      if (property.titleEn) namesToMatch.push(cleanStr(property.titleEn));
+      if (property.parent?.titleAr) namesToMatch.push(cleanStr(property.parent.titleAr));
+      if (property.parent?.titleEn) namesToMatch.push(cleanStr(property.parent.titleEn));
+
+      const phonesToMatch: string[] = [];
+      if (property.renterPhone) phonesToMatch.push(normalize(property.renterPhone));
+
+      if (property.subProperties) {
+        property.subProperties.forEach(sub => {
+          if (sub.titleAr) namesToMatch.push(cleanStr(sub.titleAr));
+          if (sub.titleEn) namesToMatch.push(cleanStr(sub.titleEn));
+          if (sub.renterPhone) phonesToMatch.push(normalize(sub.renterPhone));
+        });
+      }
+
+      const allReports = await prisma.maintenanceReport.findMany({
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const matched = allReports.filter(rep => {
+        const bName = cleanStr(rep.renterUnit?.building?.name);
+        const uNum = cleanStr(rep.renterUnit?.unitNumber);
+        const rPhone = normalize(rep.renter?.phone || rep.renterUnit?.renterPhone);
+        const rName = cleanStr(rep.renter?.name || rep.renterUnit?.renterName);
+
+        if (rPhone && phonesToMatch.some(p => p && (p.includes(rPhone) || rPhone.includes(p)))) return true;
+
+        if (bName) {
+          for (const name of namesToMatch) {
+            if (name && (name.includes(bName) || bName.includes(name))) return true;
+          }
+        }
+
+        if (uNum && uNum !== 'كامل العقار') {
+          for (const name of namesToMatch) {
+            if (name && name.includes(uNum)) return true;
+          }
+        }
+
+        if (rName && cleanStr(property.renterName).includes(rName)) return true;
+
+        return false;
+      });
+
+      res.json(matched);
+    } catch (err) {
+      console.error("Failed to fetch property maintenance reports:", err);
+      res.json([]);
+    }
+  });
+
   // ADMIN Properties API - Dedicated Staff Route with Full Access
   app.get("/api/admin/properties", requirePermission('properties'), async (req, res) => {
     try {
@@ -3093,18 +4003,33 @@ async function startServer() {
         data: updateData
       });
 
-      // Auto-sync with Building and RenterUnit models if this is a sub-property unit being assigned/updated
-      if (updatedProperty.parentId && ('renterId' in body || 'renterName' in body || 'renterPhone' in body)) {
+      // Auto-sync with Building and RenterUnit models (for both sub-units and whole properties)
+      if ('renterId' in body || 'renterName' in body || 'renterPhone' in body) {
         try {
-          const parentProp = await prisma.property.findUnique({ where: { id: updatedProperty.parentId } });
-          if (parentProp) {
-            const buildingName = parentProp.titleAr || parentProp.titleEn;
-            let building = await prisma.building.findFirst({ where: { name: buildingName } });
+          let buildingName = "";
+          let unitNum = "";
+
+          if (updatedProperty.parentId) {
+            const parentProp = await prisma.property.findUnique({ where: { id: updatedProperty.parentId } });
+            if (parentProp) {
+              buildingName = parentProp.titleAr || parentProp.titleEn;
+              unitNum = updatedProperty.titleAr || updatedProperty.titleEn || "وحدة";
+            }
+          } else {
+            buildingName = updatedProperty.titleAr || updatedProperty.titleEn;
+            unitNum = "كامل العقار";
+          }
+
+          if (buildingName) {
+            let building = await prisma.building.findFirst({
+              where: { name: { equals: buildingName.trim(), mode: 'insensitive' } }
+            });
             if (!building) {
-              building = await prisma.building.create({ data: { name: buildingName } });
+              building = await prisma.building.create({
+                data: { name: buildingName.trim() }
+              });
             }
 
-            const unitNum = updatedProperty.titleAr || updatedProperty.titleEn || "وحدة";
             let rUnit = await prisma.renterUnit.findFirst({
               where: { buildingId: building.id, unitNumber: unitNum }
             });
@@ -3150,7 +4075,7 @@ async function startServer() {
             }
           }
         } catch (syncErr) {
-          logger.error("Failed auto-syncing property unit to RenterUnit:", syncErr);
+          logger.error("Failed auto-syncing property to RenterUnit:", syncErr);
         }
       }
 
@@ -3326,14 +4251,17 @@ async function startServer() {
           select: { titleAr: true, titleEn: true, details: true }
         });
       } else {
-        siblingProperties = [sourceProperty];
+        siblingProperties = await prisma.property.findMany({
+          where: { parentId: null },
+          select: { titleAr: true, titleEn: true, details: true }
+        });
       }
 
       const matchAr = (sourceProperty.titleAr || '').match(/^(.*?)(?:_(\d+))?$/);
-      const baseTitleAr = (matchAr && matchAr[1]) ? matchAr[1] : (sourceProperty.titleAr || 'وحدة');
+      const baseTitleAr = (matchAr && matchAr[1]) ? matchAr[1] : (sourceProperty.titleAr || 'عقار');
 
       const matchEn = (sourceProperty.titleEn || '').match(/^(.*?)(?:_(\d+))?$/);
-      const baseTitleEn = (matchEn && matchEn[1]) ? matchEn[1] : (sourceProperty.titleEn || 'Unit');
+      const baseTitleEn = (matchEn && matchEn[1]) ? matchEn[1] : (sourceProperty.titleEn || 'Property');
 
       let maxSeq = 0;
       const escAr = baseTitleAr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -3422,6 +4350,52 @@ async function startServer() {
             renterPhone: null
           }
         });
+
+        // Duplicate nested subProperties/units if source is a parent property
+        if (!sourceProperty.parentId) {
+          const childUnits = await prisma.property.findMany({
+            where: { parentId: sourceProperty.id }
+          });
+          for (const unit of childUnits) {
+            await prisma.property.create({
+              data: {
+                titleAr: unit.titleAr,
+                titleEn: unit.titleEn,
+                type: unit.type,
+                propertyCategory: unit.propertyCategory,
+                paymentFrequency: unit.paymentFrequency,
+                paymentsCount: unit.paymentsCount,
+                area: unit.area,
+                details: unit.details,
+                locationLink: unit.locationLink,
+                locationText: unit.locationText,
+                description: unit.description,
+                features: unit.features,
+                propertyAge: unit.propertyAge,
+                electricityCost: unit.electricityCost,
+                electricityFrequency: unit.electricityFrequency,
+                vat: unit.vat,
+                vatExempt: unit.vatExempt,
+                vatNotApplicable: unit.vatNotApplicable,
+                utilityBills: unit.utilityBills,
+                commission: unit.commission,
+                price: unit.price,
+                imageUrls: unit.imageUrls,
+                attachments: unit.attachments,
+                aqarLink: unit.aqarLink,
+                allowedPaymentPlans: unit.allowedPaymentPlans,
+                videoUrl: unit.videoUrl,
+                userId: (req as any).user ? (req as any).user.id : unit.userId,
+                parentId: duplicate.id,
+                status: unit.status || "PUBLISHED",
+                renterId: null,
+                renterName: null,
+                renterPhone: null
+              }
+            });
+          }
+        }
+
         createdDuplicates.push(duplicate);
       }
 
@@ -3891,13 +4865,14 @@ async function startServer() {
 
       // 1. Sync Properties (Buildings & Units)
       for (const thProj of thProperties) {
+        if (!thProj.nameAr) continue;
         let building = await prisma.building.findFirst({
-          where: { name: thProj.nameAr }
+          where: { name: { equals: thProj.nameAr.trim(), mode: 'insensitive' } }
         });
 
         if (!building) {
           building = await prisma.building.create({
-            data: { name: thProj.nameAr }
+            data: { name: thProj.nameAr.trim() }
           });
           buildingsSynced++;
         }
@@ -3933,13 +4908,14 @@ async function startServer() {
 
       // 2. Sync Contracts (Renter details & RentHistory installments)
       for (const thContract of thContracts) {
+        if (!thContract.buildingName) continue;
         let building = await prisma.building.findFirst({
-          where: { name: thContract.buildingName }
+          where: { name: { equals: thContract.buildingName.trim(), mode: 'insensitive' } }
         });
 
         if (!building) {
           building = await prisma.building.create({
-            data: { name: thContract.buildingName }
+            data: { name: thContract.buildingName.trim() }
           });
           buildingsSynced++;
         }
@@ -4486,6 +5462,13 @@ async function startServer() {
         data: { name, email, phone, message }
       });
 
+      // Real-time broadcast
+      const io = req.app.get("io");
+      if (io) {
+        io.to("admin_room").emit("new_callback_request", newRequest);
+        io.emit("new_callback_request", newRequest);
+      }
+
       // Send Email notification ping
       await sendCallbackEmailNotification(req);
 
@@ -4513,13 +5496,23 @@ async function startServer() {
     try {
       const { id } = req.params;
       const { status } = req.body;
+      const handledBy = (req as any).user?.name || (req as any).user?.username || 'Admin';
       const updated = await prisma.callbackRequest.update({
         where: { id },
         data: {
           status,
-          handledBy: (req as any).user.name
-        }
+          handledBy
+        },
+        include: { notes: { orderBy: { createdAt: 'asc' } } }
       });
+
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`callback_${id}`).emit("callback_updated", updated);
+        io.to("admin_room").emit("callback_updated", updated);
+        io.emit("callback_updated", updated);
+      }
+
       await logAction(req, "UPDATE_CALLBACK_STATUS", `Changed callback status of ${updated.name} to ${status}`);
       res.json(updated);
     } catch (error) {
@@ -4528,33 +5521,102 @@ async function startServer() {
     }
   });
 
+  app.put("/api/admin/maintenance-reports/:id/internal-note", requirePermission('maintenance'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { internalNote } = req.body;
+      
+      const updatedReport = await prisma.maintenanceReport.update({
+        where: { id },
+        data: { internalNote },
+        include: {
+          renter: true,
+          renterUnit: { include: { building: true } },
+          messages: { orderBy: { createdAt: 'asc' } }
+        }
+      });
+      
+      await logAction(req, "UPDATE_INTERNAL_NOTE", `Updated internal note for maintenance report ID ${id}`);
+      res.json(updatedReport);
+    } catch (error) {
+      logger.error("Failed to update maintenance internal note", error);
+      res.status(500).json({ error: "Failed to update internal note" });
+    }
+  });
+
+  app.put("/api/callback-requests/:id/internal-note", requirePermission('callbacks'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { internalNote } = req.body;
+      
+      const updatedRequest = await prisma.callbackRequest.update({
+        where: { id },
+        data: { internalNote },
+        include: { notes: { orderBy: { createdAt: 'asc' } } }
+      });
+
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`callback_${id}`).emit("callback_updated", updatedRequest);
+        io.to("admin_room").emit("callback_updated", updatedRequest);
+        io.emit("callback_updated", updatedRequest);
+      }
+      
+      await logAction(req, "UPDATE_INTERNAL_NOTE", `Updated internal note for callback request ID ${id}`);
+      res.json(updatedRequest);
+    } catch (error) {
+      logger.error("Failed to update callback internal note", error);
+      res.status(500).json({ error: "Failed to update internal note" });
+    }
+  });
+
   app.post("/api/callback-requests/:id/notes", requirePermission('callbacks'), async (req, res) => {
     try {
       const { id } = req.params;
-      const { text } = req.body;
+      const text = req.body.text || req.body.notes || req.body.message || '';
+      const userObj = (req as any).user;
+      const isCustomerMsg = req.body.senderRole === 'CUSTOMER' || req.body.isCustomer === true;
+      const senderRole = isCustomerMsg ? 'CUSTOMER' : 'ADMIN';
+      const authorId = userObj?.id || userObj?.username || req.body?.authorId || (isCustomerMsg ? 'CUSTOMER' : 'STAFF');
+      const authorName = userObj?.name || userObj?.username || req.body?.authorName || 'الموظف';
       
       const note = await prisma.callbackNote.create({
         data: {
           callbackRequestId: id,
           text,
-          authorName: (req as any).user.name
+          authorName
         }
       });
       
+      const noteWithMetadata = {
+        ...note,
+        authorId,
+        senderRole,
+      };
+
       // Update callback assignment
       const updatedRequest = await prisma.callbackRequest.update({
         where: { id },
-        data: { handledBy: (req as any).user.name }
+        data: { handledBy: authorName },
+        include: { notes: { orderBy: { createdAt: 'asc' } } }
       });
 
+      const io = req.app.get("io");
+      if (io) {
+        const payload = { ...noteWithMetadata, requestId: id, callbackRequestId: id, updatedRequest };
+        io.to(`callback_${id}`).emit("new_callback_note", payload);
+        io.to("admin_room").emit("new_callback_note", payload);
+        io.emit("new_callback_note", payload);
+      }
+
       // Send Email notification ping to customer
-      await sendReplyEmailNotification(updatedRequest, text, (req as any).user.name, req);
+      await sendReplyEmailNotification(updatedRequest, text, authorName, req);
 
       // Send Email notification ping to staff
       await sendCallbackEmailNotification(req);
 
       await logAction(req, "REPLY_CALLBACK", `Added reply note to callback request ID ${id}`);
-      res.status(201).json(note);
+      res.status(201).json(noteWithMetadata);
     } catch (error) {
       logger.error("Failed to create callback note", error);
       res.status(500).json({ error: "Failed to add note" });
@@ -4568,6 +5630,13 @@ async function startServer() {
       await prisma.callbackRequest.delete({
         where: { id }
       });
+
+      const io = req.app.get("io");
+      if (io) {
+        io.to("admin_room").emit("callback_deleted", { id });
+        io.emit("callback_deleted", { id });
+      }
+
       await logAction(req, "DELETE_CALLBACK", `Deleted callback request from ${reqData?.name || 'Unknown'} (${id})`);
       res.json({ success: true });
     } catch (error) {
@@ -4596,7 +5665,10 @@ async function startServer() {
       // Try Prisma client first
       try {
         const users = await prisma.admin.findMany({
-          select: { id: true, username: true, name: true, role: true, email: true, createdAt: true },
+          select: { 
+            id: true, username: true, name: true, role: true, email: true, createdAt: true,
+            assignedBuildings: { select: { id: true, name: true } }
+          },
           orderBy: { createdAt: 'desc' }
         });
         return res.json(users);
@@ -4622,7 +5694,7 @@ async function startServer() {
 
   app.post("/api/admin/users", requirePermission('users'), async (req, res) => {
     try {
-      const { username, password, name, role, email } = req.body;
+      const { username, password, name, role, email, assignedBuildingIds } = req.body;
       if (!username || !password || !name) {
         return res.status(400).json({ error: "All fields are required" });
       }
@@ -4634,10 +5706,23 @@ async function startServer() {
       // Try Prisma client first
       try {
         const newUser = await prisma.admin.create({
-          data: { username, password, name, role: role || "ADMIN", email }
+          data: {
+            username,
+            password,
+            name,
+            role: role || "ADMIN",
+            email,
+            assignedBuildings: Array.isArray(assignedBuildingIds) && assignedBuildingIds.length > 0
+              ? { connect: assignedBuildingIds.map((bId: string) => ({ id: bId })) }
+              : undefined
+          },
+          select: {
+            id: true, username: true, name: true, role: true, email: true,
+            assignedBuildings: { select: { id: true, name: true } }
+          }
         });
         await logAction(req, "ADD_PLATFORM_USER", `Created platform user: ${username} (${role || "ADMIN"})`);
-        return res.status(201).json({ id: newUser.id, username: newUser.username, name: newUser.name, role: newUser.role, email: newUser.email });
+        return res.status(201).json(newUser);
       } catch (err) {
         logger.warn("Prisma user creation failed, falling back to raw SQL:", err);
       }
@@ -4656,7 +5741,7 @@ async function startServer() {
       }
 
       await logAction(req, "ADD_PLATFORM_USER", `Created platform user (raw SQL): ${username} (${role || "ADMIN"})`);
-      res.status(201).json({ id: uuid, username, name, role: role || "ADMIN", email });
+      res.status(201).json({ id: uuid, username, name, role: role || "ADMIN", email, assignedBuildings: [] });
     } catch (error) {
       logger.error("Failed to create platform user", error);
       res.status(500).json({ error: "Failed to create user" });
@@ -4666,7 +5751,7 @@ async function startServer() {
   app.put("/api/admin/users/:id", requirePermission('users'), async (req, res) => {
     try {
       const { id } = req.params;
-      const { username, password, name, role, email } = req.body;
+      const { username, password, name, role, email, assignedBuildingIds } = req.body;
       
       const existing = await prisma.admin.findUnique({ where: { id } });
       if (!existing) {
@@ -4688,11 +5773,18 @@ async function startServer() {
             password: password || undefined,
             name: name || undefined,
             role: role || undefined,
-            email: email !== undefined ? email : undefined
+            email: email !== undefined ? email : undefined,
+            assignedBuildings: Array.isArray(assignedBuildingIds)
+              ? { set: assignedBuildingIds.map((bId: string) => ({ id: bId })) }
+              : undefined
+          },
+          select: {
+            id: true, username: true, name: true, role: true, email: true,
+            assignedBuildings: { select: { id: true, name: true } }
           }
         });
         await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details: ${updated.username}`);
-        return res.json({ id: updated.id, username: updated.username, name: updated.name, role: updated.role, email: updated.email });
+        return res.json(updated);
       } catch (err) {
         logger.warn("Prisma user update failed, falling back to raw SQL:", err);
       }
@@ -4839,8 +5931,46 @@ async function startServer() {
     console.error("SQL database table checking failed:", err);
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  const httpServer = createHttpServer(app);
+  const io = new SocketIOServer(httpServer, {
+    cors: { origin: "*" },
+    maxHttpBufferSize: 1e7
+  });
+
+  app.set("io", io);
+
+  io.on("connection", (socket) => {
+    socket.on("join_ticket", (ticketId) => {
+      socket.join(`ticket_${ticketId}`);
+    });
+
+    socket.on("join_callback", (callbackId) => {
+      socket.join(`callback_${callbackId}`);
+    });
+
+    socket.on("join_admin", () => {
+      socket.join("admin_room");
+    });
+
+    socket.on("typing", ({ ticketId, senderName }) => {
+      socket.to(`ticket_${ticketId}`).emit("user_typing", { senderName });
+    });
+
+    socket.on("callback_typing", ({ callbackId, senderName }) => {
+      socket.to(`callback_${callbackId}`).emit("callback_user_typing", { senderName });
+    });
+
+    socket.on("stop_typing", ({ ticketId }) => {
+      socket.to(`ticket_${ticketId}`).emit("user_stop_typing");
+    });
+
+    socket.on("callback_stop_typing", ({ callbackId }) => {
+      socket.to(`callback_${callbackId}`).emit("callback_user_stop_typing");
+    });
+  });
+
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT} with Socket.IO Real-time Engine`);
     console.log(`--------------------------------------------------`);
     console.log(`[ADMIN] Fallback credentials (if DB is empty):`);
     console.log(`[ADMIN]   Username : admin`);

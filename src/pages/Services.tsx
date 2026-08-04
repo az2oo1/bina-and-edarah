@@ -1,10 +1,10 @@
 import React from 'react';
 import { useLanguage } from '../LanguageContext';
-import { Building2, ShieldCheck, MapPin, Hammer, KeySquare, Headphones, Layers, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Building2, Hammer, KeySquare, Headphones, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
 
 export default function Services() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const Arrow = language === 'ar' ? ArrowRight : ArrowLeft;
 
   const fullServices = [
@@ -144,7 +144,7 @@ export default function Services() {
 
         {/* Detailed Solutions Grid */}
         <div className="space-y-12">
-          {fullServices.map((service, idx) => (
+          {fullServices.map((service) => (
             <div 
               key={service.id} 
               className={`bg-card border border-border rounded-2xl p-8 sm:p-10 shadow-xs flex flex-col lg:flex-row gap-8 items-start transition-all hover:shadow-md`}

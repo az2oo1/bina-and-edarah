@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense, Component } from 'react';
 import { createPortal } from 'react-dom';
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate, useLocation } from 'react-router';
-import { Building2, Home as HomeIcon, MapPin, UserCircle, Globe, Lock, LogOut, Menu, X, Sun, Moon } from 'lucide-react';
+import { UserCircle, Globe, LogOut, Menu, X, Sun, Moon } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { DialogProvider } from './context/DialogContext';
@@ -708,6 +708,16 @@ function AppContent() {
             <Route path="/properties" element={<Properties />} />
             <Route path="/properties/:id" element={<PropertyDetails />} />
             <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT']}>
+                <Admin />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/:tab" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT']}>
+                <Admin />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/:tab/:subtab" element={
               <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'AGENT']}>
                 <Admin />
               </ProtectedRoute>

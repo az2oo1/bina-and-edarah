@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { prisma, buildingService, auditService } from '../services/dbServices.js';
+import { prisma, buildingService } from '../services/dbServices.js';
 
 export const buildingRouter = Router();
 
 // GET /api/admin/buildings
-buildingRouter.get('/', async (req, res) => {
+buildingRouter.get('/', async (_req, res) => {
   try {
     const buildings = await prisma.building.findMany({
       include: {

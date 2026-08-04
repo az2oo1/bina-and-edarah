@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { Users, Search, Building2, Phone, Plus, UserPlus, Pencil, Trash2, Home, Check, Loader2, X, Wrench, Calendar, FileText } from 'lucide-react';
+import { Users, Search, Building2, Plus, UserPlus, Pencil, Trash2, Home, Check, Loader2, X } from 'lucide-react';
 import { useDialog } from '../context/DialogContext';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -31,12 +31,6 @@ interface RenterUser {
   phone: string;
   createdAt: string;
   units: RenterUnit[];
-}
-
-interface Building {
-  id: string;
-  name: string;
-  units?: RenterUnit[];
 }
 
 export default function AdminRenters() {
@@ -203,30 +197,34 @@ export default function AdminRenters() {
 
   return (
     <div className="space-y-6">
-      {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border p-5 rounded-2xl shadow-xs">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" />
-            {language === 'ar' ? 'إدارة المستأجرين (المستخدمين)' : 'Renter Users Management'}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            {language === 'ar'
-              ? 'عرض وإضافة المستأجرين كمستخدمين في النظام وتعيين الوحدات والمباني التابعة لهم'
-              : 'View, add, and manage renter user accounts and assign building units to them'}
-          </p>
+      {/* Standard Admin Header Block */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border select-none">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">
+              {language === 'ar' ? 'إدارة المستأجرين (المستخدمين)' : 'Renter Users Management'}
+            </h1>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
+              {language === 'ar'
+                ? 'عرض وإضافة المستأجرين كمستخدمين في النظام وتعيين الوحدات والمباني التابعة لهم'
+                : 'View, add, and manage renter user accounts and assign building units to them'}
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
           {/* Search Input */}
-          <div className="flex items-center gap-2 border border-border rounded-xl px-3 bg-background focus-within:ring-1 focus-within:ring-primary w-full sm:w-64 h-9">
-            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2 border border-border rounded-full px-3.5 bg-muted/30 focus-within:bg-card focus-within:ring-1 focus-within:ring-primary w-full sm:w-64 h-9 transition-all">
+            <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <input 
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={language === 'ar' ? 'بحث بالاسم، رقم الجوال، الوحدة...' : 'Search name, phone, unit...'}
-              className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-xs text-foreground placeholder:text-muted-foreground"
+              className="w-full bg-transparent border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-0 p-0 text-[11px] text-foreground placeholder:text-muted-foreground font-medium"
             />
           </div>
 
@@ -238,9 +236,9 @@ export default function AdminRenters() {
               setRenterPhoneInput('');
               setIsAddModalOpen(true);
             }}
-            className="w-full sm:w-auto h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            className="w-full sm:w-auto h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold rounded-full flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0"
           >
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="w-3.5 h-3.5" />
             <span>{language === 'ar' ? 'إضافة مستأجر جديد' : 'Add New Renter'}</span>
           </button>
         </div>
@@ -263,24 +261,22 @@ export default function AdminRenters() {
               <div className="space-y-4">
                 {/* Renter Header */}
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
+                  <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full text-emerald-600 dark:text-emerald-400 text-xs font-extrabold shadow-2xs">
+                    <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-xs shrink-0">
                       {renter.name.charAt(0) || 'U'}
                     </div>
-                    <div>
-                      <h3 className="font-bold text-foreground text-base leading-tight">{renter.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span dir="ltr" className="text-xs font-mono text-muted-foreground">{renter.phone}</span>
-                        <button
-                          type="button"
-                          onClick={() => openWhatsApp(renter.phone, renter.name)}
-                          className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                          title="WhatsApp"
-                        >
-                          <WhatsAppIcon className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                    <div className="flex flex-col text-right rtl:text-right ltr:text-left min-w-0">
+                      <span className="font-extrabold text-foreground text-xs leading-tight truncate max-w-[140px]">{renter.name}</span>
+                      <span dir="ltr" className="text-[9.5px] font-mono text-muted-foreground mt-0.5">{renter.phone}</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => openWhatsApp(renter.phone, renter.name)}
+                      className="p-1.5 rounded-full bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30 transition-colors cursor-pointer ml-1"
+                      title="WhatsApp"
+                    >
+                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                    </button>
                   </div>
 
                   <div className="flex items-center gap-1">
