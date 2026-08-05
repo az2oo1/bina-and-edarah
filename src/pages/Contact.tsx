@@ -49,13 +49,9 @@ export default function Contact() {
 
   return (
     <div className="bg-background min-h-screen py-16 px-4 sm:px-6 lg:px-8 text-foreground relative overflow-hidden font-sans">
-      {/* Premium Theme-Adaptive Background with Decorative Dots & Glows */}
+      {/* Clean Background Pattern */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Soft blurred background color glows */}
-        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-sky-400/10 dark:bg-sky-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-indigo-400/8 dark:bg-indigo-500/8 rounded-full blur-[90px] pointer-events-none"></div>
-        
-        {/* Dots Grid Pattern (Subtle & Elegant 1px) */}
+        {/* Dots Grid Pattern (Subtle 1px) */}
         <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
       </div>
 

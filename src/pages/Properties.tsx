@@ -600,21 +600,21 @@ export default function Properties() {
                         </>
                       )}
                       <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-20 flex flex-wrap gap-1.5">
-                        <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-bold shadow-xs border border-border">
+                        <span className="property-tag">
                           {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
                         </span>
-                        <span className="bg-card/95 text-foreground px-2 py-0.5 rounded text-[10px] font-semibold shadow-xs border border-border">
+                        <span className="property-tag">
                           {t(`cat.${property.propertyCategory || 'VILLA'}`)}
                         </span>
                         {(property.parentId && !unitNumber) && (
-                          <span className="bg-amber-600 text-white px-2 py-0.5 rounded text-[10px] font-extrabold shadow-xs">
+                          <span className="property-tag">
                             {language === 'ar' ? 'وحدة سكنية' : 'Sub-Unit'}
                           </span>
                         )}
                         {!property.isEnriched ? (
-                          <span className="bg-slate-200 dark:bg-zinc-800 animate-pulse w-14 h-4 rounded text-[10px] border border-border" />
+                          <span className="bg-slate-200 dark:bg-zinc-800 animate-pulse w-14 h-4 rounded-full text-[10px] border border-border" />
                         ) : hasUnits ? (
-                          <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-[10px] font-bold shadow-xs">
+                          <span className="property-tag">
                             {language === 'ar' 
                               ? `${property.availableUnitsCount} وحدات`
                               : `${property.availableUnitsCount} Units`}

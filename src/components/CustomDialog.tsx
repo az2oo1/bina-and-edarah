@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, Info } from 'lucide-react';
+import { Button } from './ui/Button';
+import { ButtonGroup } from './ui/ButtonGroup';
 
 interface CustomDialogProps {
   isOpen: boolean;
@@ -65,24 +67,24 @@ export function CustomDialog({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end items-center gap-2 mt-6">
+          <ButtonGroup align="end" gap="sm" className="mt-6">
             {type === 'confirm' && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={onCancel}
-                className="px-4 py-2 text-xs font-bold rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 {defaultCancel}
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
+              variant={type === 'confirm' ? 'primary' : 'primary'}
+              size="sm"
               onClick={onConfirm}
-              className="px-4 py-2 text-xs font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
             >
               {defaultConfirm}
-            </button>
-          </div>
+            </Button>
+          </ButtonGroup>
         </motion.div>
       </div>
     </AnimatePresence>

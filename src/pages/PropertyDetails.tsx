@@ -432,21 +432,21 @@ export default function PropertyDetails() {
                       className="w-full h-full object-cover group-hover/unit:scale-[1.04] transition-transform duration-500" 
                       style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
                     />
-                      {(() => {
-                        return (
-                          <>
-                            <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-10 select-none flex items-center gap-1.5">
-                              <span className="bg-card/95 text-foreground px-2.5 py-0.5 rounded text-[10px] font-bold shadow-xs border border-border">
-                                {isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
-                                 isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
-                                 unit.type === 'SALE' ? (language === 'ar' ? 'للبيع' : 'For Sale') :
-                                 isAvailable ? (language === 'ar' ? 'للإيجار' : 'For Rent') :
-                                 (language === 'ar' ? 'مخفي' : 'Hidden')}
-                              </span>
-                            </div>
-                          </>
-                        );
-                      })()}
+                      <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-10 select-none flex items-center gap-1.5">
+                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold shadow-2xs backdrop-blur-xs border ${
+                          isSold ? 'bg-rose-50/95 dark:bg-rose-950/90 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/80' :
+                          isRented ? 'bg-amber-50/95 dark:bg-amber-950/90 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/80' :
+                          unit.type === 'SALE' ? 'bg-emerald-50/95 dark:bg-emerald-950/90 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/80' :
+                          isAvailable ? 'bg-sky-50/95 dark:bg-sky-950/90 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800/80' :
+                          'bg-gray-50/95 dark:bg-gray-900/90 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800/80'
+                        }`}>
+                          {isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
+                           isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
+                           unit.type === 'SALE' ? (language === 'ar' ? 'للبيع' : 'For Sale') :
+                           isAvailable ? (language === 'ar' ? 'للإيجار' : 'For Rent') :
+                           (language === 'ar' ? 'مخفي' : 'Hidden')}
+                        </span>
+                      </div>
                     </div>
 
                   {/* Content */}
@@ -586,10 +586,10 @@ export default function PropertyDetails() {
         {/* Title Section */}
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="bg-card/95 text-foreground px-2.5 py-0.5 rounded text-xs font-bold shadow-xs border border-border">
+            <span className="property-tag">
               {property.type === 'SALE' ? t('common.sale') : t('common.rent')}
             </span>
-            <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-xs font-semibold">
+            <span className="property-tag">
               {t(`cat.${property.propertyCategory}`)}
             </span>
           </div>

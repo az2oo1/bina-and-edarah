@@ -106,11 +106,7 @@ export default function Projects() {
       {/* Premium Header Banner with Decorative Dots & Glows */}
       <div className="border-b border-border py-16 relative overflow-hidden bg-background text-foreground">
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          {/* Soft blurred background color glows */}
-          <div className="absolute -top-10 left-1/4 w-[400px] h-[400px] bg-sky-400/10 dark:bg-sky-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-          <div className="absolute bottom-0 right-1/4 w-[350px] h-[350px] bg-indigo-400/8 dark:bg-indigo-500/8 rounded-full blur-[90px] pointer-events-none"></div>
-          
-          {/* Dots Grid Pattern (Subtle & Elegant 1px) */}
+          {/* Dots Grid Pattern (Subtle 1px) */}
           <div className="absolute inset-0 text-slate-300/30 dark:text-slate-800/20" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
         </div>
         
@@ -205,7 +201,7 @@ export default function Projects() {
                       <div className="flex justify-start relative z-10">
                         <Link
                           to={`/projects/${bigProjects[activeBigIndex].id}`}
-                          className="bg-[#0071e3] hover:bg-[#0077ed] text-white px-6 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1 transition-all active:scale-[0.98] shadow-sm hover:shadow"
+                          className="btn-primary text-xs gap-1"
                         >
                           <span>{language === 'ar' ? 'استكشف المشروع بالكامل' : 'Explore Full Project'}</span>
                           {language === 'ar' ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}

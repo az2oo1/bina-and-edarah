@@ -3385,8 +3385,10 @@ async function startServer() {
         status: { notIn: ['DRAFT', 'HIDDEN', 'SOLD', 'RENTED'] }
       });
 
+      const safeStr = (v: any) => typeof v === 'string' ? v.trim() : (typeof v === 'number' ? String(v) : '');
+
       // Parent ID Param
-      const parentIdParam = req.query.parentId as string;
+      const parentIdParam = safeStr(req.query.parentId);
       if (parentIdParam) {
         andFilters.push({ parentId: parentIdParam });
       } else {
@@ -3397,7 +3399,7 @@ async function startServer() {
       }
 
       // Search term
-      const search = req.query.search as string;
+      const search = safeStr(req.query.search);
       if (search) {
         andFilters.push({
           OR: [
@@ -3408,20 +3410,22 @@ async function startServer() {
       }
 
       // Type Filter
-      const type = req.query.type as string;
+      const type = safeStr(req.query.type);
       if (type && type !== 'ALL') {
         andFilters.push({ type: type });
       }
 
       // Category Filter
-      const category = req.query.category as string;
+      const category = safeStr(req.query.category);
       if (category && category !== 'ALL') {
         andFilters.push({ propertyCategory: category });
       }
 
       // Price Filters
-      const minPrice = parseFloat(req.query.minPrice as string);
-      const maxPrice = parseFloat(req.query.maxPrice as string);
+      const minPriceStr = safeStr(req.query.minPrice);
+      const maxPriceStr = safeStr(req.query.maxPrice);
+      const minPrice = minPriceStr ? parseFloat(minPriceStr) : NaN;
+      const maxPrice = maxPriceStr ? parseFloat(maxPriceStr) : NaN;
       if (!isNaN(minPrice) || !isNaN(maxPrice)) {
         const priceRange: any = {};
         if (!isNaN(minPrice)) priceRange.gte = minPrice;
@@ -3827,14 +3831,15 @@ async function startServer() {
   // ADMIN Properties API - Dedicated Staff Route with Full Access
   app.get("/api/admin/properties", requirePermission('properties'), async (req, res) => {
     try {
-      const parentIdParam = req.query.parentId as string;
+      const safeStr = (v: any) => typeof v === 'string' ? v.trim() : (typeof v === 'number' ? String(v) : '');
+      const parentIdParam = safeStr(req.query.parentId);
       const andFilters: any[] = [];
 
       if (parentIdParam) {
         andFilters.push({ parentId: parentIdParam });
       }
 
-      const search = req.query.search as string;
+      const search = safeStr(req.query.search);
       if (search) {
         andFilters.push({
           OR: [
@@ -4280,6 +4285,7 @@ async function startServer() {
     try {
       const { id } = req.params;
       const count = Math.min(Math.max(parseInt(req.body?.count) || 1, 1), 20);
+      const createdDuplicates: any[] = [];
 
       const sourceProperty = await prisma.property.findUnique({
         where: { id }
@@ -4331,7 +4337,15 @@ async function startServer() {
         }
       }
 
-      const createdDuplicates = [];
+      // Resolve valid userId for Property model (userId references User table, not Admin table)
+      let resolvedUserId: string | null = null;
+      const reqUser = (req as any).user;
+      if (reqUser && reqUser.role === 'USER') {
+        resolvedUserId = reqUser.id;
+      } else if (sourceProperty.userId) {
+        const userExists = await prisma.user.findUnique({ where: { id: sourceProperty.userId } });
+        resolvedUserId = userExists ? sourceProperty.userId : null;
+      }
 
       for (let i = 1; i <= count; i++) {
         const nextSeq = maxSeq + i;
@@ -4387,7 +4401,7 @@ async function startServer() {
             aqarLink: sourceProperty.aqarLink,
             allowedPaymentPlans: sourceProperty.allowedPaymentPlans,
             videoUrl: sourceProperty.videoUrl,
-            userId: (req as any).user ? (req as any).user.id : sourceProperty.userId,
+            userId: resolvedUserId,
             parentId: sourceProperty.parentId,
             status: sourceProperty.status || "PUBLISHED",
             renterId: null,
@@ -4402,6 +4416,12 @@ async function startServer() {
             where: { parentId: sourceProperty.id }
           });
           for (const unit of childUnits) {
+            let childUserId: string | null = resolvedUserId;
+            if (!childUserId && unit.userId) {
+              const uExists = await prisma.user.findUnique({ where: { id: unit.userId } });
+              childUserId = uExists ? unit.userId : null;
+            }
+
             await prisma.property.create({
               data: {
                 titleAr: unit.titleAr,
@@ -4430,7 +4450,7 @@ async function startServer() {
                 aqarLink: unit.aqarLink,
                 allowedPaymentPlans: unit.allowedPaymentPlans,
                 videoUrl: unit.videoUrl,
-                userId: (req as any).user ? (req as any).user.id : unit.userId,
+                userId: childUserId,
                 parentId: duplicate.id,
                 status: unit.status || "PUBLISHED",
                 renterId: null,

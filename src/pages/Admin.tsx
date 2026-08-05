@@ -1914,27 +1914,27 @@ export default function Admin() {
                             {language === 'ar' ? selectedParentProperty.titleAr : selectedParentProperty.titleEn}
                           </h3>
                           {(selectedParentProperty.renterName || selectedParentProperty.status === 'RENTED' || (selectedParentUnits.length > 0 && selectedParentUnits.every(u => u.status === 'RENTED' || !!u.renterName))) ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-2xs">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                               {language === 'ar' ? 'مؤجر' : 'Rented'}
                             </span>
                           ) : selectedParentProperty.status === 'SOLD' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 shadow-2xs">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
                               {language === 'ar' ? 'مباع' : 'Sold'}
                             </span>
                           ) : selectedParentProperty.type === 'SALE' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 shadow-2xs">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
                               {language === 'ar' ? 'للبيع' : 'For Sale'}
                             </span>
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                               {language === 'ar' ? 'للإيجار' : 'For Rent'}
                             </span>
                           )}
                         </div>
                         <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
                           {language === 'ar' 
-                            ? `فئة العقار: ${t(`cat.${selectedParentProperty.propertyCategory}`)} • النوع: ${selectedParentProperty.type === 'SALE' ? 'للبيع' : 'للإيجار'}`
-                            : `Category: ${t(`cat.${selectedParentProperty.propertyCategory}`)} • Type: ${selectedParentProperty.type === 'SALE' ? 'For Sale' : 'For Rent'}`}
+                            ? `فئة العقار: ${t(`cat.${typeof selectedParentProperty?.propertyCategory === 'string' ? selectedParentProperty.propertyCategory : 'VILLA'}`)} • النوع: ${selectedParentProperty.type === 'SALE' ? 'للبيع' : 'للإيجار'}`
+                            : `Category: ${t(`cat.${typeof selectedParentProperty?.propertyCategory === 'string' ? selectedParentProperty.propertyCategory : 'VILLA'}`)} • Type: ${selectedParentProperty.type === 'SALE' ? 'For Sale' : 'For Rent'}`}
                         </p>
                       </div>
                     </div>
@@ -2084,7 +2084,7 @@ export default function Admin() {
                           <button
                             type="button"
                             onClick={handleAddFloorToParent}
-                            className="px-4 h-9 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5"
+                            className="btn-primary text-xs h-9 px-4 gap-1.5"
                           >
                             <Plus className="w-4 h-4" />
                             <span>{language === 'ar' ? 'إضافة دور' : 'Add Floor'}</span>
@@ -3432,7 +3432,7 @@ export default function Admin() {
                             <button
                               type="button"
                               onClick={handleAddFloor}
-                              className="px-4 h-9 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5"
+                              className="btn-primary text-xs h-9 px-4 gap-1.5"
                             >
                               <Plus className="w-4 h-4" />
                               <span>{language === 'ar' ? 'إضافة دور' : 'Add Floor'}</span>

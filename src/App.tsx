@@ -20,6 +20,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Services = lazy(() => import('./pages/Services'));
 const About = lazy(() => import('./pages/About'));
+const DesignSystem = lazy(() => import('./pages/DesignSystem'));
 
 let settingsPromise: Promise<any> | null = null;
 function getCachedSettings() {
@@ -361,14 +362,14 @@ function Navbar() {
               <div className="flex items-center gap-2">
                 <Link 
                   to={user.role === 'RENTER' ? '/login' : '/admin'} 
-                  className="px-3 py-1 bg-primary hover:opacity-90 text-primary-foreground font-semibold rounded-full text-[11px] transition-all flex items-center gap-1 shadow-sm"
+                  className="btn-primary !py-1 !px-3 text-[11px] font-bold gap-1"
                 >
                   <UserCircle className="w-3.5 h-3.5" />
                   <span>{user.role === 'RENTER' ? (language === 'ar' ? 'البوابة' : 'Portal') : t('nav.admin')}</span>
                 </Link>
                 <button 
                   onClick={handleLogout}
-                  className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                  className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title={language === 'ar' ? 'تسجيل خروج' : 'Logout'}
                   aria-label={language === 'ar' ? 'تسجيل خروج' : 'Logout'}
                 >
@@ -378,7 +379,7 @@ function Navbar() {
             ) : location.pathname !== '/login' ? (
               <Link 
                 to="/login" 
-                className="px-3 py-1 bg-foreground text-background hover:opacity-90 font-medium rounded-full text-[11px] transition-all flex items-center gap-1 shadow-sm"
+                className="btn-primary !py-1 !px-3 text-[11px] font-bold gap-1"
               >
                 <UserCircle className="w-3.5 h-3.5" />
                 <span>{t('nav.login')}</span>
@@ -725,6 +726,8 @@ function AppContent() {
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/design-system" element={<DesignSystem />} />
+            <Route path="/buttons" element={<DesignSystem />} />
           </Routes>
         </Suspense>
       </main>
@@ -774,13 +777,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                   this.setState({ hasError: false, error: null });
                   window.location.reload();
                 }}
-                className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:opacity-90 transition-opacity cursor-pointer"
+                className="btn-primary text-xs"
               >
                 إعادة تحميل الصفحة
               </button>
               <a
                 href="/"
-                className="px-5 py-2.5 bg-muted text-muted-foreground hover:text-foreground font-bold rounded-xl text-xs transition-colors"
+                className="btn-secondary text-xs"
               >
                 الصفحة الرئيسية
               </a>

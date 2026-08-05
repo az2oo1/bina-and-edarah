@@ -208,94 +208,121 @@
   }
 }
 
-/* Shadcn-like CSS Utility Components */
-.btn-primary {
+/* Standardized Flat Pill Button Utility Components (Zero Shadow, Crisp Click-Press Feedback) */
+.btn-primary,
+.cn-button-variant-default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: 9999px !important;
   font-size: 0.875rem;
-  font-weight: 500;
-  height: 2.25rem;
+  font-weight: 600;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
-  background-color: var(--color-primary);
-  color: var(--color-primary-foreground);
-  transition: transform 160ms var(--ease-out-expo), opacity 160ms var(--ease-out-expo);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background-color: #0066FF !important;
+  color: #ffffff !important;
+  transition: transform 120ms ease-out, background-color 150ms ease;
   cursor: pointer;
   border: 1px solid transparent;
+  box-shadow: none !important;
   will-change: transform;
 }
-.btn-primary:hover {
-  opacity: 0.9;
+.btn-primary:hover,
+.cn-button-variant-default:hover {
+  background-color: #0052cc !important;
+  box-shadow: none !important;
 }
-.btn-primary:active {
-  transform: scale(0.97);
+.btn-primary:active,
+.cn-button-variant-default:active {
+  transform: scale(0.96) translateY(1px) !important;
 }
 
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: 9999px !important;
   font-size: 0.875rem;
-  font-weight: 500;
-  height: 2.25rem;
+  font-weight: 600;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
-  background-color: var(--color-secondary);
-  color: var(--color-secondary-foreground);
-  transition: transform 160ms var(--ease-out-expo), opacity 160ms var(--ease-out-expo);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  transition: transform 120ms ease-out, background-color 150ms ease, border-color 150ms ease;
   cursor: pointer;
-  border: 1px solid transparent;
+  box-shadow: none !important;
   will-change: transform;
 }
+.dark .btn-secondary {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border-color: #334155;
+}
 .btn-secondary:hover {
-  opacity: 0.9;
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #020617;
+}
+.dark .btn-secondary:hover {
+  background-color: #334155;
+  border-color: #475569;
+  color: #ffffff;
 }
 .btn-secondary:active {
-  transform: scale(0.97);
+  transform: scale(0.96) translateY(1px) !important;
 }
 
-.btn-outline {
+.btn-outline,
+.cn-button-variant-outline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: 9999px !important;
   font-size: 0.875rem;
-  font-weight: 500;
-  height: 2.25rem;
+  font-weight: 600;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
   background-color: transparent;
-  color: var(--color-foreground);
-  border: 1px solid var(--color-border);
-  transition: transform 160ms var(--ease-out-expo), background-color 150ms var(--ease-out-expo), color 150ms var(--ease-out-expo);
+  color: #0066FF;
+  border: 1px solid #0066FF;
+  transition: transform 120ms ease-out, background-color 150ms ease;
   cursor: pointer;
+  box-shadow: none !important;
   will-change: transform;
 }
-.btn-outline:hover {
-  background-color: var(--color-accent);
-  color: var(--color-accent-foreground);
+.btn-outline:hover,
+.cn-button-variant-outline:hover {
+  background-color: rgba(0, 102, 255, 0.06);
+  color: #0052cc;
 }
-.btn-outline:active {
-  transform: scale(0.97);
+.btn-outline:active,
+.cn-button-variant-outline:active {
+  transform: scale(0.96) translateY(1px) !important;
 }
 
 .btn-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: 9999px !important;
   font-size: 0.875rem;
   font-weight: 500;
-  height: 2.25rem;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
   background-color: transparent;
   color: var(--color-foreground);
-  transition: transform 160ms var(--ease-out-expo), background-color 150ms var(--ease-out-expo), color 150ms var(--ease-out-expo);
+  transition: transform 120ms ease-out, background-color 150ms ease;
   cursor: pointer;
+  box-shadow: none !important;
   will-change: transform;
 }
 .btn-ghost:hover {
@@ -303,31 +330,55 @@
   color: var(--color-accent-foreground);
 }
 .btn-ghost:active {
-  transform: scale(0.97);
+  transform: scale(0.96) translateY(1px) !important;
 }
 
 .btn-destructive {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: 9999px !important;
   font-size: 0.875rem;
-  font-weight: 500;
-  height: 2.25rem;
+  font-weight: 600;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
-  background-color: var(--color-destructive);
-  color: var(--color-destructive-foreground);
-  transition: transform 160ms var(--ease-out-expo), opacity 160ms var(--ease-out-expo);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  transition: transform 120ms ease-out, background-color 150ms ease;
   cursor: pointer;
   border: 1px solid transparent;
+  box-shadow: none !important;
   will-change: transform;
 }
 .btn-destructive:hover {
-  opacity: 0.9;
+  background-color: #b91c1c !important;
 }
 .btn-destructive:active {
-  transform: scale(0.97);
+  transform: scale(0.96) translateY(1px) !important;
+}
+
+/* Square-ish Rounded Property Tags (NOT pills, low height) */
+.property-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px !important;
+  padding: 0.125rem 0.5rem !important;
+  line-height: 1.1 !important;
+  font-size: 0.725rem !important;
+  font-weight: 700 !important;
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+  border: 1px solid #bfdbfe !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+.dark .property-tag {
+  background-color: #0f172a !important;
+  color: #60a5fa !important;
+  border: 1px solid #1e3a8a !important;
 }
 
 .shadcn-card {

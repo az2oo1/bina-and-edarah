@@ -213,13 +213,13 @@ export default function Home() {
               <div className="flex flex-row gap-3 justify-center w-auto">
                 <button 
                   onClick={() => document.getElementById('featured-projects')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="inline-flex items-center justify-center bg-[#0071e3] text-white hover:bg-[#0077ed] h-9 px-5 rounded-full text-xs font-medium transition-colors cursor-pointer"
+                  className="btn-primary text-xs"
                 >
                   <span>{language === 'ar' ? 'مشاريعنا المتميزة' : 'Featured Projects'}</span>
                 </button>
                 <Link 
                   to="/properties" 
-                  className="inline-flex items-center justify-center border border-[#0071e3] text-[#0071e3] hover:bg-[#0071e3]/5 h-9 px-5 rounded-full text-xs font-medium transition-colors cursor-pointer"
+                  className="btn-outline text-xs"
                 >
                   <span>{language === 'ar' ? 'عقارات للبيع أو الإيجار' : 'Properties to Buy or Rent'}</span>
                 </Link>
@@ -257,14 +257,14 @@ export default function Home() {
             <div className="pt-4 flex flex-wrap gap-3 justify-center">
               <Link 
                 to="/about" 
-                className="inline-flex items-center justify-center gap-1 bg-[#0071e3] text-white hover:bg-[#0077ed] px-5 py-2 rounded-full text-xs font-medium transition-colors cursor-pointer select-none"
+                className="btn-primary gap-1 text-xs"
               >
                 <span>{language === 'ar' ? 'المزيد عن الشركة' : 'More About Us'}</span>
                 <Arrow className="w-3.5 h-3.5 text-white" />
               </Link>
               <Link 
                 to="/services" 
-                className="inline-flex items-center justify-center gap-1 border border-[#0071e3] text-[#0071e3] hover:bg-[#0071e3]/5 px-5 py-2 rounded-full text-xs font-medium transition-colors cursor-pointer select-none"
+                className="btn-outline gap-1 text-xs"
               >
                 <span>{language === 'ar' ? 'تصفح خدماتنا العقارية' : 'Browse Our Services'}</span>
                 <Arrow className="w-3.5 h-3.5" />
@@ -278,7 +278,7 @@ export default function Home() {
               return (
                 <div 
                   key={service.id} 
-                  className="flex flex-col bg-background border border-border/30 rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300 group"
+                  className="flex flex-col bg-background border border-border/30 rounded-3xl p-8 group"
                 >
                   <div className="w-10 h-10 rounded-full bg-card border border-border/40 text-muted-foreground flex items-center justify-center mb-4">
                     {React.cloneElement(service.icon, { className: 'w-5 h-5' })}
@@ -319,7 +319,7 @@ export default function Home() {
                   : 'Get an overview of Benaa & Edara Real Estate projects, featuring residential complexes and commercial buildings developed and managed to the highest technical and operational standards in Riyadh.'}
               </p>
               <div className="pt-2">
-                <Link to="/properties" className="inline-flex items-center justify-center gap-1.5 bg-[#0071e3] text-white hover:bg-[#0077ed] h-9 px-5 rounded-full text-xs font-medium transition-colors shadow-sm cursor-pointer">
+                <Link to="/properties" className="btn-primary gap-1.5 text-xs">
                   <span>{language === 'ar' ? 'تصفح العقارات المتاحة' : 'Browse Available Properties'}</span>
                   <Arrow className="w-3.5 h-3.5 text-white" />
                 </Link>
@@ -479,7 +479,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-card border border-border/30 rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300 group flex flex-col items-center text-center">
+            <div className="bg-card border border-border/30 rounded-3xl p-8 group flex flex-col items-center text-center">
               <div className="w-10 h-10 rounded-full bg-background border border-border/40 text-[#0071e3] flex items-center justify-center mb-6">
                 <ShieldCheck className="w-5 h-5" />
               </div>
@@ -489,7 +489,7 @@ export default function Home() {
               </p>
             </div>
             
-            <div className="bg-card border border-border/30 rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300 group flex flex-col items-center text-center">
+            <div className="bg-card border border-border/30 rounded-3xl p-8 group flex flex-col items-center text-center">
               <div className="w-10 h-10 rounded-full bg-background border border-border/40 text-[#0071e3] flex items-center justify-center mb-6">
                 <MapPin className="w-5 h-5" />
               </div>
@@ -499,7 +499,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="bg-card border border-border/30 rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300 group flex flex-col items-center text-center">
+            <div className="bg-card border border-border/30 rounded-3xl p-8 group flex flex-col items-center text-center">
               <div className="w-10 h-10 rounded-full bg-background border border-border/40 text-[#0071e3] flex items-center justify-center mb-6">
                 <Building2 className="w-5 h-5" />
               </div>
