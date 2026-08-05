@@ -36,3 +36,7 @@
 **Vulnerability:** A hardcoded `JWT_SECRET` was present in `server.ts` making all JWTs forgeable if `process.env.JWT_SECRET` wasn't set. Additionally, there was an unconditional hardcoded backdoor for user `admin:admin` that granted full administrator access regardless of the database state.
 **Learning:** Hardcoded credentials and secrets as fallbacks in production-ready files pose an immense risk. The `admin:admin` fallback overrode normal database lookups, providing a permanent backdoor to anyone who checked the source code or guessed default credentials. Using a hardcoded JWT secret is equally dangerous since an attacker could forge tokens with any permission level.
 **Prevention:** Never use predictable or hardcoded secrets as fallbacks in code. Always explicitly check for required secrets during application startup and throw an error if they are missing. Never implement credentials logic that unconditionally bypasses database lookup.
+## 2026-08-05 - Critical Authentication Bypass in OTP Verification
+**Vulnerability:** A hardcoded bypass ('0000') was present in the OTP verification logic, allowing any user to login without a valid OTP.
+**Learning:** Development backdoors should never make it to production. They completely undermine the security of the authentication system.
+**Prevention:** Never use hardcoded fallback values for authentication tokens or passwords. Always mock authentication properly in testing environments instead of modifying application logic.

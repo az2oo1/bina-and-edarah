@@ -3156,7 +3156,7 @@ async function startServer() {
         }
       });
 
-      if (!validOtp && otp !== '0000') {
+      if (!validOtp) {
         logger.warn(`Failed renter login for phone: ${normalizedPhone} (invalid OTP)`);
         return res.status(401).json({ error: "رمز التحقق غير صحيح أو منتهي الصلاحية. (Invalid or expired OTP)" });
       }
