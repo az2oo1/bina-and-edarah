@@ -5216,7 +5216,7 @@ async function startServer() {
         await tx.user.deleteMany();
         await tx.admin.deleteMany();
 
-        const insertBatch = async (modelDelegate: any, items: any[], batchSize = 25) => {
+        const insertBatch = async (modelDelegate: any, items: any[], batchSize = 5) => {
           for (let i = 0; i < items.length; i += batchSize) {
             const chunk = items.slice(i, i + batchSize);
             await modelDelegate.createMany({ data: chunk });
@@ -5242,7 +5242,7 @@ async function startServer() {
           return cleaned;
         };
 
-        // Restore tables with chunking to stay below database SQL message size limits
+        // Restore tables with small chunking to stay below database SQL message size limits
         if (dbData.admins && dbData.admins.length > 0) {
           await insertBatch(tx.admin, dbData.admins.map(parseDates));
         }
@@ -5256,13 +5256,13 @@ async function startServer() {
           await insertBatch(tx.service, dbData.services.map(parseDates));
         }
         if (dbData.projects && dbData.projects.length > 0) {
-          await insertBatch(tx.project, dbData.projects.map(parseDates));
+          await insertBatch(tx.project, dbData.projects.map(parseDates), 2);
         }
         if (dbData.properties && dbData.properties.length > 0) {
           const allProperties = dbData.properties.map(parseDates);
 
-          // Insert all properties with parentId null first in small batches
-          await insertBatch(tx.property, allProperties.map((p: any) => ({ ...p, parentId: null })), 5);
+          // Insert properties one by one to avoid CockroachDB 16MB single query payload limit
+          await insertBatch(tx.property, allProperties.map((p: any) => ({ ...p, parentId: null })), 1);
 
           const insertedIds = new Set(allProperties.map((p: any) => p.id));
           for (const p of allProperties) {
