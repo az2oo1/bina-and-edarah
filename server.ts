@@ -5140,27 +5140,36 @@ async function startServer() {
         return res.status(400).json({ error: 'Failed to read backup data' });
       }
 
-      // 1. Restore uploads folder files and sync to RustFS S3
+      // 1. Restore uploads folder files and sync to RustFS S3 with low memory overhead
       if (zip) {
         const entries = zip.getEntries();
         for (const entry of entries) {
           if (entry.entryName.startsWith('uploads/') && !entry.isDirectory) {
             const filename = path.basename(entry.entryName);
+            if (!filename) continue;
             const targetPath = path.join(UPLOADS_DIR, filename);
-            const fileData = entry.getData();
-            fs.writeFileSync(targetPath, fileData);
 
-            // Sync restored file to RustFS Object Storage asynchronously
-            const ext = path.extname(filename).toLowerCase();
-            const contentType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.mp4' ? 'video/mp4' : 'image/jpeg';
-            s3Client.send(new PutObjectCommand({
-              Bucket: S3_BUCKET,
-              Key: filename,
-              Body: fileData,
-              ContentType: contentType
-            })).catch(err => {
-              logger.warn(`Failed to sync restored file ${filename} to RustFS:`, err?.message || err);
-            });
+            try {
+              // Extract entry to disk file first to save memory
+              zip.extractEntryTo(entry, UPLOADS_DIR, false, true);
+
+              // Async sync restored file from disk stream to RustFS S3
+              if (fs.existsSync(targetPath)) {
+                const ext = path.extname(filename).toLowerCase();
+                const contentType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.mp4' ? 'video/mp4' : 'image/jpeg';
+                const stream = fs.createReadStream(targetPath);
+                s3Client.send(new PutObjectCommand({
+                  Bucket: S3_BUCKET,
+                  Key: filename,
+                  Body: stream,
+                  ContentType: contentType
+                })).catch(err => {
+                  logger.warn(`Failed to sync restored file ${filename} to RustFS:`, err?.message || err);
+                });
+              }
+            } catch (extErr) {
+              logger.warn(`Failed extracting entry ${filename}:`, extErr);
+            }
           }
         }
       }
