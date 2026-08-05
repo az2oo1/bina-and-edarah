@@ -5169,11 +5169,11 @@ async function startServer() {
             if (fs.existsSync(targetPath)) {
               const ext = path.extname(filename).toLowerCase();
               const contentType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.mp4' ? 'video/mp4' : 'image/jpeg';
-              const stream = fs.createReadStream(targetPath);
+              const fileBuffer = fs.readFileSync(targetPath);
               s3Client.send(new PutObjectCommand({
                 Bucket: S3_BUCKET,
                 Key: filename,
-                Body: stream,
+                Body: fileBuffer,
                 ContentType: contentType
               })).catch(err => {
                 logger.warn(`Failed to sync restored file ${filename} to RustFS:`, err?.message || err);
