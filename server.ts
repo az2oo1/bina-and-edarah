@@ -5071,8 +5071,12 @@ async function startServer() {
         properties: await prisma.property.findMany(),
         projects: await prisma.project.findMany(),
         buildings: await prisma.building.findMany(),
+        renters: await prisma.renter.findMany(),
         renterUnits: await prisma.renterUnit.findMany(),
         rentHistory: await prisma.rentHistory.findMany(),
+        maintenanceReports: await prisma.maintenanceReport.findMany(),
+        maintenanceMessages: await prisma.maintenanceMessage.findMany(),
+        maintenanceLogs: await prisma.maintenanceLog.findMany(),
         settings: await prisma.settings.findMany(),
         users: await prisma.user.findMany(),
         admins: await prisma.admin.findMany(),
@@ -5102,6 +5106,7 @@ async function startServer() {
         properties: dbData.properties.length,
         projects: dbData.projects.length,
         buildings: dbData.buildings.length,
+        renters: dbData.renters.length,
         renterUnits: dbData.renterUnits.length,
         admins: dbData.admins.length,
         callbackRequests: dbData.callbackRequests.length,
@@ -5197,8 +5202,12 @@ async function startServer() {
         await tx.callbackRequest.deleteMany();
         await tx.pageView.deleteMany();
         await tx.otpSession.deleteMany();
+        await tx.maintenanceMessage.deleteMany();
+        await tx.maintenanceLog.deleteMany();
+        await tx.maintenanceReport.deleteMany();
         await tx.rentHistory.deleteMany();
         await tx.renterUnit.deleteMany();
+        await tx.renter.deleteMany();
         await tx.building.deleteMany();
         await tx.property.deleteMany();
         await tx.project.deleteMany();
@@ -5223,6 +5232,13 @@ async function startServer() {
           if (cleaned.endDate) cleaned.endDate = new Date(cleaned.endDate);
           if (cleaned.date) cleaned.date = new Date(cleaned.date);
           if (cleaned.expiresAt) cleaned.expiresAt = new Date(cleaned.expiresAt);
+          if (cleaned.scheduledDate) cleaned.scheduledDate = new Date(cleaned.scheduledDate);
+          if (cleaned.completedAt) cleaned.completedAt = new Date(cleaned.completedAt);
+          if (cleaned.claimedAt) cleaned.claimedAt = new Date(cleaned.claimedAt);
+          if (cleaned.approvedAt) cleaned.approvedAt = new Date(cleaned.approvedAt);
+          if (cleaned.assignedAt) cleaned.assignedAt = new Date(cleaned.assignedAt);
+          if (cleaned.deliveredAt) cleaned.deliveredAt = new Date(cleaned.deliveredAt);
+          if (cleaned.readAt) cleaned.readAt = new Date(cleaned.readAt);
           return cleaned;
         };
 
@@ -5261,11 +5277,23 @@ async function startServer() {
         if (dbData.buildings && dbData.buildings.length > 0) {
           await insertBatch(tx.building, dbData.buildings.map(parseDates));
         }
+        if (dbData.renters && dbData.renters.length > 0) {
+          await insertBatch(tx.renter, dbData.renters.map(parseDates));
+        }
         if (dbData.renterUnits && dbData.renterUnits.length > 0) {
           await insertBatch(tx.renterUnit, dbData.renterUnits.map(parseDates));
         }
         if (dbData.rentHistory && dbData.rentHistory.length > 0) {
           await insertBatch(tx.rentHistory, dbData.rentHistory.map(parseDates));
+        }
+        if (dbData.maintenanceReports && dbData.maintenanceReports.length > 0) {
+          await insertBatch(tx.maintenanceReport, dbData.maintenanceReports.map(parseDates));
+        }
+        if (dbData.maintenanceMessages && dbData.maintenanceMessages.length > 0) {
+          await insertBatch(tx.maintenanceMessage, dbData.maintenanceMessages.map(parseDates));
+        }
+        if (dbData.maintenanceLogs && dbData.maintenanceLogs.length > 0) {
+          await insertBatch(tx.maintenanceLog, dbData.maintenanceLogs.map(parseDates));
         }
         if (dbData.callbackRequests && dbData.callbackRequests.length > 0) {
           await insertBatch(tx.callbackRequest, dbData.callbackRequests.map(parseDates));
@@ -5276,7 +5304,7 @@ async function startServer() {
         if (dbData.actionLogs && dbData.actionLogs.length > 0) {
           await insertBatch(tx.actionLog, dbData.actionLogs.map(parseDates));
         }
-      }, { timeout: 120000 });
+      }, { timeout: 180000 });
 
       // Reset API caches so restored data is visible immediately.
       invalidateCache('properties');
