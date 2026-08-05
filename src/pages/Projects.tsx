@@ -32,7 +32,14 @@ export default function Projects() {
       try {
         const res = await fetch('/api/projects');
         const data = await res.json();
-        setProjects(Array.isArray(data) ? data : []);
+        const parsedData = Array.isArray(data) ? data.map((p: any) => {
+          let parsedImageUrls = [];
+          try {
+            parsedImageUrls = JSON.parse(p.imageUrls || '[]');
+          } catch (_) {}
+          return { ...p, parsedImageUrls };
+        }) : [];
+        setProjects(parsedData);
       } catch (err) {
         console.error(err);
       } finally {
@@ -56,13 +63,8 @@ export default function Projects() {
     return () => clearInterval(timer);
   }, [bigProjects.length]);
 
-  const getFirstImage = (imageUrlsStr: string) => {
-    try {
-      const urls = JSON.parse(imageUrlsStr || '[]');
-      return urls.length > 0 ? urls[0] : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
-    } catch {
-      return 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
-    }
+  const getFirstImage = (parsedImageUrls: string[]) => {
+    return parsedImageUrls && parsedImageUrls.length > 0 ? parsedImageUrls[0] : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop';
   };
 
   const handleNextBig = () => {
@@ -214,7 +216,7 @@ export default function Projects() {
                     {/* Second child: Image with gradient fade to solid side */}
                     <div className="relative w-full sm:w-[62%] h-[240px] sm:h-full overflow-hidden flex-shrink-0">
                       <img 
-                        src={getFirstImage(bigProjects[activeBigIndex].imageUrls)} 
+                        src={getFirstImage(bigProjects[activeBigIndex].parsedImageUrls)}
                         alt={language === 'ar' ? bigProjects[activeBigIndex].titleAr : bigProjects[activeBigIndex].titleEn}
                         className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-[1200ms] ease-out group-hover:scale-[1.02]"
                       />
@@ -295,7 +297,7 @@ export default function Projects() {
                         {/* Image Panel (45% on desktop) */}
                         <div className="lg:w-[45%] h-[220px] sm:h-[280px] overflow-hidden bg-muted relative border-b lg:border-b-0 border-border/40">
                           <img 
-                            src={getFirstImage(project.imageUrls)} 
+                            src={getFirstImage(project.parsedImageUrls)}
                             alt={language === 'ar' ? project.titleAr : project.titleEn}
                             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 select-none"
                           />
@@ -381,7 +383,7 @@ export default function Projects() {
                         {/* Card Image */}
                         <div className="relative h-44 overflow-hidden bg-muted border-b border-border/30">
                           <img 
-                            src={getFirstImage(project.imageUrls)} 
+                            src={getFirstImage(project.parsedImageUrls)}
                             alt={language === 'ar' ? project.titleAr : project.titleEn}
                             className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500 select-none"
                           />
