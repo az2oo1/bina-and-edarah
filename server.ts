@@ -778,8 +778,11 @@ const homeVideoUpload = multer({
 
 import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
 
+const rawS3Endpoint = process.env.S3_ENDPOINT || "http://rustfs-storage:9000";
+const s3Endpoint = rawS3Endpoint.replace("rustfs_storage", "rustfs-storage");
+
 const s3Client = new S3Client({
-  endpoint: process.env.S3_ENDPOINT || "http://rustfs_storage:9000",
+  endpoint: s3Endpoint,
   region: process.env.S3_REGION || "us-east-1",
   credentials: {
     accessKeyId: process.env.S3_ACCESS_KEY || "rustfsaccesskey",
@@ -5274,32 +5277,93 @@ async function startServer() {
             }
           }
         }
-        if (dbData.buildings && dbData.buildings.length > 0) {
-          await insertBatch(tx.building, dbData.buildings.map(parseDates));
+        const buildingsToInsert = (dbData.buildings || []).map(parseDates);
+        const buildingIds = new Set(buildingsToInsert.map((b: any) => b.id));
+
+        const rentersToInsert = (dbData.renters || []).map(parseDates);
+        const renterIds = new Set(rentersToInsert.map((r: any) => r.id));
+
+        const rawRenterUnits = (dbData.renterUnits || []).map(parseDates);
+        const renterUnitsToInsert = rawRenterUnits.map((unit: any) => {
+          const cleaned = { ...unit };
+          // Nullify renterId if referenced renter does not exist
+          if (cleaned.renterId && !renterIds.has(cleaned.renterId)) {
+            cleaned.renterId = null;
+          }
+          // Ensure buildingId points to a valid building or fallback
+          if (cleaned.buildingId && !buildingIds.has(cleaned.buildingId)) {
+            if (buildingsToInsert.length > 0) {
+              cleaned.buildingId = buildingsToInsert[0].id;
+            }
+          }
+          return cleaned;
+        });
+        const renterUnitIds = new Set(renterUnitsToInsert.map((u: any) => u.id));
+
+        const rawRentHistory = (dbData.rentHistory || []).map(parseDates);
+        const rentHistoryToInsert = rawRentHistory.filter((h: any) => h.renterUnitId && renterUnitIds.has(h.renterUnitId));
+
+        const rawMaintenanceReports = (dbData.maintenanceReports || []).map(parseDates);
+        const maintenanceReportsToInsert = rawMaintenanceReports.map((report: any) => {
+          const cleaned = { ...report };
+          if (cleaned.renterId && !renterIds.has(cleaned.renterId)) {
+            if (rentersToInsert.length > 0) {
+              cleaned.renterId = rentersToInsert[0].id;
+            } else {
+              // Create a placeholder renter if none exist
+              const placeholderId = cleaned.renterId || crypto.randomUUID();
+              rentersToInsert.push({ id: placeholderId, name: "مستأجر مجهول", phone: `temp_${placeholderId.slice(0, 8)}` });
+              renterIds.add(placeholderId);
+              cleaned.renterId = placeholderId;
+            }
+          }
+          if (cleaned.renterUnitId && !renterUnitIds.has(cleaned.renterUnitId)) {
+            if (renterUnitsToInsert.length > 0) {
+              cleaned.renterUnitId = renterUnitsToInsert[0].id;
+            }
+          }
+          return cleaned;
+        });
+        const maintenanceReportIds = new Set(maintenanceReportsToInsert.map((m: any) => m.id));
+
+        const rawMessages = (dbData.maintenanceMessages || []).map(parseDates);
+        const maintenanceMessagesToInsert = rawMessages.filter((m: any) => m.reportId && maintenanceReportIds.has(m.reportId));
+
+        const rawLogs = (dbData.maintenanceLogs || []).map(parseDates);
+        const maintenanceLogsToInsert = rawLogs.filter((l: any) => l.reportId && maintenanceReportIds.has(l.reportId));
+
+        const callbackRequestsToInsert = (dbData.callbackRequests || []).map(parseDates);
+        const callbackRequestIds = new Set(callbackRequestsToInsert.map((c: any) => c.id));
+
+        const rawCallbackNotes = (dbData.callbackNotes || []).map(parseDates);
+        const callbackNotesToInsert = rawCallbackNotes.filter((n: any) => n.callbackRequestId && callbackRequestIds.has(n.callbackRequestId));
+
+        if (buildingsToInsert.length > 0) {
+          await insertBatch(tx.building, buildingsToInsert);
         }
-        if (dbData.renters && dbData.renters.length > 0) {
-          await insertBatch(tx.renter, dbData.renters.map(parseDates));
+        if (rentersToInsert.length > 0) {
+          await insertBatch(tx.renter, rentersToInsert);
         }
-        if (dbData.renterUnits && dbData.renterUnits.length > 0) {
-          await insertBatch(tx.renterUnit, dbData.renterUnits.map(parseDates));
+        if (renterUnitsToInsert.length > 0) {
+          await insertBatch(tx.renterUnit, renterUnitsToInsert);
         }
-        if (dbData.rentHistory && dbData.rentHistory.length > 0) {
-          await insertBatch(tx.rentHistory, dbData.rentHistory.map(parseDates));
+        if (rentHistoryToInsert.length > 0) {
+          await insertBatch(tx.rentHistory, rentHistoryToInsert);
         }
-        if (dbData.maintenanceReports && dbData.maintenanceReports.length > 0) {
-          await insertBatch(tx.maintenanceReport, dbData.maintenanceReports.map(parseDates));
+        if (maintenanceReportsToInsert.length > 0) {
+          await insertBatch(tx.maintenanceReport, maintenanceReportsToInsert);
         }
-        if (dbData.maintenanceMessages && dbData.maintenanceMessages.length > 0) {
-          await insertBatch(tx.maintenanceMessage, dbData.maintenanceMessages.map(parseDates));
+        if (maintenanceMessagesToInsert.length > 0) {
+          await insertBatch(tx.maintenanceMessage, maintenanceMessagesToInsert);
         }
-        if (dbData.maintenanceLogs && dbData.maintenanceLogs.length > 0) {
-          await insertBatch(tx.maintenanceLog, dbData.maintenanceLogs.map(parseDates));
+        if (maintenanceLogsToInsert.length > 0) {
+          await insertBatch(tx.maintenanceLog, maintenanceLogsToInsert);
         }
-        if (dbData.callbackRequests && dbData.callbackRequests.length > 0) {
-          await insertBatch(tx.callbackRequest, dbData.callbackRequests.map(parseDates));
+        if (callbackRequestsToInsert.length > 0) {
+          await insertBatch(tx.callbackRequest, callbackRequestsToInsert);
         }
-        if (dbData.callbackNotes && dbData.callbackNotes.length > 0) {
-          await insertBatch(tx.callbackNote, dbData.callbackNotes.map(parseDates));
+        if (callbackNotesToInsert.length > 0) {
+          await insertBatch(tx.callbackNote, callbackNotesToInsert);
         }
         if (dbData.actionLogs && dbData.actionLogs.length > 0) {
           await insertBatch(tx.actionLog, dbData.actionLogs.map(parseDates));

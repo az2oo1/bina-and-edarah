@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://root@cockroach_db:26257/bina_db?sslmode=disable
-      - S3_ENDPOINT=http://rustfs_storage:9000
+      - S3_ENDPOINT=http://rustfs-storage:9000
       - S3_BUCKET=bina-assets
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-rustfsaccesskey}
       - S3_SECRET_KEY=${S3_SECRET_KEY:-rustfssecretkey}
@@ -23,7 +23,7 @@ services:
     depends_on:
       cockroach_db:
         condition: service_healthy
-      rustfs_storage:
+      rustfs-storage:
         condition: service_started
 
   cockroach_db:
@@ -49,9 +49,9 @@ services:
       retries: 5
       start_period: 15s
 
-  rustfs_storage:
+  rustfs-storage:
     image: minio/minio:latest
-    container_name: rustfs_storage
+    container_name: rustfs-storage
     restart: always
     command: server /data --console-address ":9001"
     environment:

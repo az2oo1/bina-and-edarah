@@ -103,12 +103,19 @@ export default function AdminProjects() {
     fetchProjects();
   }, []);
 
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [imageUploadProgress, setImageUploadProgress] = useState<number | null>(null);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
+    setIsUploadingImages(true);
+    setImageUploadProgress(0);
 
+    const fileList = Array.from(files) as File[];
     let base64Medias: string[] = [...formData.imageUrls];
-    for (const file of Array.from(files) as File[]) {
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
       try {
         if (file.type.startsWith('image/')) {
           const base64 = await compressImage(file);
@@ -116,6 +123,13 @@ export default function AdminProjects() {
         } else if (file.type.startsWith('video/')) {
           const base64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
+            reader.onprogress = (evt) => {
+              if (evt.lengthComputable) {
+                const filePct = evt.loaded / evt.total;
+                const totalPct = Math.round(((i + filePct) / fileList.length) * 100);
+                setImageUploadProgress(totalPct);
+              }
+            };
             reader.onload = (event) => {
               if (typeof event.target?.result === 'string') {
                 resolve(event.target.result);
@@ -131,8 +145,11 @@ export default function AdminProjects() {
       } catch (err) {
         console.error(err);
       }
+      setImageUploadProgress(Math.round(((i + 1) / fileList.length) * 100));
     }
     setFormData(prev => ({ ...prev, imageUrls: base64Medias }));
+    setIsUploadingImages(false);
+    setImageUploadProgress(null);
     e.target.value = '';
   };
 
@@ -429,9 +446,19 @@ export default function AdminProjects() {
             <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'الصور والفيديوهات' : 'Images & Videos'}</h3>
             <div className="border border-dashed border-border rounded-lg p-6 text-center hover:bg-slate-50 transition-colors bg-slate-50/30">
               <label className="cursor-pointer flex flex-col items-center">
-                <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
-                <span className="text-muted-foreground font-medium mb-2">{language === 'ar' ? 'اضغط لاختيار الصور والفيديوهات' : 'Click to select images & videos'}</span>
-                <input type="file" multiple accept="image/*,video/*" onChange={handleImageUpload} className="hidden" />
+                {isUploadingImages ? (
+                  <Loader2 className="w-12 h-12 text-primary mb-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
+                )}
+                <span className="text-muted-foreground font-medium mb-2">
+                  {isUploadingImages
+                    ? (language === 'ar'
+                        ? `جاري رفع الصور والفيديوهات... ${imageUploadProgress !== null ? `${imageUploadProgress}%` : ''}`
+                        : `Uploading media... ${imageUploadProgress !== null ? `${imageUploadProgress}%` : ''}`)
+                    : (language === 'ar' ? 'اضغط لاختيار الصور والفيديوهات' : 'Click to select images & videos')}
+                </span>
+                <input type="file" multiple accept="image/*,video/*" onChange={handleImageUpload} className="hidden" disabled={isUploadingImages} />
               </label>
             </div>
             {formData.imageUrls.length > 0 && (

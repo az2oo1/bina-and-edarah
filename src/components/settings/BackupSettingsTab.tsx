@@ -6,6 +6,7 @@ interface BackupSettingsTabProps {
   exportingDb: boolean;
   handleExportDatabase: () => Promise<void>;
   restoringDb: boolean;
+  restoreProgress?: number | null;
   handleRestoreDatabase: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
 
@@ -13,6 +14,7 @@ export const BackupSettingsTab: React.FC<BackupSettingsTabProps> = ({
   exportingDb,
   handleExportDatabase,
   restoringDb,
+  restoreProgress,
   handleRestoreDatabase,
 }) => {
   const { language } = useLanguage();
@@ -84,7 +86,13 @@ export const BackupSettingsTab: React.FC<BackupSettingsTabProps> = ({
             />
             <div className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50">
               {restoringDb ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              <span>{language === 'ar' ? 'رفع واستعادة النسخة' : 'Upload & Restore Backup'}</span>
+              <span>
+                {restoringDb
+                  ? (restoreProgress !== undefined && restoreProgress !== null
+                      ? `${language === 'ar' ? 'جاري الرفع:' : 'Uploading:'} ${restoreProgress}%`
+                      : (language === 'ar' ? 'جاري الاستعادة...' : 'Restoring...'))
+                  : (language === 'ar' ? 'رفع واستعادة النسخة' : 'Upload & Restore Backup')}
+              </span>
             </div>
           </label>
         </div>

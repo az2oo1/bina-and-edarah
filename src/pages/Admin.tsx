@@ -582,6 +582,7 @@ export default function Admin() {
   // Backup / Restore State
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreProgress, setRestoreProgress] = useState<number | null>(null);
   const [, setRestoreMessage] = useState<{type:'success'|'error', text:string} | null>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -750,6 +751,7 @@ export default function Admin() {
 
   // Handle File Upload -> Base64
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [imageUploadProgress, setImageUploadProgress] = useState<number | null>(null);
   const [imageUploadMessage, setImageUploadMessage] = useState<{type: 'error', text: string} | null>(null);
   const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
@@ -758,9 +760,11 @@ export default function Admin() {
     if (!files || files.length === 0) return;
     setImageUploadMessage(null);
     setIsUploadingImages(true);
+    setImageUploadProgress(0);
 
+    const fileList = Array.from(files) as File[];
     let totalSize = 0;
-    for (const file of Array.from(files) as File[]) {
+    for (const file of fileList) {
       totalSize += file.size;
     }
 
@@ -770,6 +774,7 @@ export default function Admin() {
         text: language === 'ar' ? 'إجمالي حجم الملفات المرفوعة يتجاوز الحد الأقصى (250MB)' : 'Total upload size of files exceeds limit (250MB)' 
       });
       setIsUploadingImages(false);
+      setImageUploadProgress(null);
       e.target.value = '';
       return;
     }
@@ -777,7 +782,8 @@ export default function Admin() {
     let base64Medias: string[] = [...formData.imageUrls];
 
     // Process sequentially
-    for (const file of Array.from(files) as File[]) {
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
       try {
         if (file.type.startsWith('image/')) {
           const base64 = await compressImage(file);
@@ -785,6 +791,13 @@ export default function Admin() {
         } else if (file.type.startsWith('video/')) {
           const base64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
+            reader.onprogress = (evt) => {
+              if (evt.lengthComputable) {
+                const filePct = evt.loaded / evt.total;
+                const totalPct = Math.round(((i + filePct) / fileList.length) * 100);
+                setImageUploadProgress(totalPct);
+              }
+            };
             reader.onload = (event) => {
               if (typeof event.target?.result === 'string') {
                 resolve(event.target.result);
@@ -800,27 +813,40 @@ export default function Admin() {
       } catch (err) {
         console.error(err);
       }
+      setImageUploadProgress(Math.round(((i + 1) / fileList.length) * 100));
     }
     
     setFormData(prev => ({ ...prev, imageUrls: base64Medias }));
     setIsUploadingImages(false);
+    setImageUploadProgress(null);
     
     // reset input
     e.target.value = '';
   };
 
   const [isUploadingDocs, setIsUploadingDocs] = useState(false);
+  const [docUploadProgress, setDocUploadProgress] = useState<number | null>(null);
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setIsUploadingDocs(true);
+    setDocUploadProgress(0);
 
+    const fileList = Array.from(files) as File[];
     const docList = [...(formData.attachments || [])];
 
-    for (const file of Array.from(files) as File[]) {
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
       try {
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
+          reader.onprogress = (evt) => {
+            if (evt.lengthComputable) {
+              const filePct = evt.loaded / evt.total;
+              const totalPct = Math.round(((i + filePct) / fileList.length) * 100);
+              setDocUploadProgress(totalPct);
+            }
+          };
           reader.onload = (event) => {
             if (typeof event.target?.result === 'string') {
               resolve(event.target.result);
@@ -839,10 +865,12 @@ export default function Admin() {
       } catch (err) {
         console.error(err);
       }
+      setDocUploadProgress(Math.round(((i + 1) / fileList.length) * 100));
     }
 
     setFormData(prev => ({ ...prev, attachments: docList }));
     setIsUploadingDocs(false);
+    setDocUploadProgress(null);
     e.target.value = '';
   };
 
@@ -3162,7 +3190,7 @@ export default function Admin() {
                           )}
                           {formData.featuresList.map((feature, idx) => (
                             <div key={feature.id} className="flex gap-2 items-center relative group">
-                              <input
+                            <input
                                 type="text"
                                 value={feature.value}
                                 onChange={(e) => {
@@ -3222,7 +3250,11 @@ export default function Admin() {
                           )}
                           
                           <span className="font-bold text-lg text-muted-foreground">
-                            {isUploadingImages ? (language === 'ar' ? 'جاري معالجة الملفات...' : 'Processing Media...') : (language === 'ar' ? 'اسحب وأفلت الصور ومقاطع الفيديو هنا، أو اضغط للتصفح' : 'Drag & drop images and videos here, or click to browse')}
+                            {isUploadingImages 
+                              ? (language === 'ar' 
+                                  ? `جاري رفع ومعالجة الصور... ${imageUploadProgress !== null ? `${imageUploadProgress}%` : ''}` 
+                                  : `Uploading & Processing Media... ${imageUploadProgress !== null ? `${imageUploadProgress}%` : ''}`) 
+                              : (language === 'ar' ? 'اسحب وأفلت الصور ومقاطع الفيديو هنا، أو اضغط للتصفح' : 'Drag & drop images and videos here, or click to browse')}
                           </span>
                         </label>
                       </div>
@@ -3258,14 +3290,16 @@ export default function Admin() {
                                   )}
                                   
                                   {/* Delete Glass button */}
-                                  <button 
-                                    type="button" 
-                                    onClick={() => removeImage(i)} 
-                                    className="absolute top-2 right-2 p-1.5 bg-black/60 backdrop-blur-md hover:bg-red-600 text-white rounded-full transition-all z-10 cursor-pointer shadow-sm opacity-100"
-                                    title={language === 'ar' ? 'حذف' : 'Delete'}
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => removeImage(i)}
+                                      className="p-2 rounded-xl bg-red-500/80 hover:bg-red-600 text-white transition-all transform hover:scale-110 active:scale-95 shadow-md cursor-pointer"
+                                      title={language === 'ar' ? 'حذف' : 'Delete'}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
                                 
                                  {/* Rearrange buttons under the image card */}
@@ -3312,7 +3346,11 @@ export default function Admin() {
                             )}
                             
                             <span className="font-bold text-sm text-muted-foreground">
-                              {isUploadingDocs ? (language === 'ar' ? 'جاري معالجة الملفات...' : 'Processing Files...') : (language === 'ar' ? 'اضغط لرفع ملفات PDF أو مستندات العقار' : 'Click to upload PDF or property documents')}
+                              {isUploadingDocs 
+                                ? (language === 'ar' 
+                                    ? `جاري رفع المستندات... ${docUploadProgress !== null ? `${docUploadProgress}%` : ''}` 
+                                    : `Uploading Documents... ${docUploadProgress !== null ? `${docUploadProgress}%` : ''}`) 
+                                : (language === 'ar' ? 'اضغط لرفع ملفات PDF أو مستندات العقار' : 'Click to upload PDF or property documents')}
                             </span>
                           </label>
                         </div>
@@ -4206,6 +4244,7 @@ export default function Admin() {
                           } finally { setBackupLoading(false); }
                         }}
                         restoringDb={restoreLoading}
+                        restoreProgress={restoreProgress}
                         handleRestoreDatabase={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -4213,20 +4252,48 @@ export default function Admin() {
                           if (!confirmed) return;
                           setRestoreLoading(true);
                           setRestoreMessage(null);
+                          setRestoreProgress(0);
                           try {
                             const fd = new FormData();
                             fd.append('file', file);
-                            const res = await fetch('/api/admin/restore', { method: 'POST', body: fd });
-                            const data = await res.json();
-                            if (res.ok) {
-                              setRestoreMessage({ type: 'success', text: language === 'ar' ? 'تمت الاستعادة بنجاح. أعد تحميل الصفحة.' : 'Restore successful! Please reload the page.' });
-                            } else {
-                              setRestoreMessage({ type: 'error', text: data.error || 'Restore failed' });
-                            }
+                            await new Promise<void>((resolve, reject) => {
+                              const xhr = new XMLHttpRequest();
+                              xhr.open('POST', '/api/admin/restore');
+                              xhr.upload.onprogress = (evt) => {
+                                if (evt.lengthComputable) {
+                                  setRestoreProgress(Math.round((evt.loaded / evt.total) * 100));
+                                }
+                              };
+                              xhr.onload = () => {
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                  try {
+                                    setRestoreMessage({ type: 'success', text: language === 'ar' ? 'تمت الاستعادة بنجاح. أعد تحميل الصفحة.' : 'Restore successful! Please reload the page.' });
+                                    resolve();
+                                  } catch (err) {
+                                    reject(err);
+                                  }
+                                } else {
+                                  try {
+                                    const data = JSON.parse(xhr.responseText);
+                                    setRestoreMessage({ type: 'error', text: data.error || 'Restore failed' });
+                                    resolve();
+                                  } catch (_) {
+                                    setRestoreMessage({ type: 'error', text: 'Restore failed' });
+                                    resolve();
+                                  }
+                                }
+                              };
+                              xhr.onerror = () => {
+                                setRestoreMessage({ type: 'error', text: 'Network error' });
+                                reject(new Error('Network error'));
+                              };
+                              xhr.send(fd);
+                            });
                           } catch (err) {
-                            setRestoreMessage({ type: 'error', text: 'Network error' });
+                            console.error(err);
                           } finally {
                             setRestoreLoading(false);
+                            setRestoreProgress(null);
                             e.target.value = '';
                           }
                         }}
