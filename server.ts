@@ -5101,6 +5101,7 @@ async function startServer() {
   });
 
   // POST /api/admin/restore  → accepts multipart upload of a .zip containing a db-data.json file and uploads/ folder
+  const BACKUP_RESTORE_MAX_MB = 1024;
   const restoreUpload = multer({
     storage: multer.diskStorage({
       destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
