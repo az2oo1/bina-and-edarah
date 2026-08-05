@@ -776,7 +776,7 @@ const homeVideoUpload = multer({
   limits: { fileSize: 500 * 1024 * 1024 }
 });
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
 
 const s3Client = new S3Client({
   endpoint: process.env.S3_ENDPOINT || "http://rustfs_storage:9000",
@@ -789,6 +789,20 @@ const s3Client = new S3Client({
 });
 
 const S3_BUCKET = process.env.S3_BUCKET || "bina-assets";
+
+// Ensure bucket exists in RustFS / MinIO on startup
+(async () => {
+  try {
+    await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
+  } catch (_) {
+    try {
+      await s3Client.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
+      logger.info(`Created RustFS bucket '${S3_BUCKET}'`);
+    } catch (e) {
+      logger.warn(`Could not auto-create RustFS bucket '${S3_BUCKET}':`, (e as any)?.message);
+    }
+  }
+})();
 
 function uploadToStorage(buffer: Buffer, filename: string, contentType: string): string {
   // Always save locally to ensure availability via static express server
@@ -5115,20 +5129,55 @@ async function startServer() {
 
   app.post("/api/admin/restore", requirePermission('settings'), restoreUpload.single('file'), async (req, res) => {
     let tempFilePath: string | null = null;
+    const tempExtractDir = path.join(UPLOADS_DIR, `extract_${crypto.randomUUID()}`);
     try {
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
       tempFilePath = req.file.path;
 
       let dbData: any = null;
-      let zip: AdmZip | null = null;
 
       if (req.file.originalname.toLowerCase().endsWith('.zip')) {
-        zip = new AdmZip(tempFilePath);
-        const entry = zip.getEntries().find(e => e.entryName === 'db-data.json');
-        if (!entry) {
+        const zip = new AdmZip(tempFilePath);
+        const jsonEntry = zip.getEntries().find(e => e.entryName === 'db-data.json');
+        if (!jsonEntry) {
           return res.status(400).json({ error: 'No db-data.json file found inside uploaded ZIP' });
         }
-        dbData = JSON.parse(entry.getData().toString('utf8'));
+
+        // Extract db-data.json to disk first to avoid Node buffer limits
+        fs.mkdirSync(tempExtractDir, { recursive: true });
+        zip.extractEntryTo(jsonEntry, tempExtractDir, false, true);
+
+        const extractedJsonPath = path.join(tempExtractDir, 'db-data.json');
+        const jsonText = fs.readFileSync(extractedJsonPath, 'utf8');
+        dbData = JSON.parse(jsonText);
+
+        // Extract all media files directly to UPLOADS_DIR
+        const mediaEntries = zip.getEntries().filter(e => e.entryName.startsWith('uploads/') && !e.isDirectory);
+        for (const entry of mediaEntries) {
+          const filename = path.basename(entry.entryName);
+          if (!filename) continue;
+          try {
+            zip.extractEntryTo(entry, UPLOADS_DIR, false, true);
+            const targetPath = path.join(UPLOADS_DIR, filename);
+
+            // Async sync restored file to RustFS S3
+            if (fs.existsSync(targetPath)) {
+              const ext = path.extname(filename).toLowerCase();
+              const contentType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.mp4' ? 'video/mp4' : 'image/jpeg';
+              const stream = fs.createReadStream(targetPath);
+              s3Client.send(new PutObjectCommand({
+                Bucket: S3_BUCKET,
+                Key: filename,
+                Body: stream,
+                ContentType: contentType
+              })).catch(err => {
+                logger.warn(`Failed to sync restored file ${filename} to RustFS:`, err?.message || err);
+              });
+            }
+          } catch (extErr) {
+            logger.warn(`Failed extracting entry ${filename}:`, extErr);
+          }
+        }
       } else if (req.file.originalname.toLowerCase().endsWith('.json')) {
         const fileContent = fs.readFileSync(tempFilePath, 'utf8');
         dbData = JSON.parse(fileContent);
@@ -5138,40 +5187,6 @@ async function startServer() {
 
       if (!dbData) {
         return res.status(400).json({ error: 'Failed to read backup data' });
-      }
-
-      // 1. Restore uploads folder files and sync to RustFS S3 with low memory overhead
-      if (zip) {
-        const entries = zip.getEntries();
-        for (const entry of entries) {
-          if (entry.entryName.startsWith('uploads/') && !entry.isDirectory) {
-            const filename = path.basename(entry.entryName);
-            if (!filename) continue;
-            const targetPath = path.join(UPLOADS_DIR, filename);
-
-            try {
-              // Extract entry to disk file first to save memory
-              zip.extractEntryTo(entry, UPLOADS_DIR, false, true);
-
-              // Async sync restored file from disk stream to RustFS S3
-              if (fs.existsSync(targetPath)) {
-                const ext = path.extname(filename).toLowerCase();
-                const contentType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.mp4' ? 'video/mp4' : 'image/jpeg';
-                const stream = fs.createReadStream(targetPath);
-                s3Client.send(new PutObjectCommand({
-                  Bucket: S3_BUCKET,
-                  Key: filename,
-                  Body: stream,
-                  ContentType: contentType
-                })).catch(err => {
-                  logger.warn(`Failed to sync restored file ${filename} to RustFS:`, err?.message || err);
-                });
-              }
-            } catch (extErr) {
-              logger.warn(`Failed extracting entry ${filename}:`, extErr);
-            }
-          }
-        }
       }
 
       // 2. Perform DB restore in a transaction
@@ -5270,11 +5285,14 @@ async function startServer() {
       await logAction(req, "RESTORE_BACKUP", `Restored site database from uploaded backup ZIP: ${req.file.originalname}`);
       res.json({ success: true, message: 'Database and uploads restored successfully. Please refresh the page.' });
     } catch (error) {
-      console.error('Restore error:', error);
+      logger.error('Restore endpoint error details:', error);
       res.status(500).json({ error: 'Restore failed: ' + (error as any)?.message });
     } finally {
       if (tempFilePath && fs.existsSync(tempFilePath)) {
         try { fs.unlinkSync(tempFilePath); } catch (_) {}
+      }
+      if (fs.existsSync(tempExtractDir)) {
+        try { fs.rmSync(tempExtractDir, { recursive: true, force: true }); } catch (_) {}
       }
     }
   });
