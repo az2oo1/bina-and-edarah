@@ -867,20 +867,20 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
   const getStatusBadge = (status: string) => {
     switch (status?.toUpperCase()) {
       case 'PENDING':
-        return { label: language === 'ar' ? 'معلق' : 'Pending', class: 'bg-amber-500 text-white font-extrabold shadow-md border border-amber-400/40' };
+        return { label: language === 'ar' ? 'معلق' : 'Pending', class: 'property-tag-amber' };
       case 'APPROVED':
-        return { label: language === 'ar' ? 'معتمد' : 'Approved', class: 'bg-indigo-600 text-white font-extrabold shadow-md border border-indigo-400/40' };
+        return { label: language === 'ar' ? 'معتمد' : 'Approved', class: 'property-tag-indigo' };
       case 'IN_PROGRESS':
-        return { label: language === 'ar' ? 'جاري المعالجة' : 'In Progress', class: 'bg-sky-500 text-white font-extrabold shadow-md border border-sky-400/40' };
+        return { label: language === 'ar' ? 'جاري المعالجة' : 'In Progress', class: 'property-tag' };
       case 'COMPLETED':
-        return { label: language === 'ar' ? 'مكتمل' : 'Completed', class: 'bg-emerald-500 text-white font-extrabold shadow-md border border-emerald-400/40' };
+        return { label: language === 'ar' ? 'مكتمل' : 'Completed', class: 'property-tag-emerald' };
       case 'REJECTED':
       case 'DENIED':
-        return { label: language === 'ar' ? 'مرفوض' : 'Denied', class: 'bg-rose-600 text-white font-extrabold shadow-md border border-rose-400/40' };
+        return { label: language === 'ar' ? 'مرفوض' : 'Denied', class: 'property-tag-rose' };
       case 'CANCELLED':
-        return { label: language === 'ar' ? 'ملغى' : 'Cancelled', class: 'bg-red-500 text-white font-extrabold shadow-md border border-red-400/40' };
+        return { label: language === 'ar' ? 'ملغى' : 'Cancelled', class: 'property-tag-rose' };
       default:
-        return { label: status, class: 'bg-slate-700 text-white font-extrabold border border-slate-500/40' };
+        return { label: status, class: 'property-tag' };
     }
   };
 

@@ -398,7 +398,7 @@ export default function Properties() {
               placeholder={language === 'ar' ? 'بحث عن عقار...' : 'Search properties...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
+              className="input-field w-full bg-background border border-border hover:border-primary/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-foreground outline-none transition-all shadow-xs placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
             />
             <CustomSelect
               value={typeFilter}
@@ -442,14 +442,14 @@ export default function Properties() {
               placeholder={language === 'ar' ? 'السعر الأدنى' : 'Min Price'}
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
+              className="input-field w-full bg-background border border-border hover:border-primary/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-foreground outline-none transition-all shadow-xs placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
             />
             <input
               type="number"
               placeholder={language === 'ar' ? 'السعر الأعلى' : 'Max Price'}
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
-              className="input-field w-full border border-input rounded-md px-3 py-1.5 text-sm"
+              className="input-field w-full bg-background border border-border hover:border-primary/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-foreground outline-none transition-all shadow-xs placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </div>
           {!parentIdParam && (
@@ -688,19 +688,19 @@ export default function Properties() {
                           <div className="h-4.5 w-20 bg-slate-200 dark:bg-zinc-800 animate-pulse rounded" />
                         ) : property.vatNotApplicable ? (
                           <div className="text-right">
-                             <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-semibold">
+                             <span className="property-tag-amber gap-1">
                                <Coins className="w-3 h-3 text-amber-600" /> {language === 'ar' ? 'غير مشمول بالضريبة' : 'VAT Not Applicable'}
                              </span>
                           </div>
                         ) : property.vatExempt ? (
                           <div className="text-right">
-                             <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-semibold">
+                             <span className="property-tag-amber gap-1">
                                <Coins className="w-3 h-3 text-amber-600" /> {language === 'ar' ? 'معفى من الضريبة' : 'VAT Exempt'}
                              </span>
                           </div>
                         ) : (property.vat && property.vat > 0 ? (
                           <div className="text-right">
-                             <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded text-[9px] font-semibold border border-primary/20">
+                             <span className="property-tag gap-1">
                                <Coins className="w-3 h-3" /> {language === 'ar' ? 'شامل الضريبة' : 'VAT Included'}
                              </span>
                           </div>

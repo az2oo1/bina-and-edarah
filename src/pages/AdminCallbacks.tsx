@@ -486,10 +486,6 @@ export default function AdminCallbacks() {
           <div>
             <h1 className="text-xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
               <span>{language === 'ar' ? 'مركز محادثات وتواصل العملاء' : 'Customer Messaging & Callbacks Hub'}</span>
-              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full border border-primary/20">
-                <Circle className="w-2 h-2 fill-primary text-primary animate-ping" />
-                <span>{language === 'ar' ? 'مباشر Real-time' : 'Real-time'}</span>
-              </span>
             </h1>
             <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {language === 'ar' 
@@ -524,7 +520,7 @@ export default function AdminCallbacks() {
                 <MessageSquare className="w-3.5 h-3.5 text-primary" />
                 <span>{language === 'ar' ? 'قائمة المحادثات' : 'Conversations'}</span>
               </span>
-              <span className="text-[10px] font-extrabold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full font-mono">
+              <span className="property-tag font-mono">
                 {filteredRequests.length}
               </span>
             </div>
@@ -612,11 +608,11 @@ export default function AdminCallbacks() {
                       </p>
 
                       <div className="flex items-center justify-between gap-2 mt-1">
-                        <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full border ${
-                          req.status === 'CLOSED' ? 'bg-slate-500/10 text-slate-600 border-slate-500/20' :
-                          req.status === 'STILL_GOING' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
-                          'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                        }`}>
+                        <span className={
+                          req.status === 'CLOSED' ? 'property-tag' :
+                          req.status === 'STILL_GOING' ? 'property-tag-emerald' :
+                          'property-tag-amber'
+                        }>
                           {req.status === 'CLOSED' ? (language === 'ar' ? 'مغلق' : 'Closed') :
                            req.status === 'STILL_GOING' ? (language === 'ar' ? 'نشط' : 'Active') :
                            (language === 'ar' ? 'معلق' : 'Pending')}

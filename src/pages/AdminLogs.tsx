@@ -90,11 +90,11 @@ export default function AdminLogs() {
   };
 
   const getActionBadgeColor = (action: string) => {
-    if (action.startsWith('ADD')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    if (action.startsWith('UPDATE')) return 'bg-sky-50 text-sky-700 border-sky-200';
-    if (action.startsWith('DELETE')) return 'bg-red-50 text-red-700 border-red-200';
-    if (action.includes('RESTORE')) return 'bg-amber-50 text-amber-700 border-amber-200';
-    return 'bg-slate-100 text-slate-800 border-slate-200';
+    if (action.startsWith('ADD')) return 'property-tag-emerald';
+    if (action.startsWith('UPDATE')) return 'property-tag';
+    if (action.startsWith('DELETE')) return 'property-tag-rose';
+    if (action.includes('RESTORE')) return 'property-tag-amber';
+    return 'property-tag';
   };
 
   return (
@@ -187,7 +187,7 @@ export default function AdminLogs() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center border px-2 py-0.5 rounded text-[10px] font-semibold ${getActionBadgeColor(log.action)}`}>
+                      <span className={getActionBadgeColor(log.action)}>
                         {getActionLabel(log.action)}
                       </span>
                     </td>

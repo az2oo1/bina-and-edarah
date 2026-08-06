@@ -299,11 +299,11 @@ export default function Projects() {
                           />
                         </div>
 
-                        {/* Content Panel (55% on desktop) */}
-                        <div className="lg:w-[55%] p-6 sm:p-8 flex flex-col justify-between text-right rtl:text-right ltr:text-left">
+                        {/* Content Panel */}
+                        <div className="lg:w-[55%] p-6 flex flex-col justify-between">
                           <div>
                             <div className="flex items-center justify-between mb-3.5">
-                              <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded border border-primary/15">
+                              <span className="property-tag">
                                 {t(`cat.${project.propertyCategory}`) || project.propertyCategory}
                               </span>
                               <div className="flex items-center text-muted-foreground gap-1 text-[11px]">
@@ -384,7 +384,7 @@ export default function Projects() {
                             className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500 select-none"
                           />
                           <div className="absolute top-3 right-3 rtl:right-auto rtl:left-3">
-                            <span className="bg-background/95 backdrop-blur-md text-[9px] font-bold text-muted-foreground px-2 py-0.5 rounded border border-border shadow-sm">
+                            <span className="property-tag">
                               {t(`cat.${project.propertyCategory}`) || project.propertyCategory}
                             </span>
                           </div>

@@ -572,28 +572,28 @@ export default function Login() {
     switch (status) {
       case 'PENDING':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+          <span className="property-tag-amber gap-1">
             <Clock className="w-3.5 h-3.5" />
             {language === 'ar' ? 'قيد الانتظار' : 'Pending'}
           </span>
         );
       case 'IN_PROGRESS':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20">
+          <span className="property-tag gap-1">
             <Wrench className="w-3.5 h-3.5" />
             {language === 'ar' ? 'جاري المعالجة' : 'In Progress'}
           </span>
         );
       case 'COMPLETED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+          <span className="property-tag-emerald gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" />
             {language === 'ar' ? 'مكتمل' : 'Completed'}
           </span>
         );
       case 'CANCELLED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-600 border border-red-500/20">
+          <span className="property-tag-rose gap-1">
             <XCircle className="w-3.5 h-3.5" />
             {language === 'ar' ? 'ملغى' : 'Cancelled'}
           </span>

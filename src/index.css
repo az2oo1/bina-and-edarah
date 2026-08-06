@@ -236,7 +236,7 @@
 }
 .btn-primary:active,
 .cn-button-variant-default:active {
-  transform: scale(0.96) translateY(1px) !important;
+  transform: none !important;
 }
 
 .btn-secondary {
@@ -253,10 +253,9 @@
   background-color: #ffffff;
   color: #0f172a;
   border: 1px solid #e2e8f0;
-  transition: transform 120ms ease-out, background-color 150ms ease, border-color 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease;
   cursor: pointer;
   box-shadow: none !important;
-  will-change: transform;
 }
 .dark .btn-secondary {
   background-color: #1e293b;
@@ -274,7 +273,7 @@
   color: #ffffff;
 }
 .btn-secondary:active {
-  transform: scale(0.96) translateY(1px) !important;
+  transform: none !important;
 }
 
 .btn-outline,
@@ -292,10 +291,9 @@
   background-color: transparent;
   color: #0066FF;
   border: 1px solid #0066FF;
-  transition: transform 120ms ease-out, background-color 150ms ease;
+  transition: background-color 150ms ease;
   cursor: pointer;
   box-shadow: none !important;
-  will-change: transform;
 }
 .btn-outline:hover,
 .cn-button-variant-outline:hover {
@@ -304,7 +302,7 @@
 }
 .btn-outline:active,
 .cn-button-variant-outline:active {
-  transform: scale(0.96) translateY(1px) !important;
+  transform: none !important;
 }
 
 .btn-ghost {
@@ -320,17 +318,16 @@
   padding-bottom: 0.5rem;
   background-color: transparent;
   color: var(--color-foreground);
-  transition: transform 120ms ease-out, background-color 150ms ease;
+  transition: background-color 150ms ease;
   cursor: pointer;
   box-shadow: none !important;
-  will-change: transform;
 }
 .btn-ghost:hover {
   background-color: var(--color-accent);
   color: var(--color-accent-foreground);
 }
 .btn-ghost:active {
-  transform: scale(0.96) translateY(1px) !important;
+  transform: none !important;
 }
 
 .btn-destructive {
@@ -346,24 +343,23 @@
   padding-bottom: 0.5rem;
   background-color: #dc2626 !important;
   color: #ffffff !important;
-  transition: transform 120ms ease-out, background-color 150ms ease;
+  transition: background-color 150ms ease;
   cursor: pointer;
   border: 1px solid transparent;
   box-shadow: none !important;
-  will-change: transform;
 }
 .btn-destructive:hover {
   background-color: #b91c1c !important;
 }
 .btn-destructive:active {
-  transform: scale(0.96) translateY(1px) !important;
+  transform: none !important;
 }
 
-/* Square-ish Rounded Property Tags (NOT pills, low height) */
-.property-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/* Square-ish Rounded Tags (Standardized across the entire app) */
+.property-tag, .app-tag, .badge-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   border-radius: 4px !important;
   padding: 0.125rem 0.5rem !important;
   line-height: 1.1 !important;
@@ -373,13 +369,100 @@
   color: #2563eb !important;
   border: 1px solid #bfdbfe !important;
   box-shadow: none !important;
-  white-space: nowrap;
+  white-space: nowrap !important;
 }
-.dark .property-tag {
+
+.dark .property-tag, .dark .app-tag, .dark .badge-tag {
   background-color: #0f172a !important;
   color: #60a5fa !important;
   border: 1px solid #1e3a8a !important;
 }
+
+/* Tag Color Variants preserving exact signature shape and typography */
+.property-tag-emerald, .property-tag-success {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  padding: 0.125rem 0.5rem !important;
+  line-height: 1.1 !important;
+  font-size: 0.725rem !important;
+  font-weight: 700 !important;
+  background-color: #ecfdf5 !important;
+  color: #059669 !important;
+  border: 1px solid #a7f3d0 !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
+.dark .property-tag-emerald, .dark .property-tag-success {
+  background-color: rgba(6, 78, 59, 0.4) !important;
+  color: #34d399 !important;
+  border: 1px solid #065f46 !important;
+}
+
+.property-tag-amber, .property-tag-warning {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  padding: 0.125rem 0.5rem !important;
+  line-height: 1.1 !important;
+  font-size: 0.725rem !important;
+  font-weight: 700 !important;
+  background-color: #fffbeb !important;
+  color: #d97706 !important;
+  border: 1px solid #fde68a !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
+.dark .property-tag-amber, .dark .property-tag-warning {
+  background-color: rgba(120, 53, 15, 0.4) !important;
+  color: #fbbf24 !important;
+  border: 1px solid #92400e !important;
+}
+
+.property-tag-rose, .property-tag-danger {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  padding: 0.125rem 0.5rem !important;
+  line-height: 1.1 !important;
+  font-size: 0.725rem !important;
+  font-weight: 700 !important;
+  background-color: #fff1f2 !important;
+  color: #e11d48 !important;
+  border: 1px solid #fecdd3 !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
+.dark .property-tag-rose, .dark .property-tag-danger {
+  background-color: rgba(136, 19, 55, 0.4) !important;
+  color: #f43f5e !important;
+  border: 1px solid #9f1239 !important;
+}
+
+.property-tag-indigo {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  padding: 0.125rem 0.5rem !important;
+  line-height: 1.1 !important;
+  font-size: 0.725rem !important;
+  font-weight: 700 !important;
+  background-color: #eef2ff !important;
+  color: #4f46e5 !important;
+  border: 1px solid #c7d2fe !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
+.dark .property-tag-indigo {
+  background-color: rgba(30, 27, 75, 0.4) !important;
+  color: #818cf8 !important;
+  border: 1px solid #3730a3 !important;
+}
+
 
 .shadcn-card {
   border-radius: var(--radius-lg);
@@ -474,33 +557,37 @@
   color: var(--foreground);
   display: flex;
 }
-.cn-input {
+.cn-input, .input-field {
   display: flex;
-  height: 2.5rem;
   width: 100%;
-  border-radius: var(--radius);
+  border-radius: 0.75rem !important; /* rounded-xl (12px) matching CustomSelect dropdown button */
   border: 1px solid var(--border);
   background-color: var(--background);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
+  padding: 0.625rem 0.875rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
   color: var(--foreground);
-  transition: all 0.2s;
+  transition: all 0.2s ease-out;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.cn-input:hover, .input-field:hover {
+  border-color: var(--primary);
 }
 select option {
   background-color: var(--card);
   color: var(--foreground);
 }
-.cn-input:focus {
+.cn-input:focus, .input-field:focus {
   outline: none;
-  border-color: var(--ring);
-  box-shadow: 0 0 0 1.5px var(--ring);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1.5px var(--primary);
 }
 .cn-textarea {
   display: flex;
   min-height: 10rem;
   height: auto;
   width: 100%;
-  border-radius: var(--radius);
+  border-radius: 0.75rem !important; /* rounded-xl (12px) matching CustomSelect dropdown button */
   border: 1px solid var(--border);
   background-color: var(--background);
   padding: 0.75rem;
@@ -513,8 +600,8 @@ select option {
 }
 .cn-textarea:focus {
   outline: none;
-  border-color: var(--ring);
-  box-shadow: 0 0 0 1.5px var(--ring);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1.5px var(--primary);
 }
 .cn-button {
   display: inline-flex;

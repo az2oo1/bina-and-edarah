@@ -53,7 +53,7 @@ export const BackupSettingsTab: React.FC<BackupSettingsTabProps> = ({
             type="button"
             onClick={handleExportDatabase}
             disabled={exportingDb}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs px-5 py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+            className="w-full btn-primary py-3 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {exportingDb ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             <span>{language === 'ar' ? 'تصدير وتحميل النسخة الآن' : 'Export & Download Backup'}</span>
@@ -63,7 +63,7 @@ export const BackupSettingsTab: React.FC<BackupSettingsTabProps> = ({
         {/* Restore Card */}
         <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-4">
           <div className="space-y-2">
-            <div className="w-12 h-12 bg-amber-500/10 text-amber-600 rounded-2xl flex items-center justify-center mb-2">
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-2">
               <Upload className="w-6 h-6" />
             </div>
             <h4 className="font-bold text-sm text-foreground">
@@ -84,7 +84,7 @@ export const BackupSettingsTab: React.FC<BackupSettingsTabProps> = ({
               disabled={restoringDb}
               className="hidden"
             />
-            <div className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50">
+            <div className="w-full btn-outline py-3 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
               {restoringDb ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               <span>
                 {restoringDb

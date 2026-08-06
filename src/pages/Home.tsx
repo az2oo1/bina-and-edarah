@@ -403,7 +403,7 @@ export default function Home() {
                       isEven ? 'lg:order-1' : ''
                     }`}>
                       {/* Category */}
-                      <span className="text-[10px] font-extrabold text-[#0071e3] uppercase tracking-widest mb-3">
+                      <span className="property-tag mb-3">
                         {t(`cat.${project.propertyCategory}`)}
                       </span>
                       

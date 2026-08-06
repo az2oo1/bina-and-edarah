@@ -433,13 +433,13 @@ export default function PropertyDetails() {
                       style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
                     />
                       <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-10 select-none flex items-center gap-1.5">
-                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold shadow-2xs backdrop-blur-xs border ${
-                          isSold ? 'bg-rose-50/95 dark:bg-rose-950/90 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/80' :
-                          isRented ? 'bg-amber-50/95 dark:bg-amber-950/90 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/80' :
-                          unit.type === 'SALE' ? 'bg-emerald-50/95 dark:bg-emerald-950/90 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/80' :
-                          isAvailable ? 'bg-sky-50/95 dark:bg-sky-950/90 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800/80' :
-                          'bg-gray-50/95 dark:bg-gray-900/90 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800/80'
-                        }`}>
+                        <span className={
+                          isSold ? 'property-tag-rose' :
+                          isRented ? 'property-tag-amber' :
+                          unit.type === 'SALE' ? 'property-tag' :
+                          isAvailable ? 'property-tag' :
+                          'property-tag'
+                        }>
                           {isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
                            isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
                            unit.type === 'SALE' ? (language === 'ar' ? 'للبيع' : 'For Sale') :
@@ -490,7 +490,7 @@ export default function PropertyDetails() {
                                 {filteredTags.slice(0, 3).map((detail, idx) => (
                                   <span 
                                     key={idx} 
-                                    className="inline-flex items-center gap-1 bg-muted/40 hover:bg-muted/70 border border-border/30 px-2 py-0.5 rounded-lg text-[9.5px] font-bold text-muted-foreground transition-all duration-150"
+                                    className="property-tag gap-1"
                                   >
                                     {detail.icon && (LucideIcons as any)[detail.icon] ? (
                                       (() => {
@@ -504,7 +504,7 @@ export default function PropertyDetails() {
                                   </span>
                                 ))}
                                 {filteredTags.length > 3 && (
-                                  <span className="inline-flex items-center bg-muted/40 border border-border/30 px-2 py-0.5 rounded-lg text-[9.5px] font-bold text-muted-foreground">
+                                  <span className="property-tag">
                                     +{filteredTags.length - 3}
                                   </span>
                                 )}

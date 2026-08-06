@@ -40,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   ...props
 }, ref) => {
 
-  const baseStyles = "inline-flex items-center justify-center font-medium rounded-full transition-all duration-100 ease-out select-none focus:outline-none disabled:opacity-50 disabled:pointer-events-none active:scale-[0.96] active:translate-y-[1px] will-change-transform";
+  const baseStyles = "inline-flex items-center justify-center font-medium rounded-full transition-colors duration-100 ease-out select-none focus:outline-none disabled:opacity-50 disabled:pointer-events-none";
 
   const sizeStyles: Record<ButtonSize, string> = {
     sm: "h-8 px-4 text-xs gap-1.5 min-w-[5rem]",

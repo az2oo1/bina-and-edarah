@@ -1914,19 +1914,19 @@ export default function Admin() {
                             {language === 'ar' ? selectedParentProperty.titleAr : selectedParentProperty.titleEn}
                           </h3>
                           {(selectedParentProperty.renterName || selectedParentProperty.status === 'RENTED' || (selectedParentUnits.length > 0 && selectedParentUnits.every(u => u.status === 'RENTED' || !!u.renterName))) ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                            <span className="property-tag-amber">
                               {language === 'ar' ? 'مؤجر' : 'Rented'}
                             </span>
                           ) : selectedParentProperty.status === 'SOLD' ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                            <span className="property-tag-rose">
                               {language === 'ar' ? 'مباع' : 'Sold'}
                             </span>
                           ) : selectedParentProperty.type === 'SALE' ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                            <span className="property-tag-indigo">
                               {language === 'ar' ? 'للبيع' : 'For Sale'}
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                            <span className="property-tag font-bold">
                               {language === 'ar' ? 'للإيجار' : 'For Rent'}
                             </span>
                           )}
@@ -2273,7 +2273,7 @@ export default function Admin() {
                         <th className="p-4 font-bold ltr:rounded-tl-xl rtl:rounded-tr-xl">#</th>
                         <th className="p-4 font-bold">{language === 'ar' ? 'اسم العقار / المبنى' : 'Title (Ar/En)'}</th>
                         <th className="p-4 font-bold text-center">{language === 'ar' ? 'النوع والحالة' : 'Type & Status'}</th>
-                        <th className="p-4 font-bold">{t('admin.placeholder.price')}</th>
+                        <th className="p-4 font-bold">{language === 'ar' ? 'الوحدات / السعر' : 'Units / Price'}</th>
                         <th className="p-4 font-bold text-center">{language === 'ar' ? 'المستأجر' : 'Renter'}</th>
                         <th className="p-4 font-bold text-center ltr:rounded-tr-xl rtl:rounded-tl-xl">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
                       </tr>
@@ -2300,47 +2300,53 @@ export default function Admin() {
                                   </p>
                                 </div>
                                 <p className="text-[10px] text-muted-foreground font-sans mt-0.5" dir="ltr">{property.titleEn}</p>
-                                {subUnits.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedParentProperty(property)}
-                                    className="inline-flex items-center gap-1.5 text-primary text-[10px] font-bold mt-1 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full hover:bg-primary/15 transition-all cursor-pointer font-sans"
-                                  >
-                                    <Building2 className="w-3 h-3" />
-                                    <span>
-                                      {language === 'ar' ? `عرض وإدارة الوحدات (${subUnits.length})` : `Manage Units (${subUnits.length})`}
-                                    </span>
-                                  </button>
-                                )}
                               </td>
                               <td className="p-4 text-center">
                                 {isPropertyRented ? (
-                                  <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                  <span className="property-tag-amber">
                                     {language === 'ar' ? 'مؤجر' : 'Rented'}
                                   </span>
                                 ) : isPropertySold ? (
-                                  <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                  <span className="property-tag-rose">
                                     {language === 'ar' ? 'مباع' : 'Sold'}
                                   </span>
                                 ) : property.type === 'SALE' ? (
-                                  <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                  <span className="property-tag-indigo">
                                     {language === 'ar' ? 'للبيع' : 'For Sale'}
                                   </span>
                                 ) : (
-                                  <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1 shadow-2xs">
+                                  <span className="property-tag">
                                     {language === 'ar' ? 'للإيجار' : 'For Rent'}
                                   </span>
                                 )}
                               </td>
-                              <td className="px-4 py-3 font-semibold text-xs text-foreground font-mono flex items-center gap-1.5 justify-start">
-                                {property.price > 0 ? (
-                                  <>
+                              <td className="px-4 py-3 font-semibold text-xs text-foreground font-mono">
+                                {subUnits.length > 0 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedParentProperty(property)}
+                                    className="inline-flex items-center gap-1.5 text-primary text-[11px] font-bold bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full hover:bg-primary/15 transition-all cursor-pointer font-sans"
+                                  >
+                                    <Building2 className="w-3.5 h-3.5" />
+                                    <span>
+                                      {language === 'ar' ? `عرض وإدارة الوحدات (${subUnits.length})` : `Manage Units (${subUnits.length})`}
+                                    </span>
+                                  </button>
+                                ) : property.price > 0 ? (
+                                  <span className="font-semibold text-xs text-foreground font-mono inline-flex items-center gap-1">
                                     {property.price.toLocaleString()} <SrIcon className="w-4 h-4 text-muted-foreground" />
-                                  </>
-                                ) : (
-                                  <span className="text-[10px] text-muted-foreground font-bold font-sans">
-                                    {language === 'ar' ? 'عرض الوحدات' : 'Show Units'}
                                   </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedParentProperty(property)}
+                                    className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary text-[11px] font-bold bg-muted/50 border border-border px-2.5 py-1 rounded-full hover:bg-primary/10 hover:border-primary/20 transition-all cursor-pointer font-sans"
+                                  >
+                                    <Building2 className="w-3.5 h-3.5" />
+                                    <span>
+                                      {language === 'ar' ? 'عرض وإدارة الوحدات (0)' : 'Manage Units (0)'}
+                                    </span>
+                                  </button>
                                 )}
                               </td>
                               <td className="p-4 text-center">
