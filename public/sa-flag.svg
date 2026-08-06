@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600">
+  <rect width="900" height="600" fill="#006C35"/>
+  <g fill="#FFFFFF">
+    <!-- Sword -->
+    <path d="M680 395 H210 V415 H680 Z M220 405 L175 385 V425 Z M660 380 H690 V430 H660 Z M630 385 H650 V425 H630 Z"/>
+    <!-- Shahada Calligraphy -->
+    <text x="450" y="325" font-size="140" font-weight="900" text-anchor="middle" font-family="'Amiri', 'Traditional Arabic', 'Scheherazade New', serif" letter-spacing="2">لا إله إلا الله محمد رسول الله</text>
+  </g>
+</svg>

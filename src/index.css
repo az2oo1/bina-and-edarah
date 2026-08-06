@@ -236,7 +236,7 @@
 }
 .btn-primary:active,
 .cn-button-variant-default:active {
-  transform: none !important;
+  transform: scale(0.97) !important;
 }
 
 .btn-secondary {
@@ -253,9 +253,10 @@
   background-color: #ffffff;
   color: #0f172a;
   border: 1px solid #e2e8f0;
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition: transform 120ms ease-out, background-color 150ms ease, border-color 150ms ease;
   cursor: pointer;
   box-shadow: none !important;
+  will-change: transform;
 }
 .dark .btn-secondary {
   background-color: #1e293b;
@@ -273,7 +274,7 @@
   color: #ffffff;
 }
 .btn-secondary:active {
-  transform: none !important;
+  transform: scale(0.97) !important;
 }
 
 .btn-outline,
@@ -291,9 +292,10 @@
   background-color: transparent;
   color: #0066FF;
   border: 1px solid #0066FF;
-  transition: background-color 150ms ease;
+  transition: transform 120ms ease-out, background-color 150ms ease;
   cursor: pointer;
   box-shadow: none !important;
+  will-change: transform;
 }
 .btn-outline:hover,
 .cn-button-variant-outline:hover {
@@ -302,7 +304,7 @@
 }
 .btn-outline:active,
 .cn-button-variant-outline:active {
-  transform: none !important;
+  transform: scale(0.97) !important;
 }
 
 .btn-ghost {
@@ -719,8 +721,14 @@ html {
 
 /* Chrome, Safari, and Edge */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 ::-webkit-scrollbar-track {
@@ -737,15 +745,21 @@ html {
   background: var(--primary);
 }
 
-/* Custom Scrollbar for horizontal lists */
+/* Custom Scrollbar for selectors and dropdown lists */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 40%, transparent) transparent;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
+  height: 5px;
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {

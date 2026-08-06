@@ -65,7 +65,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 left-0 top-full mt-1 z-50 bg-card border border-border rounded-xl shadow-lg p-1 max-h-60 overflow-y-auto space-y-0.5 animate-in fade-in-50 zoom-in-95">
+        <div className="absolute right-0 left-0 top-full mt-1 z-50 bg-card border border-border rounded-xl shadow-lg p-1 max-h-60 overflow-y-auto custom-scrollbar space-y-0.5 animate-in fade-in-50 zoom-in-95">
           {searchable && (
             <div className="p-1 mb-1 border-b border-border/60 sticky top-0 bg-card z-10">
               <div className="relative">

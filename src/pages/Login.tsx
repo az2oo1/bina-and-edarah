@@ -1923,27 +1923,35 @@ export default function Login() {
 
             <div data-slot="card-content" className="cn-card-content p-6 pt-2">
               {mode === 'renter' ? (
-                <form onSubmit={hasOtpSent ? handleRenterLogin : handleRequestOtp} className="space-y-4">
-                  <div data-slot="field-group" className="cn-field-group space-y-4">
+                <form onSubmit={hasOtpSent ? handleRenterLogin : handleRequestOtp} className="space-y-2.5">
+                  <div data-slot="field-group" className="cn-field-group space-y-2">
                     
-                    <div role="group" data-slot="field" className="cn-field space-y-1.5">
-                      <label data-slot="field-label" className="cn-label text-xs font-bold" htmlFor="phone-number">
-                        {language === 'ar' ? 'رقم الجوال' : 'Phone Number'}
-                      </label>
-                      <input 
-                        id="phone-number" 
-                        data-slot="input" 
-                        type="tel"
-                        required
-                        disabled={hasOtpSent}
-                        dir="ltr"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="0500000000"
-                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-mono text-foreground focus:ring-1 focus:ring-primary outline-none disabled:opacity-50"
-                      />
+                    <div role="group" data-slot="field" className="cn-field space-y-1">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          {language === 'ar' ? 'رقم الجوال' : 'Phone Number'}
+                        </span>
+                      </div>
+                      <div className="relative flex items-center w-full" dir="ltr">
+                        <div className="absolute inset-y-0 left-0 pl-3 pr-2.5 flex items-center pointer-events-none select-none border-r border-border/80 my-1.5 gap-2 z-10" dir="ltr">
+                          <img src="/sa-flag.png" alt="Saudi Arabia" className="w-5.5 h-3.5 object-contain rounded-xs shadow-2xs" />
+                          <span className="text-xs font-mono font-bold text-foreground" dir="ltr">+966</span>
+                        </div>
+                        <input 
+                          id="phone-number" 
+                          data-slot="input" 
+                          type="tel"
+                          required
+                          disabled={hasOtpSent}
+                          dir="ltr"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          placeholder="50 000 0000"
+                          className="w-full bg-background border border-border rounded-xl pl-24 pr-4 py-2.5 text-sm font-mono text-foreground focus:ring-1 focus:ring-primary outline-none disabled:opacity-50 text-left"
+                        />
+                      </div>
                       {!hasOtpSent && (
-                        <p className="text-[10px] mt-1.5 text-muted-foreground flex items-center gap-1.5">
+                        <p className="text-[10px] mt-1 text-muted-foreground flex items-center gap-1.5 px-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
                           {language === 'ar' ? 'سيتم إرسال رمز التحقق عبر الواتساب (WhatsApp)' : 'Verification code will be sent via WhatsApp'}
                         </p>
@@ -1951,15 +1959,15 @@ export default function Login() {
                     </div>
 
                     {hasOtpSent && (
-                      <div role="group" data-slot="field" className="cn-field space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label data-slot="field-label" className="cn-label text-xs font-bold" htmlFor="otp-code">
+                      <div role="group" data-slot="field" className="cn-field space-y-1">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] text-muted-foreground font-medium">
                             {language === 'ar' ? 'رمز التحقق (OTP)' : 'Verification Code (OTP)'}
-                          </label>
+                          </span>
                           <button 
                             type="button" 
                             onClick={() => { setHasOtpSent(false); setOtp(''); }} 
-                            className="text-xs text-primary hover:underline font-medium"
+                            className="text-xs text-primary hover:underline font-medium cursor-pointer"
                           >
                             {language === 'ar' ? 'تعديل الرقم' : 'Change Phone'}
                           </button>
@@ -1972,7 +1980,7 @@ export default function Login() {
                           dir="ltr"
                           value={otp}
                           onChange={(e) => setOtp(e.target.value)}
-                          placeholder="----"
+                          placeholder={language === 'ar' ? 'رمز التحقق (OTP)' : 'Enter OTP Code'}
                           maxLength={4}
                           className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm tracking-widest text-center font-mono text-foreground focus:ring-1 focus:ring-primary outline-none"
                         />
@@ -1981,10 +1989,10 @@ export default function Login() {
 
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-1">
                     <button 
                       type="submit" 
-                      className="w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-xl shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+                      className="btn-primary w-full py-2.5 text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-[0.97] transition-all"
                     >
                       <Lock className="w-4 h-4" />
                       {hasOtpSent ? (language === 'ar' ? 'تحقق ودخول' : 'Verify & Login') : (language === 'ar' ? 'إرسال الرمز' : 'Send Code')}
@@ -1992,13 +2000,10 @@ export default function Login() {
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleAdminLogin} className="space-y-4">
-                  <div data-slot="field-group" className="cn-field-group space-y-4">
+                <form onSubmit={handleAdminLogin} className="space-y-2.5">
+                  <div data-slot="field-group" className="cn-field-group space-y-2">
                     
-                    <div role="group" data-slot="field" className="cn-field space-y-1.5">
-                      <label data-slot="field-label" className="cn-label text-xs font-bold" htmlFor="username">
-                        {language === 'ar' ? 'اسم المستخدم' : 'Username'}
-                      </label>
+                    <div role="group" data-slot="field" className="cn-field">
                       <input 
                         id="username" 
                         data-slot="input" 
@@ -2006,16 +2011,12 @@ export default function Login() {
                         required
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
+                        placeholder={language === 'ar' ? 'اسم المستخدم' : 'Username'}
                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none"
                       />
                     </div>
 
-                    <div role="group" data-slot="field" className="cn-field space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label data-slot="field-label" className="cn-label text-xs font-bold" htmlFor="password">
-                          {language === 'ar' ? 'كلمة المرور' : 'Password'}
-                        </label>
-                      </div>
+                    <div role="group" data-slot="field" className="cn-field">
                       <input 
                         id="password" 
                         data-slot="input" 
@@ -2023,16 +2024,17 @@ export default function Login() {
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        placeholder={language === 'ar' ? 'كلمة المرور' : 'Password'}
                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none"
                       />
                     </div>
 
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-1">
                     <button 
                       type="submit" 
-                      className="w-full bg-primary text-primary-foreground font-bold py-3 px-4 rounded-xl shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+                      className="btn-primary w-full py-2.5 text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-[0.97] transition-all"
                     >
                       <Lock className="w-4 h-4" />
                       {language === 'ar' ? 'دخول موظفي الإدارة' : 'Staff Access Login'}
@@ -2047,7 +2049,7 @@ export default function Login() {
                 <button 
                   type="button" 
                   onClick={() => { setMode('admin'); setError(''); }} 
-                  className="w-full bg-muted hover:bg-muted/80 text-foreground font-bold py-2.5 px-4 rounded-xl border border-border transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer"
+                  className="w-full bg-muted hover:bg-muted/80 text-foreground font-bold py-2.5 px-4 rounded-full border border-border transition-all flex items-center justify-center gap-2 text-xs cursor-pointer shadow-xs active:scale-[0.98]"
                 >
                   <Lock className="w-4 h-4 text-amber-500" />
                   {language === 'ar' ? 'بوابة دخول موظفي الشركة' : 'Switch to Staff & Admin Login'}
@@ -2056,7 +2058,7 @@ export default function Login() {
                 <button 
                   type="button" 
                   onClick={() => { setMode('renter'); setError(''); }} 
-                  className="w-full bg-muted hover:bg-muted/80 text-foreground font-bold py-2.5 px-4 rounded-xl border border-border transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer"
+                  className="w-full bg-muted hover:bg-muted/80 text-foreground font-bold py-2.5 px-4 rounded-full border border-border transition-all flex items-center justify-center gap-2 text-xs cursor-pointer shadow-xs active:scale-[0.98]"
                 >
                   <Phone className="w-4 h-4 text-blue-500" />
                   {language === 'ar' ? 'العودة لبوابة المستأجرين' : 'Switch to Renter Portal'}

@@ -1055,8 +1055,16 @@ async function startServer() {
         return stream.pipe(res);
       }
       return next();
-    } catch (_err) {
-      // If object is not found in RustFS or S3 error occurs, fallback to local disk static file serving
+    } catch (err: any) {
+      const localFilePath = path.join(UPLOADS_DIR, filename);
+      const isConnError = err?.code === 'ECONNREFUSED' || err?.code === 'ENOTFOUND' || err?.name === 'TimeoutError' || err?.name === 'EndpointConnectionError' || (err?.message && String(err.message).toLowerCase().includes('fetch failed'));
+      
+      if (isConnError || !fs.existsSync(localFilePath)) {
+        logger.error(`RustFS connection failure or file missing:`, err?.message || err);
+        return res.status(503).json({
+          error: "وحدة تخزين RustFS غير متصلة. حدث خطأ ما (RustFS Object Storage is offline. Something went wrong.)"
+        });
+      }
       return next();
     }
   });
@@ -4980,14 +4988,19 @@ async function startServer() {
       }
 
       const videoBuffer = fs.readFileSync(path.join(UPLOADS_DIR, req.file.filename));
-      s3Client.send(new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: req.file.filename,
-        Body: videoBuffer,
-        ContentType: req.file.mimetype || 'video/mp4'
-      })).catch(err => {
-        logger.warn(`Failed to sync home video ${req.file?.filename} to RustFS Object Storage:`, err?.message || err);
-      });
+      try {
+        await s3Client.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: req.file.filename,
+          Body: videoBuffer,
+          ContentType: req.file.mimetype || 'video/mp4'
+        }));
+      } catch (s3Err: any) {
+        logger.error(`RustFS is offline during video upload:`, s3Err?.message || s3Err);
+        return res.status(503).json({
+          error: "وحدة تخزين RustFS غير متصلة. حدث خطأ ما أثناء رفع الفيديو (RustFS Object Storage is offline. Something went wrong.)"
+        });
+      }
 
       res.json({
         success: true,
@@ -4995,7 +5008,21 @@ async function startServer() {
       });
     } catch (error) {
       logger.error('Failed to upload home video', error);
-      res.status(500).json({ error: 'Failed to upload video' });
+      res.status(500).json({ error: 'Failed to upload video: ' + (error as any)?.message });
+    }
+  });
+
+  // RustFS Status Endpoint
+  app.get("/api/rustfs/status", async (_req, res) => {
+    try {
+      await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
+      res.json({ online: true, bucket: S3_BUCKET });
+    } catch (err: any) {
+      res.status(503).json({
+        online: false,
+        error: "وحدة تخزين RustFS غير متصلة. حدث خطأ ما (RustFS Object Storage is offline. Something went wrong.)",
+        details: err?.message
+      });
     }
   });
 
