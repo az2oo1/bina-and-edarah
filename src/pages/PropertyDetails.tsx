@@ -277,7 +277,7 @@ export default function PropertyDetails() {
   const visibleSubProperties = useMemo(() => {
     if (!property) return [];
     const subs = property.subProperties?.filter(unit => unit.status !== 'DRAFT' && unit.status !== 'HIDDEN' && unit.status !== 'RENTED' && unit.status !== 'SOLD') || [];
-    return subs.map(unit => {
+    const mapped = subs.map(unit => {
       let unitImages: string[] = [];
       try {
         if (unit.imageUrls) {
@@ -307,7 +307,23 @@ export default function PropertyDetails() {
         isRented: unit.status === 'RENTED'
       };
     });
-  }, [property?.subProperties, memoizedParsedData.parentImages]);
+
+    return mapped.sort((a, b) => {
+      const getUnitSortKey = (item: any) => {
+        const uName = item.unitDetails?.find((d: any) => {
+          if (!d || !d.key) return false;
+          const k = String(d.key).trim().toLowerCase();
+          return k === 'رقم الوحدة' || k === 'unit name' || k === 'unit number' || k === 'رقم الشقة' || k === 'شقة' || k === 'unit' || k === 'apartment number' || k === 'apt number';
+        })?.value || '';
+        const title = (language === 'ar' ? (item.titleAr || item.titleEn || '') : (item.titleEn || item.titleAr || '')).trim();
+        const hasUnitInTitle = uName ? title.toLowerCase().includes(String(uName).toLowerCase()) : false;
+        return (uName && !hasUnitInTitle ? `${uName} ${title}` : title).trim();
+      };
+      const keyA = getUnitSortKey(a);
+      const keyB = getUnitSortKey(b);
+      return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [property?.subProperties, memoizedParsedData.parentImages, language]);
 
   const mainUnitNumber = useMemo(() => {
     if (!property || !property.details) return '';

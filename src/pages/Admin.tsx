@@ -228,7 +228,29 @@ export default function Admin() {
     try {
       const res = await fetch(`/api/admin/properties?parentId=${parentId}`);
       const data = await res.json();
-      setSelectedParentUnits(Array.isArray(data) ? data : []);
+      if (Array.isArray(data)) {
+        const sorted = [...data].sort((a, b) => {
+          const getUnitName = (item: any) => {
+            let uName = '';
+            try {
+              const parsed = typeof item.details === 'string' ? JSON.parse(item.details || '[]') : item.details;
+              if (Array.isArray(parsed)) {
+                const match = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key === 'Unit Name' || d.key === 'unit number' || d.key === 'unit');
+                if (match?.value) uName = String(match.value);
+              }
+            } catch (_) {}
+            const title = (item.titleAr || item.titleEn || '').trim();
+            const hasUnitInTitle = uName ? title.toLowerCase().includes(uName.toLowerCase()) : false;
+            return (uName && !hasUnitInTitle ? `${uName} ${title}` : title).trim();
+          };
+          const keyA = getUnitName(a);
+          const keyB = getUnitName(b);
+          return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        setSelectedParentUnits(sorted);
+      } else {
+        setSelectedParentUnits([]);
+      }
     } catch (err) {
       console.error("Error fetching units:", err);
       setSelectedParentUnits([]);
@@ -539,8 +561,6 @@ export default function Admin() {
   // VerifyKit Settings State
   const [verifyKitEnabled, setVerifyKitEnabled] = useState(true);
   const [verifyKitAppKey, setVerifyKitAppKey] = useState('AxaVaO8JfW2OMj');
-  const [verifyKitServerKey, setVerifyKitServerKey] = useState('Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6');
-  const [showVerifyKitServerKey, setShowVerifyKitServerKey] = useState(false);
   const [verifyKitDomain, setVerifyKitDomain] = useState('https://rbmc.sa');
   const [verifyKitDeeplink, setVerifyKitDeeplink] = useState('vfk300403://welcome');
 
@@ -707,7 +727,6 @@ export default function Admin() {
       // Load VerifyKit Settings
       if (data.verifyKitEnabled !== undefined) setVerifyKitEnabled(data.verifyKitEnabled);
       if (data.verifyKitAppKey !== undefined) setVerifyKitAppKey(data.verifyKitAppKey || 'AxaVaO8JfW2OMj');
-      if (data.verifyKitServerKey !== undefined) setVerifyKitServerKey(data.verifyKitServerKey || 'Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6');
       if (data.verifyKitDomain !== undefined) setVerifyKitDomain(data.verifyKitDomain || 'https://rbmc.sa');
       if (data.verifyKitDeeplink !== undefined) setVerifyKitDeeplink(data.verifyKitDeeplink || 'vfk300403://welcome');
 
@@ -1612,7 +1631,6 @@ export default function Admin() {
         techhubSandboxMode,
         verifyKitEnabled,
         verifyKitAppKey,
-        verifyKitServerKey,
         verifyKitDomain,
         verifyKitDeeplink,
         authenticaEnabled,
@@ -2298,7 +2316,26 @@ export default function Admin() {
                     <tbody>
                       {properties.filter(p => !p.parentId).map((property, index) => {
                         const isExpanded = !!expandedParents[property.id];
-                        const subUnits = properties.filter(p => p.parentId === property.id);
+                        const subUnits = properties
+                          .filter(p => p.parentId === property.id)
+                          .sort((a, b) => {
+                            const getUnitName = (item: any) => {
+                              let uName = '';
+                              try {
+                                const parsed = typeof item.details === 'string' ? JSON.parse(item.details || '[]') : item.details;
+                                if (Array.isArray(parsed)) {
+                                  const match = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key === 'Unit Name' || d.key === 'unit number' || d.key === 'unit');
+                                  if (match?.value) uName = String(match.value);
+                                }
+                              } catch (_) {}
+                              const title = (item.titleAr || item.titleEn || '').trim();
+                              const hasUnitInTitle = uName ? title.toLowerCase().includes(uName.toLowerCase()) : false;
+                              return (uName && !hasUnitInTitle ? `${uName} ${title}` : title).trim();
+                            };
+                            const keyA = getUnitName(a);
+                            const keyB = getUnitName(b);
+                            return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+                          });
                         const isPropertyRented = property.status === 'RENTED' || !!property.renterName || (subUnits.length > 0 && subUnits.every(u => u.status === 'RENTED' || !!u.renterName));
                         const isPropertySold = property.status === 'SOLD';
 
@@ -3493,7 +3530,26 @@ export default function Admin() {
                         <div className="space-y-4">
                           {formData.subProperties && formData.subProperties.length > 0 ? (
                             <div className="border border-border rounded-xl overflow-hidden divide-y divide-border bg-card/30">
-                              {formData.subProperties.map((unit, index) => {
+                              {[...formData.subProperties]
+                                .sort((a, b) => {
+                                  const getUnitName = (item: any) => {
+                                    let uName = '';
+                                    try {
+                                      const parsed = typeof item.details === 'string' ? JSON.parse(item.details || '[]') : item.details;
+                                      if (Array.isArray(parsed)) {
+                                        const match = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key === 'Unit Name' || d.key === 'unit number' || d.key === 'unit');
+                                        if (match?.value) uName = String(match.value);
+                                      }
+                                    } catch (_) {}
+                                    const title = (item.titleAr || item.titleEn || '').trim();
+                                    const hasUnitInTitle = uName ? title.toLowerCase().includes(uName.toLowerCase()) : false;
+                                    return (uName && !hasUnitInTitle ? `${uName} ${title}` : title).trim();
+                                  };
+                                  const keyA = getUnitName(a);
+                                  const keyB = getUnitName(b);
+                                  return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+                                })
+                                .map((unit, index) => {
                                 let unitName = '';
                                 try {
                                   const parsed = JSON.parse(unit.details || '[]');
@@ -4159,10 +4215,6 @@ export default function Admin() {
                         setVerifyKitEnabled={setVerifyKitEnabled}
                         verifyKitAppKey={verifyKitAppKey}
                         setVerifyKitAppKey={setVerifyKitAppKey}
-                        verifyKitServerKey={verifyKitServerKey}
-                        setVerifyKitServerKey={setVerifyKitServerKey}
-                        showVerifyKitServerKey={showVerifyKitServerKey}
-                        setShowVerifyKitServerKey={setShowVerifyKitServerKey}
                         authenticaEnabled={authenticaEnabled}
                         setAuthenticaEnabled={setAuthenticaEnabled}
                         authenticaApiKey={authenticaApiKey}

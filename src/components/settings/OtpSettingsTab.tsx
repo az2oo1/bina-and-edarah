@@ -14,10 +14,6 @@ interface OtpSettingsTabProps {
   setVerifyKitEnabled: (val: boolean) => void;
   verifyKitAppKey: string;
   setVerifyKitAppKey: (val: string) => void;
-  verifyKitServerKey: string;
-  setVerifyKitServerKey: (val: string) => void;
-  showVerifyKitServerKey: boolean;
-  setShowVerifyKitServerKey: (val: boolean) => void;
   // Authentica Settings
   authenticaEnabled?: boolean;
   setAuthenticaEnabled?: (val: boolean) => void;
@@ -42,10 +38,6 @@ export const OtpSettingsTab: React.FC<OtpSettingsTabProps> = ({
   setVerifyKitEnabled,
   verifyKitAppKey,
   setVerifyKitAppKey,
-  verifyKitServerKey,
-  setVerifyKitServerKey,
-  showVerifyKitServerKey,
-  setShowVerifyKitServerKey,
   authenticaEnabled = true,
   setAuthenticaEnabled,
   authenticaApiKey = "$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG",
@@ -325,9 +317,9 @@ export const OtpSettingsTab: React.FC<OtpSettingsTabProps> = ({
         </div>
         
         {verifyKitEnabled && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border/40">
-            <div className="space-y-1.5">
-              <label className="cn-label">App Key (X-VKit-App-Key)</label>
+          <div className="pt-2 border-t border-border/40">
+            <div className="space-y-1.5 max-w-md">
+              <label className="cn-label">App Key / API Key (X-VKit-App-Key)</label>
               <input
                 type="text"
                 value={verifyKitAppKey}
@@ -335,26 +327,6 @@ export const OtpSettingsTab: React.FC<OtpSettingsTabProps> = ({
                 className="cn-input font-mono text-xs h-10 dir-ltr bg-background"
                 placeholder="AxaVaO8JfW2OMj"
               />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="cn-label">Server Key (X-VKit-Server-Key)</label>
-              <div className="relative">
-                <input
-                  type={showVerifyKitServerKey ? "text" : "password"}
-                  value={verifyKitServerKey}
-                  onChange={(e) => setVerifyKitServerKey(e.target.value)}
-                  className="cn-input font-mono text-xs h-10 dir-ltr bg-background pe-10"
-                  placeholder="Krfa4d5b5ad23e4551a8c200f72433cf..."
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowVerifyKitServerKey(!showVerifyKitServerKey)}
-                  className="absolute inset-y-0 end-0 flex items-center pe-3 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                >
-                  {showVerifyKitServerKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
             </div>
           </div>
         )}

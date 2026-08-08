@@ -3216,6 +3216,34 @@ async function startServer() {
         }
       });
 
+      // Determine if running in Development Mode
+      const isDevMode = 
+        process.env.DEV_MODE === 'true' || 
+        process.env.APP_ENV === 'development' || 
+        process.env.NODE_ENV === 'development';
+
+      if (isDevMode) {
+        // ==========================================
+        // 🛠️ DEV MODE:
+        // Use in-site notification dialog to provide the OTP code.
+        // Skip calling Authentica SMS service so no credits are consumed and no double message is sent.
+        // ==========================================
+        logger.info(`🛠️ [DEV MODE OTP] Phone: ${phone} (${normalizedPhone}) ---> Code: ${otp}. In-site notification active. Authentica SMS skipped.`);
+        console.log(`\n=====================================================\n🛠️ [DEV MODE OTP] Phone: ${phone} (${normalizedPhone}) ---> OTP CODE: ${otp}\nℹ️ Authentica SMS skipped in DEV mode. Code delivered via in-site notification.\n=====================================================\n`);
+        
+        return res.json({ 
+          success: true, 
+          devMode: true,
+          otp: otp, 
+          fakeOtpDelivery: otp 
+        });
+      }
+
+      // ==========================================
+      // 🚀 PRODUCTION MODE:
+      // Use Authentica SMS / WhatsApp Gateway Service.
+      // Do NOT send the OTP code back in the JSON response (no in-site popup).
+      // ==========================================
       const settings = await prisma.settings.findUnique({ where: { id: "global" } });
       const webhookUrl = settings?.otpWebhookUrl || process.env.WHATOMATE_WEBHOOK_URL;
 
@@ -3261,30 +3289,7 @@ async function startServer() {
         }
       }
 
-      // 2. VerifyKit Dispatch Integration
-      if (settings?.verifyKitEnabled && (settings?.verifyKitServerKey || settings?.verifyKitAppKey)) {
-        try {
-          const appKey = settings.verifyKitAppKey || "AxaVaO8JfW2OMj";
-          const serverKey = settings.verifyKitServerKey || "Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6";
-          await fetch("https://vapi.verifykit.com/v1/send-otp", {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-VKit-App-Key': appKey,
-              'X-VKit-Server-Key': serverKey
-            },
-            body: JSON.stringify({
-              phoneNumber: phone,
-              otp: otp
-            })
-          }).catch(() => {});
-          logger.info(`Dispatched OTP via VerifyKit for phone: ${phone}`);
-        } catch (vkitErr) {
-          console.error("VerifyKit request error:", vkitErr);
-        }
-      }
-
-      // 3. Webhook (Whatomate) Integration
+      // 2. Webhook (Whatomate) Integration
       if (webhookUrl) {
         try {
           let payloadStr = settings?.otpWebhookPayload;
@@ -3311,14 +3316,10 @@ async function startServer() {
         }
       }
 
-      console.log(`\n=====================================================\n🔑 [OTP CODE] Phone: ${phone} (${normalizedPhone}) ---> OTP CODE: ${otp}\n=====================================================\n`);
-      logger.info(`🔑 [OTP CODE] Phone: ${phone} (${normalizedPhone}) ---> OTP: ${otp}`);
+      console.log(`\n=====================================================\n🚀 [PROD OTP DISPATCHED] Phone: ${phone} (${normalizedPhone}) via Authentica Gateway\n=====================================================\n`);
+      logger.info(`🚀 [PROD OTP DISPATCHED] Phone: ${phone} (${normalizedPhone}) via Authentica`);
 
-      if (process.env.NODE_ENV === 'production') {
-        res.json({ success: true });
-      } else {
-        res.json({ success: true, otp: otp, fakeOtpDelivery: otp });
-      }
+      res.json({ success: true, devMode: false });
     } catch (error) {
       logger.error("Failed to process request-otp:", error);
       res.status(500).json({ error: "Failed to process OTP request" });
@@ -3498,7 +3499,12 @@ async function startServer() {
       allItemsMap.set(exactKey, item);
     }
 
-    return Array.from(allItemsMap.values());
+    const result = Array.from(allItemsMap.values());
+    return result.sort((a: any, b: any) => {
+      const nameA = `${a.propertyName || ''} ${a.unitNumber || ''}`.trim();
+      const nameB = `${b.propertyName || ''} ${b.unitNumber || ''}`.trim();
+      return nameA.localeCompare(nameB, 'ar', { numeric: true, sensitivity: 'base' });
+    });
   }
 
   // Dedicated Renter API: Get units & properties connected to a specific renter
@@ -3679,7 +3685,7 @@ async function startServer() {
             propertyAge: true,
             imageUrls: true
           },
-          orderBy: { createdAt: 'desc' }
+          orderBy: parentIdParam ? [{ titleAr: 'asc' }, { titleEn: 'asc' }] : { createdAt: 'desc' }
         });
 
         const parentIdsToFetch = mapProperties
@@ -3858,7 +3864,7 @@ async function startServer() {
             where,
             skip,
             take: limit,
-            orderBy: { createdAt: 'desc' }
+            orderBy: parentIdParam ? [{ titleAr: 'asc' }, { titleEn: 'asc' }] : { createdAt: 'desc' }
           }),
           prisma.property.count({ where })
         ]);
@@ -3902,7 +3908,7 @@ async function startServer() {
         // Standard full list request (backward compatible for Admin and Dashboard)
         const properties = await prisma.property.findMany({
           where,
-          orderBy: { createdAt: 'desc' }
+          orderBy: parentIdParam ? [{ titleAr: 'asc' }, { titleEn: 'asc' }] : { createdAt: 'desc' }
         });
 
         let enriched = [];
@@ -3949,7 +3955,10 @@ async function startServer() {
       const property = await prisma.property.findUnique({
         where: { id: req.params.id },
         include: {
-          subProperties: { where: { status: { notIn: ['DRAFT', 'HIDDEN', 'RENTED', 'SOLD'] } } },
+          subProperties: {
+            where: { status: { notIn: ['DRAFT', 'HIDDEN', 'RENTED', 'SOLD'] } },
+            orderBy: [{ titleAr: 'asc' }, { titleEn: 'asc' }]
+          },
           parent: true
         }
       });
@@ -4067,9 +4076,11 @@ async function startServer() {
 
       const properties = await prisma.property.findMany({
         where: whereClause,
-        orderBy: { createdAt: 'desc' },
+        orderBy: parentIdParam ? [{ titleAr: 'asc' }, { titleEn: 'asc' }] : { createdAt: 'desc' },
         include: {
-          subProperties: true,
+          subProperties: {
+            orderBy: [{ titleAr: 'asc' }, { titleEn: 'asc' }]
+          },
           parent: true
         }
       });
@@ -4094,7 +4105,12 @@ async function startServer() {
     try {
       const property = await prisma.property.findUnique({
         where: { id: req.params.id },
-        include: { subProperties: true, parent: true }
+        include: {
+          subProperties: {
+            orderBy: [{ titleAr: 'asc' }, { titleEn: 'asc' }]
+          },
+          parent: true
+        }
       });
       if (!property) return res.status(404).json({ error: "Property not found" });
 
@@ -4854,7 +4870,7 @@ async function startServer() {
       'addressAr', 'addressEn', 'addressMapLink', 'techhubEnabled',
       'techhubClientId', 'techhubClientSecret', 'techhubApiKey',
       'techhubSandboxMode', 'verifyKitEnabled', 'verifyKitAppKey',
-      'verifyKitServerKey', 'verifyKitDomain', 'verifyKitDeeplink',
+      'verifyKitDomain', 'verifyKitDeeplink',
       'authenticaEnabled', 'authenticaApiKey', 'authenticaMethod', 'authenticaTemplateId',
       'indexNowKey'
     ];
@@ -4936,7 +4952,7 @@ async function startServer() {
         notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, imapHost, imapPort, analyticsScript, analyticsDashboardUrl,
         addressAr, addressEn, addressMapLink,
         techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode,
-        verifyKitEnabled, verifyKitAppKey, verifyKitServerKey, verifyKitDomain, verifyKitDeeplink,
+        verifyKitEnabled, verifyKitAppKey, verifyKitDomain, verifyKitDeeplink,
         authenticaEnabled, authenticaApiKey, authenticaMethod, authenticaTemplateId
       } = req.body;
       
@@ -5010,7 +5026,6 @@ async function startServer() {
       // VerifyKit Settings
       if (verifyKitEnabled !== undefined) updateData.verifyKitEnabled = verifyKitEnabled;
       if (verifyKitAppKey !== undefined) updateData.verifyKitAppKey = verifyKitAppKey;
-      if (verifyKitServerKey !== undefined) updateData.verifyKitServerKey = verifyKitServerKey;
       if (verifyKitDomain !== undefined) updateData.verifyKitDomain = verifyKitDomain;
       if (verifyKitDeeplink !== undefined) updateData.verifyKitDeeplink = verifyKitDeeplink;
 
