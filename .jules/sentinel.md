@@ -40,3 +40,8 @@
 **Vulnerability:** Default admin creation backdoor in login route, hardcoded JWT_SECRET.
 **Learning:** Development conveniences (like auto-creating admins on login failure or defaulting JWT secrets) can leak into production and create permanent, critical vulnerabilities if not properly gated by environment variable checks or removed entirely before deployment.
 **Prevention:** Always require explicitly configured secrets and credentials. Never include unconditional `create` logic for admin accounts in unauthenticated routes, even as a fallback.
+
+## 2026-08-08 - Fallback to Default JWT Secret on Missing Environment Variable
+**Vulnerability:** The server falls back to a hardcoded `JWT_SECRET` ("bina-edara-jwt-secret-key-1337") and `S3_SECRET_KEY` ("rustfssecretkey") if the environment variables are missing. This completely invalidates the security of tokens generated.
+**Learning:** Hardcoded fallbacks for critical secrets in Node.js backends create severe vulnerability if an environment isn't fully configured. Attackers can guess tokens and forge signatures.
+**Prevention:** Rather than falling back to a hardcoded string, the application should throw an explicit error on startup if critical secrets like `JWT_SECRET` are not set.

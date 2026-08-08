@@ -25,9 +25,9 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
-if (!process.env.JWT_SECRET) {
-  console.warn("⚠️ [WARN] JWT_SECRET environment variable is not set. Using default fallback secret.");
+const JWT_SECRET = process.env.JWT_SECRET as string;
+if (!JWT_SECRET) {
+  throw new Error("CRITICAL: JWT_SECRET environment variable is missing.");
 }
 
 const LOG_FILE = fs.existsSync('/data') 
@@ -786,8 +786,8 @@ const s3Client = new S3Client({
   endpoint: s3Endpoint,
   region: process.env.S3_REGION || "us-east-1",
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY || "rustfsaccesskey",
-    secretAccessKey: process.env.S3_SECRET_KEY || "rustfssecretkey"
+    accessKeyId: process.env.S3_ACCESS_KEY as string,
+    secretAccessKey: process.env.S3_SECRET_KEY as string
   },
   forcePathStyle: true
 });
