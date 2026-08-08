@@ -633,7 +633,7 @@ export default function Login() {
           {/* HEADER BAR */}
           <div className="bg-card border border-border rounded-3xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-[#34505e] text-primary-foreground flex items-center justify-center font-black text-2xl shadow-md shrink-0">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-blue-600 text-primary-foreground flex items-center justify-center font-black text-2xl shadow-md shrink-0">
                 {renterName.charAt(0)}
               </div>
               <div>
@@ -657,7 +657,7 @@ export default function Login() {
               <button 
                 type="button"
                 onClick={() => openMaintenanceModal('new')}
-                className="flex-1 sm:flex-none bg-[#34505e] hover:bg-[#283e4a] text-primary-foreground transition-all shadow-md font-bold text-sm px-5 py-3 rounded-2xl flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                className="flex-1 sm:flex-none bg-gradient-to-r from-primary to-blue-600 text-primary-foreground hover:opacity-95 transition-all shadow-md font-bold text-sm px-5 py-3 rounded-2xl flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <Wrench className="w-4.5 h-4.5" />
                 <span>{language === 'ar' ? 'طلب صيانة جديد' : 'New Maintenance Request'}</span>
@@ -887,7 +887,7 @@ export default function Login() {
                 }}
                 className="bg-card border border-primary/20 hover:border-primary p-5 rounded-3xl shadow-sm hover:shadow-md transition-all text-right rtl:text-right ltr:text-left group cursor-pointer flex flex-col justify-between relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-[#34505e] to-[#283e4a]" />
+                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-primary to-blue-500" />
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Wrench className="w-6 h-6" />
@@ -1442,7 +1442,7 @@ export default function Login() {
                               <div className="pt-2">
                                 <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-2">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 rounded-full bg-[#34505e] text-white flex items-center justify-center font-bold text-xs">
+                                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
                                       <Wrench className="w-3.5 h-3.5" />
                                     </div>
                                     <span className="font-bold text-xs text-blue-900 dark:text-blue-200">

@@ -49,10 +49,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   };
 
   const variantStyles: Record<ButtonVariant, string> = {
-    // Primary Style: Flat Brand Teal-Slate Pill with white text (Zero shadow/glow)
-    primary: `bg-[#34505e] text-white 
-      ${isHoveredState ? 'bg-[#283e4a]' : 'hover:bg-[#283e4a]'} 
-      ${isFocusedState ? 'ring-2 ring-[#34505e] ring-offset-2 dark:ring-offset-slate-900' : 'focus-visible:ring-2 focus-visible:ring-[#34505e] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'}`,
+    // Primary Style: Flat Vibrant Blue Pill with white text (Zero shadow/glow)
+    primary: `bg-blue-600 text-white 
+      ${isHoveredState ? 'bg-blue-700' : 'hover:bg-blue-700'} 
+      ${isFocusedState ? 'ring-2 ring-blue-600 ring-offset-2 dark:ring-offset-slate-900' : 'focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'}`,
 
     // Secondary Style: Flat White Pill with thin border and dark text (Zero shadow/glow)
     secondary: `bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 
@@ -65,9 +65,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
       ${isFocusedState ? 'ring-2 ring-purple-600 ring-offset-2 dark:ring-offset-slate-900' : 'focus-visible:ring-2 focus-visible:ring-purple-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'}`,
 
     // Outline Style
-    outline: `bg-transparent text-[#34505e] dark:text-[#527788] border-2 border-[#34505e] dark:border-[#527788] 
-      ${isHoveredState ? 'bg-[#34505e]/10 dark:bg-[#527788]/10 text-[#283e4a] dark:text-slate-100' : 'hover:bg-[#34505e]/10 dark:hover:bg-[#527788]/10 hover:text-[#283e4a] dark:hover:text-slate-100'} 
-      ${isFocusedState ? 'ring-2 ring-[#34505e] ring-offset-2 dark:ring-offset-slate-900' : 'focus-visible:ring-2 focus-visible:ring-[#34505e] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'}`,
+    outline: `bg-transparent text-blue-600 dark:text-blue-400 border-2 border-blue-600 dark:border-blue-500 
+      ${isHoveredState ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300' : 'hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-700 dark:hover:text-blue-300'} 
+      ${isFocusedState ? 'ring-2 ring-blue-600 ring-offset-2 dark:ring-offset-slate-900' : 'focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900'}`,
 
     // Destructive / Danger Style
     destructive: `bg-red-600 text-white 
