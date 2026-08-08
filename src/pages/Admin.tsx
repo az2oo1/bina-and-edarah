@@ -529,6 +529,13 @@ export default function Admin() {
   const [techhubSandboxMode, setTechhubSandboxMode] = useState(true);
   const [, setSyncingTechHub] = useState(false);
 
+  // Authentica Settings State
+  const [authenticaEnabled, setAuthenticaEnabled] = useState(true);
+  const [authenticaApiKey, setAuthenticaApiKey] = useState('$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG');
+  const [showAuthenticaApiKey, setShowAuthenticaApiKey] = useState(false);
+  const [authenticaMethod, setAuthenticaMethod] = useState('sms');
+  const [authenticaTemplateId, setAuthenticaTemplateId] = useState('');
+
   // VerifyKit Settings State
   const [verifyKitEnabled, setVerifyKitEnabled] = useState(true);
   const [verifyKitAppKey, setVerifyKitAppKey] = useState('AxaVaO8JfW2OMj');
@@ -703,6 +710,12 @@ export default function Admin() {
       if (data.verifyKitServerKey !== undefined) setVerifyKitServerKey(data.verifyKitServerKey || 'Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6');
       if (data.verifyKitDomain !== undefined) setVerifyKitDomain(data.verifyKitDomain || 'https://rbmc.sa');
       if (data.verifyKitDeeplink !== undefined) setVerifyKitDeeplink(data.verifyKitDeeplink || 'vfk300403://welcome');
+
+      // Load Authentica Settings
+      if (data.authenticaEnabled !== undefined) setAuthenticaEnabled(data.authenticaEnabled);
+      if (data.authenticaApiKey !== undefined) setAuthenticaApiKey(data.authenticaApiKey || '$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG');
+      if (data.authenticaMethod !== undefined) setAuthenticaMethod(data.authenticaMethod || 'sms');
+      if (data.authenticaTemplateId !== undefined) setAuthenticaTemplateId(data.authenticaTemplateId || '');
     } catch (err) {
       console.error(err);
     }
@@ -1601,7 +1614,11 @@ export default function Admin() {
         verifyKitAppKey,
         verifyKitServerKey,
         verifyKitDomain,
-        verifyKitDeeplink
+        verifyKitDeeplink,
+        authenticaEnabled,
+        authenticaApiKey,
+        authenticaMethod,
+        authenticaTemplateId
       };
 
       if (activeSettingsSection === 'social') {
@@ -4146,6 +4163,16 @@ export default function Admin() {
                         setVerifyKitServerKey={setVerifyKitServerKey}
                         showVerifyKitServerKey={showVerifyKitServerKey}
                         setShowVerifyKitServerKey={setShowVerifyKitServerKey}
+                        authenticaEnabled={authenticaEnabled}
+                        setAuthenticaEnabled={setAuthenticaEnabled}
+                        authenticaApiKey={authenticaApiKey}
+                        setAuthenticaApiKey={setAuthenticaApiKey}
+                        showAuthenticaApiKey={showAuthenticaApiKey}
+                        setShowAuthenticaApiKey={setShowAuthenticaApiKey}
+                        authenticaMethod={authenticaMethod}
+                        setAuthenticaMethod={setAuthenticaMethod}
+                        authenticaTemplateId={authenticaTemplateId}
+                        setAuthenticaTemplateId={setAuthenticaTemplateId}
                       />
                     )}
 

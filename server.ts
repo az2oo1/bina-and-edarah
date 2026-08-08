@@ -3216,11 +3216,52 @@ async function startServer() {
         }
       });
 
-      // Send to Whatomate (or any other webhook)
       const settings = await prisma.settings.findUnique({ where: { id: "global" } });
       const webhookUrl = settings?.otpWebhookUrl || process.env.WHATOMATE_WEBHOOK_URL;
 
-      // VerifyKit Dispatch Integration
+      // 1. Authentica Saudi SMS & WhatsApp Gateway Integration
+      const authenticaKey = settings?.authenticaApiKey || process.env.AUTHENTICA_API_KEY || "$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG";
+      const authenticaEnabled = settings?.authenticaEnabled !== false;
+
+      if (authenticaEnabled && authenticaKey) {
+        try {
+          let authPhone = normalizedPhone;
+          if (!authPhone.startsWith('966')) {
+            authPhone = '966' + authPhone;
+          }
+          if (!authPhone.startsWith('+')) {
+            authPhone = '+' + authPhone;
+          }
+
+          const authMethod = (settings?.authenticaMethod || process.env.AUTHENTICA_METHOD || 'sms').toLowerCase();
+          const authPayload: any = {
+            method: authMethod,
+            phone: authPhone,
+            otp: otp,
+            number_of_digits: "4"
+          };
+          if (settings?.authenticaTemplateId) {
+            authPayload.template_id = settings.authenticaTemplateId;
+          }
+
+          const authRes = await fetch("https://api.authentica.sa/api/v2/send-otp", {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Authorization': authenticaKey
+            },
+            body: JSON.stringify(authPayload)
+          });
+
+          const authJson = await authRes.json().catch(() => ({}));
+          logger.info(`Dispatched OTP via Authentica to ${authPhone} (Status: ${authRes.status}):`, authJson);
+        } catch (authErr) {
+          logger.error("Authentica dispatch error:", authErr);
+        }
+      }
+
+      // 2. VerifyKit Dispatch Integration
       if (settings?.verifyKitEnabled && (settings?.verifyKitServerKey || settings?.verifyKitAppKey)) {
         try {
           const appKey = settings.verifyKitAppKey || "AxaVaO8JfW2OMj";
@@ -3243,6 +3284,7 @@ async function startServer() {
         }
       }
 
+      // 3. Webhook (Whatomate) Integration
       if (webhookUrl) {
         try {
           let payloadStr = settings?.otpWebhookPayload;
@@ -4811,7 +4853,10 @@ async function startServer() {
       'imapHost', 'imapPort', 'analyticsScript', 'analyticsDashboardUrl',
       'addressAr', 'addressEn', 'addressMapLink', 'techhubEnabled',
       'techhubClientId', 'techhubClientSecret', 'techhubApiKey',
-      'techhubSandboxMode', 'indexNowKey'
+      'techhubSandboxMode', 'verifyKitEnabled', 'verifyKitAppKey',
+      'verifyKitServerKey', 'verifyKitDomain', 'verifyKitDeeplink',
+      'authenticaEnabled', 'authenticaApiKey', 'authenticaMethod', 'authenticaTemplateId',
+      'indexNowKey'
     ];
 
     // Fallback: update fields one-by-one using raw SQL
@@ -4822,7 +4867,7 @@ async function startServer() {
       }
       const val = data[field];
       try {
-        if (typeof val === 'string' || typeof val === 'number') {
+        if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
           try {
             await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = ${val} WHERE id = 'global'`);
           } catch (e: any) {
@@ -4857,12 +4902,22 @@ async function startServer() {
       let settings = await getGlobalSettings();
       if (!settings) {
         try {
-          settings = await prisma.settings.create({ data: { id: "global", whatsappNumber: "966500000000", callingNumber: "966500000000", whatsappMessage: "مرحباً، أنا مهتم بهذا العقار: {title} - {link}" } });
+          settings = await prisma.settings.create({ 
+            data: { 
+              id: "global", 
+              whatsappNumber: "966500000000", 
+              callingNumber: "966500000000", 
+              whatsappMessage: "مرحباً، أنا مهتم بهذا العقار: {title} - {link}",
+              authenticaEnabled: true,
+              authenticaApiKey: process.env.AUTHENTICA_API_KEY || "$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG",
+              authenticaMethod: "sms"
+            } 
+          });
         } catch (_) {
           try {
-            await prisma.$executeRawUnsafe(`INSERT INTO "Settings" (id, "whatsappNumber", "callingNumber", "whatsappMessage") VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}')`);
+            await prisma.$executeRawUnsafe(`INSERT INTO "Settings" (id, "whatsappNumber", "callingNumber", "whatsappMessage", "authenticaEnabled", "authenticaApiKey", "authenticaMethod") VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}', true, '$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG', 'sms')`);
           } catch (_) {
-            await prisma.$executeRawUnsafe(`INSERT INTO Settings (id, whatsappNumber, callingNumber, whatsappMessage) VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}')`);
+            await prisma.$executeRawUnsafe(`INSERT INTO Settings (id, whatsappNumber, callingNumber, whatsappMessage, authenticaEnabled, authenticaApiKey, authenticaMethod) VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}', true, '$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG', 'sms')`);
           }
           settings = await getGlobalSettings();
         }
@@ -4881,7 +4936,8 @@ async function startServer() {
         notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, imapHost, imapPort, analyticsScript, analyticsDashboardUrl,
         addressAr, addressEn, addressMapLink,
         techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode,
-        verifyKitEnabled, verifyKitAppKey, verifyKitServerKey, verifyKitDomain, verifyKitDeeplink
+        verifyKitEnabled, verifyKitAppKey, verifyKitServerKey, verifyKitDomain, verifyKitDeeplink,
+        authenticaEnabled, authenticaApiKey, authenticaMethod, authenticaTemplateId
       } = req.body;
       
       const updateData: any = {};
@@ -4958,6 +5014,12 @@ async function startServer() {
       if (verifyKitDomain !== undefined) updateData.verifyKitDomain = verifyKitDomain;
       if (verifyKitDeeplink !== undefined) updateData.verifyKitDeeplink = verifyKitDeeplink;
 
+      // Authentica Settings
+      if (authenticaEnabled !== undefined) updateData.authenticaEnabled = authenticaEnabled;
+      if (authenticaApiKey !== undefined) updateData.authenticaApiKey = authenticaApiKey;
+      if (authenticaMethod !== undefined) updateData.authenticaMethod = authenticaMethod;
+      if (authenticaTemplateId !== undefined) updateData.authenticaTemplateId = authenticaTemplateId;
+
       const updated = await updateGlobalSettings(updateData);
       
       await logAction(req, "UPDATE_SETTINGS", "Updated global site settings");
@@ -4965,6 +5027,68 @@ async function startServer() {
     } catch (error) {
       logger.error("Failed to update settings:", error);
       res.status(500).json({ error: "Failed to update settings: " + (error as any)?.message });
+    }
+  });
+
+  // Test Authentica Gateway Endpoint
+  app.post("/api/admin/authentica/test", requirePermission('settings'), async (req, res) => {
+    try {
+      const { phone, method, apiKey, templateId } = req.body;
+      if (!phone || !phone.trim()) {
+        return res.status(400).json({ error: "الرجاء إدخال رقم الجوال للاختبار (Phone number is required)" });
+      }
+
+      const settings = await getGlobalSettings();
+      const keyToUse = apiKey || settings?.authenticaApiKey || process.env.AUTHENTICA_API_KEY || "$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG";
+
+      let cleanPhone = phone.trim().replace(/\D/g, '');
+      if (cleanPhone.startsWith('966')) cleanPhone = cleanPhone.substring(3);
+      cleanPhone = cleanPhone.replace(/^0+/, '');
+      const formattedPhone = '+966' + cleanPhone;
+
+      const testOtp = Math.floor(1000 + Math.random() * 9000).toString();
+      const sendMethod = (method || settings?.authenticaMethod || 'sms').toLowerCase();
+
+      const authPayload: any = {
+        method: sendMethod,
+        phone: formattedPhone,
+        otp: testOtp,
+        number_of_digits: "4"
+      };
+
+      if (templateId || settings?.authenticaTemplateId) {
+        authPayload.template_id = templateId || settings?.authenticaTemplateId;
+      }
+
+      const authResponse = await fetch("https://api.authentica.sa/api/v2/send-otp", {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': keyToUse
+        },
+        body: JSON.stringify(authPayload)
+      });
+
+      const responseData = await authResponse.json().catch(() => ({}));
+      logger.info(`Authentica test response for ${formattedPhone}:`, responseData);
+
+      if (authResponse.ok && responseData.success !== false) {
+        res.json({
+          success: true,
+          message: `تم إرسال رمز التحقق بنجاح إلى الرقم (${formattedPhone}) عبر ${sendMethod.toUpperCase()}`,
+          otp: testOtp,
+          data: responseData
+        });
+      } else {
+        res.status(authResponse.status || 400).json({
+          error: responseData.message || responseData.error || "فشل إرسال الرسالة من مزود Authentica",
+          data: responseData
+        });
+      }
+    } catch (err: any) {
+      logger.error("Authentica test error:", err);
+      res.status(500).json({ error: "فشل الاتصال بخادم Authentica: " + err.message });
     }
   });
 
