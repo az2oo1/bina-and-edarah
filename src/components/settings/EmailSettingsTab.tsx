@@ -116,6 +116,7 @@ export const EmailSettingsTab: React.FC<EmailSettingsTabProps> = ({
                 type="button"
                 onClick={() => setShowSmtpPass(!showSmtpPass)}
                 className="absolute inset-y-0 end-0 flex items-center pe-3 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                aria-label={showSmtpPass ? (language === 'ar' ? 'إخفاء كلمة المرور' : 'Hide password') : (language === 'ar' ? 'إظهار كلمة المرور' : 'Show password')}
               >
                 {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
