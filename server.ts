@@ -25,7 +25,10 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
+if (!process.env.JWT_SECRET) {
+  throw new Error("CRITICAL: JWT_SECRET environment variable is missing.");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
@@ -5599,17 +5602,6 @@ async function startServer() {
       
        // Check Admin
        let admin = await prisma.admin.findUnique({ where: { username } });
-       if (!admin && username === 'admin' && password === 'admin') {
-         admin = await prisma.admin.create({
-           data: {
-             username: "admin",
-             password: "admin",
-             name: "Administrator",
-             role: "ADMIN"
-           }
-         });
-         logger.info(`Default admin created on login attempt`);
-       }
 
        if (admin && admin.password === password) {
          const userPayload = { 
@@ -6337,4 +6329,6 @@ async function startServer() {
   });
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
