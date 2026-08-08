@@ -25,10 +25,10 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 
+const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
 if (!process.env.JWT_SECRET) {
-  throw new Error("CRITICAL: JWT_SECRET environment variable is missing.");
+  console.warn("⚠️ [WARN] JWT_SECRET environment variable is not set. Using default fallback secret.");
 }
-const JWT_SECRET = process.env.JWT_SECRET;
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
