@@ -1582,7 +1582,7 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
                         <Camera className="w-4 h-4 text-blue-500" />
                         <span>{language === 'ar' ? 'صور إثبات العمل والإنجاز:' : 'Work Completion Proof Photos:'}</span>
                       </h4>
-                      <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/30 rounded-2xl text-xs font-extrabold cursor-pointer transition-all flex items-center gap-2 shadow-2xs">
+                      <label className="px-4 py-2 bg-[#34505e] hover:bg-[#283e4a] text-white border border-[#34505e]/30 rounded-2xl text-xs font-extrabold cursor-pointer transition-all flex items-center gap-2 shadow-2xs">
                         <Upload className="w-4 h-4" />
                         <span>{language === 'ar' ? 'إضافة صور إثبات الإنجاز' : 'Upload Proof Photos'}</span>
                         <input type="file" accept="image/*" multiple onChange={handleAddProofPhoto} className="hidden" />
