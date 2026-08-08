@@ -26,6 +26,9 @@ import rateLimit from "express-rate-limit";
 import compression from "compression";
 
 const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
+if (!process.env.JWT_SECRET) {
+  console.warn("⚠️ [WARN] JWT_SECRET environment variable is not set. Using default fallback secret.");
+}
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
@@ -3221,33 +3224,80 @@ async function startServer() {
         }
       });
 
-      // Send to Whatomate (or any other webhook)
+      // Determine if running in Development Mode
+      const isDevMode = 
+        process.env.DEV_MODE === 'true' || 
+        process.env.APP_ENV === 'development' || 
+        process.env.NODE_ENV === 'development';
+
+      if (isDevMode) {
+        // ==========================================
+        // 🛠️ DEV MODE:
+        // Use in-site notification dialog to provide the OTP code.
+        // Skip calling Authentica SMS service so no credits are consumed and no double message is sent.
+        // ==========================================
+        logger.info(`🛠️ [DEV MODE OTP] Phone: ${phone} (${normalizedPhone}) ---> Code: ${otp}. In-site notification active. Authentica SMS skipped.`);
+        console.log(`\n=====================================================\n🛠️ [DEV MODE OTP] Phone: ${phone} (${normalizedPhone}) ---> OTP CODE: ${otp}\nℹ️ Authentica SMS skipped in DEV mode. Code delivered via in-site notification.\n=====================================================\n`);
+        
+        return res.json({ 
+          success: true, 
+          devMode: true,
+          otp: otp, 
+          fakeOtpDelivery: otp 
+        });
+      }
+
+      // ==========================================
+      // 🚀 PRODUCTION MODE:
+      // Use Authentica SMS / WhatsApp Gateway Service.
+      // Do NOT send the OTP code back in the JSON response (no in-site popup).
+      // ==========================================
       const settings = await prisma.settings.findUnique({ where: { id: "global" } });
       const webhookUrl = settings?.otpWebhookUrl || process.env.WHATOMATE_WEBHOOK_URL;
 
-      // VerifyKit Dispatch Integration
-      if (settings?.verifyKitEnabled && (settings?.verifyKitServerKey || settings?.verifyKitAppKey)) {
+      // 1. Authentica Saudi SMS & WhatsApp Gateway Integration
+      const authenticaKey = settings?.authenticaApiKey || process.env.AUTHENTICA_API_KEY || "$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG";
+      const authenticaEnabled = settings?.authenticaEnabled !== false;
+
+      if (authenticaEnabled && authenticaKey) {
         try {
-          const appKey = settings.verifyKitAppKey || "AxaVaO8JfW2OMj";
-          const serverKey = settings.verifyKitServerKey || "Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6";
-          await fetch("https://vapi.verifykit.com/v1/send-otp", {
+          let authPhone = normalizedPhone;
+          if (!authPhone.startsWith('966')) {
+            authPhone = '966' + authPhone;
+          }
+          if (!authPhone.startsWith('+')) {
+            authPhone = '+' + authPhone;
+          }
+
+          const authMethod = (settings?.authenticaMethod || process.env.AUTHENTICA_METHOD || 'sms').toLowerCase();
+          const authPayload: any = {
+            method: authMethod,
+            phone: authPhone,
+            otp: otp,
+            number_of_digits: "4"
+          };
+          if (settings?.authenticaTemplateId) {
+            authPayload.template_id = settings.authenticaTemplateId;
+          }
+
+          const authRes = await fetch("https://api.authentica.sa/api/v2/send-otp", {
             method: 'POST',
             headers: {
+              'Accept': 'application/json',
               'Content-Type': 'application/json',
-              'X-VKit-App-Key': appKey,
-              'X-VKit-Server-Key': serverKey
+              'X-Authorization': authenticaKey
             },
-            body: JSON.stringify({
-              phoneNumber: phone,
-              otp: otp
-            })
-          }).catch(() => {});
-          logger.info(`Dispatched OTP via VerifyKit for phone: ${phone}`);
-        } catch (vkitErr) {
-          console.error("VerifyKit request error:", vkitErr);
+            body: JSON.stringify(authPayload)
+          });
+
+          const authJson = await authRes.json().catch(() => ({}));
+          logger.info(`Dispatched OTP via Authentica to ${authPhone} (Status: ${authRes.status}):`, authJson);
+        } catch (authErr) {
+          logger.error("Authentica dispatch error:", authErr);
         }
       }
 
+      // 2. Webhook (Whatomate) Integration
       if (webhookUrl) {
         try {
           let payloadStr = settings?.otpWebhookPayload;
@@ -3274,14 +3324,10 @@ async function startServer() {
         }
       }
 
-      console.log(`\n=====================================================\n🔑 [OTP CODE] Phone: ${phone} (${normalizedPhone}) ---> OTP CODE: ${otp}\n=====================================================\n`);
-      logger.info(`🔑 [OTP CODE] Phone: ${phone} (${normalizedPhone}) ---> OTP: ${otp}`);
+      console.log(`\n=====================================================\n🚀 [PROD OTP DISPATCHED] Phone: ${phone} (${normalizedPhone}) via Authentica Gateway\n=====================================================\n`);
+      logger.info(`🚀 [PROD OTP DISPATCHED] Phone: ${phone} (${normalizedPhone}) via Authentica`);
 
-      if (process.env.NODE_ENV === 'production') {
-        res.json({ success: true });
-      } else {
-        res.json({ success: true, otp: otp, fakeOtpDelivery: otp });
-      }
+      res.json({ success: true, devMode: false });
     } catch (error) {
       logger.error("Failed to process request-otp:", error);
       res.status(500).json({ error: "Failed to process OTP request" });
@@ -3461,7 +3507,12 @@ async function startServer() {
       allItemsMap.set(exactKey, item);
     }
 
-    return Array.from(allItemsMap.values());
+    const result = Array.from(allItemsMap.values());
+    return result.sort((a: any, b: any) => {
+      const nameA = `${a.propertyName || ''} ${a.unitNumber || ''}`.trim();
+      const nameB = `${b.propertyName || ''} ${b.unitNumber || ''}`.trim();
+      return nameA.localeCompare(nameB, 'ar', { numeric: true, sensitivity: 'base' });
+    });
   }
 
   // Dedicated Renter API: Get units & properties connected to a specific renter
@@ -3642,7 +3693,7 @@ async function startServer() {
             propertyAge: true,
             imageUrls: true
           },
-          orderBy: { createdAt: 'desc' }
+          orderBy: parentIdParam ? [{ titleAr: 'asc' }, { titleEn: 'asc' }] : { createdAt: 'desc' }
         });
 
         const parentIdsToFetch = mapProperties
@@ -3821,7 +3872,7 @@ async function startServer() {
             where,
             skip,
             take: limit,
-            orderBy: { createdAt: 'desc' }
+            orderBy: parentIdParam ? [{ titleAr: 'asc' }, { titleEn: 'asc' }] : { createdAt: 'desc' }
           }),
           prisma.property.count({ where })
         ]);
@@ -3865,7 +3916,7 @@ async function startServer() {
         // Standard full list request (backward compatible for Admin and Dashboard)
         const properties = await prisma.property.findMany({
           where,
-          orderBy: { createdAt: 'desc' }
+          orderBy: parentIdParam ? [{ titleAr: 'asc' }, { titleEn: 'asc' }] : { createdAt: 'desc' }
         });
 
         let enriched = [];
@@ -3912,7 +3963,10 @@ async function startServer() {
       const property = await prisma.property.findUnique({
         where: { id: req.params.id },
         include: {
-          subProperties: { where: { status: { notIn: ['DRAFT', 'HIDDEN', 'RENTED', 'SOLD'] } } },
+          subProperties: {
+            where: { status: { notIn: ['DRAFT', 'HIDDEN', 'RENTED', 'SOLD'] } },
+            orderBy: [{ titleAr: 'asc' }, { titleEn: 'asc' }]
+          },
           parent: true
         }
       });
@@ -4030,9 +4084,11 @@ async function startServer() {
 
       const properties = await prisma.property.findMany({
         where: whereClause,
-        orderBy: { createdAt: 'desc' },
+        orderBy: parentIdParam ? [{ titleAr: 'asc' }, { titleEn: 'asc' }] : { createdAt: 'desc' },
         include: {
-          subProperties: true,
+          subProperties: {
+            orderBy: [{ titleAr: 'asc' }, { titleEn: 'asc' }]
+          },
           parent: true
         }
       });
@@ -4057,7 +4113,12 @@ async function startServer() {
     try {
       const property = await prisma.property.findUnique({
         where: { id: req.params.id },
-        include: { subProperties: true, parent: true }
+        include: {
+          subProperties: {
+            orderBy: [{ titleAr: 'asc' }, { titleEn: 'asc' }]
+          },
+          parent: true
+        }
       });
       if (!property) return res.status(404).json({ error: "Property not found" });
 
@@ -4816,7 +4877,10 @@ async function startServer() {
       'imapHost', 'imapPort', 'analyticsScript', 'analyticsDashboardUrl',
       'addressAr', 'addressEn', 'addressMapLink', 'techhubEnabled',
       'techhubClientId', 'techhubClientSecret', 'techhubApiKey',
-      'techhubSandboxMode', 'indexNowKey'
+      'techhubSandboxMode', 'verifyKitEnabled', 'verifyKitAppKey',
+      'verifyKitDomain', 'verifyKitDeeplink',
+      'authenticaEnabled', 'authenticaApiKey', 'authenticaMethod', 'authenticaTemplateId',
+      'indexNowKey'
     ];
 
     // Fallback: update fields one-by-one using raw SQL
@@ -4827,7 +4891,7 @@ async function startServer() {
       }
       const val = data[field];
       try {
-        if (typeof val === 'string' || typeof val === 'number') {
+        if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
           try {
             await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = ${val} WHERE id = 'global'`);
           } catch (e: any) {
@@ -4862,12 +4926,22 @@ async function startServer() {
       let settings = await getGlobalSettings();
       if (!settings) {
         try {
-          settings = await prisma.settings.create({ data: { id: "global", whatsappNumber: "966500000000", callingNumber: "966500000000", whatsappMessage: "مرحباً، أنا مهتم بهذا العقار: {title} - {link}" } });
+          settings = await prisma.settings.create({ 
+            data: { 
+              id: "global", 
+              whatsappNumber: "966500000000", 
+              callingNumber: "966500000000", 
+              whatsappMessage: "مرحباً، أنا مهتم بهذا العقار: {title} - {link}",
+              authenticaEnabled: true,
+              authenticaApiKey: process.env.AUTHENTICA_API_KEY || "$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG",
+              authenticaMethod: "sms"
+            } 
+          });
         } catch (_) {
           try {
-            await prisma.$executeRawUnsafe(`INSERT INTO "Settings" (id, "whatsappNumber", "callingNumber", "whatsappMessage") VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}')`);
+            await prisma.$executeRawUnsafe(`INSERT INTO "Settings" (id, "whatsappNumber", "callingNumber", "whatsappMessage", "authenticaEnabled", "authenticaApiKey", "authenticaMethod") VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}', true, '$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG', 'sms')`);
           } catch (_) {
-            await prisma.$executeRawUnsafe(`INSERT INTO Settings (id, whatsappNumber, callingNumber, whatsappMessage) VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}')`);
+            await prisma.$executeRawUnsafe(`INSERT INTO Settings (id, whatsappNumber, callingNumber, whatsappMessage, authenticaEnabled, authenticaApiKey, authenticaMethod) VALUES ('global', '966500000000', '966500000000', 'مرحباً، أنا مهتم بهذا العقار: {title} - {link}', true, '$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG', 'sms')`);
           }
           settings = await getGlobalSettings();
         }
@@ -4886,7 +4960,8 @@ async function startServer() {
         notificationEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, imapHost, imapPort, analyticsScript, analyticsDashboardUrl,
         addressAr, addressEn, addressMapLink,
         techhubEnabled, techhubClientId, techhubClientSecret, techhubApiKey, techhubSandboxMode,
-        verifyKitEnabled, verifyKitAppKey, verifyKitServerKey, verifyKitDomain, verifyKitDeeplink
+        verifyKitEnabled, verifyKitAppKey, verifyKitDomain, verifyKitDeeplink,
+        authenticaEnabled, authenticaApiKey, authenticaMethod, authenticaTemplateId
       } = req.body;
       
       const updateData: any = {};
@@ -4959,9 +5034,14 @@ async function startServer() {
       // VerifyKit Settings
       if (verifyKitEnabled !== undefined) updateData.verifyKitEnabled = verifyKitEnabled;
       if (verifyKitAppKey !== undefined) updateData.verifyKitAppKey = verifyKitAppKey;
-      if (verifyKitServerKey !== undefined) updateData.verifyKitServerKey = verifyKitServerKey;
       if (verifyKitDomain !== undefined) updateData.verifyKitDomain = verifyKitDomain;
       if (verifyKitDeeplink !== undefined) updateData.verifyKitDeeplink = verifyKitDeeplink;
+
+      // Authentica Settings
+      if (authenticaEnabled !== undefined) updateData.authenticaEnabled = authenticaEnabled;
+      if (authenticaApiKey !== undefined) updateData.authenticaApiKey = authenticaApiKey;
+      if (authenticaMethod !== undefined) updateData.authenticaMethod = authenticaMethod;
+      if (authenticaTemplateId !== undefined) updateData.authenticaTemplateId = authenticaTemplateId;
 
       const updated = await updateGlobalSettings(updateData);
       
@@ -4970,6 +5050,68 @@ async function startServer() {
     } catch (error) {
       logger.error("Failed to update settings:", error);
       res.status(500).json({ error: "Failed to update settings: " + (error as any)?.message });
+    }
+  });
+
+  // Test Authentica Gateway Endpoint
+  app.post("/api/admin/authentica/test", requirePermission('settings'), async (req, res) => {
+    try {
+      const { phone, method, apiKey, templateId } = req.body;
+      if (!phone || !phone.trim()) {
+        return res.status(400).json({ error: "الرجاء إدخال رقم الجوال للاختبار (Phone number is required)" });
+      }
+
+      const settings = await getGlobalSettings();
+      const keyToUse = apiKey || settings?.authenticaApiKey || process.env.AUTHENTICA_API_KEY || "$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG";
+
+      let cleanPhone = phone.trim().replace(/\D/g, '');
+      if (cleanPhone.startsWith('966')) cleanPhone = cleanPhone.substring(3);
+      cleanPhone = cleanPhone.replace(/^0+/, '');
+      const formattedPhone = '+966' + cleanPhone;
+
+      const testOtp = Math.floor(1000 + Math.random() * 9000).toString();
+      const sendMethod = (method || settings?.authenticaMethod || 'sms').toLowerCase();
+
+      const authPayload: any = {
+        method: sendMethod,
+        phone: formattedPhone,
+        otp: testOtp,
+        number_of_digits: "4"
+      };
+
+      if (templateId || settings?.authenticaTemplateId) {
+        authPayload.template_id = templateId || settings?.authenticaTemplateId;
+      }
+
+      const authResponse = await fetch("https://api.authentica.sa/api/v2/send-otp", {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': keyToUse
+        },
+        body: JSON.stringify(authPayload)
+      });
+
+      const responseData = await authResponse.json().catch(() => ({}));
+      logger.info(`Authentica test response for ${formattedPhone}:`, responseData);
+
+      if (authResponse.ok && responseData.success !== false) {
+        res.json({
+          success: true,
+          message: `تم إرسال رمز التحقق بنجاح إلى الرقم (${formattedPhone}) عبر ${sendMethod.toUpperCase()}`,
+          otp: testOtp,
+          data: responseData
+        });
+      } else {
+        res.status(authResponse.status || 400).json({
+          error: responseData.message || responseData.error || "فشل إرسال الرسالة من مزود Authentica",
+          data: responseData
+        });
+      }
+    } catch (err: any) {
+      logger.error("Authentica test error:", err);
+      res.status(500).json({ error: "فشل الاتصال بخادم Authentica: " + err.message });
     }
   });
 
@@ -5626,17 +5768,6 @@ async function startServer() {
       
        // Check Admin
        let admin = await prisma.admin.findUnique({ where: { username } });
-       if (!admin && username === 'admin' && password === 'admin') {
-         admin = await prisma.admin.create({
-           data: {
-             username: "admin",
-             password: "admin",
-             name: "Administrator",
-             role: "ADMIN"
-           }
-         });
-         logger.info(`Default admin created on login attempt`);
-       }
 
        if (admin && admin.password === password) {
          const userPayload = { 
@@ -6364,4 +6495,6 @@ async function startServer() {
   });
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}

@@ -1,5 +1,8 @@
 import { describe, it } from 'node:test';
 import * as assert from 'node:assert';
+
+process.env.JWT_SECRET = 'test-secret';
+
 import { serializeMeta } from './server.ts';
 
 describe('serializeMeta', () => {

@@ -139,9 +139,13 @@ model Settings {
   // VerifyKit Integration Settings
   verifyKitEnabled   Boolean @default(true)
   verifyKitAppKey    String? @default("AxaVaO8JfW2OMj")
-  verifyKitServerKey String? @default("Krfa4d5b5ad23e4551a8c200f72433cf5e12d362f5bfd321d62e13fe01ff6")
   verifyKitDomain    String? @default("https://rbmc.sa")
   verifyKitDeeplink  String? @default("vfk300403://welcome")
+  // Authentica Saudi SMS & WhatsApp Gateway Integration
+  authenticaEnabled   Boolean @default(true)
+  authenticaApiKey    String? @default("$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG")
+  authenticaMethod    String? @default("sms")
+  authenticaTemplateId String?
   // SEO Settings
   indexNowKey        String?
 }

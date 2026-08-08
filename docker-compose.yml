@@ -8,7 +8,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      # Mode Selection:
+      # - DEV MODE (DEV_MODE=true or NODE_ENV=development): Uses in-site notification dialog for OTP, skips Authentica SMS.
+      # - PRODUCTION MODE (NODE_ENV=production): Uses Authentica SMS Gateway, sends verification code to phone only.
+      - NODE_ENV=${NODE_ENV:-production}
+      - APP_ENV=${APP_ENV:-production}
+      - DEV_MODE=${DEV_MODE:-false}
       - DATABASE_URL=postgresql://root@cockroach_db:26257/bina_db?sslmode=disable
       - S3_ENDPOINT=http://rustfs-storage:9000
       - S3_BUCKET=bina-assets
@@ -17,6 +22,9 @@ services:
       - S3_REGION=${S3_REGION:-us-east-1}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - JWT_SECRET=${JWT_SECRET:-bina-edara-jwt-secret-key-1337}
+      - AUTHENTICA_API_KEY=${AUTHENTICA_API_KEY:-$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG}
+      - AUTHENTICA_ENABLED=${AUTHENTICA_ENABLED:-true}
+      - AUTHENTICA_METHOD=${AUTHENTICA_METHOD:-sms}
     volumes:
       - app_data:/data
       - uploads_data:/app/uploads

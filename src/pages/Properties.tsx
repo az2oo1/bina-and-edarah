@@ -183,6 +183,37 @@ export default function Properties() {
       return { ...p, thumbnail, parsedDetails, isEnriched: true };
     };
 
+    const sortPropertiesAlphabetically = (list: any[]) => {
+      return [...list].sort((a, b) => {
+        const getUnitSortKey = (item: any) => {
+          let uNum = '';
+          if (item.parsedDetails && Array.isArray(item.parsedDetails)) {
+            const match = item.parsedDetails.find((d: any) => {
+              if (!d || !d.key) return false;
+              const k = String(d.key).trim().toLowerCase();
+              return (
+                k === 'رقم الوحدة' ||
+                k === 'unit name' ||
+                k === 'unit number' ||
+                k === 'رقم الشقة' ||
+                k === 'شقة' ||
+                k === 'unit' ||
+                k === 'apartment number' ||
+                k === 'apt number'
+              );
+            });
+            if (match?.value) uNum = String(match.value);
+          }
+          const title = (language === 'ar' ? (item.titleAr || item.titleEn || '') : (item.titleEn || item.titleAr || '')).trim();
+          const hasUnitInTitle = uNum ? title.toLowerCase().includes(uNum.toLowerCase()) : false;
+          return (uNum && !hasUnitInTitle ? `${uNum} ${title}` : title).trim();
+        };
+        const titleA = getUnitSortKey(a);
+        const titleB = getUnitSortKey(b);
+        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+    };
+
     const runLoadingSequence = async () => {
       const controller = new AbortController();
       
@@ -194,7 +225,7 @@ export default function Properties() {
         let items1: any[] = [];
         if (data1 && Array.isArray(data1.properties)) {
           items1 = data1.properties.map(enrichProperty);
-          setProperties(items1);
+          setProperties(parentIdParam ? sortPropertiesAlphabetically(items1) : items1);
           setTotalCount(data1.totalCount || 0);
           setTotalPages(Math.ceil((data1.totalCount || 0) / 9));
         }
@@ -210,7 +241,10 @@ export default function Properties() {
         let items2: any[] = [];
         if (data2 && Array.isArray(data2.properties)) {
           items2 = data2.properties.map(enrichProperty);
-          setProperties(prev => [...prev, ...items2]);
+          setProperties(prev => {
+            const combined = [...prev, ...items2];
+            return parentIdParam ? sortPropertiesAlphabetically(combined) : combined;
+          });
         }
 
         if (items2.length < 3) return;
@@ -222,7 +256,10 @@ export default function Properties() {
         let items3: any[] = [];
         if (data3 && Array.isArray(data3.properties)) {
           items3 = data3.properties.map(enrichProperty);
-          setProperties(prev => [...prev, ...items3]);
+          setProperties(prev => {
+            const combined = [...prev, ...items3];
+            return parentIdParam ? sortPropertiesAlphabetically(combined) : combined;
+          });
         }
       } catch (err: any) {
         if (err.name === 'AbortError') return;
