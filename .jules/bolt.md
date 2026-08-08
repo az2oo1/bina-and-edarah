@@ -8,3 +8,7 @@
 ## 2026-08-05 - Pre-parsing JSON in map renders
 **Learning:** Calling `JSON.parse` inside a `.map()` during a React render phase recalculates the data and creates a new object reference on every re-render, blocking the main thread and degrading performance.
 **Action:** Extract JSON parsing logic into the API data fetching phase. Attach the parsed results directly to the data object so the render loop only reads the existing pre-parsed property.
+
+## 2026-08-07 - Pre-parse JSON in components to prevent render recalculations
+**Learning:** Calling `JSON.parse` inside a React component render phase, even within IIFEs, recalculates data on every re-render and creates new object references, which degrades performance.
+**Action:** Always use the pre-parsed data from `useMemo` (e.g., `memoizedParsedData`) instead of doing inline parsing.

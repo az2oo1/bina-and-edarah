@@ -1172,14 +1172,7 @@ export default function PropertyDetails() {
                         </span>
                       </div>
                       {property.type === 'RENT' && (() => {
-                        const allowedPlans = (() => {
-                          if (!property.allowedPaymentPlans) return [];
-                          try {
-                            const parsed = JSON.parse(property.allowedPaymentPlans);
-                            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                          } catch (_) {}
-                          return [];
-                        })();
+                        const allowedPlans = [...memoizedParsedData.allowedPaymentPlans];
     
                         if (allowedPlans.length === 0 && property.paymentsCount) {
                           allowedPlans.push(String(property.paymentsCount));
