@@ -5159,8 +5159,20 @@ async function startServer() {
   });
 
   app.post("/api/admin/upload-home-video", requirePermission('settings'), (req, res, next) => {
+    req.setTimeout(30 * 60 * 1000);
+    res.setTimeout(30 * 60 * 1000);
+    if (req.socket) {
+      req.socket.setTimeout(30 * 60 * 1000);
+    }
     homeVideoUpload.single('file')(req, res, (err) => {
       if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'حجم ملف الفيديو يتجاوز 500 ميغابايت (Video file exceeds 500MB limit)' });
+        }
+        if (err.message === 'Request aborted' || err.code === 'ECONNRESET') {
+          logger.warn('Home video upload aborted by client/network timeout:', err.message || err);
+          return res.status(499).json({ error: 'تم قطع اتصال رفع الفيديو قبل اكتماله (Video upload aborted)' });
+        }
         logger.error('Multer error during home video upload:', err);
         return res.status(400).json({ error: 'Failed to upload video file: ' + err.message });
       }
@@ -5462,15 +5474,17 @@ async function startServer() {
   //   - db-data.json    (all database content serialized)
   //   - uploads/         (uploaded files)
   //   - manifest.json   (metadata)
+  // Or streams a lightweight JSON file when ?type=db is passed
   app.get("/api/admin/backup", requirePermission('settings'), async (req, res) => {
     try {
-      const archive = new ZipArchive({ zlib: { level: 6 } });
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const filename = `benaa-edara-backup-${timestamp}.zip`;
+      req.setTimeout(30 * 60 * 1000);
+      res.setTimeout(30 * 60 * 1000);
+      if (req.socket) {
+        req.socket.setTimeout(30 * 60 * 1000);
+      }
 
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      archive.pipe(res);
+      const backupType = (req.query.type as string) || 'full';
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
       // Dump all database content as JSON
       const dbData = {
@@ -5491,6 +5505,21 @@ async function startServer() {
         callbackNotes: await prisma.callbackNote.findMany(),
         actionLogs: await prisma.actionLog.findMany()
       };
+
+      if (backupType === 'db' || backupType === 'json') {
+        const filename = `benaa-edara-db-${timestamp}.json`;
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        await logAction(req, "DOWNLOAD_BACKUP", "Downloaded lightweight database-only JSON backup");
+        return res.send(JSON.stringify(dbData, null, 2));
+      }
+
+      const archive = new ZipArchive({ zlib: { level: 6 } });
+      const filename = `benaa-edara-backup-${timestamp}.zip`;
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      archive.pipe(res);
 
       archive.append(JSON.stringify(dbData, null, 2), { name: 'db-data.json' });
 
@@ -5528,8 +5557,8 @@ async function startServer() {
     }
   });
 
-  // POST /api/admin/restore  → accepts multipart upload of a .zip containing a db-data.json file and uploads/ folder
-  const BACKUP_RESTORE_MAX_MB = 1024;
+  // POST /api/admin/restore  → accepts multipart upload of a .zip containing a db-data.json file and uploads/ folder, or a standalone .json backup
+  const BACKUP_RESTORE_MAX_MB = parseInt(process.env.BACKUP_RESTORE_MAX_MB || "2048", 10);
   const restoreUpload = multer({
     storage: multer.diskStorage({
       destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
@@ -5538,7 +5567,33 @@ async function startServer() {
     limits: { fileSize: BACKUP_RESTORE_MAX_MB * 1024 * 1024 }
   });
 
-  app.post("/api/admin/restore", requirePermission('settings'), restoreUpload.single('file'), async (req, res) => {
+  const handleRestoreUpload = (req: any, res: any, next: any) => {
+    req.setTimeout(30 * 60 * 1000);
+    res.setTimeout(30 * 60 * 1000);
+    if (req.socket) {
+      req.socket.setTimeout(30 * 60 * 1000);
+    }
+    restoreUpload.single('file')(req, res, (err: any) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({
+            error: `حجم ملف النسخة الاحتياطية كبير جداً. الحد الأقصى المسموح به هو ${BACKUP_RESTORE_MAX_MB} ميغابايت (Backup file exceeds ${BACKUP_RESTORE_MAX_MB}MB limit)`
+          });
+        }
+        if (err.message === 'Request aborted' || err.code === 'ECONNRESET') {
+          logger.warn('Restore upload aborted by client/network timeout:', err.message || err);
+          return res.status(499).json({
+            error: 'تم قطع اتصال الرفع قبل اكتماله. يرجى التحقق من سرعة الاتصال أو إعدادات البروكسي (Upload request aborted).'
+          });
+        }
+        logger.error('Multer error during restore upload:', err);
+        return res.status(400).json({ error: 'Failed to upload restore file: ' + (err.message || err) });
+      }
+      next();
+    });
+  };
+
+  app.post("/api/admin/restore", requirePermission('settings'), handleRestoreUpload, async (req, res) => {
     let tempFilePath: string | null = null;
     const tempExtractDir = path.join(UPLOADS_DIR, `extract_${crypto.randomUUID()}`);
     try {
@@ -6438,16 +6493,27 @@ async function startServer() {
 
   // Global error handler
   app.use((err: any, req: any, res: any, next: any) => {
+    if (err?.message === 'Request aborted' || err?.code === 'ECONNRESET') {
+      logger.warn(`Request aborted by client or network timeout: ${req.method} ${req.url}`);
+      if (!res.headersSent) {
+        return res.status(499).json({
+          error: 'تم قطع اتصال الطلب قبل اكتماله (Request aborted or connection closed by client/network).'
+        });
+      }
+      return;
+    }
     logger.error(`Global error handler caught: ${err?.message || err}`, {
       url: req.url,
       method: req.method,
       stack: err?.stack
     });
-    res.status(err?.status || 500).json({
-      error: process.env.NODE_ENV === 'production' 
-        ? 'Internal Server Error' 
-        : err?.message || 'Internal Server Error'
-    });
+    if (!res.headersSent) {
+      res.status(err?.status || 500).json({
+        error: process.env.NODE_ENV === 'production' 
+          ? 'Internal Server Error' 
+          : err?.message || 'Internal Server Error'
+      });
+    }
   });
 
   // Synchronize DB schema and generate client dynamically (especially in production PostgreSQL environments)
@@ -6479,6 +6545,13 @@ async function startServer() {
   }
 
   const httpServer = createHttpServer(app);
+
+  // Configure generous HTTP timeouts to prevent premature aborts on large file uploads (e.g. backup restore, videos)
+  httpServer.requestTimeout = 30 * 60 * 1000; // 30 minutes
+  httpServer.timeout = 30 * 60 * 1000; // 30 minutes
+  httpServer.keepAliveTimeout = 65 * 1000;
+  httpServer.headersTimeout = 66 * 1000;
+
   const io = new SocketIOServer(httpServer, {
     cors: { origin: "*" },
     maxHttpBufferSize: 1e7

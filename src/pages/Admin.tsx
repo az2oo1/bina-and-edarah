@@ -608,9 +608,9 @@ export default function Admin() {
 
   // Backup / Restore State
   const [backupLoading, setBackupLoading] = useState(false);
+  const [exportingType, setExportingType] = useState<'full' | 'db' | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreProgress, setRestoreProgress] = useState<number | null>(null);
-  const [, setRestoreMessage] = useState<{type:'success'|'error', text:string} | null>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -4311,48 +4311,66 @@ export default function Admin() {
                     {activeSettingsSection === 'backup' && (
                       <BackupSettingsTab
                         exportingDb={backupLoading}
-                        handleExportDatabase={async () => {
+                        exportingType={exportingType}
+                        handleExportDatabase={async (type = 'full') => {
+                          setExportingType(type);
                           setBackupLoading(true);
                           try {
-                            const res = await fetch('/api/admin/backup');
+                            const res = await fetch(`/api/admin/backup?type=${type}`);
                             if (!res.ok) throw new Error('Failed');
                             const blob = await res.blob();
                             const cd = res.headers.get('Content-Disposition') || '';
                             const match = cd.match(/filename="(.+?)"/);
-                            const filename = match ? match[1] : 'backup.zip';
+                            const fallbackName = type === 'db' ? 'backup-database.json' : 'backup-full.zip';
+                            const filename = match ? match[1] : fallbackName;
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url; a.download = filename; a.click();
                             URL.revokeObjectURL(url);
                           } catch (e) {
-                            await showAlert(language === 'ar' ? 'فشل تنزيل النسخة.' : 'Backup download failed.');
-                          } finally { setBackupLoading(false); }
+                            await showAlert(language === 'ar' ? 'فشل تنزيل ملف النسخة الاحتياطية.' : 'Backup download failed.');
+                          } finally {
+                            setBackupLoading(false);
+                            setExportingType(null);
+                          }
                         }}
                         restoringDb={restoreLoading}
                         restoreProgress={restoreProgress}
                         handleRestoreDatabase={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          const confirmed = await showConfirm(language === 'ar' ? 'هل أنت متأكد؟ سيتم استبدال قاعدة البيانات الحالية.' : 'Are you sure? This will replace the current database.');
-                          if (!confirmed) return;
+                          const confirmed = await showConfirm(
+                            language === 'ar'
+                              ? `هل أنت متأكد من استعادة (${file.name})؟ سيتم استبدال قاعدة البيانات وتحديث النظام بالكامل.`
+                              : `Are you sure you want to restore (${file.name})? This will replace the database and system data.`
+                          );
+                          if (!confirmed) {
+                            e.target.value = '';
+                            return;
+                          }
                           setRestoreLoading(true);
-                          setRestoreMessage(null);
                           setRestoreProgress(0);
                           try {
                             const fd = new FormData();
                             fd.append('file', file);
                             await new Promise<void>((resolve, reject) => {
                               const xhr = new XMLHttpRequest();
+                              xhr.timeout = 0; // Disable client-side timeout for long uploads
                               xhr.open('POST', '/api/admin/restore');
                               xhr.upload.onprogress = (evt) => {
                                 if (evt.lengthComputable) {
                                   setRestoreProgress(Math.round((evt.loaded / evt.total) * 100));
                                 }
                               };
-                              xhr.onload = () => {
+                              xhr.onload = async () => {
                                 if (xhr.status >= 200 && xhr.status < 300) {
                                   try {
-                                    setRestoreMessage({ type: 'success', text: language === 'ar' ? 'تمت الاستعادة بنجاح. أعد تحميل الصفحة.' : 'Restore successful! Please reload the page.' });
+                                    await showAlert(
+                                      language === 'ar'
+                                        ? 'تمت استعادة قاعدة البيانات والملفات بنجاح! سيتم إعادة تحميل الصفحة لتحديث البيانات.'
+                                        : 'Database and uploads restored successfully! Reloading page...'
+                                    );
+                                    window.location.reload();
                                     resolve();
                                   } catch (err) {
                                     reject(err);
@@ -4360,17 +4378,25 @@ export default function Admin() {
                                 } else {
                                   try {
                                     const data = JSON.parse(xhr.responseText);
-                                    setRestoreMessage({ type: 'error', text: data.error || 'Restore failed' });
+                                    await showAlert(data.error || (language === 'ar' ? 'فشلت الاستعادة' : 'Restore failed'));
                                     resolve();
                                   } catch (_) {
-                                    setRestoreMessage({ type: 'error', text: 'Restore failed' });
+                                    await showAlert(
+                                      language === 'ar'
+                                        ? `فشلت الاستعادة (رمز الخطأ: ${xhr.status})`
+                                        : `Restore failed (Status code: ${xhr.status})`
+                                    );
                                     resolve();
                                   }
                                 }
                               };
-                              xhr.onerror = () => {
-                                setRestoreMessage({ type: 'error', text: 'Network error' });
-                                reject(new Error('Network error'));
+                              xhr.onerror = async () => {
+                                await showAlert(
+                                  language === 'ar'
+                                    ? 'انقطع الاتصال أثناء رفع النسخة الاحتياطية. يرجى التحقق من سرعة الاتصال بالإنترنت أو إعدادات البروكسي.'
+                                    : 'Network connection interrupted during upload. Please check your internet connection or proxy timeout settings.'
+                                );
+                                reject(new Error('Network error during upload'));
                               };
                               xhr.send(fd);
                             });
