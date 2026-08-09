@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.cjs",
     "lint": "tsc --noEmit",
+    "reset-admin": "tsx scripts/reset-admin.ts",
     "test": "NODE_ENV=test JWT_SECRET=test-secret tsx --test server.test.ts"
   },
   "dependencies": {

@@ -24,6 +24,49 @@ import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
+import readline from "readline";
+
+export function generateRandomPassword(length = 12): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
+  let pass = "";
+  const bytes = crypto.randomBytes(length);
+  for (let i = 0; i < length; i++) {
+    pass += chars[bytes[i] % chars.length];
+  }
+  return pass;
+}
+
+export async function resetAdminPassword(targetUsername = "admin"): Promise<{ username: string; newPassword: string }> {
+  const newPassword = generateRandomPassword(12);
+
+  const existing = await prisma.admin.findUnique({
+    where: { username: targetUsername }
+  });
+
+  if (existing) {
+    await prisma.admin.update({
+      where: { id: existing.id },
+      data: { password: newPassword }
+    });
+  } else {
+    await prisma.admin.create({
+      data: {
+        username: targetUsername,
+        password: newPassword,
+        name: "Administrator",
+        role: "ADMIN"
+      }
+    });
+  }
+
+  console.log("\n==================================================");
+  console.log("🔐 [ADMIN PASSWORD RESET SUCCESSFUL]");
+  console.log(`👤 Username     : ${targetUsername}`);
+  console.log(`🔑 New Password : ${newPassword}`);
+  console.log("==================================================\n");
+
+  return { username: targetUsername, newPassword };
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
 if (!process.env.JWT_SECRET) {
@@ -6479,7 +6522,35 @@ async function startServer() {
     console.log(`[ADMIN] Fallback credentials (if DB is empty):`);
     console.log(`[ADMIN]   Username : admin`);
     console.log(`[ADMIN]   Password : admin`);
+    console.log(`[ADMIN] Reset Command: Type 'reset' in this terminal anytime to randomize admin password.`);
     console.log(`--------------------------------------------------`);
+
+    // Listen for terminal commands ('reset', 'reset <username>', 'help')
+    if (process.env.NODE_ENV !== 'test') {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        terminal: false
+      });
+
+      rl.on("line", async (line) => {
+        const input = line.trim();
+        const lower = input.toLowerCase();
+        if (lower === "reset" || lower.startsWith("reset ") || lower === "reset-admin") {
+          const parts = input.split(/\s+/);
+          const targetUsername = parts[1] || "admin";
+          try {
+            await resetAdminPassword(targetUsername);
+          } catch (err: any) {
+            console.error("❌ Failed to reset admin password:", err?.message || err);
+          }
+        } else if (lower === "help") {
+          console.log("\n[CLI Commands]");
+          console.log("  reset          - Generate a new random password for 'admin'");
+          console.log("  reset <user>   - Generate a new random password for specified username\n");
+        }
+      });
+    }
 
     // Run immediate sync on boot
     syncInboundEmails().catch(err => {

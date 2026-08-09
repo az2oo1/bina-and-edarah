@@ -58,13 +58,19 @@ services:
       start_period: 15s
 
   rustfs-storage:
-    image: minio/minio:latest
+    image: rustfs/rustfs:latest
     container_name: rustfs-storage
-    restart: always
-    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    user: "0:0"
+    command: /data
     environment:
-      - MINIO_ROOT_USER=${S3_ACCESS_KEY:-rustfsaccesskey}
-      - MINIO_ROOT_PASSWORD=${S3_SECRET_KEY:-rustfssecretkey}
+      - RUSTFS_ACCESS_KEY=${S3_ACCESS_KEY:-rustfsaccesskey}
+      - RUSTFS_SECRET_KEY=${S3_SECRET_KEY:-rustfssecretkey}
+      - RUSTFS_ADDRESS=:9000
+      - RUSTFS_CONSOLE_ADDRESS=:9001
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_OBS_LOGGER_LEVEL=error
+      - RUSTFS_OBS_LOG_DIRECTORY=/var/log/rustfs/
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -72,7 +78,7 @@ services:
       - rustfs_data:/data
 
 volumes:
-  app_data:
-  uploads_data:
-  cockroach_data:
-  rustfs_data:
+  app_data: {}
+  uploads_data: {}
+  cockroach_data: {}
+  rustfs_data: {}
