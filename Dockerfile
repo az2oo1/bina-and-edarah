@@ -38,6 +38,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/uploads ./uploads
+COPY --from=builder /app/scripts ./scripts
 
 # Copy and prepare the entrypoint script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
