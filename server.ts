@@ -820,7 +820,7 @@ const homeVideoUpload = multer({
   limits: { fileSize: 500 * 1024 * 1024 }
 });
 
-import { S3Client, PutObjectCommand, GetObjectCommand, CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, CreateBucketCommand, HeadBucketCommand, PutBucketPolicyCommand } from "@aws-sdk/client-s3";
 
 const rawS3Endpoint = process.env.S3_ENDPOINT || "http://rustfs-storage:9000";
 const s3Endpoint = rawS3Endpoint.replace("rustfs_storage", "rustfs-storage");
@@ -837,7 +837,7 @@ const s3Client = new S3Client({
 
 const S3_BUCKET = process.env.S3_BUCKET || "bina-assets";
 
-// Ensure bucket exists in RustFS / MinIO on startup
+// Ensure bucket exists in RustFS / MinIO on startup and configure public-read access
 (async () => {
   try {
     await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
@@ -848,6 +848,28 @@ const S3_BUCKET = process.env.S3_BUCKET || "bina-assets";
     } catch (e) {
       logger.warn(`Could not auto-create RustFS bucket '${S3_BUCKET}':`, (e as any)?.message);
     }
+  }
+
+  // Set public-read policy so assets can be retrieved directly or via proxy
+  try {
+    const publicPolicy = {
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Sid: "PublicReadGetObject",
+          Effect: "Allow",
+          Principal: "*",
+          Action: ["s3:GetObject"],
+          Resource: [`arn:aws:s3:::${S3_BUCKET}/*`]
+        }
+      ]
+    };
+    await s3Client.send(new PutBucketPolicyCommand({
+      Bucket: S3_BUCKET,
+      Policy: JSON.stringify(publicPolicy)
+    }));
+  } catch (_) {
+    // Policy configuration is optional depending on underlying storage driver
   }
 })();
 
@@ -4017,9 +4039,84 @@ async function startServer() {
         return res.status(404).json({ error: "Property not found" });
       }
 
+      // If unit has no images, resolve photos from parent property or matching Building
+      let resolvedBuildingPhotos: string[] = [];
+
+      // 1. Check parent property imageUrls
+      if (property.parent?.imageUrls) {
+        try {
+          const pImgs = JSON.parse(property.parent.imageUrls);
+          if (Array.isArray(pImgs) && pImgs.length > 0) {
+            resolvedBuildingPhotos = pImgs.filter(Boolean);
+          }
+        } catch (_) {}
+      }
+
+      // 2. If still empty, search Building table by matching building name
+      if (resolvedBuildingPhotos.length === 0) {
+        const candidateNames: string[] = [];
+        if (property.parent?.titleAr) candidateNames.push(property.parent.titleAr.trim());
+        if (property.parent?.titleEn) candidateNames.push(property.parent.titleEn.trim());
+        if (property.titleAr) {
+          candidateNames.push(property.titleAr.trim());
+          const splitAr = property.titleAr.split(/\s*[-–—]\s*/);
+          if (splitAr.length > 1) candidateNames.push(splitAr[0].trim());
+        }
+        if (property.titleEn) {
+          candidateNames.push(property.titleEn.trim());
+          const splitEn = property.titleEn.split(/\s*[-–—]\s*/);
+          if (splitEn.length > 1) candidateNames.push(splitEn[0].trim());
+        }
+
+        for (const name of candidateNames) {
+          if (!name) continue;
+          try {
+            const building = await prisma.building.findFirst({
+              where: {
+                OR: [
+                  { name: { equals: name, mode: 'insensitive' } },
+                  { name: { contains: name, mode: 'insensitive' } }
+                ]
+              }
+            });
+            if (building?.photos) {
+              const bPhotos = JSON.parse(building.photos);
+              if (Array.isArray(bPhotos) && bPhotos.length > 0) {
+                resolvedBuildingPhotos = bPhotos.filter(Boolean);
+                break;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
+      // 3. If parent was null but title has a building prefix, search parent Property
+      if (resolvedBuildingPhotos.length === 0 && !property.parentId) {
+        const splitAr = property.titleAr ? property.titleAr.split(/\s*[-–—]\s*/)[0].trim() : '';
+        if (splitAr && splitAr !== property.titleAr) {
+          try {
+            const parentProp = await prisma.property.findFirst({
+              where: {
+                OR: [
+                  { titleAr: { contains: splitAr, mode: 'insensitive' } },
+                  { titleEn: { contains: splitAr, mode: 'insensitive' } }
+                ]
+              }
+            });
+            if (parentProp?.imageUrls) {
+              const pImgs = JSON.parse(parentProp.imageUrls);
+              if (Array.isArray(pImgs) && pImgs.length > 0) {
+                resolvedBuildingPhotos = pImgs.filter(Boolean);
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
       const coords = extractCoords(property.locationLink);
       res.json({
         ...property,
+        buildingPhotos: resolvedBuildingPhotos,
         latitude: coords?.lat ?? null,
         longitude: coords?.lon ?? null
       });

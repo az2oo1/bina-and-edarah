@@ -62,12 +62,11 @@ services:
     container_name: rustfs-storage
     restart: unless-stopped
     user: "0:0"
-    command: /data
     environment:
       - RUSTFS_ACCESS_KEY=${S3_ACCESS_KEY:-rustfsaccesskey}
       - RUSTFS_SECRET_KEY=${S3_SECRET_KEY:-rustfssecretkey}
-      - RUSTFS_ADDRESS=:9000
-      - RUSTFS_CONSOLE_ADDRESS=:9001
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
       - RUSTFS_CONSOLE_ENABLE=true
       - RUSTFS_OBS_LOGGER_LEVEL=error
       - RUSTFS_OBS_LOG_DIRECTORY=/var/log/rustfs/

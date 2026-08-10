@@ -177,34 +177,24 @@ export default function ProjectDetails() {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    const isRtl = language === 'ar';
-                    if (isRtl) {
-                      nextImage();
-                    } else {
-                      prevImage();
-                    }
+                    prevImage();
                   }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 z-30 cursor-pointer border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 backdrop-blur-md"
                   title={language === 'ar' ? 'السابق' : 'Previous'}
                   aria-label={language === 'ar' ? 'السابق' : 'Previous'}
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-5 h-5 text-white" />
                 </button>
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    const isRtl = language === 'ar';
-                    if (isRtl) {
-                      prevImage();
-                    } else {
-                      nextImage();
-                    }
+                    nextImage();
                   }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/90 hover:bg-card text-foreground p-2 rounded-md shadow-xs transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 z-30 cursor-pointer border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 backdrop-blur-md"
                   title={language === 'ar' ? 'التالي' : 'Next'}
                   aria-label={language === 'ar' ? 'التالي' : 'Next'}
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-5 h-5 text-white" />
                 </button>
                 <div 
                   onClick={(e) => e.stopPropagation()}

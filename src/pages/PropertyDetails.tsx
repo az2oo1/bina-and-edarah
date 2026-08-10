@@ -155,13 +155,25 @@ export default function PropertyDetails() {
           if (data.imageUrls) {
             const parsed = typeof data.imageUrls === 'string' ? JSON.parse(data.imageUrls) : data.imageUrls;
             if (Array.isArray(parsed) && parsed.length > 0) {
-              unitImages = parsed;
+              unitImages = parsed.filter((u: any) => typeof u === 'string' && u.trim().length > 0);
             }
           }
           if (unitImages.length === 0 && data.parent && data.parent.imageUrls) {
             const parentParsed = typeof data.parent.imageUrls === 'string' ? JSON.parse(data.parent.imageUrls) : data.parent.imageUrls;
             if (Array.isArray(parentParsed) && parentParsed.length > 0) {
-              unitImages = parentParsed;
+              unitImages = parentParsed.filter((u: any) => typeof u === 'string' && u.trim().length > 0);
+            }
+          }
+          if (unitImages.length === 0 && data.buildingPhotos) {
+            const bPhotos = typeof data.buildingPhotos === 'string' ? JSON.parse(data.buildingPhotos) : data.buildingPhotos;
+            if (Array.isArray(bPhotos) && bPhotos.length > 0) {
+              unitImages = bPhotos.filter((u: any) => typeof u === 'string' && u.trim().length > 0);
+            }
+          }
+          if (unitImages.length === 0 && data.parent && data.parent.photos) {
+            const pPhotos = typeof data.parent.photos === 'string' ? JSON.parse(data.parent.photos) : data.parent.photos;
+            if (Array.isArray(pPhotos) && pPhotos.length > 0) {
+              unitImages = pPhotos.filter((u: any) => typeof u === 'string' && u.trim().length > 0);
             }
           }
         } catch (_) {}
@@ -698,27 +710,25 @@ export default function PropertyDetails() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const isRtl = language === 'ar';
-                        goToIndex(isRtl ? (activeImage + 1) % galleryItems.length : (activeImage - 1 + galleryItems.length) % galleryItems.length);
+                        goToIndex((activeImage - 1 + galleryItems.length) % galleryItems.length);
                       }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
-                      title={language === 'ar' ? 'عرض الوسائط (السابق)' : 'View Media (Previous)'}
-                      aria-label={language === 'ar' ? 'عرض الوسائط (السابق)' : 'View Media (Previous)'}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 z-30 cursor-pointer border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100 backdrop-blur-md"
+                      title={language === 'ar' ? 'الصورة السابقة' : 'Previous Image'}
+                      aria-label={language === 'ar' ? 'الصورة السابقة' : 'Previous Image'}
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft className="w-5 h-5 text-white" />
                     </button>
                     <button 
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const isRtl = language === 'ar';
-                        goToIndex(isRtl ? (activeImage - 1 + galleryItems.length) % galleryItems.length : (activeImage + 1) % galleryItems.length);
+                        goToIndex((activeImage + 1) % galleryItems.length);
                       }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/85 hover:bg-card text-foreground p-2 rounded-lg shadow-md transition-all hover:scale-105 z-30 cursor-pointer border border-border flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100"
-                      title={language === 'ar' ? 'عرض الوسائط (التالي)' : 'View Media (Next)'}
-                      aria-label={language === 'ar' ? 'عرض الوسائط (التالي)' : 'View Media (Next)'}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 z-30 cursor-pointer border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100 backdrop-blur-md"
+                      title={language === 'ar' ? 'الصورة التالية' : 'Next Image'}
+                      aria-label={language === 'ar' ? 'الصورة التالية' : 'Next Image'}
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-5 h-5 text-white" />
                     </button>
                   </>
                 )}
