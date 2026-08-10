@@ -2124,7 +2124,7 @@ export default function Admin() {
                             <thead>
                               <tr className="bg-card text-muted-foreground text-[11px] font-bold border-b border-border uppercase tracking-wider">
                                 <th className="p-3 font-bold">#</th>
-                                <th className="p-3 font-bold">{language === 'ar' ? 'اسم الوحدة' : 'Unit Title'}</th>
+                                <th className="p-3 font-bold">{language === 'ar' ? 'عنوان الوحدة' : 'Unit Title'}</th>
                                 <th className="p-3 font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
                                 <th className="p-3 font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
                                 <th className="p-3 font-bold">{language === 'ar' ? 'المساحة' : 'Area'}</th>
@@ -2272,22 +2272,9 @@ export default function Admin() {
                         const subUnits = properties
                           .filter(p => p.parentId === property.id)
                           .sort((a, b) => {
-                            const getUnitName = (item: any) => {
-                              let uName = '';
-                              try {
-                                const parsed = typeof item.details === 'string' ? JSON.parse(item.details || '[]') : item.details;
-                                if (Array.isArray(parsed)) {
-                                  const match = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key === 'Unit Name' || d.key === 'unit number' || d.key === 'unit');
-                                  if (match?.value) uName = String(match.value);
-                                }
-                              } catch (_) {}
-                              const title = (item.titleAr || item.titleEn || '').trim();
-                              const hasUnitInTitle = uName ? title.toLowerCase().includes(uName.toLowerCase()) : false;
-                              return (uName && !hasUnitInTitle ? `${uName} ${title}` : title).trim();
-                            };
-                            const keyA = getUnitName(a);
-                            const keyB = getUnitName(b);
-                            return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+                            const titleA = (a.titleAr || a.titleEn || '').trim();
+                            const titleB = (b.titleAr || b.titleEn || '').trim();
+                            return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
                           });
                         const isPropertyRented = property.status === 'RENTED' || !!property.renterName || (subUnits.length > 0 && subUnits.every(u => u.status === 'RENTED' || !!u.renterName));
                         const isPropertySold = property.status === 'SOLD';
@@ -2424,7 +2411,7 @@ export default function Admin() {
                                     <table className="w-full text-xs">
                                       <thead>
                                         <tr className="bg-muted/50 border-b border-border text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
-                                          <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'اسم الوحدة' : 'Unit Title'}</th>
+                                          <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'عنوان الوحدة' : 'Unit Title'}</th>
                                             <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'الفئة' : 'Category'}</th>
                                           <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'السعر' : 'Price'}</th>
                                           <th className="p-2.5 ltr:text-left rtl:text-right font-bold">{language === 'ar' ? 'الحالة' : 'Status'}</th>

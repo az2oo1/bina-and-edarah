@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
-import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, Eye, Car, ArrowUpCircle, Wrench, User } from 'lucide-react';
+import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, Eye, Car, ArrowUpCircle, Wrench, User, Search, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { ImageViewer } from '../components/ImageViewer';
 import { formatExternalLink } from '../utils/link';
 
@@ -41,6 +41,8 @@ interface Property {
   utilityBills?: string;
   status?: string;
   attachments?: string;
+  buildingPhotos?: string;
+  photos?: string;
 }
 
 const getDetailIcon = (key: string) => {
@@ -76,8 +78,10 @@ export default function PropertyDetails() {
   const [activeImage, setActiveImage] = useState(0);
   const [, setSelectedPlan] = useState<string>("1");
   const [isViewerOpen, setIsViewerOpen] = useState(false);
-  const [, setExpandedUnitId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'details' | 'units'>('details');
+  const [inlineUnitsExpanded, setInlineUnitsExpanded] = useState(false);
+  const [unitsSearchTerm, setUnitsSearchTerm] = useState('');
+  const [unitsCategoryFilter, setUnitsCategoryFilter] = useState('ALL');
 
   const thumbnailContainerRef = useRef<HTMLDivElement | null>(null);
   const isDownRef = useRef(false);
@@ -127,7 +131,9 @@ export default function PropertyDetails() {
     setLoading(true);
     setViewMode('details');
     setActiveImage(0);
-    setExpandedUnitId(null);
+    setInlineUnitsExpanded(false);
+    setUnitsSearchTerm('');
+    setUnitsCategoryFilter('ALL');
     fetch(`/api/properties/${id}`)
       .then(res => {
         if (!res.ok) throw new Error("Property not found");
@@ -327,6 +333,32 @@ export default function PropertyDetails() {
     });
   }, [property?.subProperties, memoizedParsedData.parentImages, language]);
 
+  const unitsCategories = useMemo(() => {
+    const counts: Record<string, number> = {};
+    visibleSubProperties.forEach(sub => {
+      const cat = sub.propertyCategory || 'APARTMENT';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [visibleSubProperties]);
+
+  const filteredSubProperties = useMemo(() => {
+    return visibleSubProperties.filter((unit: any) => {
+      if (unitsCategoryFilter !== 'ALL' && (unit.propertyCategory || 'APARTMENT') !== unitsCategoryFilter) {
+        return false;
+      }
+      if (unitsSearchTerm.trim()) {
+        const q = unitsSearchTerm.trim().toLowerCase();
+        const titleAr = (unit.titleAr || '').toLowerCase();
+        const titleEn = (unit.titleEn || '').toLowerCase();
+        const desc = (unit.description || '').toLowerCase();
+        const cat = (t(`cat.${unit.propertyCategory}`) || '').toLowerCase();
+        return titleAr.includes(q) || titleEn.includes(q) || desc.includes(q) || cat.includes(q);
+      }
+      return true;
+    });
+  }, [visibleSubProperties, unitsCategoryFilter, unitsSearchTerm, t]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -381,7 +413,7 @@ export default function PropertyDetails() {
           </div>
 
           {/* Title Section */}
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight flex items-center gap-2.5">
               <Building2 className="w-7 h-7 text-primary animate-pulse" />
               <span>
@@ -397,9 +429,61 @@ export default function PropertyDetails() {
             </p>
           </div>
 
+          {/* Search & Category Filter Controls */}
+          {visibleSubProperties.length > 3 && (
+            <div className="mb-6 flex flex-col sm:flex-row gap-3 items-center justify-between">
+              <div className="relative w-full sm:w-80">
+                <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder={language === 'ar' ? 'بحث عن وحدة بالعنوان أو الفئة...' : 'Search units by title or category...'}
+                  value={unitsSearchTerm}
+                  onChange={(e) => setUnitsSearchTerm(e.target.value)}
+                  className="w-full bg-card/60 border border-border/80 rounded-xl ps-9 pe-9 py-2 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
+                />
+                {unitsSearchTerm && (
+                  <button
+                    onClick={() => setUnitsSearchTerm('')}
+                    className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {Object.keys(unitsCategories).length > 1 && (
+                <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
+                  <button
+                    onClick={() => setUnitsCategoryFilter('ALL')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      unitsCategoryFilter === 'ALL'
+                        ? 'bg-primary text-primary-foreground shadow-xs'
+                        : 'bg-card border border-border/80 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {language === 'ar' ? 'الكل' : 'All'} ({visibleSubProperties.length})
+                  </button>
+                  {Object.entries(unitsCategories).map(([cat, count]) => (
+                    <button
+                      key={cat}
+                      onClick={() => setUnitsCategoryFilter(unitsCategoryFilter === cat ? 'ALL' : cat)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                        unitsCategoryFilter === cat
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'bg-card border border-border/80 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {t(`cat.${cat}`)} ({count})
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Units Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleSubProperties.map((unit, idx) => {
+            {filteredSubProperties.map((unit, idx) => {
               const { cover, unitDetails, isAvailable, isSold, isRented } = unit as any;
 
               return (
@@ -945,6 +1029,212 @@ export default function PropertyDetails() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Available Residential Units Section (Inline Accordion & Slide-Down) */}
+            {visibleSubProperties.length > 0 && (
+              <div className="shadcn-card p-6 border border-border/80 rounded-2xl animate-in fade-in mt-6">
+                {/* Header */}
+                <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border/60">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                      <Building2 className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-foreground">
+                          {language === 'ar' ? 'الوحدات السكنية المتاحة' : 'Available Residential Units'}
+                        </h3>
+                        <span className="bg-primary text-primary-foreground text-[11px] font-extrabold px-2 py-0.5 rounded-full">
+                          {visibleSubProperties.length}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {language === 'ar'
+                          ? `يحتوي هذا العقار على ${visibleSubProperties.length} وحدة سكنية مدرجة.`
+                          : `This property contains ${visibleSubProperties.length} listed units.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setViewMode('units')}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:bg-primary/10 border border-primary/20 px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs active:scale-98"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{language === 'ar' ? 'عرض شبكة كاملة' : 'Full Grid View'}</span>
+                    </button>
+
+                    {visibleSubProperties.length > 3 && (
+                      <button
+                        onClick={() => setInlineUnitsExpanded(!inlineUnitsExpanded)}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted border border-border/70 px-3 py-1.5 rounded-full transition-all cursor-pointer group/toggle"
+                      >
+                        <span>{inlineUnitsExpanded ? (language === 'ar' ? 'طي' : 'Collapse') : (language === 'ar' ? 'توسيع' : 'Expand')}</span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-primary transition-transform duration-300 ease-out-expo ${inlineUnitsExpanded ? 'rotate-180' : 'rotate-0'}`} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Category summary tags */}
+                {Object.keys(unitsCategories).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-3 select-none">
+                    {Object.entries(unitsCategories).map(([cat, count]) => (
+                      <span key={cat} className="property-tag text-[11px]">
+                        {count} {t(`cat.${cat}`)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Search & Filter Bar when expanded */}
+                {inlineUnitsExpanded && visibleSubProperties.length > 3 && (
+                  <div className="mt-4 pt-3 border-t border-border/60 flex flex-col sm:flex-row gap-3 items-center justify-between animate-in fade-in-50 slide-in-from-top-2 duration-300 ease-out-expo">
+                    <div className="relative w-full sm:w-72">
+                      <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder={language === 'ar' ? 'بحث عن وحدة بالعنوان أو الفئة...' : 'Search units by title or category...'}
+                        value={unitsSearchTerm}
+                        onChange={(e) => setUnitsSearchTerm(e.target.value)}
+                        className="w-full bg-background border border-border/80 rounded-xl ps-9 pe-9 py-2 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
+                      />
+                      {unitsSearchTerm && (
+                        <button
+                          onClick={() => setUnitsSearchTerm('')}
+                          className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {Object.keys(unitsCategories).length > 1 && (
+                      <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
+                        <button
+                          onClick={() => setUnitsCategoryFilter('ALL')}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                            unitsCategoryFilter === 'ALL'
+                              ? 'bg-primary text-primary-foreground shadow-xs'
+                              : 'bg-muted/60 border border-border/80 text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          {language === 'ar' ? 'الكل' : 'All'}
+                        </button>
+                        {Object.entries(unitsCategories).map(([cat, count]) => (
+                          <button
+                            key={cat}
+                            onClick={() => setUnitsCategoryFilter(unitsCategoryFilter === cat ? 'ALL' : cat)}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                              unitsCategoryFilter === cat
+                                ? 'bg-primary text-primary-foreground shadow-xs'
+                                : 'bg-muted/60 border border-border/80 text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {t(`cat.${cat}`)} ({count})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Units List */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  {(inlineUnitsExpanded ? filteredSubProperties : visibleSubProperties.slice(0, 3)).map((unit) => {
+                    const { cover, isSold, isRented } = unit as any;
+                    const currentTitle = language === 'ar' ? unit.titleAr : unit.titleEn;
+
+                    return (
+                      <Link
+                        key={unit.id}
+                        to={`/properties/${unit.id}`}
+                        className="bg-card hover:bg-muted/30 border border-border/70 rounded-xl p-3 flex gap-3.5 items-center transition-all hover:shadow-xs hover:border-primary/50 group/item text-foreground"
+                      >
+                        <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
+                          <img src={cover} alt={currentTitle} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-300" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <h4 className="text-xs font-bold text-foreground group-hover/item:text-primary transition-colors truncate">
+                              {currentTitle}
+                            </h4>
+                            <span className={isSold ? 'property-tag-rose text-[9px]' : isRented ? 'property-tag-amber text-[9px]' : 'property-tag text-[9px]'}>
+                              {isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
+                               isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
+                               unit.type === 'SALE' ? (language === 'ar' ? 'للبيع' : 'Sale') :
+                               (language === 'ar' ? 'للإيجار' : 'Rent')}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5 font-medium">
+                            <span>{t(`cat.${unit.propertyCategory}`)}</span>
+                            <span>•</span>
+                            <span>{unit.area} {t('common.sqm')}</span>
+                          </div>
+
+                          <div className="flex items-baseline gap-1 mt-1 font-mono">
+                            {unit.price > 0 ? (
+                              <>
+                                <span className="text-xs font-extrabold text-foreground">{unit.price.toLocaleString()}</span>
+                                <span className="text-[9px] font-bold text-muted-foreground">{t('common.currency')}</span>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground italic font-medium">{language === 'ar' ? 'اتصل لمعرفة السعر' : 'Call for price'}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {language === 'ar' ? (
+                          <ChevronLeft className="w-4 h-4 text-muted-foreground/60 group-hover/item:text-primary group-hover/item:-translate-x-0.5 transition-all flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover/item:text-primary group-hover/item:translate-x-0.5 transition-all flex-shrink-0" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {inlineUnitsExpanded && filteredSubProperties.length === 0 && (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    {language === 'ar' ? 'لا توجد وحدات مطابقة للبحث' : 'No units matching search criteria'}
+                  </div>
+                )}
+
+                {/* Slide Down Button */}
+                {visibleSubProperties.length > 3 && (
+                  <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-center">
+                    {!inlineUnitsExpanded ? (
+                      <button
+                        onClick={() => setInlineUnitsExpanded(true)}
+                        className="w-full py-2.5 px-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98 group/expand"
+                      >
+                        <span>
+                          {language === 'ar' 
+                            ? `عرض جميع الوحدات (${visibleSubProperties.length} وحدة)` 
+                            : `Show All Units (${visibleSubProperties.length} units)`}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-primary group-hover/expand:translate-y-0.5 transition-transform" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setInlineUnitsExpanded(false);
+                          setUnitsSearchTerm('');
+                          setUnitsCategoryFilter('ALL');
+                        }}
+                        className="w-full py-2.5 px-4 bg-muted hover:bg-muted/80 text-foreground border border-border rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 group/collapse"
+                      >
+                        <span>{language === 'ar' ? 'طي قائمة الوحدات' : 'Collapse Units List'}</span>
+                        <ChevronUp className="w-4 h-4 text-primary group-hover/collapse:-translate-y-0.5 transition-transform" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

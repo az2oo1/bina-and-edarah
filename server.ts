@@ -3503,25 +3503,55 @@ async function startServer() {
       include: { building: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } }
     });
 
-    const parsedUnits = (units || []).map(unit => ({
-      id: unit.id,
-      unitNumber: unit.unitNumber,
-      renterName: unit.renter?.name || unit.renterName || 'المستأجر',
-      renterPhone: unit.renter?.phone || unit.renterPhone || normalizedPhone,
-      contractEndDate: unit.contractEndDate,
-      nextRentDue: unit.nextRentDue,
-      rentAmount: unit.rentAmount,
-      isTanfeeth: unit.isTanfeeth,
-      propertyName: unit.building?.name || 'مبنى غير معروف',
-      transferDetails: unit.building?.transferDetails || null,
-      buildingPhotos: unit.building?.photos || '[]',
-      bedrooms: unit.bedrooms ?? 2,
-      bathrooms: unit.bathrooms ?? 2,
-      area: unit.area ?? 120,
-      floor: unit.floor || '1',
-      features: unit.features || 'مكيفات مجهزة, مطبخ راكب, موقف خاص, مصعد, إنتركوم ذكي',
-      photos: unit.photos && unit.photos !== '[]' ? unit.photos : (unit.building?.photos || '[]'),
-      rentHistory: unit.rentHistory || []
+    const parsedUnits = await Promise.all((units || []).map(async unit => {
+      let bPhotos = unit.building?.photos || '[]';
+
+      // If building.photos is empty or '[]', search Property table for a matching building property with imageUrls
+      if (!bPhotos || bPhotos === '[]') {
+        const bName = unit.building?.name;
+        if (bName) {
+          try {
+            const matchingProp = await prisma.property.findFirst({
+              where: {
+                OR: [
+                  { titleAr: bName },
+                  { titleEn: bName },
+                  { titleAr: { contains: bName } },
+                  { titleEn: { contains: bName } }
+                ],
+                imageUrls: { not: '[]' }
+              },
+              select: { imageUrls: true }
+            });
+            if (matchingProp && matchingProp.imageUrls && matchingProp.imageUrls !== '[]') {
+              bPhotos = matchingProp.imageUrls;
+            }
+          } catch (_) {}
+        }
+      }
+
+      const uPhotos = unit.photos && unit.photos !== '[]' ? unit.photos : bPhotos;
+
+      return {
+        id: unit.id,
+        unitNumber: unit.unitNumber,
+        renterName: unit.renter?.name || unit.renterName || 'المستأجر',
+        renterPhone: unit.renter?.phone || unit.renterPhone || normalizedPhone,
+        contractEndDate: unit.contractEndDate,
+        nextRentDue: unit.nextRentDue,
+        rentAmount: unit.rentAmount,
+        isTanfeeth: unit.isTanfeeth,
+        propertyName: unit.building?.name || 'مبنى غير معروف',
+        transferDetails: unit.building?.transferDetails || null,
+        buildingPhotos: bPhotos,
+        bedrooms: unit.bedrooms ?? 2,
+        bathrooms: unit.bathrooms ?? 2,
+        area: unit.area ?? 120,
+        floor: unit.floor || '1',
+        features: unit.features || 'مكيفات مجهزة, مطبخ راكب, موقف خاص, مصعد, إنتركوم ذكي',
+        photos: uPhotos,
+        rentHistory: unit.rentHistory || []
+      };
     }));
 
     // 2. Fetch properties from Property model assigned to this renter phone
