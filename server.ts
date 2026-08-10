@@ -835,7 +835,9 @@ const s3Client = new S3Client({
   forcePathStyle: true
 });
 
-const S3_BUCKET = process.env.S3_BUCKET || "bina-assets";
+const rawS3Bucket = process.env.S3_BUCKET || "binaassets";
+// RustFS strict naming: avoid hyphens in bucket name
+const S3_BUCKET = rawS3Bucket === "bina-assets" ? "binaassets" : rawS3Bucket;
 
 // Ensure bucket exists in RustFS / MinIO on startup and configure public-read access
 (async () => {
@@ -874,9 +876,11 @@ const S3_BUCKET = process.env.S3_BUCKET || "bina-assets";
 })();
 
 function uploadToStorage(buffer: Buffer, filename: string, contentType: string): string {
-  // Always save locally to ensure availability via static express server
-  const filepath = path.join(UPLOADS_DIR, filename);
-  fs.writeFileSync(filepath, buffer);
+  // Try saving locally if directory exists (non-blocking)
+  try {
+    const filepath = path.join(UPLOADS_DIR, filename);
+    fs.writeFileSync(filepath, buffer);
+  } catch (_) {}
 
   // Upload to S3 Object Storage asynchronously
   s3Client.send(new PutObjectCommand({
@@ -1170,14 +1174,27 @@ async function startServer() {
         return res.send(imageBuffer);
       }
 
-      // Case 2: Local file path (/uploads/xxx.jpg)
+      // Case 2: File path (/uploads/xxx.jpg)
       if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
         const fileName = imgData.replace(/^\/?uploads\//, '');
         const filePath = path.resolve(UPLOADS_DIR, fileName);
-        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
+        if (fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
+        // Stream directly from RustFS S3
+        try {
+          const s3Obj = await s3Client.send(new GetObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: fileName
+          }));
+          if (s3Obj.ContentType) res.setHeader('Content-Type', s3Obj.ContentType);
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          const stream = s3Obj.Body as any;
+          if (stream && typeof stream.pipe === 'function') {
+            return stream.pipe(res);
+          }
+        } catch (_) {}
         return res.status(404).send('Image file not found');
       }
 
@@ -1221,14 +1238,27 @@ async function startServer() {
         return res.send(imageBuffer);
       }
 
-      // Case 2: Local file path (/uploads/xxx.jpg)
+      // Case 2: File path (/uploads/xxx.jpg)
       if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
         const fileName = imgData.replace(/^\/?uploads\//, '');
         const filePath = path.resolve(UPLOADS_DIR, fileName);
-        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
+        if (fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
+        // Stream directly from RustFS S3
+        try {
+          const s3Obj = await s3Client.send(new GetObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: fileName
+          }));
+          if (s3Obj.ContentType) res.setHeader('Content-Type', s3Obj.ContentType);
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          const stream = s3Obj.Body as any;
+          if (stream && typeof stream.pipe === 'function') {
+            return stream.pipe(res);
+          }
+        } catch (_) {}
         return res.status(404).send('Image file not found');
       }
 
@@ -4738,14 +4768,7 @@ async function startServer() {
               : sourceProperty.details;
 
             if (Array.isArray(detailsList)) {
-              const newDetailsList = detailsList.map((d: any) => {
-                if (d.key === 'رقم الوحدة' || d.key === 'Unit Name') {
-                  const valMatch = String(d.value || '').match(/^(.*?)(?:_(\d+))?$/);
-                  const valBase = (valMatch && valMatch[1]) ? valMatch[1] : String(d.value || '');
-                  return { ...d, value: `${valBase}_${nextSeq}` };
-                }
-                return d;
-              });
+              const newDetailsList = detailsList.filter((d: any) => d.key !== 'رقم الوحدة' && d.key !== 'Unit Name');
               updatedDetails = JSON.stringify(newDetailsList);
             }
           } catch (_) {}
@@ -5776,6 +5799,13 @@ async function startServer() {
         await tx.user.deleteMany();
         await tx.admin.deleteMany();
 
+        const modelFieldMap = new Map<string, Set<string>>();
+        if (Prisma && (Prisma as any).dmmf?.datamodel?.models) {
+          for (const m of (Prisma as any).dmmf.datamodel.models) {
+            modelFieldMap.set(m.name, new Set(m.fields.map((f: any) => f.name)));
+          }
+        }
+
         const insertBatch = async (modelDelegate: any, items: any[], batchSize = 5) => {
           for (let i = 0; i < items.length; i += batchSize) {
             const chunk = items.slice(i, i + batchSize);
@@ -5802,24 +5832,38 @@ async function startServer() {
           return cleaned;
         };
 
+        const sanitizeModelData = (item: any, modelName?: string) => {
+          if (!item || typeof item !== 'object') return item;
+          const cleaned = parseDates(item);
+          if (!modelName || !modelFieldMap.has(modelName)) return cleaned;
+          const validFields = modelFieldMap.get(modelName)!;
+          const sanitized: any = {};
+          for (const [key, val] of Object.entries(cleaned)) {
+            if (validFields.has(key)) {
+              sanitized[key] = val;
+            }
+          }
+          return sanitized;
+        };
+
         // Restore tables with small chunking to stay below database SQL message size limits
         if (dbData.admins && dbData.admins.length > 0) {
-          await insertBatch(tx.admin, dbData.admins.map(parseDates));
+          await insertBatch(tx.admin, dbData.admins.map((i: any) => sanitizeModelData(i, 'Admin')));
         }
         if (dbData.users && dbData.users.length > 0) {
-          await insertBatch(tx.user, dbData.users.map(parseDates));
+          await insertBatch(tx.user, dbData.users.map((i: any) => sanitizeModelData(i, 'User')));
         }
         if (dbData.settings && dbData.settings.length > 0) {
-          await insertBatch(tx.settings, dbData.settings.map(parseDates));
+          await insertBatch(tx.settings, dbData.settings.map((i: any) => sanitizeModelData(i, 'Settings')));
         }
         if (dbData.services && dbData.services.length > 0) {
-          await insertBatch(tx.service, dbData.services.map(parseDates));
+          await insertBatch(tx.service, dbData.services.map((i: any) => sanitizeModelData(i, 'Service')));
         }
         if (dbData.projects && dbData.projects.length > 0) {
-          await insertBatch(tx.project, dbData.projects.map(parseDates), 2);
+          await insertBatch(tx.project, dbData.projects.map((i: any) => sanitizeModelData(i, 'Project')), 2);
         }
         if (dbData.properties && dbData.properties.length > 0) {
-          const allProperties = dbData.properties.map(parseDates);
+          const allProperties = dbData.properties.map((i: any) => sanitizeModelData(i, 'Property'));
 
           // Insert properties one by one to avoid CockroachDB 16MB single query payload limit
           await insertBatch(tx.property, allProperties.map((p: any) => ({ ...p, parentId: null })), 1);
@@ -5834,13 +5878,13 @@ async function startServer() {
             }
           }
         }
-        const buildingsToInsert = (dbData.buildings || []).map(parseDates);
+        const buildingsToInsert = (dbData.buildings || []).map((i: any) => sanitizeModelData(i, 'Building'));
         const buildingIds = new Set(buildingsToInsert.map((b: any) => b.id));
 
-        const rentersToInsert = (dbData.renters || []).map(parseDates);
+        const rentersToInsert = (dbData.renters || []).map((i: any) => sanitizeModelData(i, 'Renter'));
         const renterIds = new Set(rentersToInsert.map((r: any) => r.id));
 
-        const rawRenterUnits = (dbData.renterUnits || []).map(parseDates);
+        const rawRenterUnits = (dbData.renterUnits || []).map((i: any) => sanitizeModelData(i, 'RenterUnit'));
         const renterUnitsToInsert = rawRenterUnits.map((unit: any) => {
           const cleaned = { ...unit };
           // Nullify renterId if referenced renter does not exist
@@ -5857,10 +5901,10 @@ async function startServer() {
         });
         const renterUnitIds = new Set(renterUnitsToInsert.map((u: any) => u.id));
 
-        const rawRentHistory = (dbData.rentHistory || []).map(parseDates);
+        const rawRentHistory = (dbData.rentHistory || []).map((i: any) => sanitizeModelData(i, 'RentHistory'));
         const rentHistoryToInsert = rawRentHistory.filter((h: any) => h.renterUnitId && renterUnitIds.has(h.renterUnitId));
 
-        const rawMaintenanceReports = (dbData.maintenanceReports || []).map(parseDates);
+        const rawMaintenanceReports = (dbData.maintenanceReports || []).map((i: any) => sanitizeModelData(i, 'MaintenanceReport'));
         const maintenanceReportsToInsert = rawMaintenanceReports.map((report: any) => {
           const cleaned = { ...report };
           if (cleaned.renterId && !renterIds.has(cleaned.renterId)) {
@@ -5883,16 +5927,16 @@ async function startServer() {
         });
         const maintenanceReportIds = new Set(maintenanceReportsToInsert.map((m: any) => m.id));
 
-        const rawMessages = (dbData.maintenanceMessages || []).map(parseDates);
+        const rawMessages = (dbData.maintenanceMessages || []).map((i: any) => sanitizeModelData(i, 'MaintenanceMessage'));
         const maintenanceMessagesToInsert = rawMessages.filter((m: any) => m.reportId && maintenanceReportIds.has(m.reportId));
 
-        const rawLogs = (dbData.maintenanceLogs || []).map(parseDates);
+        const rawLogs = (dbData.maintenanceLogs || []).map((i: any) => sanitizeModelData(i, 'MaintenanceLog'));
         const maintenanceLogsToInsert = rawLogs.filter((l: any) => l.reportId && maintenanceReportIds.has(l.reportId));
 
-        const callbackRequestsToInsert = (dbData.callbackRequests || []).map(parseDates);
+        const callbackRequestsToInsert = (dbData.callbackRequests || []).map((i: any) => sanitizeModelData(i, 'CallbackRequest'));
         const callbackRequestIds = new Set(callbackRequestsToInsert.map((c: any) => c.id));
 
-        const rawCallbackNotes = (dbData.callbackNotes || []).map(parseDates);
+        const rawCallbackNotes = (dbData.callbackNotes || []).map((i: any) => sanitizeModelData(i, 'CallbackNote'));
         const callbackNotesToInsert = rawCallbackNotes.filter((n: any) => n.callbackRequestId && callbackRequestIds.has(n.callbackRequestId));
 
         if (buildingsToInsert.length > 0) {
@@ -5923,7 +5967,7 @@ async function startServer() {
           await insertBatch(tx.callbackNote, callbackNotesToInsert);
         }
         if (dbData.actionLogs && dbData.actionLogs.length > 0) {
-          await insertBatch(tx.actionLog, dbData.actionLogs.map(parseDates));
+          await insertBatch(tx.actionLog, dbData.actionLogs.map((i: any) => sanitizeModelData(i, 'ActionLog')));
         }
       }, { timeout: 180000 });
 

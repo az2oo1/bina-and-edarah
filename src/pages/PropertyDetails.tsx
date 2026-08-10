@@ -321,52 +321,11 @@ export default function PropertyDetails() {
     });
 
     return mapped.sort((a, b) => {
-      const getUnitSortKey = (item: any) => {
-        const uName = item.unitDetails?.find((d: any) => {
-          if (!d || !d.key) return false;
-          const k = String(d.key).trim().toLowerCase();
-          return k === 'رقم الوحدة' || k === 'unit name' || k === 'unit number' || k === 'رقم الشقة' || k === 'شقة' || k === 'unit' || k === 'apartment number' || k === 'apt number';
-        })?.value || '';
-        const title = (language === 'ar' ? (item.titleAr || item.titleEn || '') : (item.titleEn || item.titleAr || '')).trim();
-        const hasUnitInTitle = uName ? title.toLowerCase().includes(String(uName).toLowerCase()) : false;
-        return (uName && !hasUnitInTitle ? `${uName} ${title}` : title).trim();
-      };
-      const keyA = getUnitSortKey(a);
-      const keyB = getUnitSortKey(b);
-      return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+      const titleA = (language === 'ar' ? (a.titleAr || a.titleEn || '') : (a.titleEn || a.titleAr || '')).trim();
+      const titleB = (language === 'ar' ? (b.titleAr || b.titleEn || '') : (b.titleEn || b.titleAr || '')).trim();
+      return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [property?.subProperties, memoizedParsedData.parentImages, language]);
-
-  const mainUnitNumber = useMemo(() => {
-    if (!property || !property.details) return '';
-    try {
-      const list = typeof property.details === 'string' ? JSON.parse(property.details) : property.details;
-      if (Array.isArray(list)) {
-        const match = list.find((item: any) => {
-          if (!item || !item.key) return false;
-          const k = String(item.key).trim().toLowerCase();
-          return (
-            k === 'رقم الوحدة' ||
-            k === 'unit name' ||
-            k === 'unit number' ||
-            k === 'رقم الشقة' ||
-            k === 'شقة' ||
-            k === 'unit' ||
-            k === 'apartment number' ||
-            k === 'apt number'
-          );
-        });
-        if (match?.value) return String(match.value);
-      }
-    } catch (_) {}
-    return '';
-  }, [property?.details]);
-
-  const mainHasUnitInTitle = useMemo(() => {
-    if (!property || !mainUnitNumber) return false;
-    const title = language === 'ar' ? property.titleAr : property.titleEn;
-    return title.toLowerCase().includes(mainUnitNumber.toLowerCase());
-  }, [property, mainUnitNumber, language]);
 
   if (loading) {
     return (
@@ -481,27 +440,19 @@ export default function PropertyDetails() {
                   <div className="p-4 flex-1 flex flex-col justify-between">
                     <div>
                       {(() => {
-                        const unitName = unitDetails.find((d: any) => {
-                          if (!d || !d.key) return false;
-                          const k = String(d.key).trim().toLowerCase();
-                          return k === 'رقم الوحدة' || k === 'unit name' || k === 'unit number' || k === 'رقم الشقة' || k === 'شقة' || k === 'unit' || k === 'apartment number' || k === 'apt number';
-                        })?.value || '';
-                        const filteredTags = unitDetails.filter((d: any) => {
+                        const filteredTags = (unitDetails || []).filter((d: any) => {
                           if (!d || !d.key) return false;
                           const k = String(d.key).trim().toLowerCase();
                           return k !== 'رقم الوحدة' && k !== 'unit name' && k !== 'unit number' && k !== 'رقم الشقة' && k !== 'شقة' && k !== 'unit';
                         });
                         const currentTitle = language === 'ar' ? unit.titleAr : unit.titleEn;
-                        const hasUnitInTitle = unitName ? currentTitle.toLowerCase().includes(String(unitName).toLowerCase()) : false;
 
                         return (
                           <>
                             <div className="flex items-start justify-between gap-3">
                               <h3 className="text-sm font-extrabold text-foreground leading-snug group-hover/unit:text-primary transition-colors duration-250 line-clamp-1 flex items-center gap-1.5" style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}>
                                 <span className="truncate">
-                                  {unitName && !hasUnitInTitle
-                                    ? `${t(`cat.${unit.propertyCategory || 'APARTMENT'}`)} ${unitName} - ${currentTitle}`
-                                    : currentTitle}
+                                  {currentTitle}
                                 </span>
                               </h3>
                             </div>
@@ -515,7 +466,7 @@ export default function PropertyDetails() {
                             {/* Specifications tags */}
                             {filteredTags.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 mt-3 select-none">
-                                {filteredTags.slice(0, 3).map((detail, idx) => (
+                                {filteredTags.slice(0, 3).map((detail: any, idx: number) => (
                                   <span 
                                     key={idx} 
                                     className="property-tag gap-1"
@@ -621,9 +572,7 @@ export default function PropertyDetails() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight">
-            {mainUnitNumber && !mainHasUnitInTitle
-              ? `${t(`cat.${property.propertyCategory || 'APARTMENT'}`)} ${mainUnitNumber} - ${language === 'ar' ? property.titleAr : property.titleEn}`
-              : (language === 'ar' ? property.titleAr : property.titleEn)}
+            {language === 'ar' ? property.titleAr : property.titleEn}
           </h1>
         </div>
 

@@ -16,7 +16,7 @@ services:
       - DEV_MODE=${DEV_MODE:-false}
       - DATABASE_URL=postgresql://root@cockroach_db:26257/bina_db?sslmode=disable
       - S3_ENDPOINT=http://rustfs-storage:9000
-      - S3_BUCKET=bina-assets
+      - S3_BUCKET=binaassets
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-rustfsaccesskey}
       - S3_SECRET_KEY=${S3_SECRET_KEY:-rustfssecretkey}
       - S3_REGION=${S3_REGION:-us-east-1}
@@ -68,6 +68,7 @@ services:
       - RUSTFS_ADDRESS=0.0.0.0:9000
       - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
       - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS=*
       - RUSTFS_OBS_LOGGER_LEVEL=error
       - RUSTFS_OBS_LOG_DIRECTORY=/var/log/rustfs/
     ports:

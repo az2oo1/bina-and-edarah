@@ -230,22 +230,9 @@ export default function Admin() {
       const data = await res.json();
       if (Array.isArray(data)) {
         const sorted = [...data].sort((a, b) => {
-          const getUnitName = (item: any) => {
-            let uName = '';
-            try {
-              const parsed = typeof item.details === 'string' ? JSON.parse(item.details || '[]') : item.details;
-              if (Array.isArray(parsed)) {
-                const match = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key === 'Unit Name' || d.key === 'unit number' || d.key === 'unit');
-                if (match?.value) uName = String(match.value);
-              }
-            } catch (_) {}
-            const title = (item.titleAr || item.titleEn || '').trim();
-            const hasUnitInTitle = uName ? title.toLowerCase().includes(uName.toLowerCase()) : false;
-            return (uName && !hasUnitInTitle ? `${uName} ${title}` : title).trim();
-          };
-          const keyA = getUnitName(a);
-          const keyB = getUnitName(b);
-          return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+          const titleA = (a.titleAr || a.titleEn || '').trim();
+          const titleB = (b.titleAr || b.titleEn || '').trim();
+          return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
         });
         setSelectedParentUnits(sorted);
       } else {
@@ -1108,8 +1095,6 @@ export default function Admin() {
     id: '',
     titleAr: '',
     titleEn: '',
-    unitNameAr: '',
-    unitNameEn: '',
     type: 'RENT',
     propertyCategory: 'APARTMENT',
     price: '',
@@ -1223,8 +1208,6 @@ export default function Admin() {
       id: '',
       titleAr: '',
       titleEn: '',
-      unitNameAr: '',
-      unitNameEn: '',
       type: 'RENT',
       propertyCategory: 'APARTMENT',
       price: '',
@@ -1245,23 +1228,17 @@ export default function Admin() {
     let rooms = '';
     let bathrooms = '';
     let floor = '';
-    let unitNameAr = '';
-    let unitNameEn = '';
     try {
       const parsed = JSON.parse(unit.details || '[]');
       rooms = parsed.find((d: any) => d.key.includes('غرف') || d.key.toLowerCase().includes('room'))?.value || '';
       bathrooms = parsed.find((d: any) => d.key.includes('مياه') || d.key.toLowerCase().includes('bathroom'))?.value || '';
       floor = parsed.find((d: any) => d.key.includes('دور') || d.key.toLowerCase().includes('floor'))?.value || '';
-      unitNameAr = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key.includes('اسم الوحدة'))?.value || '';
-      unitNameEn = parsed.find((d: any) => d.key === 'Unit Name' || d.key.toLowerCase().includes('unit name'))?.value || '';
     } catch (_) {}
 
     setUnitFormData({
       id: unit.id || '',
       titleAr: unit.titleAr || '',
       titleEn: unit.titleEn || '',
-      unitNameAr,
-      unitNameEn,
       type: unit.type || 'RENT',
       propertyCategory: unit.propertyCategory || 'APARTMENT',
       price: unit.price ? String(unit.price) : '',
@@ -1320,37 +1297,15 @@ export default function Admin() {
     const existingTitlesAr = formData.subProperties.map(u => u.titleAr);
     const existingTitlesEn = formData.subProperties.map(u => u.titleEn);
 
-    let unitNameAr = '';
-    let unitNameEn = '';
-    try {
-      const parsed = JSON.parse(targetUnit.details || '[]');
-      unitNameAr = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key.includes('اسم الوحدة'))?.value || '';
-      unitNameEn = parsed.find((d: any) => d.key === 'Unit Name' || d.key.toLowerCase().includes('unit name'))?.value || '';
-    } catch (_) {}
-
-    const newTitleAr = getNextUnitNameWithSuffix(targetUnit.titleAr || unitNameAr || 'وحدة', existingTitlesAr);
-    const newTitleEn = getNextUnitNameWithSuffix(targetUnit.titleEn || unitNameEn || 'Unit', existingTitlesEn);
+    const newTitleAr = getNextUnitNameWithSuffix(targetUnit.titleAr || 'وحدة', existingTitlesAr);
+    const newTitleEn = getNextUnitNameWithSuffix(targetUnit.titleEn || 'Unit', existingTitlesEn);
 
     let updatedDetails = targetUnit.details;
     if (targetUnit.details) {
       try {
         const parsed = JSON.parse(targetUnit.details);
         if (Array.isArray(parsed)) {
-          const nextDetails = parsed.map((d: any) => {
-            if (d.key === 'رقم الوحدة') {
-              const existingUnitNamesAr = formData.subProperties.map(u => {
-                try { return JSON.parse(u.details || '[]').find((x: any) => x.key === 'رقم الوحدة')?.value; } catch(_) { return ''; }
-              }).filter(Boolean);
-              return { ...d, value: getNextUnitNameWithSuffix(d.value || 'وحدة', existingUnitNamesAr) };
-            }
-            if (d.key === 'Unit Name') {
-              const existingUnitNamesEn = formData.subProperties.map(u => {
-                try { return JSON.parse(u.details || '[]').find((x: any) => x.key === 'Unit Name')?.value; } catch(_) { return ''; }
-              }).filter(Boolean);
-              return { ...d, value: getNextUnitNameWithSuffix(d.value || 'Unit', existingUnitNamesEn) };
-            }
-            return d;
-          });
+          const nextDetails = parsed.filter((d: any) => d.key !== 'رقم الوحدة' && d.key !== 'Unit Name');
           updatedDetails = JSON.stringify(nextDetails);
         }
       } catch (_) {}
@@ -1395,18 +1350,16 @@ export default function Admin() {
   };
 
   const handleSaveUnit = async () => {
-    const titleAr = unitFormData.titleAr || unitFormData.unitNameAr;
-    const titleEn = unitFormData.titleEn || unitFormData.unitNameEn || titleAr;
-    if (!unitFormData.unitNameAr) {
-      await showAlert(language === 'ar' ? 'الرجاء إدخال اسم/رقم الوحدة بالعربية' : 'Please enter the unit name/number in Arabic.');
+    const titleAr = unitFormData.titleAr?.trim();
+    const titleEn = unitFormData.titleEn?.trim() || titleAr;
+    if (!titleAr) {
+      await showAlert(language === 'ar' ? 'الرجاء إدخال العنوان (عربي)' : 'Please enter the title in Arabic.');
       return;
     }
     const detailsArray = [];
     if (unitFormData.rooms) detailsArray.push({ key: language === 'ar' ? 'عدد الغرف' : 'Rooms Count', value: unitFormData.rooms });
     if (unitFormData.bathrooms) detailsArray.push({ key: language === 'ar' ? 'دورات المياه' : 'Bathrooms', value: unitFormData.bathrooms });
     if (unitFormData.floor) detailsArray.push({ key: language === 'ar' ? 'الدور' : 'Floor', value: unitFormData.floor });
-    if (unitFormData.unitNameAr) detailsArray.push({ key: 'رقم الوحدة', value: unitFormData.unitNameAr });
-    if (unitFormData.unitNameEn) detailsArray.push({ key: 'Unit Name', value: unitFormData.unitNameEn });
 
     const newUnit = {
       id: unitFormData.id || undefined,
@@ -2746,48 +2699,8 @@ export default function Admin() {
                         </div>
 
                         {formData.parentId && (
-                          <>
-                            <div className="md:col-span-2">
-                              <label className="cn-label mb-2">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي' : 'Internal Unit Name/Number'}</label>
-                              <input
-                                required
-                                type="text"
-                                value={formData.detailsList.find(d => d.key === 'رقم الوحدة' || d.key === 'Unit Name')?.value || ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setFormData(prev => {
-                                    const newList = [...prev.detailsList];
-                                    const idxAr = newList.findIndex(d => d.key === 'رقم الوحدة');
-                                    const oldValAr = idxAr > -1 ? newList[idxAr].value : '';
-                                    if (idxAr > -1) {
-                                      newList[idxAr] = { ...newList[idxAr], value: val };
-                                    } else {
-                                      newList.push({ id: Math.random().toString(), key: 'رقم الوحدة', value: val });
-                                    }
-
-                                    const idxEn = newList.findIndex(d => d.key === 'Unit Name');
-                                    if (idxEn > -1) {
-                                      newList[idxEn] = { ...newList[idxEn], value: val };
-                                    } else {
-                                      newList.push({ id: Math.random().toString(), key: 'Unit Name', value: val });
-                                    }
-
-                                    const syncTitleAr = !prev.titleAr || prev.titleAr === oldValAr;
-                                    const syncTitleEn = !prev.titleEn || prev.titleEn === oldValAr;
-                                    return { 
-                                      ...prev, 
-                                      detailsList: newList,
-                                      titleAr: syncTitleAr ? val : prev.titleAr,
-                                      titleEn: syncTitleEn ? val : prev.titleEn
-                                    };
-                                  });
-                                }}
-                                className="cn-input"
-                                placeholder={language === 'ar' ? 'مثال: شقة 101' : 'e.g. Apt 101'}
-                              />
-                            </div>
-                            <div className="md:col-span-2">
-                              <label className="cn-label mb-2">{language === 'ar' ? 'الدور' : 'Floor'}</label>
+                          <div className="md:col-span-2">
+                            <label className="cn-label mb-2">{language === 'ar' ? 'الدور' : 'Floor'}</label>
                               {parentFloors.length > 0 ? (
                                 <select
                                   value={formData.detailsList.find(d => d.key === 'الدور' || d.key === 'Floor')?.value || ''}
@@ -2820,7 +2733,6 @@ export default function Admin() {
                                 </div>
                               )}
                             </div>
-                          </>
                         )}
                       </div>
                     </div>
@@ -3532,22 +3444,9 @@ export default function Admin() {
                             <div className="border border-border rounded-xl overflow-hidden divide-y divide-border bg-card/30">
                               {[...formData.subProperties]
                                 .sort((a, b) => {
-                                  const getUnitName = (item: any) => {
-                                    let uName = '';
-                                    try {
-                                      const parsed = typeof item.details === 'string' ? JSON.parse(item.details || '[]') : item.details;
-                                      if (Array.isArray(parsed)) {
-                                        const match = parsed.find((d: any) => d.key === 'رقم الوحدة' || d.key === 'Unit Name' || d.key === 'unit number' || d.key === 'unit');
-                                        if (match?.value) uName = String(match.value);
-                                      }
-                                    } catch (_) {}
-                                    const title = (item.titleAr || item.titleEn || '').trim();
-                                    const hasUnitInTitle = uName ? title.toLowerCase().includes(uName.toLowerCase()) : false;
-                                    return (uName && !hasUnitInTitle ? `${uName} ${title}` : title).trim();
-                                  };
-                                  const keyA = getUnitName(a);
-                                  const keyB = getUnitName(b);
-                                  return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+                                  const titleA = (a.titleAr || a.titleEn || '').trim();
+                                  const titleB = (b.titleAr || b.titleEn || '').trim();
+                                  return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
                                 })
                                 .map((unit, index) => {
                                 let unitName = '';
@@ -3561,11 +3460,6 @@ export default function Admin() {
                                     <div>
                                       <div className="flex items-center gap-2">
                                         <span className="font-black text-foreground">{language === 'ar' ? unit.titleAr : unit.titleEn}</span>
-                                        {unitName && unitName !== unit.titleAr && unitName !== unit.titleEn && (
-                                          <span className="bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded">
-                                            {unitName}
-                                          </span>
-                                        )}
                                       </div>
                                       <div className="flex gap-2.5 text-muted-foreground mt-1.5 text-[11px] font-semibold">
                                         <span>{t(`cat.${unit.propertyCategory}`)}</span>
@@ -3624,46 +3518,22 @@ export default function Admin() {
                               
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'عنوان الإعلان للوحدة (عربي)' : 'Unit Title (Ar)'}</label>
+                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'العنوان (عربي)' : 'Title (Arabic)'}</label>
                                   <input
                                     type="text"
                                     value={unitFormData.titleAr}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, titleAr: e.target.value })}
-                                    placeholder={language === 'ar' ? 'مثال: شقة فاخرة للإيجار' : 'e.g. Luxury Apartment for Rent'}
+                                    placeholder={language === 'ar' ? 'مثال: شقة 101' : 'e.g. Apt 101'}
                                     className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>
                                 <div>
-                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'عنوان الإعلان للوحدة (إنجليزي)' : 'Unit Title (En)'}</label>
+                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'العنوان (إنجليزي)' : 'Title (English)'}</label>
                                   <input
                                     type="text"
                                     value={unitFormData.titleEn}
                                     onChange={(e) => setUnitFormData({ ...unitFormData, titleEn: e.target.value })}
-                                    placeholder={language === 'ar' ? 'مثال: Luxury Apartment for Rent' : 'e.g. Luxury Apartment for Rent'}
-                                    className="cn-input text-xs h-9 bg-background"
-                                  />
-                                </div>
-                                
-                                <div className="md:col-span-2">
-                                  <label className="cn-label mb-1.5">{language === 'ar' ? 'رقم / اسم الوحدة الداخلي' : 'Unit Name/Number'}</label>
-                                  <input
-                                    type="text"
-                                    value={unitFormData.unitNameAr}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnitFormData(prev => {
-                                        const syncTitle = !prev.titleAr || prev.titleAr === prev.unitNameAr;
-                                        const syncTitleEn = !prev.titleEn || prev.titleEn === prev.unitNameEn;
-                                        return {
-                                          ...prev,
-                                          unitNameAr: val,
-                                          unitNameEn: val,
-                                          titleAr: syncTitle ? val : prev.titleAr,
-                                          titleEn: syncTitleEn ? val : prev.titleEn
-                                        };
-                                      });
-                                    }}
-                                    placeholder={language === 'ar' ? 'مثال: شقة 101' : 'e.g. Apt 101'}
+                                    placeholder={language === 'ar' ? 'مثال: Apt 101' : 'e.g. Apt 101'}
                                     className="cn-input text-xs h-9 bg-background"
                                   />
                                 </div>

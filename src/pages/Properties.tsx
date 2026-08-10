@@ -185,31 +185,8 @@ export default function Properties() {
 
     const sortPropertiesAlphabetically = (list: any[]) => {
       return [...list].sort((a, b) => {
-        const getUnitSortKey = (item: any) => {
-          let uNum = '';
-          if (item.parsedDetails && Array.isArray(item.parsedDetails)) {
-            const match = item.parsedDetails.find((d: any) => {
-              if (!d || !d.key) return false;
-              const k = String(d.key).trim().toLowerCase();
-              return (
-                k === 'رقم الوحدة' ||
-                k === 'unit name' ||
-                k === 'unit number' ||
-                k === 'رقم الشقة' ||
-                k === 'شقة' ||
-                k === 'unit' ||
-                k === 'apartment number' ||
-                k === 'apt number'
-              );
-            });
-            if (match?.value) uNum = String(match.value);
-          }
-          const title = (language === 'ar' ? (item.titleAr || item.titleEn || '') : (item.titleEn || item.titleAr || '')).trim();
-          const hasUnitInTitle = uNum ? title.toLowerCase().includes(uNum.toLowerCase()) : false;
-          return (uNum && !hasUnitInTitle ? `${uNum} ${title}` : title).trim();
-        };
-        const titleA = getUnitSortKey(a);
-        const titleB = getUnitSortKey(b);
+        const titleA = (language === 'ar' ? (a.titleAr || a.titleEn || '') : (a.titleEn || a.titleAr || '')).trim();
+        const titleB = (language === 'ar' ? (b.titleAr || b.titleEn || '') : (b.titleEn || b.titleAr || '')).trim();
         return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
       });
     };
@@ -578,28 +555,7 @@ export default function Properties() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
               {properties.map((property) => {
                 const hasUnits = !!(property.availableUnitsCount && property.availableUnitsCount > 0);
-                const unitNumber = (() => {
-                  if (!property.parsedDetails || !Array.isArray(property.parsedDetails)) return '';
-                  const match = property.parsedDetails.find((item: any) => {
-                    if (!item || !item.key) return false;
-                    const k = String(item.key).trim().toLowerCase();
-                    return (
-                      k === 'رقم الوحدة' ||
-                      k === 'unit name' ||
-                      k === 'unit number' ||
-                      k === 'رقم الشقة' ||
-                      k === 'شقة' ||
-                      k === 'unit' ||
-                      k === 'apartment number' ||
-                      k === 'apt number'
-                    );
-                  });
-                  if (match?.value) return String(match.value);
-                  return '';
-                })();
-
                 const currentTitle = language === 'ar' ? property.titleAr : property.titleEn;
-                const hasUnitInTitle = unitNumber ? currentTitle.toLowerCase().includes(unitNumber.toLowerCase()) : false;
 
                 return (
                   <Link to={`/properties/${property.id}`} key={property.id} className="shadcn-card hover:shadow-md transition-all duration-200 group flex flex-col overflow-hidden hover:-translate-y-0.5 block">
@@ -643,7 +599,7 @@ export default function Properties() {
                         <span className="property-tag">
                           {t(`cat.${property.propertyCategory || 'VILLA'}`)}
                         </span>
-                        {(property.parentId && !unitNumber) && (
+                        {property.parentId && (
                           <span className="property-tag">
                             {language === 'ar' ? 'وحدة سكنية' : 'Sub-Unit'}
                           </span>
@@ -663,9 +619,7 @@ export default function Properties() {
                     <div className="p-5 flex flex-col flex-grow text-foreground">
                       <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1 flex items-center gap-1.5">
                         <span className="truncate">
-                          {unitNumber && !hasUnitInTitle
-                            ? `${t(`cat.${property.propertyCategory || 'APARTMENT'}`)} ${unitNumber} - ${currentTitle}`
-                            : currentTitle}
+                          {currentTitle}
                         </span>
                       </h3>
                       {property.locationText && (
