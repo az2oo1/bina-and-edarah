@@ -177,22 +177,24 @@ export default function ProjectDetails() {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    prevImage();
+                    if (language === 'ar') nextImage();
+                    else prevImage();
                   }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 z-30 cursor-pointer border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 backdrop-blur-md"
-                  title={language === 'ar' ? 'السابق' : 'Previous'}
-                  aria-label={language === 'ar' ? 'السابق' : 'Previous'}
+                  title={language === 'ar' ? 'الصورة التالية' : 'Previous'}
+                  aria-label={language === 'ar' ? 'الصورة التالية' : 'Previous'}
                 >
                   <ChevronLeft className="w-5 h-5 text-white" />
                 </button>
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    nextImage();
+                    if (language === 'ar') prevImage();
+                    else nextImage();
                   }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 z-30 cursor-pointer border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 backdrop-blur-md"
-                  title={language === 'ar' ? 'التالي' : 'Next'}
-                  aria-label={language === 'ar' ? 'التالي' : 'Next'}
+                  title={language === 'ar' ? 'الصورة السابقة' : 'Next'}
+                  aria-label={language === 'ar' ? 'الصورة السابقة' : 'Next'}
                 >
                   <ChevronRight className="w-5 h-5 text-white" />
                 </button>

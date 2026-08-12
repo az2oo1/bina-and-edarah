@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
-import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, Eye, Car, ArrowUpCircle, Wrench, User, Search, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { MapPin, Phone, ExternalLink, ArrowLeft, ArrowRight, Maximize, CalendarDays, Coins, Zap, CheckCircle2, MessageCircle, Building2, Compass, Ruler, BedDouble, DoorOpen, Armchair, Bath, Layers, Users, Info, ChefHat, ChevronLeft, ChevronRight, Eye, Car, ArrowUpCircle, Search, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { ImageViewer } from '../components/ImageViewer';
 import { formatExternalLink } from '../utils/link';
 
@@ -84,10 +84,21 @@ export default function PropertyDetails() {
   const [unitsCategoryFilter, setUnitsCategoryFilter] = useState('ALL');
 
   const thumbnailContainerRef = useRef<HTMLDivElement | null>(null);
+  const mainThumbnailRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
   const isDownRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
   const hasDraggedRef = useRef(false);
+
+  useEffect(() => {
+    if (activeImage !== undefined && mainThumbnailRefs.current[activeImage]) {
+      mainThumbnailRefs.current[activeImage]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [activeImage]);
 
   const handleThumbnailMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!thumbnailContainerRef.current) return;
@@ -196,20 +207,6 @@ export default function PropertyDetails() {
         setLoading(false);
       });
   }, [id]);
-
-  const [propertyMaintenanceReports, setPropertyMaintenanceReports] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (!property?.id) return;
-    fetch(`/api/properties/${property.id}/maintenance-reports`)
-      .then(res => res.ok ? res.json() : [])
-      .then((reports: any[]) => {
-        if (Array.isArray(reports)) {
-          setPropertyMaintenanceReports(reports);
-        }
-      })
-      .catch(console.error);
-  }, [property?.id]);
 
   const memoizedParsedData = useMemo(() => {
     if (!property) {
@@ -391,9 +388,22 @@ export default function PropertyDetails() {
     galleryItems.push({ type: 'map' });
   }
   const mapIndex = hasMap ? galleryItems.length - 1 : -1;
+  const mainMediaIndices = galleryItems
+    .map((item, idx) => (item.type !== 'map' ? idx : -1))
+    .filter((idx) => idx !== -1);
 
-  const goToIndex = (idx: number) => {
-    setActiveImage(idx);
+  const handleMainNext = () => {
+    if (mainMediaIndices.length === 0) return;
+    const currentPos = mainMediaIndices.indexOf(activeImage);
+    const nextPos = currentPos === -1 ? 0 : (currentPos + 1) % mainMediaIndices.length;
+    setActiveImage(mainMediaIndices[nextPos]);
+  };
+
+  const handleMainPrev = () => {
+    if (mainMediaIndices.length === 0) return;
+    const currentPos = mainMediaIndices.indexOf(activeImage);
+    const prevPos = currentPos === -1 ? mainMediaIndices.length - 1 : (currentPos - 1 + mainMediaIndices.length) % mainMediaIndices.length;
+    setActiveImage(mainMediaIndices[prevPos]);
   };
 
   if (viewMode === 'units') {
@@ -737,17 +747,18 @@ export default function PropertyDetails() {
                 })()}
 
                 {/* Slider Navigation Controls - open the picture viewer */}
-                {galleryItems.length > 1 && (
+                {mainMediaIndices.length > 1 && (
                   <>
                     <button 
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        goToIndex((activeImage - 1 + galleryItems.length) % galleryItems.length);
+                        if (language === 'ar') handleMainNext();
+                        else handleMainPrev();
                       }}
                       className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 z-30 cursor-pointer border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100 backdrop-blur-md"
-                      title={language === 'ar' ? 'الصورة السابقة' : 'Previous Image'}
-                      aria-label={language === 'ar' ? 'الصورة السابقة' : 'Previous Image'}
+                      title={language === 'ar' ? 'الصورة التالية' : 'Previous Image'}
+                      aria-label={language === 'ar' ? 'الصورة التالية' : 'Previous Image'}
                     >
                       <ChevronLeft className="w-5 h-5 text-white" />
                     </button>
@@ -755,11 +766,12 @@ export default function PropertyDetails() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        goToIndex((activeImage + 1) % galleryItems.length);
+                        if (language === 'ar') handleMainPrev();
+                        else handleMainNext();
                       }}
                       className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 z-30 cursor-pointer border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/gallery:opacity-100 backdrop-blur-md"
-                      title={language === 'ar' ? 'الصورة التالية' : 'Next Image'}
-                      aria-label={language === 'ar' ? 'الصورة التالية' : 'Next Image'}
+                      title={language === 'ar' ? 'الصورة السابقة' : 'Next Image'}
+                      aria-label={language === 'ar' ? 'الصورة السابقة' : 'Next Image'}
                     >
                       <ChevronRight className="w-5 h-5 text-white" />
                     </button>
@@ -780,7 +792,8 @@ export default function PropertyDetails() {
                       if (item.type === 'map') return null;
                       return (
                         <button 
-                          key={i} 
+                          key={i}
+                          ref={(el) => (mainThumbnailRefs.current[i] = el)}
                           onClick={(e) => {
                             if (hasDraggedRef.current) {
                               e.preventDefault();
@@ -841,10 +854,11 @@ export default function PropertyDetails() {
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3.5">
                 {(() => {
                   const specItems: React.ReactNode[] = [];
+                  const itemCardClass = "flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/30 border border-border/60 transition-all duration-200 w-full h-full shadow-none select-none animate-in fade-in duration-200";
 
                   // 1. Category
                   specItems.push(
-                    <div key="category" className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                    <div key="category" className={itemCardClass}>
                       <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                         <Building2 className="w-4 h-4 sm:w-5 h-5" />
                       </div>
@@ -858,7 +872,7 @@ export default function PropertyDetails() {
                   // 2. Area
                   if (property.area > 0) {
                     specItems.push(
-                      <div key="area" className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                      <div key="area" className={itemCardClass}>
                         <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                           <Maximize className="w-4 h-4 sm:w-5 h-5" />
                         </div>
@@ -873,7 +887,7 @@ export default function PropertyDetails() {
                   // 3. Property Age
                   if (property.propertyAge > 0) {
                     specItems.push(
-                      <div key="age" className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                      <div key="age" className={itemCardClass}>
                         <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                           <CalendarDays className="w-4 h-4 sm:w-5 h-5" />
                         </div>
@@ -888,7 +902,7 @@ export default function PropertyDetails() {
                   // 4. Location Text
                   if (property.locationText) {
                     specItems.push(
-                      <div key="locationText" className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                      <div key="locationText" className={itemCardClass}>
                         <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                           <MapPin className="w-4 h-4 sm:w-5 h-5" />
                         </div>
@@ -915,7 +929,7 @@ export default function PropertyDetails() {
                         : item.key;
 
                       specItems.push(
-                        <div key={`detail-${idx}`} className="flex items-center gap-2 sm:gap-3.5 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-card hover:bg-muted/40 border border-border/80 transition-all duration-250 w-full h-full shadow-xs hover:shadow-sm select-none animate-in fade-in duration-200">
+                        <div key={`detail-${idx}`} className={itemCardClass}>
                           <div className="p-1.5 sm:p-2.5 bg-primary/10 text-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                             {item.icon && (LucideIcons as any)[item.icon] ? (
                               (() => {
@@ -970,153 +984,49 @@ export default function PropertyDetails() {
               )}
             </div>
 
-            {/* Maintenance Reports Section */}
-            {propertyMaintenanceReports.length > 0 && (
-              <div className="shadcn-card p-6 border border-amber-500/30 bg-amber-500/5 rounded-2xl space-y-4 mt-6">
-                <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center shrink-0">
-                      <Wrench className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-extrabold text-sm text-foreground">
-                        {language === 'ar' ? 'بلاغات الصيانة الخاصة بهذا العقار' : 'Property Maintenance Tickets'}
-                      </h3>
-                      <p className="text-[11px] text-muted-foreground">
-                        {language === 'ar' ? `يوجد ${propertyMaintenanceReports.length} بلاغات صيانة مرتبطة بهذا العقار` : `${propertyMaintenanceReports.length} maintenance tickets linked to this property`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <Link
-                    to="/admin/callbacks?type=maintenance"
-                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-full shadow-xs transition-colors flex items-center gap-1 shrink-0"
-                  >
-                    <span>{language === 'ar' ? 'مركز الصيانة' : 'Maintenance Hub'}</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {propertyMaintenanceReports.map((report) => (
-                    <div key={report.id} className="bg-card p-3.5 rounded-xl border border-border space-y-2 text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-extrabold text-foreground flex items-center gap-1.5 truncate">
-                          <User className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span className="truncate">{report.renter?.name || report.renterUnit?.renterName || 'مستأجر'}</span>
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border shrink-0 ${
-                          report.status === 'COMPLETED' ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30' :
-                          report.status === 'IN_PROGRESS' ? 'bg-sky-500/15 text-sky-600 border-sky-500/30' :
-                          'bg-amber-500/15 text-amber-600 border-amber-500/30'
-                        }`}>
-                          {report.status === 'COMPLETED' ? (language === 'ar' ? 'مكتمل' : 'Completed') :
-                           report.status === 'IN_PROGRESS' ? (language === 'ar' ? 'جاري المعالجة' : 'In Progress') :
-                           (language === 'ar' ? 'قيد الانتظار' : 'Pending')}
-                        </span>
-                      </div>
-
-                      <p className="text-muted-foreground line-clamp-2 text-[11px] leading-relaxed">
-                        {report.description}
-                      </p>
-
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50 font-mono">
-                        <span>{new Date(report.createdAt).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
-                        {report.renterUnit?.unitNumber && (
-                          <span className="font-bold text-foreground">وحدة {report.renterUnit.unitNumber}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Available Residential Units Section (Inline Accordion & Slide-Down) */}
             {visibleSubProperties.length > 0 && (
-              <div className="shadcn-card p-6 border border-border/80 rounded-2xl animate-in fade-in mt-6">
-                {/* Header */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border/60">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
-                      <Building2 className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-foreground">
-                          {language === 'ar' ? 'الوحدات السكنية المتاحة' : 'Available Residential Units'}
-                        </h3>
-                        <span className="bg-primary text-primary-foreground text-[11px] font-extrabold px-2 py-0.5 rounded-full">
-                          {visibleSubProperties.length}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {language === 'ar'
-                          ? `يحتوي هذا العقار على ${visibleSubProperties.length} وحدة سكنية مدرجة.`
-                          : `This property contains ${visibleSubProperties.length} listed units.`}
-                      </p>
-                    </div>
+              <div className="shadcn-card p-3.5 sm:p-4 border border-border/80 rounded-2xl animate-in fade-in mt-4">
+                {/* Compact Header */}
+                <div className="flex items-center gap-2 mb-2.5">
+                  <div className="p-1.5 bg-primary/10 rounded-md text-primary shrink-0">
+                    <Building2 className="w-3.5 h-3.5 text-primary" />
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setViewMode('units')}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:bg-primary/10 border border-primary/20 px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs active:scale-98"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>{language === 'ar' ? 'عرض شبكة كاملة' : 'Full Grid View'}</span>
-                    </button>
-
-                    {visibleSubProperties.length > 3 && (
-                      <button
-                        onClick={() => setInlineUnitsExpanded(!inlineUnitsExpanded)}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted border border-border/70 px-3 py-1.5 rounded-full transition-all cursor-pointer group/toggle"
-                      >
-                        <span>{inlineUnitsExpanded ? (language === 'ar' ? 'طي' : 'Collapse') : (language === 'ar' ? 'توسيع' : 'Expand')}</span>
-                        <ChevronDown className={`w-3.5 h-3.5 text-primary transition-transform duration-300 ease-out-expo ${inlineUnitsExpanded ? 'rotate-180' : 'rotate-0'}`} />
-                      </button>
-                    )}
-                  </div>
+                  <h3 className="text-xs font-bold text-foreground">
+                    {language === 'ar' ? 'الوحدات السكنية المتاحة' : 'Available Residential Units'}
+                  </h3>
+                  <span className="bg-primary/15 text-primary text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
+                    {visibleSubProperties.length}
+                  </span>
                 </div>
-
-                {/* Category summary tags */}
-                {Object.keys(unitsCategories).length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-3 select-none">
-                    {Object.entries(unitsCategories).map(([cat, count]) => (
-                      <span key={cat} className="property-tag text-[11px]">
-                        {count} {t(`cat.${cat}`)}
-                      </span>
-                    ))}
-                  </div>
-                )}
 
                 {/* Search & Filter Bar when expanded */}
                 {inlineUnitsExpanded && visibleSubProperties.length > 3 && (
-                  <div className="mt-4 pt-3 border-t border-border/60 flex flex-col sm:flex-row gap-3 items-center justify-between animate-in fade-in-50 slide-in-from-top-2 duration-300 ease-out-expo">
-                    <div className="relative w-full sm:w-72">
-                      <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
+                  <div className="mt-3 pt-2.5 border-t border-border/60 flex flex-col sm:flex-row gap-2.5 items-center justify-between animate-in fade-in-50 slide-in-from-top-2 duration-300 ease-out-expo">
+                    <div className="relative w-full sm:w-64">
+                      <Search className="w-3.5 h-3.5 absolute top-1/2 -translate-y-1/2 start-2.5 text-muted-foreground pointer-events-none" />
                       <input
                         type="text"
                         placeholder={language === 'ar' ? 'بحث عن وحدة بالعنوان أو الفئة...' : 'Search units by title or category...'}
                         value={unitsSearchTerm}
                         onChange={(e) => setUnitsSearchTerm(e.target.value)}
-                        className="w-full bg-background border border-border/80 rounded-xl ps-9 pe-9 py-2 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
+                        className="w-full bg-background border border-border/80 rounded-lg ps-8 pe-8 py-1.5 text-[11px] font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
                       />
                       {unitsSearchTerm && (
                         <button
                           onClick={() => setUnitsSearchTerm('')}
-                          className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                          className="absolute top-1/2 -translate-y-1/2 end-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-3 h-3" />
                         </button>
                       )}
                     </div>
 
                     {Object.keys(unitsCategories).length > 1 && (
-                      <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
+                      <div className="flex items-center gap-1 flex-wrap w-full sm:w-auto">
                         <button
                           onClick={() => setUnitsCategoryFilter('ALL')}
-                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
                             unitsCategoryFilter === 'ALL'
                               ? 'bg-primary text-primary-foreground shadow-xs'
                               : 'bg-muted/60 border border-border/80 text-muted-foreground hover:text-foreground'
@@ -1128,7 +1038,7 @@ export default function PropertyDetails() {
                           <button
                             key={cat}
                             onClick={() => setUnitsCategoryFilter(unitsCategoryFilter === cat ? 'ALL' : cat)}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                            className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
                               unitsCategoryFilter === cat
                                 ? 'bg-primary text-primary-foreground shadow-xs'
                                 : 'bg-muted/60 border border-border/80 text-muted-foreground hover:text-foreground'
@@ -1143,56 +1053,132 @@ export default function PropertyDetails() {
                 )}
 
                 {/* Units List */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                  {(inlineUnitsExpanded ? filteredSubProperties : visibleSubProperties.slice(0, 3)).map((unit) => {
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2.5">
+                  {(inlineUnitsExpanded ? filteredSubProperties : visibleSubProperties.slice(0, 4)).map((unit) => {
                     const { cover, isSold, isRented } = unit as any;
                     const currentTitle = language === 'ar' ? unit.titleAr : unit.titleEn;
+
+                    // Extract unit spec badges (Floor, Bed, Bath, Area)
+                    const specBadges: Array<{ label: string; icon?: React.ReactNode }> = [];
+                    let floor = (unit as any).floor ? String((unit as any).floor).trim() : '';
+                    let beds = '';
+                    let baths = '';
+                    let extraCount = 0;
+
+                    if (unit.details) {
+                      try {
+                        const parsed = typeof unit.details === 'string' ? JSON.parse(unit.details) : unit.details;
+                        if (Array.isArray(parsed)) {
+                          parsed.forEach((item: any) => {
+                            if (!item || !item.key || !item.value) return;
+                            const k = String(item.key).toLowerCase().trim();
+                            const v = String(item.value).trim();
+                            if (k.includes('دور') || k.includes('floor')) {
+                              if (!floor) floor = v;
+                            } else if (k.includes('غرف') || k.includes('bed')) beds = v;
+                            else if (k.includes('حمام') || k.includes('مياه') || k.includes('bath')) baths = v;
+                            else if (k.includes('صالة') || k.includes('مطبخ') || k.includes('واجهة') || k.includes('موقف')) extraCount++;
+                          });
+                        }
+                      } catch (_) {}
+                    }
+
+                    // Format floor name gracefully
+                    const formatFloorName = (val: string, lang: string) => {
+                      if (!val) return '';
+                      const cleanVal = val.trim();
+                      if (cleanVal.startsWith('الدور') || cleanVal.startsWith('Floor')) return cleanVal;
+                      if (cleanVal === '0' || cleanVal.toLowerCase() === 'ground' || cleanVal.includes('أرضي') || cleanVal.includes('ارضي')) {
+                        return lang === 'ar' ? 'الدور الأرضي' : 'Ground Floor';
+                      }
+                      if (cleanVal === '1' || cleanVal.toLowerCase() === 'first') return lang === 'ar' ? 'الدور الأول' : '1st Floor';
+                      if (cleanVal === '2' || cleanVal.toLowerCase() === 'second') return lang === 'ar' ? 'الدور الثاني' : '2nd Floor';
+                      if (cleanVal === '3' || cleanVal.toLowerCase() === 'third') return lang === 'ar' ? 'الدور الثالث' : '3rd Floor';
+                      return lang === 'ar' ? `الدور ${cleanVal}` : `Floor ${cleanVal}`;
+                    };
+
+                    if (floor) {
+                      specBadges.push({
+                        label: formatFloorName(floor, language),
+                        icon: <Layers className="w-2.5 h-2.5 text-[#2563eb] shrink-0" />
+                      });
+                    }
+                    if (beds) {
+                      specBadges.push({
+                        label: beds,
+                        icon: <BedDouble className="w-2.5 h-2.5 text-[#2563eb] shrink-0" />
+                      });
+                    }
+                    if (unit.area > 0) {
+                      specBadges.push({
+                        label: `${unit.area} ${language === 'ar' ? 'م²' : 'm²'}`,
+                        icon: <Maximize className="w-2.5 h-2.5 text-[#2563eb] shrink-0" />
+                      });
+                    }
+                    for (let i = 0; i < extraCount; i++) {
+                      specBadges.push({ label: '+' });
+                    }
 
                     return (
                       <Link
                         key={unit.id}
                         to={`/properties/${unit.id}`}
-                        className="bg-card hover:bg-muted/30 border border-border/70 rounded-xl p-3 flex gap-3.5 items-center transition-all hover:shadow-xs hover:border-primary/50 group/item text-foreground"
+                        className="bg-card hover:bg-muted/30 border border-border/70 rounded-lg p-2 flex gap-2 items-center transition-all hover:shadow-xs hover:border-primary/50 group/item text-foreground select-none"
                       >
-                        <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
+                        {/* Thumbnail Image */}
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-md bg-muted overflow-hidden flex-shrink-0 relative">
                           <img src={cover} alt={currentTitle} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-300" />
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <h4 className="text-xs font-bold text-foreground group-hover/item:text-primary transition-colors truncate">
+                        {/* Ultra Slim Content */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <h4 className="text-[11px] font-bold text-foreground group-hover/item:text-primary transition-colors truncate">
                               {currentTitle}
                             </h4>
-                            <span className={isSold ? 'property-tag-rose text-[9px]' : isRented ? 'property-tag-amber text-[9px]' : 'property-tag text-[9px]'}>
-                              {isSold ? (language === 'ar' ? 'مباع' : 'Sold') :
-                               isRented ? (language === 'ar' ? 'مؤجر' : 'Rented') :
-                               unit.type === 'SALE' ? (language === 'ar' ? 'للبيع' : 'Sale') :
-                               (language === 'ar' ? 'للإيجار' : 'Rent')}
+                            <span className="text-[9px] text-muted-foreground truncate">
+                              {t(`cat.${unit.propertyCategory}`)} {unit.area > 0 ? `• ${unit.area} ${t('common.sqm')}` : ''}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5 font-medium">
-                            <span>{t(`cat.${unit.propertyCategory}`)}</span>
-                            <span>•</span>
-                            <span>{unit.area} {t('common.sqm')}</span>
-                          </div>
-
-                          <div className="flex items-baseline gap-1 mt-1 font-mono">
-                            {unit.price > 0 ? (
-                              <>
-                                <span className="text-xs font-extrabold text-foreground">{unit.price.toLocaleString()}</span>
-                                <span className="text-[9px] font-bold text-muted-foreground">{t('common.currency')}</span>
-                              </>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground italic font-medium">{language === 'ar' ? 'اتصل لمعرفة السعر' : 'Call for price'}</span>
+                          <div className="flex items-center justify-between gap-1 flex-wrap">
+                            {/* 3 Tags + Remaining Count Pill */}
+                            {specBadges.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                {specBadges.slice(0, 3).map((badge, bIdx) => (
+                                  <span
+                                    key={bIdx}
+                                    className="inline-flex items-center gap-0.5 bg-[#2563eb]/10 border border-[#2563eb]/20 text-[#2563eb] dark:bg-[#2563eb]/20 dark:border-[#2563eb]/30 dark:text-blue-300 rounded px-1.5 py-0.2 text-[9px] font-bold"
+                                  >
+                                    {badge.icon}
+                                    <span>{badge.label}</span>
+                                  </span>
+                                ))}
+                                {specBadges.length > 3 && (
+                                  <span className="inline-flex items-center bg-[#2563eb]/10 border border-[#2563eb]/20 text-[#2563eb] dark:bg-[#2563eb]/20 dark:border-[#2563eb]/30 dark:text-blue-300 rounded px-1.5 py-0.2 text-[9px] font-bold">
+                                    +{specBadges.length - 3}
+                                  </span>
+                                )}
+                              </div>
                             )}
+
+                            <div className="flex items-baseline gap-0.5 font-mono ms-auto">
+                              {unit.price > 0 ? (
+                                <>
+                                  <span className="text-[11px] font-extrabold text-foreground">{unit.price.toLocaleString()}</span>
+                                  <span className="text-[8px] font-bold text-muted-foreground">{t('common.currency')}</span>
+                                </>
+                              ) : (
+                                <span className="text-[8px] text-muted-foreground italic font-medium">{language === 'ar' ? 'اتصل لمعرفة السعر' : 'Call for price'}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
                         {language === 'ar' ? (
-                          <ChevronLeft className="w-4 h-4 text-muted-foreground/60 group-hover/item:text-primary group-hover/item:-translate-x-0.5 transition-all flex-shrink-0" />
+                          <ChevronLeft className="w-3 h-3 text-muted-foreground/60 group-hover/item:text-primary group-hover/item:-translate-x-0.5 transition-all flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover/item:text-primary group-hover/item:translate-x-0.5 transition-all flex-shrink-0" />
+                          <ChevronRight className="w-3 h-3 text-muted-foreground/60 group-hover/item:text-primary group-hover/item:translate-x-0.5 transition-all flex-shrink-0" />
                         )}
                       </Link>
                     );
@@ -1200,25 +1186,25 @@ export default function PropertyDetails() {
                 </div>
 
                 {inlineUnitsExpanded && filteredSubProperties.length === 0 && (
-                  <div className="py-8 text-center text-xs text-muted-foreground">
+                  <div className="py-6 text-center text-xs text-muted-foreground">
                     {language === 'ar' ? 'لا توجد وحدات مطابقة للبحث' : 'No units matching search criteria'}
                   </div>
                 )}
 
                 {/* Slide Down Button */}
-                {visibleSubProperties.length > 3 && (
-                  <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-center">
+                {visibleSubProperties.length > 4 && (
+                  <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-center">
                     {!inlineUnitsExpanded ? (
                       <button
                         onClick={() => setInlineUnitsExpanded(true)}
-                        className="w-full py-2.5 px-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98 group/expand"
+                        className="w-full py-2 px-3 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98 group/expand"
                       >
                         <span>
                           {language === 'ar' 
                             ? `عرض جميع الوحدات (${visibleSubProperties.length} وحدة)` 
                             : `Show All Units (${visibleSubProperties.length} units)`}
                         </span>
-                        <ChevronDown className="w-4 h-4 text-primary group-hover/expand:translate-y-0.5 transition-transform" />
+                        <ChevronDown className="w-3.5 h-3.5 text-primary group-hover/expand:translate-y-0.5 transition-transform" />
                       </button>
                     ) : (
                       <button
@@ -1227,10 +1213,10 @@ export default function PropertyDetails() {
                           setUnitsSearchTerm('');
                           setUnitsCategoryFilter('ALL');
                         }}
-                        className="w-full py-2.5 px-4 bg-muted hover:bg-muted/80 text-foreground border border-border rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 group/collapse"
+                        className="w-full py-2 px-3 bg-muted hover:bg-muted/80 text-foreground border border-border rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 group/collapse"
                       >
                         <span>{language === 'ar' ? 'طي قائمة الوحدات' : 'Collapse Units List'}</span>
-                        <ChevronUp className="w-4 h-4 text-primary group-hover/collapse:-translate-y-0.5 transition-transform" />
+                        <ChevronUp className="w-3.5 h-3.5 text-primary group-hover/collapse:-translate-y-0.5 transition-transform" />
                       </button>
                     )}
                   </div>

@@ -58,6 +58,8 @@ export function ImageViewer({
   };
 
 
+  const thumbnailRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
+
   // Sync initialIndex when viewer opens
   useEffect(() => {
     if (isOpen) {
@@ -65,6 +67,17 @@ export function ImageViewer({
       setIsZoomed(false);
     }
   }, [isOpen, initialIndex]);
+
+  // Auto scroll active thumbnail into view when activeIndex changes
+  useEffect(() => {
+    if (isOpen && activeIndex !== undefined && thumbnailRefs.current[activeIndex]) {
+      thumbnailRefs.current[activeIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [activeIndex, isOpen]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -96,20 +109,33 @@ export function ImageViewer({
   const mapItemIndex = items.findIndex(item => item.type === 'map');
   const hasMapItem = mapItemIndex !== -1;
 
+  // Media indices excluding map for isolated arrow navigation
+  const mediaIndices = items
+    .map((item, idx) => (item.type !== 'map' ? idx : -1))
+    .filter((idx) => idx !== -1);
+
   const handleNext = () => {
     setIsZoomed(false);
-    setActiveIndex((prev) => (prev + 1) % totalItems);
+    if (mediaIndices.length === 0) return;
+    const currentPos = mediaIndices.indexOf(activeIndex);
+    const nextPos = currentPos === -1 ? 0 : (currentPos + 1) % mediaIndices.length;
+    setActiveIndex(mediaIndices[nextPos]);
   };
 
   const handlePrev = () => {
     setIsZoomed(false);
-    setActiveIndex((prev) => (prev - 1 + totalItems) % totalItems);
+    if (mediaIndices.length === 0) return;
+    const currentPos = mediaIndices.indexOf(activeIndex);
+    const prevPos = currentPos === -1 ? mediaIndices.length - 1 : (currentPos - 1 + mediaIndices.length) % mediaIndices.length;
+    setActiveIndex(mediaIndices[prevPos]);
   };
 
   const handleThumbnailClick = (index: number) => {
     setIsZoomed(false);
     setActiveIndex(index);
   };
+
+  const currentMediaPos = mediaIndices.indexOf(activeIndex);
 
   return (
     <AnimatePresence>
@@ -120,7 +146,9 @@ export function ImageViewer({
         {/* Top Bar */}
         <div className="flex items-center justify-between px-6 py-4 z-10 w-full bg-gradient-to-b from-black/60 to-transparent">
           <div className="text-white/90 font-mono text-sm font-semibold tracking-wider">
-            {activeIndex + 1} / {totalItems}
+            {isMapActive 
+              ? (language === 'ar' ? 'الموقع' : 'Location')
+              : `${currentMediaPos !== -1 ? currentMediaPos + 1 : 1} / ${mediaIndices.length}`}
           </div>
           
           <div className="flex items-center gap-3">
@@ -147,22 +175,22 @@ export function ImageViewer({
 
         {/* Main Content Area */}
         <div className="relative flex-grow flex items-center justify-center p-4 min-h-0">
-          {/* Navigation Controls */}
-          {totalItems > 1 && (
+          {/* Navigation Controls (Excluding isolated map from arrows) */}
+          {mediaIndices.length > 1 && (
             <>
               <button 
-                onClick={handlePrev}
+                onClick={language === 'ar' ? handleNext : handlePrev}
                 className="absolute left-6 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 p-3 sm:p-4 rounded-xl transition-all cursor-pointer backdrop-blur-md border border-white/10 z-10 hover:scale-105 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
-                title={language === 'ar' ? 'السابق' : 'Previous'}
-                aria-label={language === 'ar' ? 'السابق' : 'Previous'}
+                title={language === 'ar' ? 'الصورة التالية' : 'Previous'}
+                aria-label={language === 'ar' ? 'الصورة التالية' : 'Previous'}
               >
                 <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
               </button>
               <button 
-                onClick={handleNext}
+                onClick={language === 'ar' ? handlePrev : handleNext}
                 className="absolute right-6 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 p-3 sm:p-4 rounded-xl transition-all cursor-pointer backdrop-blur-md border border-white/10 z-10 hover:scale-105 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
-                title={language === 'ar' ? 'التالي' : 'Next'}
-                aria-label={language === 'ar' ? 'التالي' : 'Next'}
+                title={language === 'ar' ? 'الصورة السابقة' : 'Next'}
+                aria-label={language === 'ar' ? 'الصورة السابقة' : 'Next'}
               >
                 <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
               </button>
@@ -235,6 +263,7 @@ export function ImageViewer({
                   return (
                     <button
                       key={idx}
+                      ref={(el) => (thumbnailRefs.current[idx] = el)}
                       onClick={() => {
                         if (hasDraggedRef.current) return;
                         handleThumbnailClick(idx);
