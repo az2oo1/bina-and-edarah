@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useDialog } from '../context/DialogContext';
 import { CustomSelect } from '../components/CustomSelect';
+import io from 'socket.io-client';
 
 export interface CostBreakdownItem {
   id: string;
@@ -430,8 +431,71 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
     fetchReports();
   }, [buildingIdFilter, statusFilter]);
 
+  // Real-time WebSocket connection for instant chat message delivery
+  useEffect(() => {
+    const socket = io(window.location.origin, {
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.emit('join_admin');
+
+    socket.on('new_message', (newMessage: any) => {
+      if (!newMessage || !newMessage.reportId) return;
+
+      setReports((prev) =>
+        prev.map((r) => {
+          if (r.id === newMessage.reportId) {
+            const msgs = r.messages || [];
+            if (!msgs.some((m) => m.id === newMessage.id)) {
+              return { ...r, messages: [...msgs, newMessage] };
+            }
+          }
+          return r;
+        })
+      );
+
+      setChatPopupReport((prev) => {
+        if (prev && prev.id === newMessage.reportId) {
+          const msgs = prev.messages || [];
+          if (!msgs.some((m) => m.id === newMessage.id)) {
+            return { ...prev, messages: [...msgs, newMessage] };
+          }
+        }
+        return prev;
+      });
+
+      setDetailsModalReport((prev) => {
+        if (prev && prev.id === newMessage.reportId) {
+          const msgs = prev.messages || [];
+          if (!msgs.some((m) => m.id === newMessage.id)) {
+            return { ...prev, messages: [...msgs, newMessage] };
+          }
+        }
+        return prev;
+      });
+    });
+
+    socket.on('maintenance_report_updated', (updated: MaintenanceReport) => {
+      if (updated && updated.id) {
+        setReports((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   const selectTicket = (report: MaintenanceReport) => {
     setSelectedId(report.id);
+
+    // Mark messages as read by ADMIN
+    fetch(`/api/maintenance-reports/${report.id}/messages/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'ADMIN' })
+    }).catch(() => null);
+
     setStatusInput(report.status);
     setAdminResponseInput(report.adminResponse || '');
     setTechnicianNameInput(report.technicianName || '');

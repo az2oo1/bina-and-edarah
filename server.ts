@@ -2665,9 +2665,14 @@ async function startServer() {
       // Broadcast over Socket.IO real-time engine
       const io = req.app.get("io");
       if (io) {
-        io.to(`ticket_${report.id}`).emit("new_message", newMessage);
-        if (report.requestCode) {
-          io.to(`ticket_${report.requestCode}`).emit("new_message", newMessage);
+        const socketPayload = {
+          ...newMessage,
+          reportCategory: report.category || 'GENERAL',
+        };
+
+        io.to(`ticket_${report.id}`).emit("new_message", socketPayload);
+        if (report.requestCode && report.requestCode !== report.id) {
+          io.to(`ticket_${report.requestCode}`).emit("new_message", socketPayload);
         }
       }
 
@@ -2695,6 +2700,13 @@ async function startServer() {
           readAt: new Date()
         }
       });
+
+      // Broadcast read receipt over Socket.IO real-time engine
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`ticket_${id}`).emit("messages_read", { reportId: id, readerRole: role });
+        io.to("admin_room").emit("messages_read", { reportId: id, readerRole: role });
+      }
 
       res.json({ success: true, count: updated.count });
     } catch (err) {
