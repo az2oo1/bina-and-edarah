@@ -2428,6 +2428,17 @@ async function startServer() {
         }
       });
 
+      // Automatically create system confirmation message as Message #1 at thread root
+      await prisma.maintenanceMessage.create({
+        data: {
+          reportId: report.id,
+          senderRole: 'ADMIN',
+          senderName: 'إدارة العقار',
+          message: 'أهلاً بك! تم استلام بلاغك والفني المختص يتابع الطلب حالياً. يمكنك كتابة أي استفسار هنا.',
+          isRead: true,
+        }
+      });
+
       res.json(report);
     } catch (err) {
       console.error("Error creating maintenance report:", err);

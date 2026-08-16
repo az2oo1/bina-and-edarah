@@ -7,7 +7,7 @@ import {
   Paperclip, Eye, X, Shield, UserCheck, CheckCheck,
   Tag, CalendarDays, Receipt, TrendingUp, RefreshCw, Layers,
   Plus, Trash2, Printer, Calculator, PieChart, CreditCard, AlertTriangle, FileCheck,
-  LayoutGrid, List, ArrowRight, Sliders, Camera
+  LayoutGrid, List, ArrowRight, Sliders, Camera, Info
 } from 'lucide-react';
 import { useDialog } from '../context/DialogContext';
 import { CustomSelect } from '../components/CustomSelect';
@@ -479,6 +479,36 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
       if (updated && updated.id) {
         setReports((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       }
+    });
+
+    socket.on('messages_read', (data: { reportId: string; readerRole?: string }) => {
+      if (!data || !data.reportId) return;
+
+      setReports((prev) =>
+        prev.map((r) => {
+          if (r.id === data.reportId || r.requestCode === data.reportId) {
+            const msgs = (r.messages || []).map((m) => ({ ...m, isRead: true }));
+            return { ...r, messages: msgs };
+          }
+          return r;
+        })
+      );
+
+      setChatPopupReport((prev) => {
+        if (prev && (prev.id === data.reportId || prev.requestCode === data.reportId)) {
+          const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
+          return { ...prev, messages: msgs };
+        }
+        return prev;
+      });
+
+      setDetailsModalReport((prev) => {
+        if (prev && (prev.id === data.reportId || prev.requestCode === data.reportId)) {
+          const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
+          return { ...prev, messages: msgs };
+        }
+        return prev;
+      });
     });
 
     return () => {
@@ -1276,8 +1306,10 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
         </div>
       ) : (
         /* DEDICATED FULL-PAGE WORKSPACE FOR THE REPORT */
-        <div className="bg-card border border-border w-full rounded-2xl shadow-xs overflow-hidden flex flex-col min-h-[750px] animate-fade-in p-6 space-y-6">
-          {/* Top Back Navigation & Workspace Header */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Right / Main Content Work Order Card */}
+          <div className="lg:col-span-7 xl:col-span-8 bg-card border border-border w-full rounded-2xl shadow-xs overflow-hidden flex flex-col min-h-[750px] animate-fade-in p-6 space-y-6">
+            {/* Top Back Navigation & Workspace Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-border select-none">
             <div className="flex items-center gap-3">
               <button
@@ -1311,14 +1343,7 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
 
             {/* Header Actions */}
             <div className="flex items-center gap-2 flex-wrap self-end sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setChatPopupReport(detailsModalReport)}
-                className="h-9 px-4 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>{language === 'ar' ? 'المحادثة المباشرة' : 'Live Chat'}</span>
-              </button>
+
 
               {detailsModalReport.status === 'PENDING' && (
                 <>
@@ -1356,582 +1381,762 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
           </div>
 
           {/* Sub-Tabs Navigation - Matching Admin.tsx style */}
-          <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-full border border-border overflow-x-auto custom-scrollbar">
-            <button
-              type="button"
-              onClick={() => setModalSubTab('info')}
-              className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                modalSubTab === 'info' 
-                  ? 'bg-primary text-primary-foreground shadow-2xs' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>{language === 'ar' ? 'تفاصيل البلاغ والمعالجة' : 'Request Details'}</span>
-            </button>
+              <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-full border border-border overflow-x-auto custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setModalSubTab('info')}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                    modalSubTab === 'info' 
+                      ? 'bg-primary text-primary-foreground shadow-2xs' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>{language === 'ar' ? 'تفاصيل البلاغ والمعالجة' : 'Request Details'}</span>
+                </button>
 
-            <button
-              type="button"
-              onClick={() => setModalSubTab('actions')}
-              className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                modalSubTab === 'actions' 
-                  ? 'bg-primary text-primary-foreground shadow-2xs' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>{language === 'ar' ? 'الإجراءات والتنفيذ' : 'Actions & Workflow'}</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={() => setModalSubTab('actions')}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                    modalSubTab === 'actions' 
+                      ? 'bg-primary text-primary-foreground shadow-2xs' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>{language === 'ar' ? 'الإجراءات والتنفيذ' : 'Actions & Workflow'}</span>
+                </button>
 
-            <button
-              type="button"
-              onClick={() => setModalSubTab('expenses')}
-              className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                modalSubTab === 'expenses' 
-                  ? 'bg-emerald-600 text-white shadow-2xs' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              }`}
-            >
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>{language === 'ar' ? 'تتبع المصاريف والفواتير (Atlas CMMS)' : 'Financial Expenses & Ledger'}</span>
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => setModalSubTab('expenses')}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                    modalSubTab === 'expenses' 
+                      ? 'bg-emerald-600 text-white shadow-2xs' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>{language === 'ar' ? 'تتبع المصاريف والفواتير (Atlas CMMS)' : 'Financial Expenses & Ledger'}</span>
+                </button>
+              </div>
 
-          {/* Workspace Body */}
-          <div className="space-y-6 text-xs">
-              
-              {modalSubTab === 'info' ? (
-                <>
-                  {/* METADATA GRID CARD */}
-                  <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-5 shadow-2xs">
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-3.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
-                          <Tag className="w-4 h-4 text-primary" />
-                          <span>{language === 'ar' ? 'بيانات الطلب الأساسية' : 'Work Order Metadata'}</span>
-                        </span>
-                      </div>
+              {/* Workspace Body */}
+              <div className="space-y-6 text-xs">
+                  
+                  {modalSubTab === 'info' ? (
+                    <>
+                      {/* METADATA GRID CARD */}
+                      <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-5 shadow-2xs">
+                        {/* Header Row */}
+                        <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
+                              <Tag className="w-4 h-4 text-primary" />
+                              <span>{language === 'ar' ? 'بيانات الطلب الأساسية' : 'Work Order Metadata'}</span>
+                            </span>
+                          </div>
 
-                      <div className="text-xs font-mono font-black text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
-                        ID: #{detailsModalReport.requestCode || detailsModalReport.id.slice(0, 8)}
-                      </div>
-                    </div>
-
-                    {/* Key-Value Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'رمز البلاغ' : 'Work Order ID'}</span>
-                        <span className="font-mono font-black text-foreground text-sm block">#{detailsModalReport.requestCode || detailsModalReport.id.slice(0, 8)}</span>
-                      </div>
-
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'تصنيف الصيانة' : 'Category'}</span>
-                        <span className="font-extrabold text-foreground text-sm block">{getCategoryLabel(detailsModalReport.category)}</span>
-                      </div>
-
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'الأولوية' : 'Priority'}</span>
-                        <div>
-                          <span className={`inline-block font-black text-xs px-2.5 py-0.5 rounded-md ${
-                            detailsModalReport.priority === 'URGENT' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
-                            detailsModalReport.priority === 'HIGH' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
-                            detailsModalReport.priority === 'LOW' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
-                            'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                          }`}>
-                            {detailsModalReport.priority === 'URGENT' ? (language === 'ar' ? 'عاجلة / طارئة' : 'Urgent') :
-                             detailsModalReport.priority === 'HIGH' ? (language === 'ar' ? 'عالية' : 'High') :
-                             detailsModalReport.priority === 'LOW' ? (language === 'ar' ? 'منخفضة' : 'Low') :
-                             (language === 'ar' ? 'عادية' : 'Normal')}
-                          </span>
+                          <div className="text-xs font-mono font-black text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
+                            ID: #{detailsModalReport.requestCode || detailsModalReport.id.slice(0, 8)}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'الموقع والعقار' : 'Location'}</span>
-                        <span className="font-extrabold text-primary text-xs block truncate">{detailsModalReport.renterUnit?.building?.name || 'مبنى'}</span>
-                      </div>
+                        {/* Key-Value Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'رمز البلاغ' : 'Work Order ID'}</span>
+                            <span className="font-mono font-black text-foreground text-sm block">#{detailsModalReport.requestCode || detailsModalReport.id.slice(0, 8)}</span>
+                          </div>
 
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'الوحدة السكنية' : 'Asset / Unit'}</span>
-                        <span className="font-extrabold text-primary text-xs block">{language === 'ar' ? `وحدة ${detailsModalReport.renterUnit?.unitNumber}` : `Unit ${detailsModalReport.renterUnit?.unitNumber}`}</span>
-                      </div>
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'تصنيف الصيانة' : 'Category'}</span>
+                            <span className="font-extrabold text-foreground text-sm block">{getCategoryLabel(detailsModalReport.category)}</span>
+                          </div>
 
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'تاريخ البدء المتوقع' : 'Expected Start Date'}</span>
-                        <span className="font-mono font-bold text-foreground text-xs block">
-                          {(detailsModalReport as any).expectedStartDate
-                            ? new Date((detailsModalReport as any).expectedStartDate).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')
-                            : (language === 'ar' ? 'غير محدد' : 'Not set')}
-                        </span>
-                      </div>
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'الأولوية' : 'Priority'}</span>
+                            <div>
+                              <span className={`inline-block font-black text-xs px-2.5 py-0.5 rounded-md ${
+                                detailsModalReport.priority === 'URGENT' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
+                                detailsModalReport.priority === 'HIGH' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
+                                detailsModalReport.priority === 'LOW' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
+                                'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                              }`}>
+                                {detailsModalReport.priority === 'URGENT' ? (language === 'ar' ? 'عاجلة / طارئة' : 'Urgent') :
+                                 detailsModalReport.priority === 'HIGH' ? (language === 'ar' ? 'عالية' : 'High') :
+                                 detailsModalReport.priority === 'LOW' ? (language === 'ar' ? 'منخفضة' : 'Low') :
+                                 (language === 'ar' ? 'عادية' : 'Normal')}
+                              </span>
+                            </div>
+                          </div>
 
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'المدة التقديرية' : 'Estimated Duration'}</span>
-                        <span className="font-bold text-foreground text-xs block">
-                          {(detailsModalReport as any).estimatedDuration || (language === 'ar' ? 'غير محدودة' : 'N/A')}
-                        </span>
-                      </div>
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'الموقع والعقار' : 'Location'}</span>
+                            <span className="font-extrabold text-primary text-xs block truncate">{detailsModalReport.renterUnit?.building?.name || 'مبنى'}</span>
+                          </div>
 
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'تاريخ الإنشاء' : 'Date Created'}</span>
-                        <span className="font-mono font-bold text-foreground text-xs block">{new Date(detailsModalReport.createdAt).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
-                      </div>
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'الوحدة السكنية' : 'Asset / Unit'}</span>
+                            <span className="font-extrabold text-primary text-xs block">{language === 'ar' ? `وحدة ${detailsModalReport.renterUnit?.unitNumber}` : `Unit ${detailsModalReport.renterUnit?.unitNumber}`}</span>
+                          </div>
 
-                      <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
-                        <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'المعتمد بواسطة' : 'Approved By'}</span>
-                        <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-xs block">
-                          {detailsModalReport.approvedByName || (language === 'ar' ? 'في انتظار الاعتماد' : 'Pending')}
-                        </span>
-                      </div>
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'تاريخ البدء المتوقع' : 'Expected Start Date'}</span>
+                            <span className="font-mono font-bold text-foreground text-xs block">
+                              {(detailsModalReport as any).expectedStartDate
+                                ? new Date((detailsModalReport as any).expectedStartDate).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')
+                                : (language === 'ar' ? 'غير محدد' : 'Not set')}
+                            </span>
+                          </div>
 
-                      <div className="col-span-2 md:col-span-3 bg-muted/20 border border-border/60 p-3.5 rounded-2xl flex items-center justify-between gap-3">
-                        <div>
-                          <span className="block text-muted-foreground font-bold text-[10.5px] mb-0.5">{language === 'ar' ? 'المسؤول المكلف' : 'Assigned Staff'}</span>
-                          <span className="font-extrabold text-primary text-xs flex items-center gap-1.5">
-                            <UserCheck className="w-3.5 h-3.5 text-primary" />
-                            <span>{detailsModalReport.assignedToName || (language === 'ar' ? 'غير مسند لموظف' : 'Unassigned')}</span>
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenAssignModal(detailsModalReport)}
-                          className="text-xs font-extrabold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer border border-primary/20 shadow-2xs"
-                        >
-                          {language === 'ar' ? 'تغيير المسؤول' : 'Re-assign'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'المدة التقديرية' : 'Estimated Duration'}</span>
+                            <span className="font-bold text-foreground text-xs block">
+                              {(detailsModalReport as any).estimatedDuration || (language === 'ar' ? 'غير محدودة' : 'N/A')}
+                            </span>
+                          </div>
 
-                  {/* DESCRIPTION & ATTACHMENTS GRID */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    {/* Issue Description */}
-                    <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-3 shadow-2xs">
-                      <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2 border-b border-border/60 pb-3">
-                        <FileText className="w-4 h-4 text-primary" />
-                        <span>{language === 'ar' ? 'وصف المشكلة من المستأجر:' : 'Issue Description:'}</span>
-                      </h4>
-                      <div className="p-4 bg-muted/20 rounded-2xl border border-border/60 text-foreground leading-relaxed whitespace-pre-wrap min-h-[140px] text-xs font-medium">
-                        {detailsModalReport.description || (language === 'ar' ? 'لا يوجد وصف مدخل' : 'No description provided')}
-                      </div>
-                    </div>
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'تاريخ الإنشاء' : 'Date Created'}</span>
+                            <span className="font-mono font-bold text-foreground text-xs block">{new Date(detailsModalReport.createdAt).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
+                          </div>
 
-                    {/* Attached Renter Images Grid */}
-                    <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-3 shadow-2xs">
-                      <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                        <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2">
-                          <ImageIcon className="w-4 h-4 text-primary" />
-                          <span>{language === 'ar' ? 'الصور المرفقة من المستأجر:' : 'Renter Uploaded Photos:'}</span>
-                        </h4>
-                        <span className="text-[10px] font-mono font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded-md border border-border">
-                          {parseImages(detailsModalReport.images).length} {language === 'ar' ? 'صور' : 'photos'}
-                        </span>
-                      </div>
+                          <div className="bg-muted/20 border border-border/60 p-3.5 rounded-2xl space-y-1">
+                            <span className="block text-muted-foreground font-bold text-[10.5px]">{language === 'ar' ? 'المعتمد بواسطة' : 'Approved By'}</span>
+                            <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-xs block">
+                              {detailsModalReport.approvedByName || (language === 'ar' ? 'في انتظار الاعتماد' : 'Pending')}
+                            </span>
+                          </div>
 
-                      {parseImages(detailsModalReport.images).length > 0 ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          {parseImages(detailsModalReport.images).map((img, idx) => (
+                          <div className="col-span-2 md:col-span-3 bg-muted/20 border border-border/60 p-3.5 rounded-2xl flex items-center justify-between gap-3">
+                            <div>
+                              <span className="block text-muted-foreground font-bold text-[10.5px] mb-0.5">{language === 'ar' ? 'المسؤول المكلف' : 'Assigned Staff'}</span>
+                              <span className="font-extrabold text-primary text-xs flex items-center gap-1.5">
+                                <UserCheck className="w-3.5 h-3.5 text-primary" />
+                                <span>{detailsModalReport.assignedToName || (language === 'ar' ? 'غير مسند لموظف' : 'Unassigned')}</span>
+                              </span>
+                            </div>
                             <button
-                              key={idx}
                               type="button"
-                              onClick={() => setLightboxImg(img)}
-                              className="aspect-square rounded-2xl overflow-hidden border border-border/80 hover:opacity-95 transition-all cursor-pointer group relative shadow-2xs bg-muted/20"
+                              onClick={() => handleOpenAssignModal(detailsModalReport)}
+                              className="text-xs font-extrabold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer border border-primary/20 shadow-2xs"
                             >
-                              <img src={img} alt={`Issue ${idx+1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity backdrop-blur-[2px]">
-                                <Eye className="w-5 h-5" />
-                              </div>
+                              {language === 'ar' ? 'تغيير المسؤول' : 'Re-assign'}
                             </button>
-                          ))}
+                          </div>
                         </div>
-                      ) : (
-                        <div className="p-8 bg-muted/20 rounded-2xl border border-dashed border-border/80 text-center text-muted-foreground text-xs min-h-[140px] flex flex-col items-center justify-center gap-2">
-                          <ImageIcon className="w-7 h-7 text-muted-foreground/40" />
-                          <span>{language === 'ar' ? 'لا توجد صور مرفقة من المستأجر' : 'No renter photos attached'}</span>
+                      </div>
+
+                      {/* DESCRIPTION & ATTACHMENTS GRID */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                        {/* Issue Description */}
+                        <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-3 shadow-2xs">
+                          <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2 border-b border-border/60 pb-3">
+                            <FileText className="w-4 h-4 text-primary" />
+                            <span>{language === 'ar' ? 'وصف المشكلة من المستأجر:' : 'Issue Description:'}</span>
+                          </h4>
+                          <div className="p-4 bg-muted/20 rounded-2xl border border-border/60 text-foreground leading-relaxed whitespace-pre-wrap min-h-[140px] text-xs font-medium">
+                            {detailsModalReport.description || (language === 'ar' ? 'لا يوجد وصف مدخل' : 'No description provided')}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : modalSubTab === 'actions' ? (
-                /* TAB 2: DEDICATED ORDER CONTROLS & ACTIONS SUITE */
-                <div className="space-y-6">
 
-                  {/* Section 1: Order Status & Direct Actions */}
-                  <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-4 shadow-2xs">
-                    <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2 border-b border-border/60 pb-3">
-                      <Sliders className="w-4 h-4 text-primary" />
-                      <span>{language === 'ar' ? 'التحكم في حالة البلاغ والتوجيه:' : 'Order Status & Direct Actions:'}</span>
-                    </h4>
+                        {/* Attached Renter Images Grid */}
+                        <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-3 shadow-2xs">
+                          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                            <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2">
+                              <ImageIcon className="w-4 h-4 text-primary" />
+                              <span>{language === 'ar' ? 'الصور المرفقة من المستأجر:' : 'Renter Uploaded Photos:'}</span>
+                            </h4>
+                            <span className="text-[10px] font-mono font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded-md border border-border">
+                              {parseImages(detailsModalReport.images).length} {language === 'ar' ? 'صور' : 'photos'}
+                            </span>
+                          </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
-                      {/* Status Selector Dropdown */}
-                      <div className="space-y-1.5">
-                        <label className="block font-extrabold text-muted-foreground text-[11px]">
-                          {language === 'ar' ? 'تغيير حالة الطلب المباشرة:' : 'Change Request Status:'}
-                        </label>
-                        <CustomSelect
-                          value={detailsModalReport.status}
-                          disabled={updatingStatus}
-                          onChange={async (val) => {
-                            await handleDirectStatusChange(detailsModalReport.id, val);
-                          }}
-                          options={[
-                            { value: 'PENDING', label: language === 'ar' ? 'قيد الانتظار' : 'Pending' },
-                            { value: 'APPROVED', label: language === 'ar' ? 'معتمد' : 'Approved' },
-                            { value: 'IN_PROGRESS', label: language === 'ar' ? 'قيد التنفيذ' : 'In Progress' },
-                            { value: 'COMPLETED', label: language === 'ar' ? 'مكتمل ومغلق' : 'Completed' },
-                            { value: 'REJECTED', label: language === 'ar' ? 'مرفوض' : 'Rejected' },
-                            { value: 'CANCELLED', label: language === 'ar' ? 'ملغى' : 'Cancelled' }
-                          ]}
+                          {parseImages(detailsModalReport.images).length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              {parseImages(detailsModalReport.images).map((img, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setLightboxImg(img)}
+                                  className="aspect-square rounded-2xl overflow-hidden border border-border/80 hover:opacity-95 transition-all cursor-pointer group relative shadow-2xs bg-muted/20"
+                                >
+                                  <img src={img} alt={`Issue ${idx+1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity backdrop-blur-[2px]">
+                                    <Eye className="w-5 h-5" />
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-8 bg-muted/20 rounded-2xl border border-dashed border-border/80 text-center text-muted-foreground text-xs min-h-[140px] flex flex-col items-center justify-center gap-2">
+                              <ImageIcon className="w-7 h-7 text-muted-foreground/40" />
+                              <span>{language === 'ar' ? 'لا توجد صور مرفقة من المستأجر' : 'No renter photos attached'}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  ) : modalSubTab === 'actions' ? (
+                    /* TAB 2: DEDICATED ORDER CONTROLS & ACTIONS SUITE */
+                    <div className="space-y-6">
+
+                      {/* Section 1: Order Status & Direct Actions */}
+                      <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-4 shadow-2xs">
+                        <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2 border-b border-border/60 pb-3">
+                          <Sliders className="w-4 h-4 text-primary" />
+                          <span>{language === 'ar' ? 'التحكم في حالة البلاغ والتوجيه:' : 'Order Status & Direct Actions:'}</span>
+                        </h4>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
+                          {/* Status Selector Dropdown */}
+                          <div className="space-y-1.5">
+                            <label className="block font-extrabold text-muted-foreground text-[11px]">
+                              {language === 'ar' ? 'تغيير حالة الطلب المباشرة:' : 'Change Request Status:'}
+                            </label>
+                            <CustomSelect
+                              value={detailsModalReport.status}
+                              disabled={updatingStatus}
+                              onChange={async (val) => {
+                                await handleDirectStatusChange(detailsModalReport.id, val);
+                              }}
+                              options={[
+                                { value: 'PENDING', label: language === 'ar' ? 'قيد الانتظار' : 'Pending' },
+                                { value: 'APPROVED', label: language === 'ar' ? 'معتمد' : 'Approved' },
+                                { value: 'IN_PROGRESS', label: language === 'ar' ? 'قيد التنفيذ' : 'In Progress' },
+                                { value: 'COMPLETED', label: language === 'ar' ? 'مكتمل ومغلق' : 'Completed' },
+                                { value: 'REJECTED', label: language === 'ar' ? 'مرفوض' : 'Rejected' },
+                                { value: 'CANCELLED', label: language === 'ar' ? 'ملغى' : 'Cancelled' }
+                              ]}
+                            />
+                          </div>
+
+                          {/* Quick Action Control Buttons */}
+                          <div className="space-y-1.5">
+                            <label className="block font-extrabold text-muted-foreground text-[11px]">
+                              {language === 'ar' ? 'إجراءات التكليف والجدولة:' : 'Assignment & Schedule Actions:'}
+                            </label>
+
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {detailsModalReport.status === 'PENDING' ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenApproveModal(detailsModalReport)}
+                                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>{language === 'ar' ? 'قبول وجدولة الموعد' : 'Approve & Schedule'}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDenyModal(detailsModalReport)}
+                                    className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                    <span>{language === 'ar' ? 'رفض الطلب' : 'Deny Request'}</span>
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenApproveModal(detailsModalReport)}
+                                  className="px-4 py-2.5 bg-muted/80 hover:bg-muted text-foreground border border-border font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
+                                >
+                                  <CalendarDays className="w-4 h-4 text-primary" />
+                                  <span>{language === 'ar' ? 'تعديل الموعد والأولوية' : 'Edit Schedule & Priority'}</span>
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAssignModal(detailsModalReport)}
+                                className="px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
+                              >
+                                <UserCheck className="w-4 h-4" />
+                                <span>{language === 'ar' ? 'تغيير الفني المسند' : 'Assign Staff'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 2: Work Completion Proof Upload & Photos Grid */}
+                      <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-4 shadow-2xs">
+                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                          <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2">
+                            <Camera className="w-4 h-4 text-blue-500" />
+                            <span>{language === 'ar' ? 'صور إثبات العمل والإنجاز:' : 'Work Completion Proof Photos:'}</span>
+                          </h4>
+                          <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/30 rounded-2xl text-xs font-extrabold cursor-pointer transition-all flex items-center gap-2 shadow-2xs">
+                            <Upload className="w-4 h-4" />
+                            <span>{language === 'ar' ? 'إضافة صور إثبات الإنجاز' : 'Upload Proof Photos'}</span>
+                            <input type="file" accept="image/*" multiple onChange={handleAddProofPhoto} className="hidden" />
+                          </label>
+                        </div>
+
+                        {proofImagesInput.length > 0 ? (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {proofImagesInput.map((img, idx) => (
+                              <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-border group shadow-2xs bg-muted/20">
+                                <img src={img} alt={`Proof ${idx+1}`} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity backdrop-blur-[2px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => setLightboxImg(img)}
+                                    className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-full transition-colors cursor-pointer"
+                                    title={language === 'ar' ? 'تكبير' : 'Enlarge'}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setProofImagesInput(prev => prev.filter((_, i) => i !== idx))}
+                                    className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full transition-colors cursor-pointer"
+                                    title={language === 'ar' ? 'حذف' : 'Remove'}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-10 bg-muted/15 rounded-3xl border border-dashed border-border/80 text-center text-muted-foreground text-xs flex flex-col items-center justify-center gap-2">
+                            <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+                            <span className="font-extrabold text-foreground text-xs">{language === 'ar' ? 'لم يتم إضافة صور إثبات إنجاز العمل بعد.' : 'No proof of work photos uploaded yet.'}</span>
+                            <span className="text-[11px] text-muted-foreground">{language === 'ar' ? 'انقر على زر "إضافة صور إثبات الإنجاز" بالأعلى لرفع الصور.' : 'Click "Upload Proof Photos" above to attach proof images.'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Section 3: Technician Field Notes & Admin Response */}
+                      <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-3 shadow-2xs">
+                        <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-primary" />
+                          <span>{language === 'ar' ? 'ملاحظات وإفادة الفني/المنفذ:' : 'Technician Field Notes & Report:'}</span>
+                        </h4>
+                        <textarea
+                          rows={4}
+                          value={adminResponseInput}
+                          onChange={(e) => setAdminResponseInput(e.target.value)}
+                          placeholder={language === 'ar' ? 'اكتب ملاحظات الفني أو تفاصيل المعالجة والإنجاز...' : 'Write technician notes or completion details...'}
+                          className="w-full bg-background border border-border focus:ring-2 focus:ring-primary/20 rounded-2xl p-4 text-xs text-foreground outline-none resize-none transition-all"
                         />
                       </div>
 
-                      {/* Quick Action Control Buttons */}
-                      <div className="space-y-1.5">
-                        <label className="block font-extrabold text-muted-foreground text-[11px]">
-                          {language === 'ar' ? 'إجراءات التكليف والجدولة:' : 'Assignment & Schedule Actions:'}
-                        </label>
+                      {/* Save Actions & Updates Button */}
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          disabled={updatingStatus}
+                          onClick={() => handleSaveReportDetails()}
+                          className="px-6 py-3 bg-primary text-primary-foreground font-black text-xs rounded-2xl shadow-xs flex items-center gap-2 cursor-pointer hover:bg-primary/90 transition-all"
+                        >
+                          {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          <span>{language === 'ar' ? 'حفظ الإجراءات والتحديثات' : 'Save Actions & Updates'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* TAB 3: COMPLETE FINANCIAL & EXPENSES MANAGEMENT SUITE */
+                    <div className="space-y-6">
 
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {detailsModalReport.status === 'PENDING' ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenApproveModal(detailsModalReport)}
-                                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                                <span>{language === 'ar' ? 'قبول وجدولة الموعد' : 'Approve & Schedule'}</span>
-                              </button>
+                      {/* MULTI-RECEIPT LEDGER KPI OVERVIEW METRICS */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                        <div className="p-4 bg-card border border-border/80 rounded-2xl space-y-1 shadow-2xs">
+                          <span className="text-[10.5px] font-extrabold text-muted-foreground block">{language === 'ar' ? 'إجمالي المصاريف المسجلة:' : 'Total Ledger Spent:'}</span>
+                          <p className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400">
+                            {calculateLedgerTotals().totalSpent.toFixed(2)} SAR
+                          </p>
+                        </div>
 
-                              <button
-                                type="button"
-                                onClick={() => handleOpenDenyModal(detailsModalReport)}
-                                className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                <span>{language === 'ar' ? 'رفض الطلب' : 'Deny Request'}</span>
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenApproveModal(detailsModalReport)}
-                              className="px-4 py-2.5 bg-muted/80 hover:bg-muted text-foreground border border-border font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
-                            >
-                              <CalendarDays className="w-4 h-4 text-primary" />
-                              <span>{language === 'ar' ? 'تعديل الموعد والأولوية' : 'Edit Schedule & Priority'}</span>
-                            </button>
-                          )}
+                        <div className="p-4 bg-card border border-border/80 rounded-2xl space-y-1 shadow-2xs">
+                          <span className="text-[10.5px] font-extrabold text-muted-foreground block">{language === 'ar' ? 'حصة المالك:' : 'Landlord Share:'}</span>
+                          <p className="text-lg font-mono font-black text-blue-600 dark:text-blue-400">
+                            {calculateLedgerTotals().ownerShare.toFixed(2)} SAR
+                          </p>
+                        </div>
+
+                        <div className="p-4 bg-card border border-border/80 rounded-2xl space-y-1 shadow-2xs">
+                          <span className="text-[10.5px] font-extrabold text-muted-foreground block">{language === 'ar' ? 'حصة المستأجر:' : 'Tenant Share:'}</span>
+                          <p className="text-lg font-mono font-black text-amber-600 dark:text-amber-400">
+                            {calculateLedgerTotals().renterShare.toFixed(2)} SAR
+                          </p>
+                        </div>
+
+                        <div className="p-4 bg-card border border-border/80 rounded-2xl space-y-1 shadow-2xs">
+                          <span className="text-[10.5px] font-extrabold text-muted-foreground block">{language === 'ar' ? 'المتبقي المستحق:' : 'Unpaid Balance:'}</span>
+                          <p className="text-lg font-mono font-black text-red-600 dark:text-red-400">
+                            {calculateLedgerTotals().unpaidShare.toFixed(2)} SAR
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* MULTI-EXPENSE RECEIPT VOUCHERS LEDGER TABLE */}
+                      <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-4 shadow-2xs">
+                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-emerald-600" />
+                            <h4 className="font-extrabold text-xs text-foreground">
+                              {language === 'ar' ? 'سجل الفواتير والمصاريف' : 'Expenses Ledger'}
+                            </h4>
+                            <span className="text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                              {expensesLedger.length} {language === 'ar' ? 'فواتير' : 'invoices'}
+                            </span>
+                          </div>
 
                           <button
                             type="button"
-                            onClick={() => handleOpenAssignModal(detailsModalReport)}
-                            className="px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
+                            onClick={handleOpenAddExpenseModal}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
                           >
-                            <UserCheck className="w-4 h-4" />
-                            <span>{language === 'ar' ? 'تغيير الفني المسند' : 'Assign Staff'}</span>
+                            <Plus className="w-4 h-4" />
+                            <span>{language === 'ar' ? 'إضافة فاتورة جديدة' : 'Add Invoice'}</span>
+                          </button>
+                        </div>
+
+                        {expensesLedger.length === 0 ? (
+                          <div className="p-10 text-center border border-dashed border-border/80 rounded-3xl space-y-3 bg-muted/10">
+                            <Receipt className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                            <p className="font-extrabold text-xs text-foreground">
+                              {language === 'ar' ? 'لم يتم إضافة فواتير في السجل بعد' : 'No expense invoices added yet'}
+                            </p>
+                            <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                              {language === 'ar' ? 'يمكنك إضافة فواتير للمشتريات وأجور الفنيين عبر زر "إضافة فاتورة جديدة".' : 'Click "Add Invoice" to log receipt invoices with different vendors and payers.'}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={handleOpenAddExpenseModal}
+                              className="mt-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-2xl inline-flex items-center gap-2 cursor-pointer shadow-2xs transition-all"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>{language === 'ar' ? 'إضافة أول فاتورة' : 'Add First Invoice'}</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto custom-scrollbar rounded-2xl border border-border/60">
+                            <table className="w-full text-right rtl:text-right ltr:text-left text-xs border-collapse">
+                              <thead>
+                                <tr className="bg-muted/50 text-muted-foreground font-black border-b border-border text-[10.5px]">
+                                  <th className="p-3">{language === 'ar' ? 'التاريخ والسند' : 'Date & Title'}</th>
+                                  <th className="p-3">{language === 'ar' ? 'المورد / رقم الفاتورة' : 'Vendor & Inv #'}</th>
+                                  <th className="p-3 text-center">{language === 'ar' ? 'صورة الإيصال' : 'Receipt File'}</th>
+                                  <th className="p-3 text-center">{language === 'ar' ? 'الطرف المتحمل' : 'Cost Payer'}</th>
+                                  <th className="p-3 text-center">{language === 'ar' ? 'حالة السداد' : 'Payment Status'}</th>
+                                  <th className="p-3 text-center">{language === 'ar' ? 'المبلغ الإجمالي' : 'Total Gross'}</th>
+                                  <th className="p-3 text-center">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border/60 font-medium">
+                                {expensesLedger.map((exp) => (
+                                  <tr key={exp.id} className="hover:bg-muted/20 transition-colors">
+                                    <td className="p-3">
+                                      <div>
+                                        <span className="font-extrabold text-foreground block">{exp.title}</span>
+                                        <span className="text-[10px] text-muted-foreground font-mono">
+                                          {exp.date ? new Date(exp.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US') : ''}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="p-3 font-mono text-[11px]">
+                                      <span className="font-extrabold text-foreground block">{exp.vendorName || '-'}</span>
+                                      <span className="text-muted-foreground text-[10px]">{exp.invoiceNumber ? `#${exp.invoiceNumber}` : '-'}</span>
+                                    </td>
+                                    <td className="p-3 text-center">
+                                      {exp.receiptUrl ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setLightboxImg(exp.receiptUrl!)}
+                                          className="w-8 h-8 rounded-xl overflow-hidden border border-border bg-black/10 shrink-0 cursor-pointer inline-flex items-center justify-center group relative shadow-2xs"
+                                        >
+                                          {exp.receiptUrl.startsWith('data:image') || exp.receiptUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+                                            <img src={exp.receiptUrl} alt="Receipt" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                          ) : (
+                                            <FileText className="w-4 h-4 text-primary" />
+                                          )}
+                                        </button>
+                                      ) : (
+                                        <span className="text-[10px] text-muted-foreground italic">-</span>
+                                      )}
+                                    </td>
+                                    <td className="p-3 text-center">
+                                      <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                                        exp.costPayer === 'RENTER' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
+                                        exp.costPayer === 'OWNER' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
+                                        'bg-purple-500/10 text-purple-600 border border-purple-500/20'
+                                      }`}>
+                                        {exp.costPayer === 'RENTER' ? (language === 'ar' ? 'المستأجر' : 'Renter') :
+                                         exp.costPayer === 'OWNER' ? (language === 'ar' ? 'مالك العقار' : 'Owner') :
+                                         exp.costPayer === 'PROPERTY_MANAGEMENT' ? (language === 'ar' ? 'إدارة الأملاك' : 'PM Co.') : (language === 'ar' ? 'الضمان' : 'Warranty')}
+                                      </span>
+                                    </td>
+                                    <td className="p-3 text-center">
+                                      <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                                        exp.paymentStatus === 'PAID' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
+                                        exp.paymentStatus === 'UNPAID' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
+                                        'bg-sky-500/10 text-sky-600 border border-sky-500/20'
+                                      }`}>
+                                        {exp.paymentStatus === 'PAID' ? (language === 'ar' ? 'مدفوع' : 'Paid') :
+                                         exp.paymentStatus === 'UNPAID' ? (language === 'ar' ? 'غير مدفوع' : 'Unpaid') :
+                                         exp.paymentStatus === 'DEDUCTED_FROM_DEPOSIT' ? (language === 'ar' ? 'خصم تأمين' : 'Deposit') : (language === 'ar' ? 'تعويض' : 'Reimbursed')}
+                                      </span>
+                                    </td>
+                                    <td className="p-3 text-center font-mono font-black text-emerald-600 dark:text-emerald-400 text-xs">
+                                      {Number(exp.totalAmount || exp.amount || 0).toFixed(2)} SAR
+                                    </td>
+                                    <td className="p-3 text-center">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => setSingleVoucherExpense(exp)}
+                                          className="p-1.5 text-emerald-600 hover:bg-emerald-500/10 rounded-xl transition-colors cursor-pointer"
+                                          title={language === 'ar' ? 'طباعة سند الفاتورة' : 'Print Voucher'}
+                                        >
+                                          <Printer className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenEditExpenseModal(exp)}
+                                          className="p-1.5 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
+                                          title={language === 'ar' ? 'تعديل' : 'Edit'}
+                                        >
+                                          <Sliders className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteExpenseEntry(exp.id)}
+                                          className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                                          title={language === 'ar' ? 'حذف' : 'Delete'}
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* BOTTOM SAVE & STATEMENT ACTION BAR */}
+                      <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border/80">
+                        <div className="text-xs text-muted-foreground font-semibold">
+                          {language === 'ar' 
+                            ? `إجمالي السندات المسجلة: ${expensesLedger.length} سند بمبلغ ${calculateLedgerTotals().totalSpent.toFixed(2)} SAR`
+                            : `Total ${expensesLedger.length} vouchers logged with sum of ${calculateLedgerTotals().totalSpent.toFixed(2)} SAR`}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceVoucherReport(detailsModalReport)}
+                            className="px-4.5 py-2.5 bg-card border border-border hover:bg-muted font-extrabold text-xs rounded-2xl flex items-center gap-2 cursor-pointer text-foreground shadow-2xs transition-all"
+                          >
+                            <Printer className="w-4 h-4 text-emerald-600" />
+                            <span>{language === 'ar' ? 'معاينة وطباعة الكشف الشامل' : 'View Full Statement'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={updatingStatus}
+                            onClick={() => handleSaveReportDetails()}
+                            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-2xl shadow-xs flex items-center gap-2 cursor-pointer transition-all"
+                          >
+                            {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            <span>{language === 'ar' ? 'حفظ المصاريف والسندات' : 'Save Financial Ledger'}</span>
                           </button>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+              </div>
+            </div>
 
-                  {/* Section 2: Work Completion Proof Upload & Photos Grid */}
-                  <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-4 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                      <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2">
-                        <Camera className="w-4 h-4 text-blue-500" />
-                        <span>{language === 'ar' ? 'صور إثبات العمل والإنجاز:' : 'Work Completion Proof Photos:'}</span>
-                      </h4>
-                      <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/30 rounded-2xl text-xs font-extrabold cursor-pointer transition-all flex items-center gap-2 shadow-2xs">
-                        <Upload className="w-4 h-4" />
-                        <span>{language === 'ar' ? 'إضافة صور إثبات الإنجاز' : 'Upload Proof Photos'}</span>
-                        <input type="file" accept="image/*" multiple onChange={handleAddProofPhoto} className="hidden" />
-                      </label>
+            {/* Left Column: Live Chat Panel */}
+            <div id="details-live-chat-panel" className="lg:col-span-5 xl:col-span-4 sticky top-6">
+              <div className="bg-card border border-border/80 rounded-3xl overflow-hidden shadow-2xs flex flex-col h-[650px]">
+                {/* Chat Header */}
+                <div className="p-4 border-b border-border/60 bg-muted/20 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8.5 h-8.5 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold shrink-0">
+                      <MessageSquare className="w-4 h-4 text-primary" />
                     </div>
+                    <div>
+                      <h4 className="font-extrabold text-xs text-foreground">
+                        {language === 'ar' ? 'المحادثة المباشرة مع المستأجر' : 'Live Chat with Renter'}
+                      </h4>
+                      <p className="text-[10.5px] text-muted-foreground font-medium mt-0.5">
+                        {detailsModalReport.renter?.name || (language === 'ar' ? 'مستأجر' : 'Tenant')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    {language === 'ar' ? 'مباشر' : 'Live'}
+                  </span>
+                </div>
 
-                    {proofImagesInput.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {proofImagesInput.map((img, idx) => (
-                          <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-border group shadow-2xs bg-muted/20">
-                            <img src={img} alt={`Proof ${idx+1}`} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity backdrop-blur-[2px]">
-                              <button
-                                type="button"
-                                onClick={() => setLightboxImg(img)}
-                                className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-full transition-colors cursor-pointer"
-                                title={language === 'ar' ? 'تكبير' : 'Enlarge'}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setProofImagesInput(prev => prev.filter((_, i) => i !== idx))}
-                                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full transition-colors cursor-pointer"
-                                title={language === 'ar' ? 'حذف' : 'Remove'}
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
+                {/* Chat Thread Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-muted/5 custom-scrollbar">
+                  {(!detailsModalReport.messages || detailsModalReport.messages.length === 0) ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-6 space-y-2">
+                      <MessageSquare className="w-9 h-9 text-muted-foreground/30" />
+                      <p className="text-xs font-extrabold">{language === 'ar' ? 'لا توجد رسائل سابقة' : 'No messages yet'}</p>
+                      <p className="text-[11px] text-muted-foreground/75 font-medium">{language === 'ar' ? 'اكتب رسالتك أدناه لبدء المحادثة المباشرة' : 'Send a message below to start chatting'}</p>
+                    </div>
+                  ) : (
+                    detailsModalReport.messages.map((msg) => {
+                      const isSystem = msg.senderName === 'النظام' || msg.senderName === 'System' || (msg.senderRole as string) === 'SYSTEM';
+
+                      const msgNameLower = (msg.senderName || '').trim().toLowerCase();
+                      const myNameLower = (currentUserName || '').trim().toLowerCase();
+                      const myFullNameLower = (currentUser?.name || '').trim().toLowerCase();
+                      const myUserLower = (currentUser?.username || '').trim().toLowerCase();
+
+                      const isMe = !isSystem && (msg.senderRole === 'ADMIN' || msg.senderRole === 'TECHNICIAN') && (
+                        (myNameLower && msgNameLower === myNameLower) ||
+                        (myFullNameLower && msgNameLower === myFullNameLower) ||
+                        (myUserLower && msgNameLower === myUserLower)
+                      );
+
+                      const isOtherEmployee = !isMe && !isSystem && (msg.senderRole === 'ADMIN' || msg.senderRole === 'TECHNICIAN');
+                      const msgImgs = parseImages(msg.attachments);
+
+                      if (isSystem) {
+                        return (
+                          <div key={msg.id} className="w-full flex justify-center my-2">
+                            <div className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 px-3.5 py-1.5 rounded-full text-[10.5px] font-extrabold text-center shadow-2xs flex items-center gap-1.5 max-w-[90%]">
+                              <Info className="w-3.5 h-3.5 shrink-0" />
+                              <span>{msg.message}</span>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-10 bg-muted/15 rounded-3xl border border-dashed border-border/80 text-center text-muted-foreground text-xs flex flex-col items-center justify-center gap-2">
-                        <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
-                        <span className="font-extrabold text-foreground text-xs">{language === 'ar' ? 'لم يتم إضافة صور إثبات إنجاز العمل بعد.' : 'No proof of work photos uploaded yet.'}</span>
-                        <span className="text-[11px] text-muted-foreground">{language === 'ar' ? 'انقر على زر "إضافة صور إثبات الإنجاز" بالأعلى لرفع الصور.' : 'Click "Upload Proof Photos" above to attach proof images.'}</span>
-                      </div>
-                    )}
-                  </div>
+                        );
+                      }
 
-                  {/* Section 3: Technician Field Notes & Admin Response */}
-                  <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-3 shadow-2xs">
-                    <h4 className="font-extrabold text-foreground text-xs flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" />
-                      <span>{language === 'ar' ? 'ملاحظات وإفادة الفني/المنفذ:' : 'Technician Field Notes & Report:'}</span>
-                    </h4>
-                    <textarea
-                      rows={4}
-                      value={adminResponseInput}
-                      onChange={(e) => setAdminResponseInput(e.target.value)}
-                      placeholder={language === 'ar' ? 'اكتب ملاحظات الفني أو تفاصيل المعالجة والإنجاز...' : 'Write technician notes or completion details...'}
-                      className="w-full bg-background border border-border focus:ring-2 focus:ring-primary/20 rounded-2xl p-4 text-xs text-foreground outline-none resize-none transition-all"
-                    />
-                  </div>
+                      return (
+                        <div key={msg.id} className={`w-full flex ${isMe ? 'justify-start' : 'justify-end'}`}>
+                          <div className={`flex items-start gap-2 max-w-[85%] ${isMe ? 'flex-row' : 'flex-row-reverse'}`}>
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 border ${
+                              isMe 
+                                ? 'bg-primary/20 text-primary border-primary/30' 
+                                : isOtherEmployee 
+                                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30' 
+                                : 'bg-muted text-muted-foreground border-border'
+                            }`}>
+                              {msg.senderName ? msg.senderName.charAt(0).toUpperCase() : 'U'}
+                            </div>
 
-                  {/* Save Actions & Updates Button */}
-                  <div className="pt-2 flex justify-end">
-                    <button
-                      type="button"
-                      disabled={updatingStatus}
-                      onClick={() => handleSaveReportDetails()}
-                      className="px-6 py-3 bg-primary text-primary-foreground font-black text-xs rounded-2xl shadow-xs flex items-center gap-2 cursor-pointer hover:bg-primary/90 transition-all"
-                    >
-                      {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                      <span>{language === 'ar' ? 'حفظ الإجراءات والتحديثات' : 'Save Actions & Updates'}</span>
-                    </button>
-                  </div>
+                            <div className={`py-2.5 px-3.5 rounded-2xl text-[11px] space-y-1.5 shadow-2xs ${
+                              isMe 
+                                ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                                : isOtherEmployee 
+                                ? 'bg-slate-700 text-slate-100 dark:bg-slate-800 border border-slate-600 dark:border-slate-700 rounded-tl-none' 
+                                : 'bg-card border border-border text-foreground rounded-tl-none'
+                            }`}>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`font-extrabold text-[10.5px] ${
+                                  isMe 
+                                    ? 'text-primary-foreground/90' 
+                                    : isOtherEmployee 
+                                    ? 'text-amber-300 font-black' 
+                                    : 'text-foreground'
+                                }`}>
+                                  {isMe ? (language === 'ar' ? `أنا (${msg.senderName})` : `Me (${msg.senderName})`) : msg.senderName}
+                                </span>
+                                {isOtherEmployee && (
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                                    {msg.senderRole === 'TECHNICIAN' ? (language === 'ar' ? 'فني' : 'Tech') : (language === 'ar' ? 'موظف' : 'Staff')}
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="whitespace-pre-wrap m-0 leading-relaxed font-medium">{msg.message}</p>
+
+                              {msgImgs.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                  {msgImgs.map((att, aIdx) => (
+                                    <button 
+                                      key={aIdx} 
+                                      type="button" 
+                                      onClick={() => setLightboxImg(att)} 
+                                      className="w-14 h-14 rounded-xl overflow-hidden border border-white/20 shadow-2xs hover:opacity-90 transition-opacity cursor-pointer"
+                                    >
+                                      <img src={att} alt="" className="w-full h-full object-cover" />
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className={`flex items-center justify-end gap-1 text-[8.5px] font-mono ${
+                                isMe 
+                                  ? 'text-primary-foreground/75' 
+                                  : isOtherEmployee 
+                                  ? 'text-slate-300' 
+                                  : 'text-muted-foreground'
+                              }`}>
+                                <span>{new Date(msg.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                                {isMe && (msg.isRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300 font-bold" /> : <Check className="w-3 h-3 opacity-70" />)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={chatBottomRef} />
                 </div>
-              ) : (
-                /* TAB 3: COMPLETE FINANCIAL & EXPENSES MANAGEMENT SUITE */
-                <div className="space-y-6">
 
-                  {/* MULTI-RECEIPT LEDGER KPI OVERVIEW METRICS */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                    <div className="p-4 bg-card border border-border/80 rounded-2xl space-y-1 shadow-2xs">
-                      <span className="text-[10.5px] font-extrabold text-muted-foreground block">{language === 'ar' ? 'إجمالي المصاريف المسجلة:' : 'Total Ledger Spent:'}</span>
-                      <p className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400">
-                        {calculateLedgerTotals().totalSpent.toFixed(2)} SAR
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-card border border-border/80 rounded-2xl space-y-1 shadow-2xs">
-                      <span className="text-[10.5px] font-extrabold text-muted-foreground block">{language === 'ar' ? 'حصة المالك:' : 'Landlord Share:'}</span>
-                      <p className="text-lg font-mono font-black text-blue-600 dark:text-blue-400">
-                        {calculateLedgerTotals().ownerShare.toFixed(2)} SAR
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-card border border-border/80 rounded-2xl space-y-1 shadow-2xs">
-                      <span className="text-[10.5px] font-extrabold text-muted-foreground block">{language === 'ar' ? 'حصة المستأجر:' : 'Tenant Share:'}</span>
-                      <p className="text-lg font-mono font-black text-amber-600 dark:text-amber-400">
-                        {calculateLedgerTotals().renterShare.toFixed(2)} SAR
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-card border border-border/80 rounded-2xl space-y-1 shadow-2xs">
-                      <span className="text-[10.5px] font-extrabold text-muted-foreground block">{language === 'ar' ? 'المتبقي المستحق:' : 'Unpaid Balance:'}</span>
-                      <p className="text-lg font-mono font-black text-red-600 dark:text-red-400">
-                        {calculateLedgerTotals().unpaidShare.toFixed(2)} SAR
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* MULTI-EXPENSE RECEIPT VOUCHERS LEDGER TABLE */}
-                  <div className="bg-card border border-border/80 rounded-3xl p-5 space-y-4 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-emerald-600" />
-                        <h4 className="font-extrabold text-xs text-foreground">
-                          {language === 'ar' ? 'سجل الفواتير والمصاريف' : 'Expenses Ledger'}
-                        </h4>
-                        <span className="text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                          {expensesLedger.length} {language === 'ar' ? 'فواتير' : 'invoices'}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleOpenAddExpenseModal}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>{language === 'ar' ? 'إضافة فاتورة جديدة' : 'Add Invoice'}</span>
-                      </button>
-                    </div>
-
-                    {expensesLedger.length === 0 ? (
-                      <div className="p-10 text-center border border-dashed border-border/80 rounded-3xl space-y-3 bg-muted/10">
-                        <Receipt className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                        <p className="font-extrabold text-xs text-foreground">
-                          {language === 'ar' ? 'لم يتم إضافة فواتير في السجل بعد' : 'No expense invoices added yet'}
-                        </p>
-                        <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-                          {language === 'ar' ? 'يمكنك إضافة فواتير للمشتريات وأجور الفنيين عبر زر "إضافة فاتورة جديدة".' : 'Click "Add Invoice" to log receipt invoices with different vendors and payers.'}
-                        </p>
+                {/* Attachment Previews */}
+                {chatAttachments.length > 0 && (
+                  <div className="p-2 border-t border-border bg-muted/20 flex gap-2 overflow-x-auto shrink-0">
+                    {chatAttachments.map((att, i) => (
+                      <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0">
+                        <img src={att} alt="" className="w-full h-full object-cover" />
                         <button
                           type="button"
-                          onClick={handleOpenAddExpenseModal}
-                          className="mt-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-2xl inline-flex items-center gap-2 cursor-pointer shadow-2xs transition-all"
+                          onClick={() => setChatAttachments(prev => prev.filter((_, idx) => idx !== i))}
+                          className="absolute top-0.5 right-0.5 bg-black/70 text-white rounded-full p-0.5 hover:bg-red-600 cursor-pointer"
                         >
-                          <Plus className="w-4 h-4" />
-                          <span>{language === 'ar' ? 'إضافة أول فاتورة' : 'Add First Invoice'}</span>
+                          <X className="w-3 h-3" />
                         </button>
                       </div>
-                    ) : (
-                      <div className="overflow-x-auto custom-scrollbar rounded-2xl border border-border/60">
-                        <table className="w-full text-right rtl:text-right ltr:text-left text-xs border-collapse">
-                          <thead>
-                            <tr className="bg-muted/50 text-muted-foreground font-black border-b border-border text-[10.5px]">
-                              <th className="p-3">{language === 'ar' ? 'التاريخ والسند' : 'Date & Title'}</th>
-                              <th className="p-3">{language === 'ar' ? 'المورد / رقم الفاتورة' : 'Vendor & Inv #'}</th>
-                              <th className="p-3 text-center">{language === 'ar' ? 'صورة الإيصال' : 'Receipt File'}</th>
-                              <th className="p-3 text-center">{language === 'ar' ? 'الطرف المتحمل' : 'Cost Payer'}</th>
-                              <th className="p-3 text-center">{language === 'ar' ? 'حالة السداد' : 'Payment Status'}</th>
-                              <th className="p-3 text-center">{language === 'ar' ? 'المبلغ الإجمالي' : 'Total Gross'}</th>
-                              <th className="p-3 text-center">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border/60 font-medium">
-                            {expensesLedger.map((exp) => (
-                              <tr key={exp.id} className="hover:bg-muted/20 transition-colors">
-                                <td className="p-3">
-                                  <div>
-                                    <span className="font-extrabold text-foreground block">{exp.title}</span>
-                                    <span className="text-[10px] text-muted-foreground font-mono">
-                                      {exp.date ? new Date(exp.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US') : ''}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="p-3 font-mono text-[11px]">
-                                  <span className="font-extrabold text-foreground block">{exp.vendorName || '-'}</span>
-                                  <span className="text-muted-foreground text-[10px]">{exp.invoiceNumber ? `#${exp.invoiceNumber}` : '-'}</span>
-                                </td>
-                                <td className="p-3 text-center">
-                                  {exp.receiptUrl ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => setLightboxImg(exp.receiptUrl!)}
-                                      className="w-8 h-8 rounded-xl overflow-hidden border border-border bg-black/10 shrink-0 cursor-pointer inline-flex items-center justify-center group relative shadow-2xs"
-                                    >
-                                      {exp.receiptUrl.startsWith('data:image') || exp.receiptUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
-                                        <img src={exp.receiptUrl} alt="Receipt" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                                      ) : (
-                                        <FileText className="w-4 h-4 text-primary" />
-                                      )}
-                                    </button>
-                                  ) : (
-                                    <span className="text-[10px] text-muted-foreground italic">-</span>
-                                  )}
-                                </td>
-                                <td className="p-3 text-center">
-                                  <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full ${
-                                    exp.costPayer === 'RENTER' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
-                                    exp.costPayer === 'OWNER' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
-                                    'bg-purple-500/10 text-purple-600 border border-purple-500/20'
-                                  }`}>
-                                    {exp.costPayer === 'RENTER' ? (language === 'ar' ? 'المستأجر' : 'Renter') :
-                                     exp.costPayer === 'OWNER' ? (language === 'ar' ? 'مالك العقار' : 'Owner') :
-                                     exp.costPayer === 'PROPERTY_MANAGEMENT' ? (language === 'ar' ? 'إدارة الأملاك' : 'PM Co.') : (language === 'ar' ? 'الضمان' : 'Warranty')}
-                                  </span>
-                                </td>
-                                <td className="p-3 text-center">
-                                  <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full ${
-                                    exp.paymentStatus === 'PAID' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
-                                    exp.paymentStatus === 'UNPAID' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
-                                    'bg-sky-500/10 text-sky-600 border border-sky-500/20'
-                                  }`}>
-                                    {exp.paymentStatus === 'PAID' ? (language === 'ar' ? 'مدفوع' : 'Paid') :
-                                     exp.paymentStatus === 'UNPAID' ? (language === 'ar' ? 'غير مدفوع' : 'Unpaid') :
-                                     exp.paymentStatus === 'DEDUCTED_FROM_DEPOSIT' ? (language === 'ar' ? 'خصم تأمين' : 'Deposit') : (language === 'ar' ? 'تعويض' : 'Reimbursed')}
-                                  </span>
-                                </td>
-                                <td className="p-3 text-center font-mono font-black text-emerald-600 dark:text-emerald-400 text-xs">
-                                  {Number(exp.totalAmount || exp.amount || 0).toFixed(2)} SAR
-                                </td>
-                                <td className="p-3 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => setSingleVoucherExpense(exp)}
-                                      className="p-1.5 text-emerald-600 hover:bg-emerald-500/10 rounded-xl transition-colors cursor-pointer"
-                                      title={language === 'ar' ? 'طباعة سند الفاتورة' : 'Print Voucher'}
-                                    >
-                                      <Printer className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenEditExpenseModal(exp)}
-                                      className="p-1.5 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
-                                      title={language === 'ar' ? 'تعديل' : 'Edit'}
-                                    >
-                                      <Sliders className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteExpenseEntry(exp.id)}
-                                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
-                                      title={language === 'ar' ? 'حذف' : 'Delete'}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                    ))}
                   </div>
+                )}
 
-                  {/* BOTTOM SAVE & STATEMENT ACTION BAR */}
-                  <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border/80">
-                    <div className="text-xs text-muted-foreground font-semibold">
-                      {language === 'ar' 
-                        ? `إجمالي السندات المسجلة: ${expensesLedger.length} سند بمبلغ ${calculateLedgerTotals().totalSpent.toFixed(2)} SAR`
-                        : `Total ${expensesLedger.length} vouchers logged with sum of ${calculateLedgerTotals().totalSpent.toFixed(2)} SAR`}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setInvoiceVoucherReport(detailsModalReport)}
-                        className="px-4.5 py-2.5 bg-card border border-border hover:bg-muted font-extrabold text-xs rounded-2xl flex items-center gap-2 cursor-pointer text-foreground shadow-2xs transition-all"
-                      >
-                        <Printer className="w-4 h-4 text-emerald-600" />
-                        <span>{language === 'ar' ? 'معاينة وطباعة الكشف الشامل' : 'View Full Statement'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={updatingStatus}
-                        onClick={() => handleSaveReportDetails()}
-                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-2xl shadow-xs flex items-center gap-2 cursor-pointer transition-all"
-                      >
-                        {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        <span>{language === 'ar' ? 'حفظ المصاريف والسندات' : 'Save Financial Ledger'}</span>
-                      </button>
-                    </div>
+                {/* Chat Composer Form */}
+                <form onSubmit={(e) => handleSendMessage(e, detailsModalReport.id)} className="p-3 border-t border-border bg-card space-y-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <label className="p-2 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-xl cursor-pointer transition-colors shrink-0" title={language === 'ar' ? 'إرفاق صور' : 'Attach photos'}>
+                      <input type="file" accept="image/*" multiple onChange={handleAddChatAttachment} className="hidden" />
+                      <Paperclip className="w-4 h-4" />
+                    </label>
+                    <input
+                      type="text"
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      placeholder={language === 'ar' ? 'اكتب رسالة للمستأجر (Enter للإرسال)...' : 'Type message to renter...'}
+                      className="flex-1 bg-muted/20 border border-border rounded-xl px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary font-medium placeholder:text-muted-foreground"
+                    />
+                    <button
+                      type="submit"
+                      disabled={sendingMessage || (!chatMessage.trim() && chatAttachments.length === 0)}
+                      className="px-3.5 py-2 bg-primary text-primary-foreground text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-2xs hover:bg-primary/90 disabled:opacity-50 cursor-pointer transition-all shrink-0"
+                    >
+                      {sendingMessage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                      <span>{language === 'ar' ? 'إرسال' : 'Send'}</span>
+                    </button>
                   </div>
-                </div>
-              )}
+                </form>
+              </div>
+            </div>
           </div>
-        </div>
       )}
 
       {/* CHAT POPUP MODAL (Direct Realtime Messaging Modal) */}
@@ -1957,30 +2162,96 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
             {/* Chat Scroll Thread */}
             <div className="flex-grow overflow-y-auto p-4 space-y-3 bg-muted/5 custom-scrollbar">
               {chatPopupReport.messages && chatPopupReport.messages.map((msg) => {
-                const isMe = msg.senderRole === 'ADMIN' || msg.senderRole === 'TECHNICIAN';
+                const isSystem = msg.senderName === 'النظام' || msg.senderName === 'System' || (msg.senderRole as string) === 'SYSTEM';
+
+                const msgNameLower = (msg.senderName || '').trim().toLowerCase();
+                const myNameLower = (currentUserName || '').trim().toLowerCase();
+                const myFullNameLower = (currentUser?.name || '').trim().toLowerCase();
+                const myUserLower = (currentUser?.username || '').trim().toLowerCase();
+
+                const isMe = !isSystem && (msg.senderRole === 'ADMIN' || msg.senderRole === 'TECHNICIAN') && (
+                  (myNameLower && msgNameLower === myNameLower) ||
+                  (myFullNameLower && msgNameLower === myFullNameLower) ||
+                  (myUserLower && msgNameLower === myUserLower)
+                );
+
+                const isOtherEmployee = !isMe && !isSystem && (msg.senderRole === 'ADMIN' || msg.senderRole === 'TECHNICIAN');
                 const msgImgs = parseImages(msg.attachments);
 
-                return (
-                  <div key={msg.id} className={`w-full flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`flex items-start gap-1.5 max-w-[80%] ${isMe ? 'flex-row-reverse' : ''}`}>
-                      <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[9px] shrink-0">
-                        {msg.senderName.charAt(0)}
+                if (isSystem) {
+                  return (
+                    <div key={msg.id} className="w-full flex justify-center my-2">
+                      <div className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 px-3.5 py-1.5 rounded-full text-[10.5px] font-extrabold text-center shadow-2xs flex items-center gap-1.5 max-w-[90%]">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        <span>{msg.message}</span>
                       </div>
-                      <div className={`py-2 px-3 rounded-xl text-[11px] space-y-1 ${isMe ? 'bg-primary/10 border border-primary/25' : 'bg-card border border-border'}`}>
-                        <div className="font-extrabold text-foreground">{msg.senderName}</div>
-                        <p className="whitespace-pre-wrap m-0">{msg.message}</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={msg.id} className={`w-full flex ${isMe ? 'justify-start' : 'justify-end'}`}>
+                    <div className={`flex items-start gap-2 max-w-[85%] ${isMe ? 'flex-row' : 'flex-row-reverse'}`}>
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 border ${
+                        isMe 
+                          ? 'bg-primary/20 text-primary border-primary/30' 
+                          : isOtherEmployee 
+                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30' 
+                          : 'bg-muted text-muted-foreground border-border'
+                      }`}>
+                        {msg.senderName ? msg.senderName.charAt(0).toUpperCase() : 'U'}
+                      </div>
+
+                      <div className={`py-2.5 px-3.5 rounded-2xl text-[11px] space-y-1.5 shadow-2xs ${
+                        isMe 
+                          ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                          : isOtherEmployee 
+                          ? 'bg-slate-700 text-slate-100 dark:bg-slate-800 border border-slate-600 dark:border-slate-700 rounded-tl-none' 
+                          : 'bg-card border border-border text-foreground rounded-tl-none'
+                      }`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`font-extrabold text-[10.5px] ${
+                            isMe 
+                              ? 'text-primary-foreground/90' 
+                              : isOtherEmployee 
+                              ? 'text-amber-300 font-black' 
+                              : 'text-foreground'
+                          }`}>
+                            {isMe ? (language === 'ar' ? `أنا (${msg.senderName})` : `Me (${msg.senderName})`) : msg.senderName}
+                          </span>
+                          {isOtherEmployee && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                              {msg.senderRole === 'TECHNICIAN' ? (language === 'ar' ? 'فني' : 'Tech') : (language === 'ar' ? 'موظف' : 'Staff')}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="whitespace-pre-wrap m-0 leading-relaxed font-medium">{msg.message}</p>
+
                         {msgImgs.length > 0 && (
-                          <div className="flex gap-1 pt-1">
+                          <div className="flex flex-wrap gap-1.5 pt-1">
                             {msgImgs.map((att, aIdx) => (
-                              <button key={aIdx} type="button" onClick={() => setLightboxImg(att)} className="w-12 h-12 rounded overflow-hidden">
+                              <button 
+                                key={aIdx} 
+                                type="button" 
+                                onClick={() => setLightboxImg(att)} 
+                                className="w-14 h-14 rounded-xl overflow-hidden border border-white/20 shadow-2xs hover:opacity-90 transition-opacity cursor-pointer"
+                              >
                                 <img src={att} alt="" className="w-full h-full object-cover" />
                               </button>
                             ))}
                           </div>
                         )}
-                        <div className="flex items-center justify-end gap-1 text-[8px] opacity-70">
+
+                        <div className={`flex items-center justify-end gap-1 text-[8.5px] font-mono ${
+                          isMe 
+                            ? 'text-primary-foreground/75' 
+                            : isOtherEmployee 
+                            ? 'text-slate-300' 
+                            : 'text-muted-foreground'
+                        }`}>
                           <span>{new Date(msg.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                          {isMe && (msg.isRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-500 font-bold" /> : <Check className="w-3 h-3 text-muted-foreground" />)}
+                          {isMe && (msg.isRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300 font-bold" /> : <Check className="w-3 h-3 opacity-70" />)}
                         </div>
                       </div>
                     </div>
