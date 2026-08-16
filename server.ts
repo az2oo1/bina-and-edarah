@@ -2735,10 +2735,23 @@ async function startServer() {
       const { id } = req.params;
       const { role } = req.body; // Reader role (e.g. 'ADMIN' or 'RENTER')
 
+      const report = await prisma.maintenanceReport.findFirst({
+        where: {
+          OR: [
+            { id },
+            { requestCode: id }
+          ]
+        }
+      });
+
+      if (!report) {
+        return res.status(404).json({ error: "البلاغ غير موجود" });
+      }
+
       // Mark unread messages sent by opposing role as read
       const updated = await prisma.maintenanceMessage.updateMany({
         where: {
-          reportId: id,
+          reportId: report.id,
           isRead: false,
           NOT: role ? { senderRole: role } : undefined
         },
@@ -2751,9 +2764,17 @@ async function startServer() {
       // Broadcast read receipt over Socket.IO real-time engine
       const io = req.app.get("io");
       if (io) {
-        io.emit("messages_read", { reportId: id, readerRole: role });
-        io.to(`ticket_${id}`).emit("messages_read", { reportId: id, readerRole: role });
-        io.to("admin_room").emit("messages_read", { reportId: id, readerRole: role });
+        const payload = {
+          reportId: report.id,
+          requestCode: report.requestCode,
+          readerRole: role
+        };
+        io.emit("messages_read", payload);
+        io.to(`ticket_${report.id}`).emit("messages_read", payload);
+        if (report.requestCode && report.requestCode !== report.id) {
+          io.to(`ticket_${report.requestCode}`).emit("messages_read", payload);
+        }
+        io.to("admin_room").emit("messages_read", payload);
       }
 
       res.json({ success: true, count: updated.count });

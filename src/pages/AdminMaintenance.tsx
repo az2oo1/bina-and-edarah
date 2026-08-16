@@ -449,7 +449,7 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
 
       setReports((prev) =>
         prev.map((r) => {
-          if (r.id === newMessage.reportId) {
+          if (r.id === newMessage.reportId || r.requestCode === newMessage.reportId) {
             const msgs = r.messages || [];
             if (!msgs.some((m) => m.id === newMessage.id)) {
               return { ...r, messages: [...msgs, newMessage] };
@@ -478,6 +478,19 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
         }
         return prev;
       });
+
+      // If incoming message is from RENTER and admin has active ticket chat open, mark as read immediately
+      if (newMessage.senderRole === 'RENTER') {
+        const activeId = detailsModalReport?.id || chatPopupReport?.id;
+        const activeReqCode = detailsModalReport?.requestCode || chatPopupReport?.requestCode;
+        if (activeId && (activeId === newMessage.reportId || activeReqCode === newMessage.reportId)) {
+          fetch(`/api/maintenance-reports/${newMessage.reportId}/messages/read`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'ADMIN' })
+          }).catch(() => null);
+        }
+      }
     });
 
     socket.on('maintenance_report_updated', (updated: MaintenanceReport) => {
@@ -488,11 +501,15 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
       }
     });
 
-    socket.on('messages_read', (data: { reportId: string; readerRole?: string }) => {
-      if (data && data.reportId) {
+    socket.on('messages_read', (data: { reportId?: string; requestCode?: string; readerRole?: string }) => {
+      if (data && (data.reportId || data.requestCode)) {
+        const matches = (r: MaintenanceReport) =>
+          (data.reportId && (r.id === data.reportId || r.requestCode === data.reportId)) ||
+          (data.requestCode && (r.id === data.requestCode || r.requestCode === data.requestCode));
+
         setReports((prev) =>
           prev.map((r) => {
-            if (r.id === data.reportId || r.requestCode === data.reportId) {
+            if (matches(r)) {
               const msgs = (r.messages || []).map((m) => ({ ...m, isRead: true }));
               return { ...r, messages: msgs };
             }
@@ -500,14 +517,14 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
           })
         );
         setChatPopupReport((prev) => {
-          if (prev && (prev.id === data.reportId || prev.requestCode === data.reportId)) {
+          if (prev && matches(prev)) {
             const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
             return { ...prev, messages: msgs };
           }
           return prev;
         });
         setDetailsModalReport((prev) => {
-          if (prev && (prev.id === data.reportId || prev.requestCode === data.reportId)) {
+          if (prev && matches(prev)) {
             const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
             return { ...prev, messages: msgs };
           }

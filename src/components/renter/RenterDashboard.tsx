@@ -305,7 +305,7 @@ export default function RenterDashboard({ units, phoneNumber, onLogout }: Renter
 
       setMaintenanceReportsList((prev) =>
         prev.map((r) => {
-          if (r.id === reportId || r.id === renterChatReport.requestCode) {
+          if (r.id === reportId || r.requestCode === reportId || r.id === renterChatReport.requestCode) {
             const msgs = r.messages || [];
             if (!msgs.some((m) => m.id === newMessage.id)) {
               return { ...r, messages: [...msgs, newMessage] };
@@ -314,10 +314,24 @@ export default function RenterDashboard({ units, phoneNumber, onLogout }: Renter
           return r;
         })
       );
+
+      // If message is from staff and renter is actively viewing chat, mark read immediately
+      if (newMessage.senderRole !== 'RENTER') {
+        fetch(`/api/maintenance-reports/${reportId}/messages/read`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'RENTER' })
+        }).catch(() => {});
+      }
     });
 
-    socket.on('messages_read', (data: { reportId: string }) => {
-      if (data && (data.reportId === reportId || data.reportId === renterChatReport.requestCode)) {
+    socket.on('messages_read', (data: { reportId?: string; requestCode?: string }) => {
+      const targetId = data?.reportId;
+      const targetReqCode = data?.requestCode;
+      const isMatch = (idOrCode?: string | null) => 
+        (idOrCode && ((targetId && idOrCode === targetId) || (targetReqCode && idOrCode === targetReqCode)));
+
+      if (data && (isMatch(reportId) || isMatch(renterChatReport.requestCode))) {
         setRenterChatReport((prev) => {
           if (!prev) return prev;
           const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
@@ -325,7 +339,7 @@ export default function RenterDashboard({ units, phoneNumber, onLogout }: Renter
         });
         setMaintenanceReportsList((prev) =>
           prev.map((r) => {
-            if (r.id === reportId || r.id === renterChatReport.requestCode) {
+            if (isMatch(r.id) || isMatch(r.requestCode)) {
               const msgs = (r.messages || []).map((m) => ({ ...m, isRead: true }));
               return { ...r, messages: msgs };
             }
