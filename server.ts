@@ -2751,6 +2751,7 @@ async function startServer() {
       // Broadcast read receipt over Socket.IO real-time engine
       const io = req.app.get("io");
       if (io) {
+        io.emit("messages_read", { reportId: id, readerRole: role });
         io.to(`ticket_${id}`).emit("messages_read", { reportId: id, readerRole: role });
         io.to("admin_room").emit("messages_read", { reportId: id, readerRole: role });
       }

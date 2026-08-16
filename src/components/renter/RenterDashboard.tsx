@@ -6,7 +6,7 @@ import {
   Building2, Calendar, FileText, ChevronLeft, ChevronRight, 
   CreditCard, History, Landmark, CheckCircle2, UploadCloud, Loader2, Eye, 
   Wrench, Plus, X, Image as ImageIcon, Clock, XCircle, MessageSquare, Bed, Bath, 
-  Maximize2, ShieldCheck, MapPin, Sparkles, Send, Check, Filter, Star, DollarSign, LogOut, Phone
+  Maximize2, ShieldCheck, MapPin, Sparkles, Send, Check, CheckCheck, Filter, Star, DollarSign, LogOut, Phone
 } from 'lucide-react';
 import { getRentStatus } from '../../utils/rentStatus';
 
@@ -314,6 +314,25 @@ export default function RenterDashboard({ units, phoneNumber, onLogout }: Renter
           return r;
         })
       );
+    });
+
+    socket.on('messages_read', (data: { reportId: string }) => {
+      if (data && (data.reportId === reportId || data.reportId === renterChatReport.requestCode)) {
+        setRenterChatReport((prev) => {
+          if (!prev) return prev;
+          const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
+          return { ...prev, messages: msgs };
+        });
+        setMaintenanceReportsList((prev) =>
+          prev.map((r) => {
+            if (r.id === reportId || r.id === renterChatReport.requestCode) {
+              const msgs = (r.messages || []).map((m) => ({ ...m, isRead: true }));
+              return { ...r, messages: msgs };
+            }
+            return r;
+          })
+        );
+      }
     });
 
     const pollInterval = setInterval(pollFreshMessages, 3000);
@@ -1424,6 +1443,16 @@ export default function RenterDashboard({ units, phoneNumber, onLogout }: Renter
                                 ))}
                               </div>
                             )}
+                            <div className={`flex items-center justify-end gap-1 text-[8.5px] font-mono pt-1 ${
+                              isMe ? 'text-primary-foreground/75' : 'text-muted-foreground'
+                            }`}>
+                              <span>{new Date(msg.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                              {isMe && (
+                                <span title={msg.isRead ? (language === 'ar' ? 'تمت القراءة' : 'Seen') : (language === 'ar' ? 'تم التسليم' : 'Delivered')}>
+                                  {msg.isRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300 font-bold" /> : <Check className="w-3.5 h-3.5 opacity-70" />}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
