@@ -2455,11 +2455,21 @@ async function startServer() {
       if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
       normalizedPhone = normalizedPhone.replace(/^0+/, '');
 
+      const phoneVariants = Array.from(new Set([
+        normalizedPhone,
+        '0' + normalizedPhone,
+        '966' + normalizedPhone,
+        '+966' + normalizedPhone,
+        '00966' + normalizedPhone,
+        phone.trim()
+      ]));
+
       const reports = await prisma.maintenanceReport.findMany({
         where: {
           OR: [
-            { renter: { phone: normalizedPhone } },
-            { renterUnit: { renterPhone: normalizedPhone } }
+            { renter: { phone: { in: phoneVariants } } },
+            { renterUnit: { renterPhone: { in: phoneVariants } } },
+            { renterUnit: { renter: { phone: { in: phoneVariants } } } }
           ]
         },
         include: {
@@ -2618,8 +2628,11 @@ async function startServer() {
     try {
       const { id } = req.params;
       const { senderRole, senderName, message, attachments } = req.body;
-      if (!message || !message.trim()) {
-        return res.status(400).json({ error: "محتوى الرسالة مطلوب" });
+      const rawAttachments: string[] = parseImageArray(attachments);
+      const messageText = (message || '').trim();
+
+      if (!messageText && rawAttachments.length === 0) {
+        return res.status(400).json({ error: "محتوى الرسالة أو الصورة المرفقة مطلوب" });
       }
 
       const report = await prisma.maintenanceReport.findFirst({
@@ -2636,7 +2649,6 @@ async function startServer() {
       });
       if (!report) return res.status(404).json({ error: "البلاغ غير موجود" });
 
-      const rawAttachments: string[] = parseImageArray(attachments);
       const savedAttachments: string[] = [];
       for (const img of rawAttachments) {
         if (typeof img === 'string' && img.length > 0) {
@@ -2680,7 +2692,7 @@ async function startServer() {
           reportId: report.id,
           senderRole: effectiveRole,
           senderName: effectiveName,
-          message: message.trim(),
+          message: messageText || (savedAttachments.length > 0 ? 'مرفق صورة' : ''),
           attachments: stringifyImageArray(savedAttachments)
         }
       });
@@ -2703,6 +2715,8 @@ async function startServer() {
           reportCategory: report.category || 'GENERAL',
         };
 
+        io.emit("new_message", socketPayload);
+        io.to("admin_room").emit("new_message", socketPayload);
         io.to(`ticket_${report.id}`).emit("new_message", socketPayload);
         if (report.requestCode && report.requestCode !== report.id) {
           io.to(`ticket_${report.requestCode}`).emit("new_message", socketPayload);

@@ -439,6 +439,11 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
 
     socket.emit('join_admin');
 
+    const activeReportId = detailsModalReport?.id || chatPopupReport?.id;
+    if (activeReportId) {
+      socket.emit('join_ticket', activeReportId);
+    }
+
     socket.on('new_message', (newMessage: any) => {
       if (!newMessage || !newMessage.reportId) return;
 
@@ -455,7 +460,7 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
       );
 
       setChatPopupReport((prev) => {
-        if (prev && prev.id === newMessage.reportId) {
+        if (prev && (prev.id === newMessage.reportId || prev.requestCode === newMessage.reportId)) {
           const msgs = prev.messages || [];
           if (!msgs.some((m) => m.id === newMessage.id)) {
             return { ...prev, messages: [...msgs, newMessage] };
@@ -465,7 +470,7 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
       });
 
       setDetailsModalReport((prev) => {
-        if (prev && prev.id === newMessage.reportId) {
+        if (prev && (prev.id === newMessage.reportId || prev.requestCode === newMessage.reportId)) {
           const msgs = prev.messages || [];
           if (!msgs.some((m) => m.id === newMessage.id)) {
             return { ...prev, messages: [...msgs, newMessage] };
@@ -478,43 +483,74 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
     socket.on('maintenance_report_updated', (updated: MaintenanceReport) => {
       if (updated && updated.id) {
         setReports((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+        if (chatPopupReport?.id === updated.id) setChatPopupReport(updated);
+        if (detailsModalReport?.id === updated.id) setDetailsModalReport(updated);
       }
     });
 
     socket.on('messages_read', (data: { reportId: string; readerRole?: string }) => {
-      if (!data || !data.reportId) return;
-
-      setReports((prev) =>
-        prev.map((r) => {
-          if (r.id === data.reportId || r.requestCode === data.reportId) {
-            const msgs = (r.messages || []).map((m) => ({ ...m, isRead: true }));
-            return { ...r, messages: msgs };
+      if (data && data.reportId) {
+        setReports((prev) =>
+          prev.map((r) => {
+            if (r.id === data.reportId || r.requestCode === data.reportId) {
+              const msgs = (r.messages || []).map((m) => ({ ...m, isRead: true }));
+              return { ...r, messages: msgs };
+            }
+            return r;
+          })
+        );
+        setChatPopupReport((prev) => {
+          if (prev && (prev.id === data.reportId || prev.requestCode === data.reportId)) {
+            const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
+            return { ...prev, messages: msgs };
           }
-          return r;
-        })
-      );
-
-      setChatPopupReport((prev) => {
-        if (prev && (prev.id === data.reportId || prev.requestCode === data.reportId)) {
-          const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
-          return { ...prev, messages: msgs };
-        }
-        return prev;
-      });
-
-      setDetailsModalReport((prev) => {
-        if (prev && (prev.id === data.reportId || prev.requestCode === data.reportId)) {
-          const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
-          return { ...prev, messages: msgs };
-        }
-        return prev;
-      });
+          return prev;
+        });
+        setDetailsModalReport((prev) => {
+          if (prev && (prev.id === data.reportId || prev.requestCode === data.reportId)) {
+            const msgs = (prev.messages || []).map((m) => ({ ...m, isRead: true }));
+            return { ...prev, messages: msgs };
+          }
+          return prev;
+        });
+      }
     });
 
+    // 3-second auto-poll fallback timer when an active chat modal is open
+    const pollInterval = setInterval(() => {
+      const activeId = detailsModalReport?.id || chatPopupReport?.id;
+      if (!activeId) return;
+
+      fetch(`/api/maintenance-reports/${activeId}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((fresh) => {
+          if (!fresh || !fresh.messages) return;
+          if (detailsModalReport?.id === activeId) {
+            setDetailsModalReport((prev) => {
+              if (!prev || prev.id !== activeId) return prev;
+              const existingIds = new Set((prev.messages || []).map((m) => m.id));
+              const hasNew = fresh.messages.some((m: any) => !existingIds.has(m.id));
+              return hasNew ? fresh : prev;
+            });
+          }
+          if (chatPopupReport?.id === activeId) {
+            setChatPopupReport((prev) => {
+              if (!prev || prev.id !== activeId) return prev;
+              const existingIds = new Set((prev.messages || []).map((m) => m.id));
+              const hasNew = fresh.messages.some((m: any) => !existingIds.has(m.id));
+              return hasNew ? fresh : prev;
+            });
+          }
+          setReports((prev) => prev.map((r) => (r.id === activeId ? fresh : r)));
+        })
+        .catch(() => {});
+    }, 3000);
+
     return () => {
+      clearInterval(pollInterval);
       socket.disconnect();
     };
-  }, []);
+  }, [detailsModalReport?.id, chatPopupReport?.id]);
 
   const selectTicket = (report: MaintenanceReport) => {
     setSelectedId(report.id);
