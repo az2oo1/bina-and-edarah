@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router';
+import io from 'socket.io-client';
 import { useLanguage } from '../LanguageContext';
 import { 
   Lock, User, Phone, AlertTriangle, Building2, Calendar, FileText, ChevronLeft, ChevronRight, 
@@ -125,7 +126,7 @@ const MAINTENANCE_CATEGORIES = [
   { id: 'PLUMBING', nameAr: 'سباكة ومياه', nameEn: 'Plumbing', icon: '🚿' },
   { id: 'ELECTRICAL', nameAr: 'كهرباء وإضاءة', nameEn: 'Electrical', icon: '⚡' },
   { id: 'HVAC', nameAr: 'تكييف وتبريد', nameEn: 'Air Conditioning', icon: '❄️' },
-  { id: 'CLEANING', nameAr: 'نظافة ورش آفات', nameEn: 'Cleaning & Pest', icon: '🧹' },
+  { id: 'CLEANING', nameAr: 'نظافة', nameEn: 'Cleaning', icon: '🧹' },
   { id: 'ELEVATOR', nameAr: 'مصاعد ومرافق', nameEn: 'Elevator & Facilities', icon: '🏢' },
   { id: 'GENERAL', nameAr: 'صيانة عامة', nameEn: 'General Repair', icon: '🔧' },
 ];
@@ -205,13 +206,24 @@ export default function Login() {
 
     setSendingRenterMessage(true);
     try {
-      const renterName = (units && units.length > 0 ? units[0].renterName : 'المستأجر');
+      const isGenericOrCategoryName = (name?: string | null) => {
+        if (!name || !name.trim()) return true;
+        const lower = name.trim().toLowerCase();
+        return lower === 'المستأجر' || lower === 'renter' || lower === 'customer' || lower.includes('آفات') || lower.includes('سباكة') || lower.includes('كهرباء') || lower.includes('تكييف') || lower.includes('مصاعد') || lower.includes('نظافة');
+      };
+
+      const resolvedRenterName = [
+        renterChatReport?.renter?.name,
+        renterChatReport?.renterUnit?.renterName,
+        (units && units.length > 0 ? units[0].renterName : null)
+      ].find(n => n && !isGenericOrCategoryName(n)) || (language === 'ar' ? 'المستأجر' : 'Renter');
+
       const res = await fetch(`/api/maintenance-reports/${renterChatReport.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           senderRole: 'RENTER',
-          senderName: renterName,
+          senderName: resolvedRenterName,
           message: renterChatMessage,
           attachments: renterChatAttachments
         })
@@ -235,6 +247,55 @@ export default function Login() {
       setSendingRenterMessage(false);
     }
   };
+
+  // Real-time WebSocket connection for instant chat message delivery in Renter Portal
+  useEffect(() => {
+    if (!renterChatReport) return;
+
+    const socket = io(window.location.origin, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+    });
+
+    const reportId = renterChatReport.id;
+    socket.emit('join_ticket', reportId);
+
+    // Mark messages as read by RENTER when chat modal is active
+    fetch(`/api/maintenance-reports/${reportId}/messages/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'RENTER' })
+    }).catch(() => {});
+
+    socket.on('new_message', (newMessage: any) => {
+      if (!newMessage || newMessage.reportId !== reportId) return;
+
+      setRenterChatReport((prev) => {
+        if (!prev || prev.id !== reportId) return prev;
+        const msgs = prev.messages || [];
+        if (!msgs.some((m) => m.id === newMessage.id)) {
+          return { ...prev, messages: [...msgs, newMessage] };
+        }
+        return prev;
+      });
+
+      setMaintenanceReportsList((prev) =>
+        prev.map((r) => {
+          if (r.id === reportId) {
+            const msgs = r.messages || [];
+            if (!msgs.some((m) => m.id === newMessage.id)) {
+              return { ...r, messages: [...msgs, newMessage] };
+            }
+          }
+          return r;
+        })
+      );
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [renterChatReport?.id]);
 
   const handleSubmitRating = async (reportId: string) => {
     setSubmittingRating(true);

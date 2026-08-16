@@ -2628,6 +2628,10 @@ async function startServer() {
             { id },
             { requestCode: id }
           ]
+        },
+        include: {
+          renter: true,
+          renterUnit: true
         }
       });
       if (!report) return res.status(404).json({ error: "البلاغ غير موجود" });
@@ -2648,10 +2652,28 @@ async function startServer() {
         } catch (_) {}
       }
 
+      const isGenericOrCategoryName = (name?: string | null) => {
+        if (!name || !name.trim()) return true;
+        const lower = name.trim().toLowerCase();
+        return lower === 'المستأجر' || lower === 'renter' || lower === 'customer' || lower.includes('آفات') || lower.includes('سباكة') || lower.includes('كهرباء') || lower.includes('تكييف') || lower.includes('مصاعد') || lower.includes('نظافة');
+      };
+
+      const dbRenterName = report.renter?.name || report.renterUnit?.renterName || null;
+      const validDbRenterName = (dbRenterName && !isGenericOrCategoryName(dbRenterName)) ? dbRenterName.trim() : null;
+
       const effectiveRole = staffUser ? (senderRole || 'ADMIN') : 'RENTER';
-      const effectiveName = staffUser 
-        ? (senderName || staffUser.name || staffUser.username || 'فريق الصيانة')
-        : (senderName && senderRole === 'RENTER' ? senderName : 'المستأجر');
+      let effectiveName = 'المستأجر';
+      if (staffUser) {
+        effectiveName = senderName || staffUser.name || staffUser.username || 'فريق الصيانة';
+      } else {
+        if (senderName && !isGenericOrCategoryName(senderName)) {
+          effectiveName = senderName.trim();
+        } else if (validDbRenterName) {
+          effectiveName = validDbRenterName;
+        } else {
+          effectiveName = 'المستأجر';
+        }
+      }
 
       const newMessage = await prisma.maintenanceMessage.create({
         data: {
