@@ -15,7 +15,10 @@ services:
       - APP_ENV=${APP_ENV:-production}
       - DEV_MODE=${DEV_MODE:-false}
       - DATABASE_URL=postgresql://root@cockroach_db:26257/bina_db?sslmode=disable
-      - S3_ENDPOINT=http://rustfs-storage:9000
+      
+      # NOTE: For Server 2, remember to change this to Server 1's IP: http://<SERVER_1_IP>:9000
+      - S3_ENDPOINT=http://rustfs-storage:9000 
+      
       - S3_BUCKET=binaassets
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-rustfsaccesskey}
       - S3_SECRET_KEY=${S3_SECRET_KEY:-rustfssecretkey}
@@ -40,35 +43,40 @@ services:
     restart: always
     entrypoint: ["/bin/sh", "-c"]
 
-
+    # ==========================================
+    # CHOOSE ONE COMMAND BLOCK BELOW
+    # ==========================================
 
     command:      #first server
       - >
-        /cockroach/cockroach start --insecure \
-        --advertise-addr=<SERVER_1_IP>:26258 \
-        --listen-addr=0.0.0.0:26258 \
-        --sql-addr=0.0.0.0:26257 \
-        --join=<SERVER_1_IP>:26258,<SERVER_2_IP>:26258 \
+        /cockroach/cockroach start --insecure
+        --advertise-addr=<SERVER_1_IP>:26258
+        --listen-addr=0.0.0.0:26258
+        --sql-addr=0.0.0.0:26257
+        --join=<SERVER_1_IP>:26258,<SERVER_2_IP>:26258
         --http-addr=0.0.0.0:8080 &
         sleep 5;
-        /cockroach/cockroach init --insecure --host=localhost:26257 || true;
+        /cockroach/cockroach init --insecure --host=localhost:26258 || true;
         until /cockroach/cockroach sql --insecure --host=localhost:26257 --execute="SELECT 1" >/dev/null 2>&1; do sleep 1; done &&
         /cockroach/cockroach sql --insecure --host=localhost:26257 --execute="CREATE DATABASE IF NOT EXISTS bina_db;" &&
         wait
         
-    command:     #second server
-      - >
-        /cockroach/cockroach start --insecure \
-        --advertise-addr=<SERVER_2_IP>:26258 \
-        --listen-addr=0.0.0.0:26258 \
-        --sql-addr=0.0.0.0:26257 \
-        --join=<SERVER_1_IP>:26258,<SERVER_2_IP>:26258 \
-        --http-addr=0.0.0.0:8080 &
-        until /cockroach/cockroach sql --insecure --execute="SELECT 1" >/dev/null 2>&1; do sleep 1; done &&
-        wait
+    # command:     #second server (uncomment to use)
+    #   - >
+    #     /cockroach/cockroach start --insecure
+    #     --advertise-addr=<SERVER_2_IP>:26258
+    #     --listen-addr=0.0.0.0:26258
+    #     --sql-addr=0.0.0.0:26257
+    #     --join=<SERVER_1_IP>:26258,<SERVER_2_IP>:26258
+    #     --http-addr=0.0.0.0:8080 &
+    #     until /cockroach/cockroach sql --insecure --host=localhost:26257 --execute="SELECT 1" >/dev/null 2>&1; do sleep 1; done &&
+    #     wait
+
+    # ==========================================
+
     ports:
       - "26257:26257" # SQL Port for your App
-      - "26258:26258" # New RPC Port for Server 2 to connect
+      - "26258:26258" # RPC Port for node communication
       - "8080:8080"   # Web Dashboard
     volumes:
       - cockroach_data:/cockroach/cockroach-data
@@ -79,6 +87,7 @@ services:
       retries: 5
       start_period: 15s
 
+  # NOTE: Remember to comment this block out on Server 2 if you are running centralized storage!
   rustfs-storage:
     image: rustfs/rustfs:latest
     container_name: rustfs-storage
