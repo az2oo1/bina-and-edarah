@@ -39,15 +39,37 @@ services:
     container_name: cockroach_db
     restart: always
     entrypoint: ["/bin/sh", "-c"]
-    command:
+
+
+
+    command:      #first server
       - >
-        /cockroach/cockroach start-single-node --insecure --http-addr=0.0.0.0:8080 &
+        /cockroach/cockroach start --insecure \
+        --advertise-addr=<SERVER_1_IP>:26258 \
+        --listen-addr=0.0.0.0:26258 \
+        --sql-addr=0.0.0.0:26257 \
+        --join=<SERVER_1_IP>:26258,<SERVER_2_IP>:26258 \
+        --http-addr=0.0.0.0:8080 &
+        sleep 5;
+        /cockroach/cockroach init --insecure --host=localhost:26257 || true;
+        until /cockroach/cockroach sql --insecure --host=localhost:26257 --execute="SELECT 1" >/dev/null 2>&1; do sleep 1; done &&
+        /cockroach/cockroach sql --insecure --host=localhost:26257 --execute="CREATE DATABASE IF NOT EXISTS bina_db;" &&
+        wait
+        
+    command:     #second server
+      - >
+        /cockroach/cockroach start --insecure \
+        --advertise-addr=<SERVER_2_IP>:26258 \
+        --listen-addr=0.0.0.0:26258 \
+        --sql-addr=0.0.0.0:26257 \
+        --join=<SERVER_1_IP>:26258,<SERVER_2_IP>:26258 \
+        --http-addr=0.0.0.0:8080 &
         until /cockroach/cockroach sql --insecure --execute="SELECT 1" >/dev/null 2>&1; do sleep 1; done &&
-        /cockroach/cockroach sql --insecure --execute="CREATE DATABASE IF NOT EXISTS bina_db;" &&
         wait
     ports:
-      - "26257:26257"
-      - "8080:8080"
+      - "26257:26257" # SQL Port for your App
+      - "26258:26258" # New RPC Port for Server 2 to connect
+      - "8080:8080"   # Web Dashboard
     volumes:
       - cockroach_data:/cockroach/cockroach-data
     healthcheck:
