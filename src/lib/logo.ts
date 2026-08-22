@@ -2,7 +2,7 @@
 // The SVG uses `fill="currentColor"` so it can be themed (e.g. white in dark mode
 // on the site). For emails, replace `currentColor` with the brand color before inlining.
 
-export const LOGO_BRAND_COLOR = "#34505e";
+export const LOGO_BRAND_COLOR = "#32505F";
 
 export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 497" fill="currentColor" role="img" aria-label="Benaa &amp; Edara">
   <path d="M216.70 496.61 c-0.21 -0.32 -3.05 -2.79 -6.38 -5.52 -3.32 -2.73 -11.79 -9.75 -18.80 -15.64 -7.02 -5.89 -14.52 -12.11 -16.71 -13.88 l-3.91 -3.16 0 -95.41 0 -95.46 9.27 -9.64 c5.04 -5.30 15.70 -16.34 23.63 -24.59 7.88 -8.25 14.84 -15.05 15.38 -15.16 1.02 -0.16 1.02 2.89 1.02 139.39 l0 139.61 -1.55 0 c-0.91 0 -1.77 -0.27 -1.93 -0.54z"/>

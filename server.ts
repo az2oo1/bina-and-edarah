@@ -184,10 +184,10 @@ async function sendCallbackEmailNotification(req?: any) {
       <body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Cairo', 'Inter', sans-serif; -webkit-font-smoothing: antialiased;">
         
         <!-- Full-Width Header -->
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 4px solid #34505e; direction: rtl;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 4px solid #32505F; direction: rtl;">
           <tr>
             <td style="padding: 25px 20px; text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: #34505e; margin-bottom: 12px; font-family: 'Cairo', sans-serif; letter-spacing: 0.5px;">
+              <div style="font-size: 16px; font-weight: 700; color: #32505F; margin-bottom: 12px; font-family: 'Cairo', sans-serif; letter-spacing: 0.5px;">
                 بناء وإدارة العقارية &nbsp;|&nbsp; Benaa & Edara Real Estate
               </div>
               ${logoHtml}
@@ -362,10 +362,10 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
       <body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Cairo', 'Inter', sans-serif; -webkit-font-smoothing: antialiased;">
         
         <!-- Full-Width Header -->
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 4px solid #34505e; direction: rtl;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #FFFFFF; border-bottom: 4px solid #32505F; direction: rtl;">
           <tr>
             <td style="padding: 25px 20px; text-align: center;">
-              <div style="font-size: 16px; font-weight: 700; color: #34505e; margin-bottom: 12px; font-family: 'Cairo', sans-serif; letter-spacing: 0.5px;">
+              <div style="font-size: 16px; font-weight: 700; color: #32505F; margin-bottom: 12px; font-family: 'Cairo', sans-serif; letter-spacing: 0.5px;">
                 بناء وإدارة العقارية &nbsp;|&nbsp; Benaa & Edara Real Estate
               </div>
               ${logoHtml}
@@ -1502,11 +1502,12 @@ async function startServer() {
         html = await (global as any).viteServer.transformIndexHtml(req.url, html);
       }
       
-      // Build OG tags
+      // Build OG tags & WebSite Structured Data for Google Search
       const ogTags = `
         <title>${title}</title>
         <meta name="description" content="${description}" />
-        <meta property="og:site_name" content="شركة بناء وإدارة العقارية" />
+        <meta name="application-name" content="بناء وإدارة" />
+        <meta property="og:site_name" content="بناء وإدارة" />
         <meta property="og:title" content="${title}" />
         <meta property="og:description" content="${description}" />
         <meta property="og:image" content="${imageUrl}" />
@@ -1519,6 +1520,15 @@ async function startServer() {
         <meta name="twitter:title" content="${title}" />
         <meta name="twitter:description" content="${description}" />
         <meta name="twitter:image" content="${imageUrl}" />
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "بناء وإدارة",
+          "alternateName": ["شركة بناء وإدارة العقارية", "Benaa & Edara", "Benaa and Edara Real Estate"],
+          "url": "${siteUrl}/"
+        }
+        </script>
       `;
 
       const analyticsScript = settings?.analyticsScript?.trim() ? `\n${settings.analyticsScript}\n` : '';

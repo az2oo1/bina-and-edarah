@@ -57,19 +57,24 @@ function useLogoUrl() {
 }
 
 function useSocialSettings(): SocialLinks {
-  const [links, setLinks] = useState<SocialLinks>({});
+  const [links, setLinks] = useState<SocialLinks>({
+    whatsappNumber: '966556467063',
+    email: 'info@rbmc.sa',
+    twitterUrl: 'https://x.com',
+    instagramUrl: 'https://instagram.com'
+  });
   useEffect(() => {
     getCachedSettings()
       .then(data => setLinks({
-        whatsappNumber: data.whatsappNumber,
-        instagramUrl: data.instagramUrl,
-        twitterUrl: data.twitterUrl,
+        whatsappNumber: data.whatsappNumber || '966556467063',
+        instagramUrl: data.instagramUrl || 'https://instagram.com',
+        twitterUrl: data.twitterUrl || 'https://x.com',
         facebookUrl: data.facebookUrl,
         linkedinUrl: data.linkedinUrl,
         youtubeUrl: data.youtubeUrl,
         tiktokUrl: data.tiktokUrl,
         snapchatUrl: data.snapchatUrl,
-        email: data.email,
+        email: data.email || 'info@rbmc.sa',
       }))
       .catch(() => {});
   }, []);
@@ -314,10 +319,10 @@ function Navbar() {
               onMouseEnter={handleLogoOrControlsHover}
             >
               <Logo
-                className={`h-6 w-6 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                className="h-8 w-auto max-h-8 object-contain"
                 logoUrl={logoUrl}
+                theme={theme}
               />
-              <span className="font-bold text-xs text-foreground tracking-tight hidden md:block">{t('hero.title')}</span>
             </Link>
             <div className="hidden sm:flex items-center gap-5 lg:gap-8">
               {(['home', 'projects', 'properties', 'contact'] as const).map((menu) => (
@@ -612,10 +617,10 @@ function Footer() {
             {/* Logo & Name */}
             <div className="flex items-center gap-2">
               <Logo
-                className={`h-6 w-6 flex-shrink-0 ${theme === 'dark' ? 'text-white' : 'text-[#34505e]'}`}
+                className="h-7 w-auto max-h-7 object-contain"
                 logoUrl={logoUrl}
+                theme={theme}
               />
-              <span className="font-bold text-foreground text-xs select-none">{language === 'ar' ? 'شركة بناء وإدارة العقارية' : 'Benaa & Edara'}</span>
             </div>
 
             {/* Copyright in Center */}

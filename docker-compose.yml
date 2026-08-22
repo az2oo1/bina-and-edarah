@@ -16,25 +16,27 @@ services:
       - DEV_MODE=${DEV_MODE:-false}
       - DATABASE_URL=postgresql://root@cockroach_db:26257/bina_db?sslmode=disable
       
-      # NOTE: For Server 2, remember to change this to Server 1's IP: http://<SERVER_1_IP>:9000
-      - S3_ENDPOINT=http://rustfs-storage:9000 
-      
-      - S3_BUCKET=binaassets
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-rustfsaccesskey}
-      - S3_SECRET_KEY=${S3_SECRET_KEY:-rustfssecretkey}
-      - S3_REGION=${S3_REGION:-us-east-1}
+      # S3 / Garage Object Storage Configuration:
+      # For Server 1: http://garage-storage:3900 or http://100.87.143.26:3900
+      # For Server 2: http://100.87.143.26:3900
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://garage-storage:3900}
+      - S3_BUCKET=${S3_BUCKET:-binaassets}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-garageaccesskey}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-garagesecretkey}
+      - S3_REGION=${S3_REGION:-garage}
+
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - JWT_SECRET=${JWT_SECRET:-bina-edara-jwt-secret-key-1337}
       - AUTHENTICA_API_KEY=${AUTHENTICA_API_KEY:-$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG}
       - AUTHENTICA_ENABLED=${AUTHENTICA_ENABLED:-true}
       - AUTHENTICA_METHOD=${AUTHENTICA_METHOD:-sms}
     volumes:
-      - app_data:/data
-      - uploads_data:/app/uploads
+      - /AppData/BinaEdarah/app:/data
+      - /AppData/BinaEdarah/site/db:/app/uploads
     depends_on:
       cockroach_db:
         condition: service_healthy
-      rustfs-storage:
+      garage-storage:
         condition: service_started
 
   cockroach_db:
@@ -44,42 +46,39 @@ services:
     entrypoint: ["/bin/sh", "-c"]
 
     # ==========================================
-    # CHOOSE ONE COMMAND BLOCK BELOW
+    # COCKROACHDB CLUSTER CONFIGURATION
     # ==========================================
-
-    command:      #first server
+    command:      # Server 1 (First Server)
       - >
         /cockroach/cockroach start --insecure
-        --advertise-addr=<SERVER_1_IP>:26258
+        --advertise-addr=100.87.143.26:26258
         --listen-addr=0.0.0.0:26258
         --sql-addr=0.0.0.0:26257
-        --join=<SERVER_1_IP>:26258,<SERVER_2_IP>:26258
+        --join=100.87.143.26:26258,100.64.149.95:26258
         --http-addr=0.0.0.0:8080 &
         sleep 5;
         /cockroach/cockroach init --insecure --host=localhost:26258 || true;
         until /cockroach/cockroach sql --insecure --host=localhost:26257 --execute="SELECT 1" >/dev/null 2>&1; do sleep 1; done &&
         /cockroach/cockroach sql --insecure --host=localhost:26257 --execute="CREATE DATABASE IF NOT EXISTS bina_db;" &&
         wait
-        
-    # command:     #second server (uncomment to use)
+
+    # command:     # Server 2 (Second Server - uncomment on Server 2)
     #   - >
     #     /cockroach/cockroach start --insecure
-    #     --advertise-addr=<SERVER_2_IP>:26258
+    #     --advertise-addr=100.64.149.95:26258
     #     --listen-addr=0.0.0.0:26258
     #     --sql-addr=0.0.0.0:26257
-    #     --join=<SERVER_1_IP>:26258,<SERVER_2_IP>:26258
+    #     --join=100.87.143.26:26258,100.64.149.95:26258
     #     --http-addr=0.0.0.0:8080 &
     #     until /cockroach/cockroach sql --insecure --host=localhost:26257 --execute="SELECT 1" >/dev/null 2>&1; do sleep 1; done &&
     #     wait
 
-    # ==========================================
-
     ports:
-      - "26257:26257" # SQL Port for your App
-      - "26258:26258" # RPC Port for node communication
-      - "8080:8080"   # Web Dashboard
+      - "26257:26257" # SQL Port
+      - "26258:26258" # RPC Port
+      - "8080:8080"   # Dashboard
     volumes:
-      - cockroach_data:/cockroach/cockroach-data
+      - /AppData/BinaEdarah/db:/cockroach/cockroach-data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
       interval: 10s
@@ -87,29 +86,27 @@ services:
       retries: 5
       start_period: 15s
 
-  # NOTE: Remember to comment this block out on Server 2 if you are running centralized storage!
-  rustfs-storage:
-    image: rustfs/rustfs:latest
-    container_name: rustfs-storage
+  # ==========================================
+  # GARAGE DISTRIBUTED OBJECT STORAGE CLUSTER
+  # ==========================================
+  garage-storage:
+    image: dxflrs/garage:v1.0.1
+    container_name: garage-storage
     restart: unless-stopped
-    user: "0:0"
-    environment:
-      - RUSTFS_ACCESS_KEY=${S3_ACCESS_KEY:-rustfsaccesskey}
-      - RUSTFS_SECRET_KEY=${S3_SECRET_KEY:-rustfssecretkey}
-      - RUSTFS_ADDRESS=0.0.0.0:9000
-      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
-      - RUSTFS_CONSOLE_ENABLE=true
-      - RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS=*
-      - RUSTFS_OBS_LOGGER_LEVEL=error
-      - RUSTFS_OBS_LOG_DIRECTORY=/var/log/rustfs/
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - rustfs_data:/data
+      - "3900:3900" # S3 API Port
+      - "3901:3901" # RPC Inter-node Cluster Communication Port
+      - "3902:3902" # Admin API Port
+    environment:
+      # --- Server 1 (First Server) ---
+      - GARAGE_RPC_BIND_ADDR=0.0.0.0:3901
+      - GARAGE_RPC_PUBLIC_ADDR=100.87.143.26:3901
+      - GARAGE_S3_API_S3_BIND_ADDR=0.0.0.0:3900
+      - GARAGE_S3_API_ROOT_DOMAIN=.s3.garage
+      - GARAGE_DB_ENGINE=sqlite
 
-volumes:
-  app_data: {}
-  uploads_data: {}
-  cockroach_data: {}
-  rustfs_data: {}
+      # --- Server 2 (Second Server - set GARAGE_RPC_PUBLIC_ADDR to 100.64.149.95:3901 when deploying on Server 2) ---
+      # - GARAGE_RPC_PUBLIC_ADDR=100.64.149.95:3901
+    volumes:
+      - /AppData/BinaEdarah/objectstorage/meta:/var/lib/garage/meta
+      - /AppData/BinaEdarah/objectstorage/data:/var/lib/garage/data
