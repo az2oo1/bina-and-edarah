@@ -610,28 +610,38 @@ function Footer() {
   const logoUrl = useLogoUrl();
   const socialLinks = useSocialSettings();
   return (
-    <footer className="bg-card border-t border-border py-4 text-muted-foreground text-xs">
+    <footer className="bg-card border-t border-border py-2 text-muted-foreground text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            {/* Logo & Name */}
-            <div className="flex items-center gap-2">
-              <Logo
-                className="h-7 w-auto max-h-7 object-contain"
-                logoUrl={logoUrl}
-                theme={theme}
-              />
-            </div>
+        <div className="flex flex-col md:flex-row justify-between items-center gap-2">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <Logo
+              className="h-6 w-auto max-h-6 object-contain"
+              logoUrl={logoUrl}
+              theme={theme}
+            />
+          </div>
 
-            {/* Copyright in Center */}
-            <div className="text-center md:text-center text-[10px] sm:text-xs">
-              &copy; {new Date().getFullYear()} {language === 'ar' ? 'بناء وإدارة العقارية. جميع الحقوق محفوظة.' : 'Benaa and Edara Real Estate. All rights reserved.'}
-            </div>
+          {/* Center: Copyright & Legal Registration Info */}
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-center text-[10px] sm:text-[11px]">
+            <span>
+              &copy; {new Date().getFullYear()} {language === 'ar' ? 'شركة بناء وإدارة العقارية' : 'Benaa and Edara Real Estate'}
+            </span>
+            <span className="text-border">|</span>
+            <span>
+              {language === 'ar' ? 'الرقم الضريبي:' : 'VAT:'}{' '}
+              <span className="font-mono font-semibold text-foreground/80 tracking-tight">311165980100003</span>
+            </span>
+            <span className="text-border">|</span>
+            <span>
+              {language === 'ar' ? 'السجل التجاري:' : 'CR:'}{' '}
+              <span className="font-mono font-semibold text-foreground/80 tracking-tight">7004106931</span>
+            </span>
+          </div>
 
-            {/* Social Icons on Right */}
-            <div className="flex items-center">
-              <SocialIconsRow links={socialLinks} size="sm" />
-            </div>
+          {/* Social Icons on Right */}
+          <div className="flex items-center">
+            <SocialIconsRow links={socialLinks} size="sm" />
           </div>
         </div>
       </div>
