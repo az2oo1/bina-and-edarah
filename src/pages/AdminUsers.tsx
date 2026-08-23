@@ -19,7 +19,16 @@ export default function AdminUsers() {
   const { language } = useLanguage();
   const { showAlert, showConfirm } = useDialog();
   const [users, setUsers] = useState<PlatformUser[]>([]);
-  const [allBuildings, setAllBuildings] = useState<{ id: string; name: string }[]>([]);
+const [allBuildings, setAllBuildings] = useState<{ id: string; name: string; _count?: { units: number }; units?: any[] }[]>([]);
+
+function isUnitName(name: string): boolean {
+  if (!name || typeof name !== 'string') return false;
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  if (/^\d+$/.test(trimmed) || /^[a-zA-Z]{1,2}-?\d+$/.test(trimmed)) return true;
+  const unitRegex = /^(شقة|وحدة|محل|معرض|مكتب|دور|غرفة|استديو|ستوديو|جناح|unit|apt|apartment|flat|room|suite|shop|office|studio)\b/i;
+  return unitRegex.test(trimmed);
+}
   const [buildingSearch, setBuildingSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -71,8 +80,8 @@ export default function AdminUsers() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          // Unique by ID to show every building in system
-          const uniqueById = Array.from(new Map(data.map((b: any) => [b.id, b])).values());
+          const filtered = data.filter((b: any) => b.name && !isUnitName(b.name));
+          const uniqueById = Array.from(new Map(filtered.map((b: any) => [b.id, b])).values());
           setAllBuildings(uniqueById);
         } else {
           setAllBuildings([]);
@@ -440,8 +449,8 @@ export default function AdminUsers() {
                             <Building2 className="w-4 h-4 shrink-0 opacity-70" />
                             <div className="flex-1 flex items-center justify-between gap-2 overflow-hidden">
                               <span className="break-words leading-snug">{b.name}</span>
-                              <span className="text-[10px] text-muted-foreground font-mono font-normal bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 shrink-0">
-                                #{b.id.slice(0, 6)}
+                              <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full shrink-0 border border-primary/20">
+                                {b._count?.units !== undefined ? b._count.units : (b.units?.length || 0)} {language === 'ar' ? 'وحدة' : 'units'}
                               </span>
                             </div>
                           </label>

@@ -483,7 +483,7 @@ export default function Admin() {
   }, [activeTab, selectedParentProperty]);
 
   useEffect(() => {
-    if (selectedParentProperty) {
+    if (selectedParentProperty && !selectedParentProperty.parentId) {
       const match = adminBuildings.find((b: any) => b.name === selectedParentProperty.titleAr || b.name === selectedParentProperty.titleEn);
       if (match) {
         setMatchingBuilding(match);

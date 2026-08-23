@@ -36,6 +36,16 @@ export function generateRandomPassword(length = 12): string {
   return pass;
 }
 
+export function isUnitName(name: string): boolean {
+  if (!name || typeof name !== 'string') return false;
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  if (/^\d+$/.test(trimmed) || /^[a-zA-Z]{1,2}-?\d+$/.test(trimmed)) return true;
+  const unitRegex = /^(شقة|وحدة|محل|معرض|مكتب|دور|غرفة|استديو|ستوديو|جناح|unit|apt|apartment|flat|room|suite|shop|office|studio)\b/i;
+  return unitRegex.test(trimmed);
+}
+
+
 export async function resetAdminPassword(targetUsername = "admin"): Promise<{ username: string; newPassword: string }> {
   const newPassword = generateRandomPassword(12);
 
@@ -824,13 +834,22 @@ import { S3Client, PutObjectCommand, GetObjectCommand, CreateBucketCommand, Head
 
 const rawS3Endpoint = process.env.S3_ENDPOINT || "http://rustfs-storage:9000";
 const s3Endpoint = rawS3Endpoint.replace("rustfs_storage", "rustfs-storage");
+const isR2 = s3Endpoint.includes("r2.cloudflarestorage.com");
+const storageProviderName = isR2 ? "Cloudflare R2" : (s3Endpoint.includes("rustfs") ? "RustFS" : "S3 Object Storage");
+
+const s3AccessKey = (process.env.S3_ACCESS_KEY || "").trim();
+const s3SecretKey = (process.env.S3_SECRET_KEY || "").trim();
+
+if (!s3AccessKey && isR2) {
+  logger.error(`[S3 Config Error] Cloudflare R2 endpoint detected (${s3Endpoint}), but S3_ACCESS_KEY environment variable is empty or missing! Cloudflare R2 requires a valid 32-character Access Key ID. Please set S3_ACCESS_KEY in your docker-compose.yml or .env file.`);
+}
 
 const s3Client = new S3Client({
   endpoint: s3Endpoint,
   region: process.env.S3_REGION || "us-east-1",
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY || "rustfsaccesskey",
-    secretAccessKey: process.env.S3_SECRET_KEY || "rustfssecretkey"
+    accessKeyId: s3AccessKey || "rustfsaccesskey",
+    secretAccessKey: s3SecretKey || "rustfssecretkey"
   },
   forcePathStyle: true
 });
@@ -839,16 +858,16 @@ const rawS3Bucket = process.env.S3_BUCKET || "binaassets";
 // RustFS strict naming: avoid hyphens in bucket name
 const S3_BUCKET = rawS3Bucket === "bina-assets" ? "binaassets" : rawS3Bucket;
 
-// Ensure bucket exists in RustFS / MinIO on startup and configure public-read access
+// Ensure bucket exists in Object Storage on startup and configure public-read access
 (async () => {
   try {
     await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
   } catch (_) {
     try {
       await s3Client.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
-      logger.info(`Created RustFS bucket '${S3_BUCKET}'`);
+      logger.info(`Created ${storageProviderName} bucket '${S3_BUCKET}'`);
     } catch (e) {
-      logger.warn(`Could not auto-create RustFS bucket '${S3_BUCKET}':`, (e as any)?.message);
+      logger.warn(`Could not auto-create ${storageProviderName} bucket '${S3_BUCKET}':`, (e as any)?.message);
     }
   }
 
@@ -889,7 +908,7 @@ function uploadToStorage(buffer: Buffer, filename: string, contentType: string):
     Body: buffer,
     ContentType: contentType
   })).catch(err => {
-    logger.warn(`Failed to sync ${filename} to RustFS Object Storage:`, err?.message || err);
+    logger.warn(`Failed to sync ${filename} to ${storageProviderName}:`, err?.message || err);
   });
 
   return `/uploads/${filename}`;
@@ -1132,9 +1151,9 @@ async function startServer() {
       const isConnError = err?.code === 'ECONNREFUSED' || err?.code === 'ENOTFOUND' || err?.name === 'TimeoutError' || err?.name === 'EndpointConnectionError' || (err?.message && String(err.message).toLowerCase().includes('fetch failed'));
       
       if (isConnError || !fs.existsSync(localFilePath)) {
-        logger.error(`RustFS connection failure or file missing:`, err?.message || err);
+        logger.error(`${storageProviderName} connection failure or file missing:`, err?.message || err);
         return res.status(503).json({
-          error: "وحدة تخزين RustFS غير متصلة. حدث خطأ ما (RustFS Object Storage is offline. Something went wrong.)"
+          error: `وحدة التخزين السحابي (${storageProviderName}) غير متصلة. حدث خطأ ما (${storageProviderName} is offline. Something went wrong.)`
         });
       }
       return next();
@@ -1567,6 +1586,24 @@ async function startServer() {
   // --- Admin Buildings (Renter Portal Setup) ---
   app.get('/api/admin/buildings', requirePermission('buildings'), async (req, res) => {
     try {
+      try {
+        const topProperties = await prisma.property.findMany({
+          where: { parentId: null },
+          select: { id: true, titleAr: true, titleEn: true, propertyCategory: true }
+        });
+        for (const p of topProperties) {
+          const name = (p.titleAr || p.titleEn || '').trim();
+          if (name && !isUnitName(name)) {
+            const exists = await prisma.building.findFirst({ where: { name } });
+            if (!exists) {
+              await prisma.building.create({ data: { name } });
+            }
+          }
+        }
+      } catch (syncErr) {
+        logger.warn("Auto-sync top-level properties to buildings warning:", syncErr);
+      }
+
       const buildings = await prisma.building.findMany({
         include: {
           _count: {
@@ -1575,7 +1612,9 @@ async function startServer() {
         },
         orderBy: { createdAt: 'desc' }
       });
-      res.json(buildings);
+
+      const validBuildings = buildings.filter(b => b.name && !isUnitName(b.name));
+      res.json(validBuildings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch buildings" });
     }
@@ -1586,6 +1625,9 @@ async function startServer() {
       const { name } = req.body;
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "اسم المبنى مطلوب" });
+      }
+      if (isUnitName(name.trim())) {
+        return res.status(400).json({ error: "لا يمكن إضافة اسم وحدة كمبنى رئيسي" });
       }
       const existing = await prisma.building.findFirst({
         where: { name: name.trim() }
@@ -2066,11 +2108,19 @@ async function startServer() {
           });
         }
 
-        const buildingName = pUnit.parent
-          ? (pUnit.parent.titleAr || pUnit.parent.titleEn)
-          : (pUnit.titleAr || pUnit.titleEn);
+        let buildingName = "";
+        if (pUnit.parent) {
+          buildingName = pUnit.parent.titleAr || pUnit.parent.titleEn;
+        } else if (pUnit.parentId) {
+          const parentProp = await prisma.property.findUnique({ where: { id: pUnit.parentId } });
+          if (parentProp) {
+            buildingName = parentProp.titleAr || parentProp.titleEn;
+          }
+        } else if (!isUnitName(pUnit.titleAr)) {
+          buildingName = pUnit.titleAr || pUnit.titleEn;
+        }
 
-        if (buildingName) {
+        if (buildingName && !isUnitName(buildingName)) {
           let building = await prisma.building.findFirst({
             where: { name: buildingName.trim() }
           });
@@ -4522,12 +4572,12 @@ async function startServer() {
               buildingName = parentProp.titleAr || parentProp.titleEn;
               unitNum = updatedProperty.titleAr || updatedProperty.titleEn || "وحدة";
             }
-          } else {
+          } else if (!isUnitName(updatedProperty.titleAr)) {
             buildingName = updatedProperty.titleAr || updatedProperty.titleEn;
             unitNum = "كامل العقار";
           }
 
-          if (buildingName) {
+          if (buildingName && !isUnitName(buildingName)) {
             let building = await prisma.building.findFirst({
               where: { name: buildingName.trim() }
             });
@@ -5362,9 +5412,9 @@ async function startServer() {
           ContentType: req.file.mimetype || 'video/mp4'
         }));
       } catch (s3Err: any) {
-        logger.error(`RustFS is offline during video upload:`, s3Err?.message || s3Err);
+        logger.error(`${storageProviderName} is offline during video upload:`, s3Err?.message || s3Err);
         return res.status(503).json({
-          error: "وحدة تخزين RustFS غير متصلة. حدث خطأ ما أثناء رفع الفيديو (RustFS Object Storage is offline. Something went wrong.)"
+          error: `وحدة التخزين السحابي (${storageProviderName}) غير متصلة. حدث خطأ ما أثناء رفع الفيديو (${storageProviderName} is offline. Something went wrong.)`
         });
       }
 
@@ -5378,15 +5428,16 @@ async function startServer() {
     }
   });
 
-  // RustFS Status Endpoint
-  app.get("/api/rustfs/status", async (_req, res) => {
+  // Object Storage Status Endpoint
+  app.get(["/api/rustfs/status", "/api/s3/status"], async (_req, res) => {
     try {
       await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
-      res.json({ online: true, bucket: S3_BUCKET });
+      res.json({ online: true, provider: storageProviderName, bucket: S3_BUCKET });
     } catch (err: any) {
       res.status(503).json({
         online: false,
-        error: "وحدة تخزين RustFS غير متصلة. حدث خطأ ما (RustFS Object Storage is offline. Something went wrong.)",
+        provider: storageProviderName,
+        error: `وحدة التخزين السحابي (${storageProviderName}) غير متصلة. حدث خطأ ما (${storageProviderName} is offline. Something went wrong.)`,
         details: err?.message
       });
     }
