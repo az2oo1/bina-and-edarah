@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
-import { Users, Search, Building2, Plus, UserPlus, Pencil, Trash2, Home, Check, Loader2, X } from 'lucide-react';
+import { Users, Search, Building2, Plus, UserPlus, Pencil, Trash2, Home, Check, Loader2, X, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useDialog } from '../context/DialogContext';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -29,6 +29,8 @@ interface RenterUser {
   id: string;
   name: string;
   phone: string;
+  deletionRequested?: boolean;
+  deletionRequestedAt?: string;
   createdAt: string;
   units: RenterUnit[];
 }
@@ -41,6 +43,7 @@ export default function AdminRenters() {
   const [allUnits, setAllUnits] = useState<RenterUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterTab, setFilterTab] = useState<'ALL' | 'DELETION_REQUESTS'>('ALL');
 
   // Add / Edit Renter Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -79,6 +82,20 @@ export default function AdminRenters() {
   useEffect(() => {
     fetchRenterUsers();
   }, []);
+
+  const handleDismissDeletionRequest = async (renterId: string) => {
+    try {
+      const res = await fetch(`/api/admin/renters-users/${renterId}/dismiss-deletion`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        fetchRenterUsers();
+        await showAlert(language === 'ar' ? 'تم إلغاء طلب الحذف بنجاح' : 'Deletion request dismissed');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleSaveRenterUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +201,8 @@ export default function AdminRenters() {
     window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(`مرحباً ${name}`)}`, '_blank');
   };
 
+  const deletionRequestCount = renters.filter(r => r.deletionRequested).length;
+
   const filteredRenters = renters.filter(r => {
     const query = search.toLowerCase();
     const nameMatch = (r.name || '').toLowerCase().includes(query);
@@ -192,7 +211,13 @@ export default function AdminRenters() {
       (u.unitNumber || '').toLowerCase().includes(query) || 
       (u.building?.name || '').toLowerCase().includes(query)
     );
-    return nameMatch || phoneMatch || unitMatch;
+    const passesSearch = !query || nameMatch || phoneMatch || unitMatch;
+    if (!passesSearch) return false;
+
+    if (filterTab === 'DELETION_REQUESTS') {
+      return Boolean(r.deletionRequested);
+    }
+    return true;
   });
 
   return (
@@ -216,6 +241,32 @@ export default function AdminRenters() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+          {/* Filter Tabs */}
+          <div className="flex items-center bg-muted/40 p-1 rounded-full border border-border text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setFilterTab('ALL')}
+              className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                filterTab === 'ALL' ? 'bg-primary text-primary-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {language === 'ar' ? 'الكل' : 'All'} ({renters.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterTab('DELETION_REQUESTS')}
+              className={`px-3 py-1 rounded-full transition-all cursor-pointer flex items-center gap-1 ${
+                filterTab === 'DELETION_REQUESTS' 
+                  ? 'bg-red-500 text-white shadow-2xs' 
+                  : deletionRequestCount > 0 ? 'text-red-500 hover:bg-red-500/10' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <AlertTriangle className="w-3 h-3" />
+              <span>{language === 'ar' ? 'طلبات الحذف' : 'Deletion Requests'}</span>
+              {deletionRequestCount > 0 ? <span className="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded-full">{deletionRequestCount}</span> : null}
+            </button>
+          </div>
+
           {/* Search Input */}
           <div className="flex items-center gap-2 border border-border rounded-full px-3.5 bg-muted/30 focus-within:bg-card focus-within:ring-1 focus-within:ring-primary w-full sm:w-64 h-9 transition-all">
             <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -257,8 +308,26 @@ export default function AdminRenters() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredRenters.map((renter) => (
-            <div key={renter.id} className="bg-card border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all space-y-4">
+            <div key={renter.id} className={`bg-card border rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all space-y-4 ${
+              renter.deletionRequested ? 'border-red-500/80 bg-red-500/5' : 'border-border'
+            }`}>
               <div className="space-y-4">
+                {/* Deletion Request Alert Box */}
+                {renter.deletionRequested && (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-between text-xs text-red-600 dark:text-red-400 font-bold">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+                      <span>{language === 'ar' ? 'طلب المستأجر حذف حسابه وبياناته' : 'Renter requested account deletion'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDismissDeletionRequest(renter.id)}
+                      className="text-[11px] underline hover:opacity-80 cursor-pointer text-muted-foreground"
+                    >
+                      {language === 'ar' ? 'إلغاء الطلب' : 'Dismiss'}
+                    </button>
+                  </div>
+                )}
                 {/* Renter Header */}
                 <div className="flex items-start justify-between">
                   <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full text-emerald-600 dark:text-emerald-400 text-xs font-extrabold shadow-2xs">

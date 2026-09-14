@@ -7,6 +7,7 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { DialogProvider } from './context/DialogContext';
 import { Logo } from './components/Logo';
 import { PrivacyConsent } from './components/PrivacyConsent';
+import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 import { faviconDataUri, LOGO_BRAND_COLOR } from './lib/logo';
 import { SocialIconsRow, SocialLinks } from './components/SocialIcons';
 const Home = lazy(() => import('./pages/Home'));
@@ -692,6 +693,7 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 function AppContent() {
   const { language } = useLanguage();
   const { theme } = useTheme();
+  const socialLinks = useSocialSettings();
 
   // Tab icon: inline brand SVG (no server fetch). White in dark mode, brand
   // color in light mode so it stays visible on either background.
@@ -747,6 +749,7 @@ function AppContent() {
         </Suspense>
       </main>
       <Footer />
+      <FloatingWhatsApp phoneNumber={socialLinks.whatsappNumber} />
       <PrivacyConsent />
     </div>
   );

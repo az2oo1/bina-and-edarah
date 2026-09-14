@@ -198,9 +198,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-col w-full text-foreground bg-background font-sans animate-in fade-in duration-500">
-          <section id="hero" className="relative w-full flex flex-col items-center justify-between bg-background text-foreground transition-colors duration-300 pt-16 sm:pt-24 pb-0">
+          <section id="hero" className="relative w-full flex flex-col items-center justify-between bg-background text-foreground transition-colors duration-300 pt-16 sm:pt-24 pb-16 sm:pb-24">
             {/* Content */}
-            <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-8 pb-12 sm:pb-16 w-full animate-fade-in">
+            <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-8 pb-4 sm:pb-6 w-full animate-fade-in">
               <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 select-none">
                 {language === 'ar' ? 'تطوير • تسويق • إدارة أملاك' : 'DEVELOPMENT • LEASING • PROPERTY MANAGEMENT'}
               </p>
@@ -224,15 +224,6 @@ export default function Home() {
                   <span>{language === 'ar' ? 'عقارات للبيع أو الإيجار' : 'Properties to Buy or Rent'}</span>
                 </Link>
               </div>
-            </div>
-
-            {/* Showcase image floating freely at full page width */}
-            <div className="w-full mt-12 relative z-30 select-none pointer-events-none">
-              <img 
-                src="/skyscrapers.png?v=2" 
-                alt="Skyscrapers showcase" 
-                className="w-full h-auto object-contain object-bottom opacity-100 dark:opacity-90"
-              />
             </div>
           </section>
 

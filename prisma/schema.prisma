@@ -170,11 +170,13 @@ model Building {
 }
 
 model Renter {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String    @id @default(uuid())
+  name                String
+  phone               String    @unique
+  deletionRequested   Boolean   @default(false)
+  deletionRequestedAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   units              RenterUnit[]
   maintenanceReports MaintenanceReport[]

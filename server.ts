@@ -2325,6 +2325,88 @@ async function startServer() {
     }
   });
 
+  // --- Account Deletion Request Endpoints ---
+  app.post('/api/renter/request-deletion', async (req, res) => {
+    try {
+      const { phone } = req.body;
+      if (!phone) return res.status(400).json({ error: "Phone is required" });
+
+      let normalizedPhone = phone.trim().replace(/\D/g, '');
+      if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+      normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+      const renter = await prisma.renter.findFirst({
+        where: {
+          OR: [
+            { phone: normalizedPhone },
+            { phone: '0' + normalizedPhone },
+            { phone: '966' + normalizedPhone },
+          ]
+        }
+      });
+
+      if (renter) {
+        await prisma.renter.update({
+          where: { id: renter.id },
+          data: { deletionRequested: true, deletionRequestedAt: new Date() }
+        });
+      }
+
+      res.json({ success: true, message: "Account deletion request submitted" });
+    } catch (err) {
+      console.error("Failed to process account deletion request:", err);
+      res.status(500).json({ error: "Failed to request account deletion" });
+    }
+  });
+
+  app.post('/api/renter/cancel-deletion', async (req, res) => {
+    try {
+      const { phone } = req.body;
+      if (!phone) return res.status(400).json({ error: "Phone is required" });
+
+      let normalizedPhone = phone.trim().replace(/\D/g, '');
+      if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+      normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+      const renter = await prisma.renter.findFirst({
+        where: {
+          OR: [
+            { phone: normalizedPhone },
+            { phone: '0' + normalizedPhone },
+            { phone: '966' + normalizedPhone },
+          ]
+        }
+      });
+
+      if (renter) {
+        await prisma.renter.update({
+          where: { id: renter.id },
+          data: { deletionRequested: false, deletionRequestedAt: null }
+        });
+      }
+
+      res.json({ success: true, message: "Account deletion request cancelled" });
+    } catch (err) {
+      console.error("Failed to cancel account deletion request:", err);
+      res.status(500).json({ error: "Failed to cancel account deletion" });
+    }
+  });
+
+  app.post('/api/admin/renters-users/:id/dismiss-deletion', requirePermission('renters'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await prisma.renter.update({
+        where: { id },
+        data: { deletionRequested: false, deletionRequestedAt: null }
+      });
+      await logAction(req, "DISMISS_RENTER_DELETION", `Dismissed deletion request for renter ID: ${id}`);
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to dismiss deletion request" });
+    }
+  });
+
   app.post('/api/admin/units/:unitId/assign-renter', requirePermission('renters'), async (req, res) => {
     try {
       const { unitId } = req.params;
