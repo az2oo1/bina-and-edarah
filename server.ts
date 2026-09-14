@@ -6839,14 +6839,7 @@ async function startServer() {
     }
   });
 
-  // Synchronize DB schema and generate client dynamically (especially in production PostgreSQL environments)
-  try {
-    console.log("Synchronizing database schema and generating client via Prisma...");
-    execSync("npx prisma db push --skip-generate", { stdio: 'inherit' });
-    console.log("Database schema synchronized and client regenerated successfully.");
-  } catch (dbError) {
-    console.error("Prisma schema sync or client generation skipped/failed:", dbError);
-  }
+  // Note: Database schema synchronization is handled safely by docker-entrypoint.sh before start.
 
   // Seed default settings row if it doesn't exist yet
   try {

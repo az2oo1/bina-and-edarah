@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { Building2, ShieldCheck, MapPin, ArrowRight, ArrowLeft, Building, KeySquare, Hammer } from 'lucide-react';
 import { Link } from 'react-router';
+import { CitySkylineGraphic } from '../components/CitySkylineGraphic';
 
 const DEFAULT_IMAGES = {
   hero: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop',
@@ -198,9 +199,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-col w-full text-foreground bg-background font-sans animate-in fade-in duration-500">
-          <section id="hero" className="relative w-full flex flex-col items-center justify-between bg-background text-foreground transition-colors duration-300 pt-16 sm:pt-24 pb-16 sm:pb-24">
+          <section id="hero" className="relative w-full min-h-[65vh] flex flex-col items-center justify-center bg-background text-foreground transition-colors duration-300 pt-24 sm:pt-36 pb-24 sm:pb-36">
             {/* Content */}
-            <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center pt-8 pb-4 sm:pb-6 w-full animate-fade-in">
+            <div className="relative z-10 text-center px-6 max-w-5xl mx-auto flex flex-col items-center py-10 sm:py-16 w-full animate-fade-in">
               <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 select-none">
                 {language === 'ar' ? 'تطوير • تسويق • إدارة أملاك' : 'DEVELOPMENT • LEASING • PROPERTY MANAGEMENT'}
               </p>
@@ -210,7 +211,7 @@ export default function Home() {
               <p className="max-w-xl mx-auto text-sm sm:text-base font-normal leading-relaxed select-none mb-8 text-muted-foreground">
                 {t('hero.subtitle')}
               </p>
-              <div className="flex flex-row gap-3 justify-center w-auto">
+              <div className="flex flex-row gap-3 justify-center w-auto mb-8 sm:mb-12">
                 <button 
                   onClick={() => document.getElementById('featured-projects')?.scrollIntoView({ behavior: 'smooth' })}
                   className="btn-primary text-xs"
@@ -223,6 +224,11 @@ export default function Home() {
                 >
                   <span>{language === 'ar' ? 'عقارات للبيع أو الإيجار' : 'Properties to Buy or Rent'}</span>
                 </Link>
+              </div>
+
+              {/* Architectural skyline graphic grounded at the bottom of hero */}
+              <div className="w-full max-w-2xl mx-auto px-4 mt-2">
+                <CitySkylineGraphic className="w-full h-20 sm:h-28" />
               </div>
             </div>
           </section>
