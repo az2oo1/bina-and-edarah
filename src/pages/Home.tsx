@@ -229,7 +229,7 @@ export default function Home() {
 
             {/* Architectural skyline graphic dividing hero and solutions */}
             <div className="w-full absolute bottom-0 inset-x-0 flex justify-center pointer-events-none z-10 translate-y-[2px]">
-              <CitySkylineGraphic className="w-full h-28 sm:h-36 md:h-40 text-foreground/85 dark:text-foreground/85" />
+              <CitySkylineGraphic className="w-full h-14 sm:h-20 md:h-24 lg:h-28 text-foreground/80 dark:text-foreground/75" />
             </div>
           </section>
 
