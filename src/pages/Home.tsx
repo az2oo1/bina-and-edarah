@@ -211,7 +211,7 @@ export default function Home() {
               <p className="max-w-xl mx-auto text-sm sm:text-base font-normal leading-relaxed select-none mb-8 text-muted-foreground">
                 {t('hero.subtitle')}
               </p>
-              <div className="flex flex-row gap-3 justify-center w-auto mb-8 sm:mb-12">
+              <div className="flex flex-row gap-3 justify-center w-auto">
                 <button 
                   onClick={() => document.getElementById('featured-projects')?.scrollIntoView({ behavior: 'smooth' })}
                   className="btn-primary text-xs"
@@ -225,11 +225,11 @@ export default function Home() {
                   <span>{language === 'ar' ? 'عقارات للبيع أو الإيجار' : 'Properties to Buy or Rent'}</span>
                 </Link>
               </div>
+            </div>
 
-              {/* Architectural skyline graphic grounded at the bottom of hero */}
-              <div className="w-full max-w-2xl mx-auto px-4 mt-2">
-                <CitySkylineGraphic className="w-full h-20 sm:h-28" />
-              </div>
+            {/* Architectural skyline graphic dividing hero and solutions */}
+            <div className="w-full absolute bottom-0 inset-x-0 flex justify-center pointer-events-none z-10 translate-y-[2px]">
+              <CitySkylineGraphic className="w-full h-28 sm:h-36 md:h-40 text-foreground/85 dark:text-foreground/85" />
             </div>
           </section>
 
