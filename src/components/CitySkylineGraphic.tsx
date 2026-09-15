@@ -4,7 +4,7 @@ interface CitySkylineGraphicProps {
   className?: string;
 }
 
-export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg:h-44 text-foreground/80 dark:text-foreground/75" }: CitySkylineGraphicProps) {
+export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg:h-44 xl:h-48 2xl:h-52 text-foreground/80 dark:text-foreground/75" }: CitySkylineGraphicProps) {
   return (
     <div className={`relative w-full flex items-end justify-center select-none pointer-events-none overflow-hidden ${className}`}>
       
