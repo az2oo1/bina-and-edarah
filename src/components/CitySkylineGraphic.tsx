@@ -4,7 +4,7 @@ interface CitySkylineGraphicProps {
   className?: string;
 }
 
-export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg:h-44 xl:h-48 2xl:h-52 text-foreground/80 dark:text-foreground/75" }: CitySkylineGraphicProps) {
+export function CitySkylineGraphic({ className = "w-full h-20 sm:h-22 md:h-24 lg:h-28 xl:h-30 2xl:h-32 text-foreground/60 dark:text-foreground/50" }: CitySkylineGraphicProps) {
   return (
     <div className={`relative w-full flex items-end justify-center select-none pointer-events-none overflow-hidden ${className}`}>
       
@@ -19,10 +19,10 @@ export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg
         preserveAspectRatio="none"
       >
         {/* Baseline */}
-        <line x1="0" y1="98" x2="400" y2="98" stroke="currentColor" strokeWidth="1.5" opacity="0.75" />
+        <line x1="0" y1="98" x2="400" y2="98" stroke="currentColor" strokeWidth="1.2" opacity="0.6" />
 
         {/* Mobile Background Layer (soft silhouette) */}
-        <g stroke="currentColor" strokeWidth="0.8" opacity="0.38" fill="currentColor" fillOpacity="0.12">
+        <g stroke="currentColor" strokeWidth="0.8" opacity="0.3" fill="currentColor" fillOpacity="0.08">
           <rect x="0" y="22" width="26" height="76" />
           <rect x="22" y="14" width="24" height="84" />
           <line x1="34" y1="6" x2="34" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -41,7 +41,7 @@ export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg
         </g>
 
         {/* Mobile Foreground Layer (Crisp, slender, vertical architecture) */}
-        <g stroke="currentColor" strokeWidth="1.2" fill="var(--background)" strokeLinejoin="round">
+        <g stroke="currentColor" strokeWidth="1.1" fill="var(--background)" fillOpacity="0.85" strokeLinejoin="round">
           {/* 1. Left Edge Skyscraper */}
           <rect x="0" y="24" width="30" height="74" />
           <line x1="10" y1="34" x2="10" y2="92" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.6" />
@@ -67,7 +67,7 @@ export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg
 
           {/* 5. Center Modern Villa - Cantilever */}
           <rect x="110" y="60" width="46" height="38" />
-          <rect x="106" y="54" width="34" height="16" fill="var(--background)" stroke="currentColor" strokeWidth="1" />
+          <rect x="106" y="54" width="34" height="16" fill="var(--background)" fillOpacity="0.85" stroke="currentColor" strokeWidth="1" />
           <line x1="112" y1="62" x2="134" y2="62" stroke="currentColor" strokeWidth="1.2" opacity="0.75" />
           <rect x="116" y="78" width="12" height="20" stroke="currentColor" strokeWidth="0.9" opacity="0.7" />
 
@@ -129,10 +129,10 @@ export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg
         preserveAspectRatio="none"
       >
         {/* Baseline */}
-        <line x1="0" y1="178" x2="1920" y2="178" stroke="currentColor" strokeWidth="1.5" opacity="0.75" />
+        <line x1="0" y1="178" x2="1920" y2="178" stroke="currentColor" strokeWidth="1.2" opacity="0.6" />
 
         {/* Desktop Background Layer (Slender silhouettes for real architectural depth) */}
-        <g stroke="currentColor" strokeWidth="0.8" opacity="0.4" fill="currentColor" fillOpacity="0.12">
+        <g stroke="currentColor" strokeWidth="0.8" opacity="0.3" fill="currentColor" fillOpacity="0.08">
           {/* Left background skyline */}
           <rect x="0" y="40" width="38" height="138" />
           <rect x="34" y="22" width="36" height="156" />
@@ -204,7 +204,7 @@ export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg
         </g>
 
         {/* Desktop Foreground Layer (Slender, tall, elegant architectural skyscrapers & villas) */}
-        <g stroke="currentColor" strokeWidth="1.2" fill="var(--background)" strokeLinejoin="round">
+        <g stroke="currentColor" strokeWidth="1.1" fill="var(--background)" fillOpacity="0.85" strokeLinejoin="round">
           
           {/* --- LEFT SKYSCRAPERS (Tall, slender 3.5:1 ratio) --- */}
           {/* 1 */}
@@ -315,7 +315,7 @@ export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg
 
           {/* 19 Modern Luxury Villa - Cantilever */}
           <rect x="724" y="114" width="58" height="64" />
-          <rect x="720" y="108" width="42" height="22" fill="var(--background)" stroke="currentColor" strokeWidth="1.1" />
+          <rect x="720" y="108" width="42" height="22" fill="var(--background)" fillOpacity="0.85" stroke="currentColor" strokeWidth="1.1" />
           <line x1="726" y1="118" x2="756" y2="118" stroke="currentColor" strokeWidth="1.4" opacity="0.75" />
           <rect x="734" y="142" width="16" height="22" stroke="currentColor" strokeWidth="1" opacity="0.7" />
 
@@ -359,7 +359,7 @@ export function CitySkylineGraphic({ className = "w-full h-20 sm:h-28 md:h-36 lg
 
           {/* 25 Contemporary Villa */}
           <rect x="1060" y="110" width="60" height="68" />
-          <rect x="1056" y="104" width="44" height="22" fill="var(--background)" stroke="currentColor" strokeWidth="1.1" />
+          <rect x="1056" y="104" width="44" height="22" fill="var(--background)" fillOpacity="0.85" stroke="currentColor" strokeWidth="1.1" />
           <line x1="1064" y1="114" x2="1094" y2="114" stroke="currentColor" strokeWidth="1.4" opacity="0.75" />
           <rect x="1072" y="138" width="16" height="24" stroke="currentColor" strokeWidth="1" opacity="0.7" />
 
