@@ -4,723 +4,507 @@ interface CitySkylineGraphicProps {
   className?: string;
 }
 
-export function CitySkylineGraphic({ className = "w-full h-24 sm:h-26 md:h-28 lg:h-32 xl:h-36 text-foreground/80 dark:text-foreground/75" }: CitySkylineGraphicProps) {
+export function CitySkylineGraphic({ className = "w-full h-24 sm:h-28 md:h-32 lg:h-36 xl:h-40 text-foreground/80 dark:text-foreground/75" }: CitySkylineGraphicProps) {
   return (
     <div className={`relative w-full flex items-end justify-center select-none pointer-events-none overflow-hidden ${className}`}>
       
       {/* ========================================================================= */}
-      {/* MOBILE SKYLINE (Tailored for screens < 640px, Rich Architectural Drawing) */}
+      {/* MOBILE SKYLINE (Tailored for screens < 640px, Generous Off-Frame Layout)   */}
       {/* ========================================================================= */}
       <svg
-        viewBox="0 0 500 100"
+        viewBox="0 0 650 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full block sm:hidden"
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMax slice"
       >
         {/* Continuous Ground Baseline */}
-        <line x1="0" y1="96" x2="500" y2="96" stroke="currentColor" strokeWidth="1.6" opacity="0.85" />
+        <line x1="0" y1="96" x2="650" y2="96" stroke="currentColor" strokeWidth="1.6" opacity="0.85" />
 
         {/* Soft Background Silhouette Layer */}
-        <g stroke="currentColor" strokeWidth="0.8" opacity="0.28" fill="currentColor" fillOpacity="0.07">
-          <rect x="12" y="24" width="26" height="72" />
-          <rect x="42" y="16" width="30" height="80" />
-          <line x1="57" y1="6" x2="57" y2="16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <rect x="106" y="32" width="32" height="64" />
-          <rect x="178" y="44" width="34" height="52" />
-          <rect x="286" y="44" width="34" height="52" />
-          <rect x="364" y="30" width="32" height="66" />
-          <rect x="426" y="14" width="30" height="82" />
-          <line x1="441" y1="4" x2="441" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <rect x="464" y="24" width="26" height="72" />
+        <g stroke="currentColor" strokeWidth="0.8" opacity="0.25" fill="currentColor" fillOpacity="0.06">
+          <rect x="20" y="24" width="40" height="72" />
+          <rect x="90" y="16" width="44" height="80" />
+          <line x1="112" y1="6" x2="112" y2="16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <rect x="170" y="38" width="48" height="58" />
+          <rect x="430" y="38" width="48" height="58" />
+          <rect x="515" y="16" width="44" height="80" />
+          <line x1="537" y1="6" x2="537" y2="16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <rect x="590" y="24" width="40" height="72" />
         </g>
 
-        {/* Detailed Foreground Layer */}
-        <g stroke="currentColor" strokeWidth="1.1" fill="var(--background)" strokeLinejoin="round">
+        {/* Crisp Architectural Sketch Foreground Layer */}
+        <g stroke="currentColor" strokeWidth="1.15" fill="var(--background)" strokeLinejoin="round">
           
-          {/* 1. Left Curved Modern Cultural Center (Detailed Cylindrical Architecture) */}
-          <ellipse cx="24" cy="46" rx="20" ry="6" />
-          <path d="M 4 46 L 4 96 L 44 96 L 44 46 Z" />
-          {/* Floor bands */}
-          <path d="M 4 54 Q 24 60 44 54" stroke="currentColor" strokeWidth="0.8" fill="none" />
-          <path d="M 4 62 Q 24 68 44 62" stroke="currentColor" strokeWidth="0.8" fill="none" />
-          <path d="M 4 70 Q 24 76 44 70" stroke="currentColor" strokeWidth="0.8" fill="none" />
-          <path d="M 4 78 Q 24 84 44 78" stroke="currentColor" strokeWidth="0.8" fill="none" />
-          <path d="M 4 86 Q 24 92 44 86" stroke="currentColor" strokeWidth="0.8" fill="none" />
-          {/* Vertical mullions */}
-          <line x1="14" y1="56" x2="14" y2="94" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
-          <line x1="24" y1="58" x2="24" y2="95" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
-          <line x1="34" y1="56" x2="34" y2="94" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
-          {/* Entrance canopy */}
-          <rect x="18" y="90" width="12" height="6" stroke="currentColor" strokeWidth="0.8" />
+          {/* 1. Left Curved Cultural Pavilion (Off-frame bleeding) */}
+          <ellipse cx="32" cy="46" rx="28" ry="7" />
+          <path d="M 4 46 L 4 96 L 60 96 L 60 46 Z" />
+          <path d="M 4 56 Q 32 63 60 56" stroke="currentColor" strokeWidth="0.9" fill="none" />
+          <path d="M 4 66 Q 32 73 60 66" stroke="currentColor" strokeWidth="0.9" fill="none" />
+          <path d="M 4 76 Q 32 83 60 76" stroke="currentColor" strokeWidth="0.9" fill="none" />
+          <path d="M 4 86 Q 32 93 60 86" stroke="currentColor" strokeWidth="0.9" fill="none" />
+          <line x1="18" y1="58" x2="18" y2="94" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
+          <line x1="32" y1="60" x2="32" y2="95" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
+          <line x1="46" y1="58" x2="46" y2="94" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
 
-          {/* 2. Left High-Rise Tower with Rooftop Spire & Louvers */}
-          <rect x="40" y="22" width="36" height="74" />
-          <rect x="48" y="14" width="20" height="8" />
-          <line x1="58" y1="2" x2="58" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="53" y1="8" x2="63" y2="8" stroke="currentColor" strokeWidth="0.9" />
-          {/* Windows / Louver grid */}
-          <line x1="40" y1="36" x2="76" y2="36" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="40" y1="50" x2="76" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="40" y1="64" x2="76" y2="64" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="40" y1="78" x2="76" y2="78" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="49" y1="22" x2="49" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="58" y1="22" x2="58" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="67" y1="22" x2="67" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 2. Left Soaring High-Rise Spire Skyscraper */}
+          <rect x="68" y="20" width="56" height="76" />
+          <rect x="80" y="10" width="32" height="10" />
+          <line x1="96" y1="-4" x2="96" y2="10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <line x1="88" y1="2" x2="104" y2="2" stroke="currentColor" strokeWidth="1" />
+          {/* Facade Window Grids */}
+          <line x1="68" y1="35" x2="124" y2="35" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="68" y1="50" x2="124" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="68" y1="65" x2="124" y2="65" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="68" y1="80" x2="124" y2="80" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="82" y1="20" x2="82" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="96" y1="20" x2="96" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="110" y1="20" x2="110" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* Entrance */}
+          <rect x="88" y="86" width="16" height="10" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 3. Mid-Rise Grid Building with Individual Framed Windows */}
-          <rect x="74" y="36" width="36" height="60" />
-          <rect x="84" y="30" width="16" height="6" />
-          {/* Framed window array */}
-          <rect x="78" y="42" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="89" y="42" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="100" y="42" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-          
-          <rect x="78" y="55" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="89" y="55" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="100" y="55" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-
-          <rect x="78" y="68" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="89" y="68" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="100" y="68" width="6" height="8" stroke="currentColor" strokeWidth="0.8" />
-          
-          <rect x="86" y="84" width="12" height="12" stroke="currentColor" strokeWidth="0.9" />
-
-          {/* 4. Contemporary Stepped Townhouse with Balcony Railings */}
-          <rect x="108" y="48" width="36" height="48" />
-          <rect x="114" y="42" width="24" height="6" />
-          {/* Balcony 1 */}
-          <line x1="112" y1="62" x2="132" y2="62" stroke="currentColor" strokeWidth="1" />
-          <line x1="112" y1="66" x2="132" y2="66" stroke="currentColor" strokeWidth="0.7" />
-          <rect x="116" y="52" width="12" height="10" stroke="currentColor" strokeWidth="0.8" />
-          {/* Balcony 2 */}
-          <line x1="112" y1="80" x2="132" y2="80" stroke="currentColor" strokeWidth="1" />
-          <line x1="112" y1="84" x2="132" y2="84" stroke="currentColor" strokeWidth="0.7" />
-          <rect x="116" y="70" width="12" height="10" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="122" y="86" width="8" height="10" stroke="currentColor" strokeWidth="0.8" />
-
-          {/* 5. Modern Villa with Cantilever & Pergola */}
-          <rect x="142" y="56" width="44" height="40" />
-          <rect x="138" y="50" width="32" height="16" fill="var(--background)" stroke="currentColor" strokeWidth="1.1" />
+          {/* 3. Left Contemporary Luxury Villa with Cantilever & Pergola */}
+          <rect x="134" y="52" width="70" height="44" />
+          <rect x="128" y="44" width="50" height="22" fill="var(--background)" stroke="currentColor" strokeWidth="1.15" />
           {/* Pergola rafters */}
-          <line x1="140" y1="44" x2="168" y2="44" stroke="currentColor" strokeWidth="1.4" />
-          <line x1="146" y1="44" x2="146" y2="50" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="154" y1="44" x2="154" y2="50" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="162" y1="44" x2="162" y2="50" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="144" y1="58" x2="164" y2="58" stroke="currentColor" strokeWidth="1.2" opacity="0.8" />
-          <rect x="148" y="72" width="12" height="24" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="166" y="72" width="14" height="14" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="132" y1="36" x2="174" y2="36" stroke="currentColor" strokeWidth="1.4" />
+          <line x1="138" y1="36" x2="138" y2="44" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="150" y1="36" x2="150" y2="44" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="162" y1="36" x2="162" y2="44" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="136" y1="55" x2="168" y2="55" stroke="currentColor" strokeWidth="1.3" opacity="0.8" />
+          {/* Picture windows & door */}
+          <rect x="142" y="70" width="18" height="26" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="170" y="70" width="22" height="16" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 6. Left Detailed Date Palm Trees (نخيل معماري مفصل) */}
+          {/* 4. Left Architectural Date Palm Trees (Spacious garden) */}
           <g>
-            <line x1="192" y1="96" x2="192" y2="66" stroke="currentColor" strokeWidth="1.8" />
-            <line x1="190" y1="74" x2="194" y2="74" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="190" y1="82" x2="194" y2="82" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="190" y1="90" x2="194" y2="90" stroke="currentColor" strokeWidth="0.8" />
-            {/* Feathery palm fronds */}
-            <path d="M 192 66 Q 180 58 168 64" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 192 66 Q 182 50 174 54" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 192 66 Q 192 46 192 44" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 192 66 Q 202 50 210 54" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 192 66 Q 204 58 216 64" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <line x1="224" y1="96" x2="224" y2="58" stroke="currentColor" strokeWidth="2" />
+            <line x1="221" y1="68" x2="227" y2="68" stroke="currentColor" strokeWidth="0.8" />
+            <line x1="221" y1="78" x2="227" y2="78" stroke="currentColor" strokeWidth="0.8" />
+            <line x1="221" y1="88" x2="227" y2="88" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M 224 58 Q 208 48 194 54" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <path d="M 224 58 Q 212 38 202 42" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <path d="M 224 58 Q 224 34 224 32" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            <path d="M 224 58 Q 236 38 246 42" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <path d="M 224 58 Q 240 48 254 54" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
           </g>
 
-          {/* 7. Center Traditional Royal Marquee / Luxury Heritage Pavilion (بيت شعر ملكي أنيق مع أوتاد ورواشن) */}
+          {/* 5. Centerpiece: Traditional Royal Marquee / Luxury Pavilion (بيت شعر ملكي فخم وعريض) */}
           <g>
-            {/* Main faceted tent canopy */}
-            <polygon points="212,96 212,74 235,60 265,60 288,74 288,96" fill="var(--background)" stroke="currentColor" strokeWidth="1.4" />
-            {/* Ridge pole & finials */}
-            <line x1="235" y1="60" x2="265" y2="60" stroke="currentColor" strokeWidth="1.4" />
-            <line x1="235" y1="52" x2="235" y2="60" stroke="currentColor" strokeWidth="1.2" />
-            <circle cx="235" cy="51" r="1.5" fill="currentColor" />
-            <line x1="265" y1="52" x2="265" y2="60" stroke="currentColor" strokeWidth="1.2" />
-            <circle cx="265" cy="51" r="1.5" fill="currentColor" />
+            {/* Generous Faceted Tent Canopy */}
+            <polygon points="260,96 260,68 295,50 355,50 390,68 390,96" fill="var(--background)" stroke="currentColor" strokeWidth="1.5" />
+            {/* King Poles & Finials */}
+            <line x1="295" y1="50" x2="355" y2="50" stroke="currentColor" strokeWidth="1.5" />
+            <line x1="295" y1="40" x2="295" y2="50" stroke="currentColor" strokeWidth="1.3" />
+            <circle cx="295" cy="38" r="2" fill="currentColor" />
+            <line x1="355" y1="40" x2="355" y2="50" stroke="currentColor" strokeWidth="1.3" />
+            <circle cx="355" cy="38" r="2" fill="currentColor" />
             {/* Hip ridges */}
-            <line x1="212" y1="74" x2="235" y2="60" stroke="currentColor" strokeWidth="1.1" />
-            <line x1="288" y1="74" x2="265" y2="60" stroke="currentColor" strokeWidth="1.1" />
-            {/* Authentic striped fabric bands */}
-            <line x1="212" y1="79" x2="288" y2="79" stroke="currentColor" strokeWidth="1" strokeDasharray="5 2.5" />
-            <line x1="212" y1="84" x2="288" y2="84" stroke="currentColor" strokeWidth="1" strokeDasharray="5 2.5" />
-            <line x1="212" y1="89" x2="288" y2="89" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            {/* Center drape opening with hanging brass lantern */}
-            <path d="M 244 96 L 250 80 L 256 96" stroke="currentColor" strokeWidth="1.2" fill="none" />
-            <line x1="250" y1="60" x2="250" y2="80" stroke="currentColor" strokeWidth="0.9" opacity="0.6" />
-            <circle cx="250" cy="74" r="2" fill="currentColor" opacity="0.8" />
-            {/* Tension Guy-Ropes to ground pegs */}
-            <line x1="212" y1="74" x2="204" y2="96" stroke="currentColor" strokeWidth="0.9" strokeDasharray="2 2" />
-            <line x1="288" y1="74" x2="296" y2="96" stroke="currentColor" strokeWidth="0.9" strokeDasharray="2 2" />
+            <line x1="260" y1="68" x2="295" y2="50" stroke="currentColor" strokeWidth="1.2" />
+            <line x1="390" y1="68" x2="355" y2="50" stroke="currentColor" strokeWidth="1.2" />
+            {/* Authentic Heritage Stripe Bands */}
+            <line x1="260" y1="74" x2="390" y2="74" stroke="currentColor" strokeWidth="1.1" strokeDasharray="6 3" />
+            <line x1="260" y1="80" x2="390" y2="80" stroke="currentColor" strokeWidth="1.1" strokeDasharray="6 3" />
+            <line x1="260" y1="86" x2="390" y2="86" stroke="currentColor" strokeWidth="0.9" opacity="0.6" />
+            {/* Grand Central Drape Entrance */}
+            <path d="M 314 96 L 325 72 L 336 96" stroke="currentColor" strokeWidth="1.3" fill="none" />
+            <line x1="325" y1="50" x2="325" y2="72" stroke="currentColor" strokeWidth="0.9" opacity="0.6" />
+            {/* Traditional Lantern */}
+            <circle cx="325" cy="64" r="2.5" fill="currentColor" opacity="0.85" />
+            {/* Tension Guy-Ropes to Ground Stakes */}
+            <line x1="260" y1="68" x2="248" y2="96" stroke="currentColor" strokeWidth="0.9" strokeDasharray="3 3" />
+            <line x1="390" y1="68" x2="402" y2="96" stroke="currentColor" strokeWidth="0.9" strokeDasharray="3 3" />
           </g>
 
-          {/* 8. Right Detailed Date Palm Trees */}
+          {/* 6. Right Architectural Date Palm Trees */}
           <g>
-            <line x1="304" y1="96" x2="304" y2="66" stroke="currentColor" strokeWidth="1.8" />
-            <line x1="302" y1="74" x2="306" y2="74" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="302" y1="82" x2="306" y2="82" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="302" y1="90" x2="306" y2="90" stroke="currentColor" strokeWidth="0.8" />
-            <path d="M 304 66 Q 292 58 280 64" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 304 66 Q 294 50 286 54" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 304 66 Q 304 46 304 44" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 304 66 Q 314 50 322 54" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 304 66 Q 316 58 328 64" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <line x1="426" y1="96" x2="426" y2="58" stroke="currentColor" strokeWidth="2" />
+            <line x1="423" y1="68" x2="429" y2="68" stroke="currentColor" strokeWidth="0.8" />
+            <line x1="423" y1="78" x2="429" y2="78" stroke="currentColor" strokeWidth="0.8" />
+            <line x1="423" y1="88" x2="429" y2="88" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M 426 58 Q 410 48 396 54" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <path d="M 426 58 Q 414 38 404 42" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <path d="M 426 58 Q 426 34 426 32" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            <path d="M 426 58 Q 438 38 448 42" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <path d="M 426 58 Q 442 48 456 54" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
           </g>
 
-          {/* 9. Modern Curved Corner Commercial Plaza */}
-          <rect x="318" y="52" width="40" height="44" />
-          <path d="M 318 52 Q 338 46 358 52" stroke="currentColor" strokeWidth="1.2" fill="none" />
-          <line x1="318" y1="64" x2="358" y2="64" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="318" y1="76" x2="358" y2="76" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="318" y1="88" x2="358" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="330" y1="52" x2="330" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="346" y1="52" x2="346" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 7. Right Contemporary Luxury Villa */}
+          <rect x="446" y="52" width="70" height="44" />
+          <rect x="472" y="44" width="50" height="22" fill="var(--background)" stroke="currentColor" strokeWidth="1.15" />
+          {/* Pergola */}
+          <line x1="476" y1="36" x2="518" y2="36" stroke="currentColor" strokeWidth="1.4" />
+          <line x1="482" y1="36" x2="482" y2="44" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="494" y1="36" x2="494" y2="44" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="506" y1="36" x2="506" y2="44" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="482" y1="55" x2="514" y2="55" stroke="currentColor" strokeWidth="1.3" opacity="0.8" />
+          <rect x="490" y="70" width="18" height="26" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="458" y="70" width="22" height="16" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 10. Mid-Rise Grid Building with Framed Windows */}
-          <rect x="356" y="36" width="36" height="60" />
-          <rect x="364" y="30" width="20" height="6" />
-          <line x1="356" y1="48" x2="392" y2="48" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="356" y1="60" x2="392" y2="60" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="356" y1="72" x2="392" y2="72" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="356" y1="84" x2="392" y2="84" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="368" y1="36" x2="368" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="380" y1="36" x2="380" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 8. Right Soaring High-Rise Spire Skyscraper */}
+          <rect x="526" y="20" width="56" height="76" />
+          <rect x="538" y="10" width="32" height="10" />
+          <line x1="554" y1="-4" x2="554" y2="10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <line x1="546" y1="2" x2="562" y2="2" stroke="currentColor" strokeWidth="1" />
+          <line x1="526" y1="35" x2="582" y2="35" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="526" y1="50" x2="582" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="526" y1="65" x2="582" y2="65" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="526" y1="80" x2="582" y2="80" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="540" y1="20" x2="540" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="554" y1="20" x2="554" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="568" y1="20" x2="568" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <rect x="546" y="86" width="16" height="10" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 11. Right Angled Crown Tower */}
-          <path d="M 390 96 L 390 32 L 424 20 L 424 96 Z" />
-          <line x1="400" y1="32" x2="400" y2="90" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="412" y1="28" x2="412" y2="90" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-
-          {/* 12. Right Soaring Needle Spire Skyscraper (Burj Rafal/Kingdom Tower inspired) */}
-          <rect x="420" y="20" width="38" height="76" />
-          <rect x="428" y="10" width="22" height="10" />
-          <line x1="439" y1="-4" x2="439" y2="10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <line x1="434" y1="2" x2="444" y2="2" stroke="currentColor" strokeWidth="1" />
-          {/* Detailed vertical louvers & floor divisions */}
-          <line x1="420" y1="34" x2="458" y2="34" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="420" y1="48" x2="458" y2="48" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="420" y1="62" x2="458" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="420" y1="76" x2="458" y2="76" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="420" y1="88" x2="458" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="430" y1="20" x2="430" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="439" y1="20" x2="439" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="448" y1="20" x2="448" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 13. Right Edge Commercial Building with Arcade */}
-          <rect x="456" y="32" width="44" height="64" />
-          <rect x="466" y="26" width="24" height="6" />
-          <line x1="456" y1="46" x2="500" y2="46" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="456" y1="60" x2="500" y2="60" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="456" y1="74" x2="500" y2="74" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="470" y1="32" x2="470" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="486" y1="32" x2="486" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 9. Right Curved Cultural Pavilion (Off-frame bleeding) */}
+          <ellipse cx="618" cy="46" rx="28" ry="7" />
+          <path d="M 590 46 L 590 96 L 646 96 L 646 46 Z" />
+          <path d="M 590 56 Q 618 63 646 56" stroke="currentColor" strokeWidth="0.9" fill="none" />
+          <path d="M 590 66 Q 618 73 646 66" stroke="currentColor" strokeWidth="0.9" fill="none" />
+          <path d="M 590 76 Q 618 83 646 76" stroke="currentColor" strokeWidth="0.9" fill="none" />
+          <path d="M 590 86 Q 618 93 646 86" stroke="currentColor" strokeWidth="0.9" fill="none" />
+          <line x1="604" y1="58" x2="604" y2="94" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
+          <line x1="618" y1="60" x2="618" y2="95" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
+          <line x1="632" y1="58" x2="632" y2="94" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
         </g>
       </svg>
 
       {/* ========================================================================= */}
-      {/* DESKTOP / PC SKYLINE (1920x150 Vector, Masterpiece Architectural Linework) */}
+      {/* DESKTOP / PC SKYLINE (2400x150 Vector, Generous Off-Frame Panoramic View) */}
       {/* ========================================================================= */}
       <svg
-        viewBox="0 0 1920 150"
+        viewBox="0 0 2400 150"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full hidden sm:block"
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMax slice"
       >
         {/* Continuous Ground Baseline */}
-        <line x1="0" y1="145" x2="1920" y2="145" stroke="currentColor" strokeWidth="1.8" opacity="0.85" />
+        <line x1="0" y1="145" x2="2400" y2="145" stroke="currentColor" strokeWidth="1.8" opacity="0.85" />
 
-        {/* Desktop Background Layer (Slender silhouettes for architectural atmospheric depth) */}
-        <g stroke="currentColor" strokeWidth="0.8" opacity="0.28" fill="currentColor" fillOpacity="0.07">
-          <rect x="15" y="34" width="38" height="111" />
-          <rect x="55" y="20" width="36" height="125" />
-          <line x1="73" y1="6" x2="73" y2="20" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <rect x="94" y="42" width="36" height="103" />
-          <rect x="134" y="26" width="38" height="119" />
-          <rect x="174" y="48" width="36" height="97" />
-          <rect x="214" y="30" width="38" height="115" />
-          <line x1="233" y1="16" x2="233" y2="30" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <rect x="256" y="52" width="36" height="93" />
-          <rect x="296" y="36" width="38" height="109" />
-          <rect x="340" y="58" width="36" height="87" />
-          <rect x="382" y="44" width="38" height="101" />
+        {/* Desktop Background Silhouette Layer */}
+        <g stroke="currentColor" strokeWidth="0.8" opacity="0.25" fill="currentColor" fillOpacity="0.06">
+          <rect x="30" y="32" width="60" height="113" />
+          <rect x="150" y="20" width="55" height="125" />
+          <line x1="177" y1="6" x2="177" y2="20" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <rect x="270" y="40" width="55" height="105" />
+          <rect x="390" y="24" width="60" height="121" />
+          <line x1="420" y1="8" x2="420" y2="24" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <rect x="510" y="52" width="65" height="93" />
+          <rect x="630" y="38" width="60" height="107" />
+          <rect x="750" y="60" width="65" height="85" />
+          <rect x="880" y="50" width="70" height="95" />
+          <rect x="1010" y="68" width="70" height="77" />
+          
+          {/* Center backdrop behind royal pavilion */}
+          <rect x="1140" y="80" width="60" height="65" />
+          <rect x="1200" y="80" width="60" height="65" />
 
-          {/* Left-center mid-rises */}
-          <rect x="430" y="62" width="40" height="83" />
-          <rect x="475" y="50" width="38" height="95" />
-          <rect x="520" y="68" width="42" height="77" />
-          <rect x="570" y="56" width="40" height="89" />
-          <rect x="620" y="74" width="44" height="71" />
-          <rect x="675" y="64" width="42" height="81" />
-          <rect x="730" y="78" width="44" height="67" />
-          <rect x="785" y="68" width="46" height="77" />
-          <rect x="845" y="80" width="44" height="65" />
-
-          {/* Center background (urban backdrop behind royal pavilion) */}
-          <rect x="900" y="82" width="40" height="63" />
-          <rect x="975" y="82" width="40" height="63" />
-
-          {/* Right-center mid-rises */}
-          <rect x="1030" y="80" width="44" height="65" />
-          <rect x="1090" y="68" width="46" height="77" />
-          <rect x="1145" y="78" width="44" height="67" />
-          <rect x="1200" y="64" width="42" height="81" />
-          <rect x="1255" y="74" width="44" height="71" />
-          <rect x="1305" y="56" width="40" height="89" />
-          <rect x="1355" y="68" width="42" height="77" />
-          <rect x="1405" y="50" width="38" height="95" />
-          <rect x="1450" y="62" width="40" height="83" />
-
-          {/* Far right skyscrapers */}
-          <rect x="1500" y="44" width="38" height="101" />
-          <rect x="1542" y="36" width="38" height="109" />
-          <rect x="1586" y="52" width="36" height="93" />
-          <rect x="1628" y="30" width="38" height="115" />
-          <line x1="1647" y1="16" x2="1647" y2="30" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <rect x="1670" y="48" width="36" height="97" />
-          <rect x="1710" y="26" width="38" height="119" />
-          <rect x="1750" y="42" width="36" height="103" />
-          <rect x="1790" y="20" width="36" height="125" />
-          <line x1="1808" y1="6" x2="1808" y2="20" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <rect x="1830" y="34" width="38" height="111" />
+          <rect x="1320" y="68" width="70" height="77" />
+          <rect x="1450" y="50" width="70" height="95" />
+          <rect x="1585" y="60" width="65" height="85" />
+          <rect x="1710" y="38" width="60" height="107" />
+          <rect x="1825" y="52" width="65" height="93" />
+          <rect x="1950" y="24" width="60" height="121" />
+          <line x1="1980" y1="8" x2="1980" y2="24" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <rect x="2075" y="40" width="55" height="105" />
+          <rect x="2195" y="20" width="55" height="125" />
+          <line x1="2222" y1="6" x2="2222" y2="20" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <rect x="2310" y="32" width="60" height="113" />
         </g>
 
-        {/* Desktop Foreground Layer (Architectural Ink Drawings) */}
+        {/* Foreground Layer (Generously Proportioned Architectural Ink Drawings) */}
         <g stroke="currentColor" strokeWidth="1.15" fill="var(--background)" strokeLinejoin="round">
           
-          {/* ============================================================== */}
-          {/* ZONE 1: FAR LEFT - Iconic Curved Pavilion & High-Rise Towers   */}
-          {/* ============================================================== */}
-          
-          {/* 1. Iconic Curved Modern Cultural Center */}
-          <ellipse cx="32" cy="74" rx="30" ry="8" />
-          <path d="M 2 74 L 2 145 L 62 145 L 62 74 Z" />
-          {/* Curved ribbon floor bands */}
-          <path d="M 2 86 Q 32 94 62 86" stroke="currentColor" strokeWidth="1" fill="none" />
-          <path d="M 2 98 Q 32 106 62 98" stroke="currentColor" strokeWidth="1" fill="none" />
-          <path d="M 2 110 Q 32 118 62 110" stroke="currentColor" strokeWidth="1" fill="none" />
-          <path d="M 2 122 Q 32 130 62 122" stroke="currentColor" strokeWidth="1" fill="none" />
-          <path d="M 2 134 Q 32 142 62 134" stroke="currentColor" strokeWidth="1" fill="none" />
-          {/* Vertical facade mullions */}
-          <line x1="14" y1="88" x2="14" y2="142" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="26" y1="90" x2="26" y2="144" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="38" y1="90" x2="38" y2="144" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="50" y1="88" x2="50" y2="142" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          {/* Glass lobby entrance */}
-          <rect x="22" y="132" width="20" height="13" stroke="currentColor" strokeWidth="0.9" />
+          {/* 1. Far Left Iconic Curved Cultural Center (Bleeds off-frame on standard monitors) */}
+          <ellipse cx="60" cy="74" rx="55" ry="11" />
+          <path d="M 5 74 L 5 145 L 115 145 L 115 74 Z" />
+          <path d="M 5 88 Q 60 98 115 88" stroke="currentColor" strokeWidth="1" fill="none" />
+          <path d="M 5 102 Q 60 112 115 102" stroke="currentColor" strokeWidth="1" fill="none" />
+          <path d="M 5 116 Q 60 126 115 116" stroke="currentColor" strokeWidth="1" fill="none" />
+          <path d="M 5 130 Q 60 140 115 130" stroke="currentColor" strokeWidth="1" fill="none" />
+          <line x1="32" y1="91" x2="32" y2="143" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="60" y1="94" x2="60" y2="144" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="88" y1="91" x2="88" y2="143" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <rect x="45" y="130" width="30" height="15" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 2. Stepped High-Rise Office Tower with Window Grids */}
-          <rect x="58" y="38" width="46" height="107" />
-          <rect x="68" y="28" width="26" height="10" />
-          <line x1="81" y1="16" x2="81" y2="28" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          {/* Multi-floor window lines */}
-          <line x1="58" y1="52" x2="104" y2="52" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="58" y1="68" x2="104" y2="68" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="58" y1="84" x2="104" y2="84" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="58" y1="100" x2="104" y2="100" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="58" y1="116" x2="104" y2="116" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="58" y1="130" x2="104" y2="130" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="70" y1="38" x2="70" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="81" y1="38" x2="81" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="92" y1="38" x2="92" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 2. Left Angled Crown Skyscraper */}
+          <path d="M 115 145 L 115 34 L 195 18 L 195 145 Z" />
+          <line x1="142" y1="28" x2="142" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="168" y1="23" x2="168" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="115" y1="50" x2="195" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="115" y1="76" x2="195" y2="76" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="115" y1="102" x2="195" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="115" y1="126" x2="195" y2="126" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
 
-          {/* 3. Slender Angled Crown Skyscraper */}
-          <path d="M 100 145 L 100 32 L 144 20 L 144 145 Z" />
-          <line x1="114" y1="28" x2="114" y2="145" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
-          <line x1="130" y1="24" x2="130" y2="145" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
-          <line x1="100" y1="52" x2="144" y2="52" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="100" y1="78" x2="144" y2="78" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="100" y1="104" x2="144" y2="104" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="100" y1="126" x2="144" y2="126" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 3. Left Stepped High-Rise Tower with Dual Spires */}
+          <rect x="195" y="32" width="85" height="113" />
+          <line x1="218" y1="16" x2="218" y2="32" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <line x1="257" y1="16" x2="257" y2="32" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <line x1="223" y1="48" x2="223" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
+          <line x1="252" y1="48" x2="252" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
+          <line x1="195" y1="62" x2="280" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="195" y1="90" x2="280" y2="90" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="195" y1="118" x2="280" y2="118" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
 
-          {/* 4. Grand Needle Spire Skyscraper (Towering Architectural Masterpiece) */}
-          <rect x="140" y="24" width="48" height="121" />
-          <rect x="150" y="12" width="28" height="12" />
-          <line x1="164" y1="-4" x2="164" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <line x1="158" y1="2" x2="170" y2="2" stroke="currentColor" strokeWidth="1.2" />
-          {/* Vertical Louver/Fin Texture */}
-          <line x1="140" y1="40" x2="188" y2="40" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="140" y1="58" x2="188" y2="58" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="140" y1="76" x2="188" y2="76" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="140" y1="94" x2="188" y2="94" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="140" y1="112" x2="188" y2="112" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="140" y1="130" x2="188" y2="130" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="150" y1="24" x2="150" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="159" y1="24" x2="159" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="169" y1="24" x2="169" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="178" y1="24" x2="178" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 4. Left Grand Needle Spire Skyscraper (Towering Anchor) */}
+          <rect x="280" y="24" width="90" height="121" />
+          <rect x="305" y="10" width="40" height="14" />
+          <line x1="325" y1="-6" x2="325" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <line x1="316" y1="0" x2="334" y2="0" stroke="currentColor" strokeWidth="1.2" />
+          {/* Rich vertical mullions */}
+          <line x1="280" y1="42" x2="370" y2="42" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="280" y1="62" x2="370" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="280" y1="82" x2="370" y2="82" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="280" y1="102" x2="370" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="280" y1="122" x2="370" y2="122" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="302" y1="24" x2="302" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="317" y1="24" x2="317" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="333" y1="24" x2="333" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="348" y1="24" x2="348" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <rect x="312" y="128" width="26" height="17" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 5. Corporate Mid-Rise with Recessed Balconies */}
-          <rect x="184" y="44" width="44" height="101" />
-          <line x1="198" y1="56" x2="198" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="214" y1="56" x2="214" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="184" y1="68" x2="228" y2="68" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="184" y1="92" x2="228" y2="92" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="184" y1="116" x2="228" y2="116" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 5. Left Commercial Office Block with Sunshades */}
+          <rect x="370" y="48" width="85" height="97" />
+          <line x1="370" y1="66" x2="455" y2="66" stroke="currentColor" strokeWidth="1" opacity="0.75" />
+          <line x1="370" y1="84" x2="455" y2="84" stroke="currentColor" strokeWidth="1" opacity="0.75" />
+          <line x1="370" y1="102" x2="455" y2="102" stroke="currentColor" strokeWidth="1" opacity="0.75" />
+          <line x1="370" y1="120" x2="455" y2="120" stroke="currentColor" strokeWidth="1" opacity="0.75" />
+          <line x1="398" y1="48" x2="398" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          <line x1="427" y1="48" x2="427" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
 
-          {/* 6. Stepped High-Rise with Dual Spires */}
-          <rect x="224" y="32" width="48" height="113" />
-          <line x1="236" y1="18" x2="236" y2="32" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="260" y1="18" x2="260" y2="32" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="238" y1="46" x2="238" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="258" y1="46" x2="258" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="224" y1="62" x2="272" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="224" y1="88" x2="272" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="224" y1="114" x2="272" y2="114" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 6. Left Curved Corner Plaza Building */}
+          <rect x="455" y="66" width="85" height="79" />
+          <path d="M 455 66 Q 497 56 540 66" stroke="currentColor" strokeWidth="1.3" fill="none" />
+          <line x1="455" y1="84" x2="540" y2="84" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="455" y1="102" x2="540" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="455" y1="120" x2="540" y2="120" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="483" y1="66" x2="483" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          <line x1="512" y1="66" x2="512" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
 
-          {/* 7. Commercial Block with Horizontal Sunshades */}
-          <rect x="268" y="52" width="44" height="93" />
-          <line x1="268" y1="68" x2="312" y2="68" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="268" y1="84" x2="312" y2="84" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="268" y1="100" x2="312" y2="100" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="268" y1="116" x2="312" y2="116" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="268" y1="132" x2="312" y2="132" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="282" y1="52" x2="282" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="298" y1="52" x2="298" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 7. Left Commercial Gallery with Window Arrays */}
+          <rect x="540" y="60" width="85" height="85" />
+          <rect x="555" y="52" width="55" height="8" />
+          <line x1="540" y1="76" x2="625" y2="76" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="540" y1="94" x2="625" y2="94" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="540" y1="112" x2="625" y2="112" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="540" y1="130" x2="625" y2="130" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="568" y1="60" x2="568" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          <line x1="597" y1="60" x2="597" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
 
-          {/* 8. Slender Spire Tower */}
-          <rect x="308" y="36" width="42" height="109" />
-          <line x1="329" y1="20" x2="329" y2="36" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="322" y1="48" x2="322" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="336" y1="48" x2="336" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="308" y1="62" x2="350" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="308" y1="88" x2="350" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="308" y1="114" x2="350" y2="114" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 8. Left Stepped Townhouses with Balcony Railings */}
+          <rect x="625" y="68" width="90" height="77" />
+          <rect x="625" y="60" width="55" height="8" />
+          {/* Balconies */}
+          <line x1="635" y1="84" x2="675" y2="84" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="635" y1="90" x2="675" y2="90" stroke="currentColor" strokeWidth="0.7" />
+          <rect x="642" y="72" width="26" height="12" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="635" y1="110" x2="675" y2="110" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="635" y1="116" x2="675" y2="116" stroke="currentColor" strokeWidth="0.7" />
+          <rect x="642" y="98" width="26" height="12" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="680" y1="68" x2="680" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <rect x="690" y="80" width="18" height="25" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 9. Angled Facade High-Rise */}
-          <path d="M 346 145 L 346 48 L 388 38 L 388 145 Z" />
-          <line x1="360" y1="50" x2="360" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="374" y1="46" x2="374" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="346" y1="74" x2="388" y2="74" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="346" y1="102" x2="388" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="346" y1="124" x2="388" y2="124" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 9. Left Modern Townhouses with Pergola Roof */}
+          <rect x="715" y="74" width="95" height="71" />
+          <line x1="725" y1="64" x2="785" y2="64" stroke="currentColor" strokeWidth="1.5" />
+          <line x1="735" y1="64" x2="735" y2="74" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="755" y1="64" x2="755" y2="74" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="775" y1="64" x2="775" y2="74" stroke="currentColor" strokeWidth="0.8" />
+          <rect x="730" y="88" width="28" height="20" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="768" y="88" width="28" height="20" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="748" y="118" width="22" height="27" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 10. Transition Mid-Rise */}
-          <rect x="384" y="60" width="46" height="85" />
-          <line x1="384" y1="78" x2="430" y2="78" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="384" y1="98" x2="430" y2="98" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="384" y1="118" x2="430" y2="118" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="400" y1="60" x2="400" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="416" y1="60" x2="416" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 10. Left Modern Luxury Villa with Cantilever & Arabesque Accents */}
+          <rect x="810" y="78" width="105" height="67" />
+          <rect x="802" y="68" width="75" height="30" fill="var(--background)" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="812" y1="82" x2="865" y2="82" stroke="currentColor" strokeWidth="1.4" opacity="0.8" />
+          <rect x="822" y="110" width="28" height="35" stroke="currentColor" strokeWidth="1" opacity="0.85" />
+          <rect x="865" y="110" width="35" height="22" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
 
-          {/* ============================================================== */}
-          {/* ZONE 2: MID-LEFT - Varied Urban & Residential Architecture      */}
-          {/* ============================================================== */}
-
-          {/* 11. Stepped Boutique Residence with Balconies */}
-          <rect x="426" y="72" width="48" height="73" />
-          <rect x="426" y="66" width="28" height="6" />
-          <line x1="442" y1="84" x2="442" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="458" y1="84" x2="458" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="426" y1="94" x2="474" y2="94" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="426" y1="114" x2="474" y2="114" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 12. Modern Commercial Gallery with Windows Grid */}
-          <rect x="470" y="64" width="52" height="81" />
-          <line x1="470" y1="80" x2="522" y2="80" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="470" y1="98" x2="522" y2="98" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="470" y1="116" x2="522" y2="116" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="487" y1="64" x2="487" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="505" y1="64" x2="505" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 13. Contemporary Curved Corner Plaza Building */}
-          <rect x="518" y="70" width="54" height="75" />
-          <path d="M 518 70 Q 545 62 572 70" stroke="currentColor" strokeWidth="1.2" fill="none" />
-          <line x1="518" y1="88" x2="572" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="518" y1="106" x2="572" y2="106" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="518" y1="124" x2="572" y2="124" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="536" y1="70" x2="536" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="554" y1="70" x2="554" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-
-          {/* 14. Luxury Villa with Cantilever & Arabesque Elements */}
-          <rect x="568" y="80" width="56" height="65" />
-          <rect x="564" y="72" width="40" height="20" fill="var(--background)" stroke="currentColor" strokeWidth="1.1" />
-          <line x1="570" y1="82" x2="598" y2="82" stroke="currentColor" strokeWidth="1.3" opacity="0.8" />
-          <rect x="576" y="104" width="16" height="22" stroke="currentColor" strokeWidth="1" opacity="0.8" />
-          <rect x="602" y="104" width="14" height="16" stroke="currentColor" strokeWidth="0.9" opacity="0.7" />
-
-          {/* 15. Modern Townhouses with Pergola */}
-          <rect x="620" y="76" width="58" height="69" />
-          {/* Pergola rafters on roof */}
-          <line x1="626" y1="68" x2="666" y2="68" stroke="currentColor" strokeWidth="1.4" />
-          <line x1="632" y1="68" x2="632" y2="76" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="644" y1="68" x2="644" y2="76" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="656" y1="68" x2="656" y2="76" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="632" y="90" width="18" height="14" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="654" y="90" width="18" height="14" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="642" y="118" width="14" height="27" stroke="currentColor" strokeWidth="0.9" />
-
-          {/* 16. Contemporary Residence with Balconies */}
-          <rect x="674" y="82" width="54" height="63" />
-          <rect x="694" y="76" width="28" height="6" />
-          <line x1="688" y1="94" x2="688" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.6" />
-          <line x1="714" y1="94" x2="714" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.6" />
-          <line x1="674" y1="104" x2="728" y2="104" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="674" y1="124" x2="728" y2="124" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 17. Modern Duplex */}
-          <rect x="724" y="78" width="56" height="67" />
-          <line x1="724" y1="96" x2="780" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="724" y1="116" x2="780" y2="116" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="752" y1="78" x2="752" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 18. Boutique Residential Block */}
-          <rect x="776" y="84" width="52" height="61" />
-          <rect x="772" y="78" width="36" height="18" fill="var(--background)" stroke="currentColor" strokeWidth="1.1" />
-          <rect x="784" y="106" width="14" height="20" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="806" y="106" width="14" height="20" stroke="currentColor" strokeWidth="0.9" />
-
-          {/* 19. Left Architectural Palm Tree Group (نخيل معماري مفصل) */}
+          {/* 11. Left Architectural Date Palm Garden (نخيل معماري بتفاصيل فاخرة) */}
           <g>
-            <line x1="840" y1="145" x2="840" y2="102" stroke="currentColor" strokeWidth="1.8" />
-            <line x1="837" y1="114" x2="843" y2="114" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="837" y1="124" x2="843" y2="124" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="837" y1="134" x2="843" y2="134" stroke="currentColor" strokeWidth="0.8" />
-            <path d="M 840 102 Q 825 92 812 98" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 840 102 Q 830 84 820 88" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 840 102 Q 840 76 840 74" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 840 102 Q 850 84 860 88" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 840 102 Q 855 92 868 98" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            
-            <line x1="870" y1="145" x2="870" y2="110" stroke="currentColor" strokeWidth="1.6" />
-            <line x1="867" y1="120" x2="873" y2="120" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="867" y1="130" x2="873" y2="130" stroke="currentColor" strokeWidth="0.8" />
-            <path d="M 870 110 Q 858 102 848 107" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 870 110 Q 862 94 854 98" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 870 110 Q 870 88 870 86" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 870 110 Q 878 94 886 98" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 870 110 Q 882 102 892 107" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <line x1="945" y1="145" x2="945" y2="92" stroke="currentColor" strokeWidth="2.2" />
+            <line x1="941" y1="104" x2="949" y2="104" stroke="currentColor" strokeWidth="0.9" />
+            <line x1="941" y1="116" x2="949" y2="116" stroke="currentColor" strokeWidth="0.9" />
+            <line x1="941" y1="128" x2="949" y2="128" stroke="currentColor" strokeWidth="0.9" />
+            <path d="M 945 92 Q 922 78 902 86" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            <path d="M 945 92 Q 928 66 914 72" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            <path d="M 945 92 Q 945 58 945 55" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            <path d="M 945 92 Q 962 66 976 72" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            <path d="M 945 92 Q 968 78 988 86" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+
+            {/* Companion smaller palm */}
+            <line x1="995" y1="145" x2="995" y2="104" stroke="currentColor" strokeWidth="1.8" />
+            <line x1="992" y1="114" x2="998" y2="114" stroke="currentColor" strokeWidth="0.8" />
+            <line x1="992" y1="126" x2="998" y2="126" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M 995 104 Q 978 94 964 100" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <path d="M 995 104 Q 982 84 972 88" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <path d="M 995 104 Q 995 78 995 76" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <path d="M 995 104 Q 1008 84 1018 88" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <path d="M 995 104 Q 1012 94 1026 100" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
           </g>
 
           {/* ============================================================== */}
-          {/* ZONE 3: CENTERPIECE - Traditional Royal Marquee / Luxury Tent    */}
-          {/* (Exact match to the iconic centerpiece in reference drawing)   */}
+          {/* ZONE 3: CENTERPIECE - Grand Traditional Royal Marquee / Pavilion */}
+          {/* (Spacious, majestic, exactly in the center of the horizon)     */}
           {/* ============================================================== */}
-          
           <g>
-            {/* Main Heritage Pavilion Structure */}
-            <polygon points="898,145 898,110 932,88 988,88 1022,110 1022,145" fill="var(--background)" stroke="currentColor" strokeWidth="1.5" />
-            {/* Roof Ridge & King Poles */}
-            <line x1="932" y1="88" x2="988" y2="88" stroke="currentColor" strokeWidth="1.5" />
-            <line x1="932" y1="76" x2="932" y2="88" stroke="currentColor" strokeWidth="1.4" />
-            <circle cx="932" cy="75" r="1.8" fill="currentColor" />
-            <line x1="988" y1="76" x2="988" y2="88" stroke="currentColor" strokeWidth="1.4" />
-            <circle cx="988" cy="75" r="1.8" fill="currentColor" />
-            {/* Hip ridges */}
-            <line x1="898" y1="110" x2="932" y2="88" stroke="currentColor" strokeWidth="1.2" />
-            <line x1="1022" y1="110" x2="988" y2="88" stroke="currentColor" strokeWidth="1.2" />
+            {/* Grand Pavilion Canopy Structure (Generous width 240 units!) */}
+            <polygon points="1040,145 1040,104 1100,74 1300,74 1360,104 1360,145" fill="var(--background)" stroke="currentColor" strokeWidth="1.6" />
+            {/* King Poles & Ornate Finials */}
+            <line x1="1100" y1="74" x2="1300" y2="74" stroke="currentColor" strokeWidth="1.6" />
+            <line x1="1100" y1="58" x2="1100" y2="74" stroke="currentColor" strokeWidth="1.4" />
+            <circle cx="1100" cy="56" r="2.5" fill="currentColor" />
+            <line x1="1300" y1="58" x2="1300" y2="74" stroke="currentColor" strokeWidth="1.4" />
+            <circle cx="1300" cy="56" r="2.5" fill="currentColor" />
+            {/* Intermediate center pole */}
+            <line x1="1200" y1="64" x2="1200" y2="74" stroke="currentColor" strokeWidth="1.2" />
+            <circle cx="1200" cy="62" r="2" fill="currentColor" />
+            {/* Faceted canopy hips */}
+            <line x1="1040" y1="104" x2="1100" y2="74" stroke="currentColor" strokeWidth="1.3" />
+            <line x1="1360" y1="104" x2="1300" y2="74" stroke="currentColor" strokeWidth="1.3" />
             {/* Authentic Heritage Stripe Bands */}
-            <line x1="898" y1="117" x2="1022" y2="117" stroke="currentColor" strokeWidth="1.1" strokeDasharray="6 3" />
-            <line x1="898" y1="124" x2="1022" y2="124" stroke="currentColor" strokeWidth="1.1" strokeDasharray="6 3" />
-            <line x1="898" y1="131" x2="1022" y2="131" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            <line x1="898" y1="138" x2="1022" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+            <line x1="1040" y1="112" x2="1360" y2="112" stroke="currentColor" strokeWidth="1.2" strokeDasharray="8 4" />
+            <line x1="1040" y1="120" x2="1360" y2="120" stroke="currentColor" strokeWidth="1.2" strokeDasharray="8 4" />
+            <line x1="1040" y1="128" x2="1360" y2="128" stroke="currentColor" strokeWidth="0.9" opacity="0.6" />
+            <line x1="1040" y1="136" x2="1360" y2="136" stroke="currentColor" strokeWidth="0.9" opacity="0.6" />
             {/* Grand Central Drape Entrance */}
-            <path d="M 948 145 L 960 118 L 972 145" stroke="currentColor" strokeWidth="1.3" fill="none" />
-            <line x1="960" y1="88" x2="960" y2="118" stroke="currentColor" strokeWidth="0.9" opacity="0.6" />
-            {/* Traditional Lantern */}
-            <circle cx="960" cy="110" r="2.5" fill="currentColor" opacity="0.85" />
+            <path d="M 1180 145 L 1200 108 L 1220 145" stroke="currentColor" strokeWidth="1.4" fill="none" />
+            <line x1="1200" y1="74" x2="1200" y2="108" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+            {/* Hanging Traditional Brass Lantern */}
+            <circle cx="1200" cy="98" r="3.2" fill="currentColor" opacity="0.85" />
             {/* Tension Guy-Ropes to Ground Stakes */}
-            <line x1="898" y1="110" x2="886" y2="145" stroke="currentColor" strokeWidth="0.9" strokeDasharray="3 3" />
-            <line x1="904" y1="110" x2="894" y2="145" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" />
-            <line x1="1022" y1="110" x2="1034" y2="145" stroke="currentColor" strokeWidth="0.9" strokeDasharray="3 3" />
-            <line x1="1016" y1="110" x2="1026" y2="145" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" />
+            <line x1="1040" y1="104" x2="1022" y2="145" stroke="currentColor" strokeWidth="1" strokeDasharray="4 3" />
+            <line x1="1050" y1="104" x2="1036" y2="145" stroke="currentColor" strokeWidth="0.9" strokeDasharray="4 3" />
+            <line x1="1360" y1="104" x2="1378" y2="145" stroke="currentColor" strokeWidth="1" strokeDasharray="4 3" />
+            <line x1="1350" y1="104" x2="1364" y2="145" stroke="currentColor" strokeWidth="0.9" strokeDasharray="4 3" />
           </g>
 
-          {/* 20. Right Architectural Palm Tree Group (نخيل معماري مفصل) */}
+          {/* 12. Right Architectural Date Palm Garden (نخيل معماري بتفاصيل فاخرة) */}
           <g>
-            <line x1="1050" y1="145" x2="1050" y2="110" stroke="currentColor" strokeWidth="1.6" />
-            <line x1="1047" y1="120" x2="1053" y2="120" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="1047" y1="130" x2="1053" y2="130" stroke="currentColor" strokeWidth="0.8" />
-            <path d="M 1050 110 Q 1038 102 1028 107" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 1050 110 Q 1042 94 1034 98" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 1050 110 Q 1050 88 1050 86" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 1050 110 Q 1058 94 1066 98" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            <path d="M 1050 110 Q 1062 102 1072 107" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <line x1="1405" y1="145" x2="1405" y2="104" stroke="currentColor" strokeWidth="1.8" />
+            <line x1="1402" y1="114" x2="1408" y2="114" stroke="currentColor" strokeWidth="0.8" />
+            <line x1="1402" y1="126" x2="1408" y2="126" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M 1405 104 Q 1388 94 1374 100" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <path d="M 1405 104 Q 1392 84 1382 88" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <path d="M 1405 104 Q 1405 78 1405 76" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <path d="M 1405 104 Q 1418 84 1428 88" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+            <path d="M 1405 104 Q 1422 94 1436 100" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
 
-            <line x1="1080" y1="145" x2="1080" y2="102" stroke="currentColor" strokeWidth="1.8" />
-            <line x1="1077" y1="114" x2="1083" y2="114" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="1077" y1="124" x2="1083" y2="124" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="1077" y1="134" x2="1083" y2="134" stroke="currentColor" strokeWidth="0.8" />
-            <path d="M 1080 102 Q 1065 92 1052 98" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 1080 102 Q 1070 84 1060 88" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 1080 102 Q 1080 76 1080 74" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 1080 102 Q 1090 84 1100 88" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 1080 102 Q 1095 92 1108 98" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            <line x1="1455" y1="145" x2="1455" y2="92" stroke="currentColor" strokeWidth="2.2" />
+            <line x1="1451" y1="104" x2="1459" y2="104" stroke="currentColor" strokeWidth="0.9" />
+            <line x1="1451" y1="116" x2="1459" y2="116" stroke="currentColor" strokeWidth="0.9" />
+            <line x1="1451" y1="128" x2="1459" y2="128" stroke="currentColor" strokeWidth="0.9" />
+            <path d="M 1455 92 Q 1432 78 1412 86" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            <path d="M 1455 92 Q 1438 66 1424 72" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            <path d="M 1455 92 Q 1455 58 1455 55" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            <path d="M 1455 92 Q 1472 66 1486 72" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            <path d="M 1455 92 Q 1478 78 1498 86" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
           </g>
 
-          {/* ============================================================== */}
-          {/* ZONE 4: MID-RIGHT - Varied Architecture                         */}
-          {/* ============================================================== */}
+          {/* 13. Right Modern Luxury Villa with Cantilever */}
+          <rect x="1485" y="78" width="105" height="67" />
+          <rect x="1523" y="68" width="75" height="30" fill="var(--background)" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="1535" y1="82" x2="1588" y2="82" stroke="currentColor" strokeWidth="1.4" opacity="0.8" />
+          <rect x="1550" y="110" width="28" height="35" stroke="currentColor" strokeWidth="1" opacity="0.85" />
+          <rect x="1500" y="110" width="35" height="22" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
 
-          {/* 21. Boutique Residential Block */}
-          <rect x="1092" y="84" width="52" height="61" />
-          <rect x="1112" y="78" width="36" height="18" fill="var(--background)" stroke="currentColor" strokeWidth="1.1" />
-          <rect x="1122" y="106" width="14" height="20" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="1100" y="106" width="14" height="20" stroke="currentColor" strokeWidth="0.9" />
+          {/* 14. Right Modern Townhouses with Pergola */}
+          <rect x="1590" y="74" width="95" height="71" />
+          <line x1="1600" y1="64" x2="1660" y2="64" stroke="currentColor" strokeWidth="1.5" />
+          <line x1="1610" y1="64" x2="1610" y2="74" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="1630" y1="64" x2="1630" y2="74" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="1650" y1="64" x2="1650" y2="74" stroke="currentColor" strokeWidth="0.8" />
+          <rect x="1604" y="88" width="28" height="20" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="1642" y="88" width="28" height="20" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="1630" y="118" width="22" height="27" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 22. Modern Duplex */}
-          <rect x="1140" y="78" width="56" height="67" />
-          <line x1="1140" y1="96" x2="1196" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1140" y1="116" x2="1196" y2="116" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1168" y1="78" x2="1168" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 15. Right Stepped Townhouses with Balconies */}
+          <rect x="1685" y="68" width="90" height="77" />
+          <rect x="1720" y="60" width="55" height="8" />
+          <line x1="1725" y1="84" x2="1765" y2="84" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="1725" y1="90" x2="1765" y2="90" stroke="currentColor" strokeWidth="0.7" />
+          <rect x="1732" y="72" width="26" height="12" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="1725" y1="110" x2="1765" y2="110" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="1725" y1="116" x2="1765" y2="116" stroke="currentColor" strokeWidth="0.7" />
+          <rect x="1732" y="98" width="26" height="12" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="1720" y1="68" x2="1720" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <rect x="1692" y="80" width="18" height="25" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 23. Contemporary Residence with Balconies */}
-          <rect x="1192" y="82" width="54" height="63" />
-          <rect x="1198" y="76" width="28" height="6" />
-          <line x1="1206" y1="94" x2="1206" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.6" />
-          <line x1="1232" y1="94" x2="1232" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.6" />
-          <line x1="1192" y1="104" x2="1246" y2="104" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1192" y1="124" x2="1246" y2="124" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 16. Right Commercial Gallery with Windows Grid */}
+          <rect x="1775" y="60" width="85" height="85" />
+          <rect x="1790" y="52" width="55" height="8" />
+          <line x1="1775" y1="76" x2="1860" y2="76" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="1775" y1="94" x2="1860" y2="94" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="1775" y1="112" x2="1860" y2="112" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="1775" y1="130" x2="1860" y2="130" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="1803" y1="60" x2="1803" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          <line x1="1832" y1="60" x2="1832" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
 
-          {/* 24. Modern Townhouses with Pergola */}
-          <rect x="1242" y="76" width="58" height="69" />
-          <line x1="1248" y1="68" x2="1288" y2="68" stroke="currentColor" strokeWidth="1.4" />
-          <line x1="1254" y1="68" x2="1254" y2="76" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="1266" y1="68" x2="1266" y2="76" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="1278" y1="68" x2="1278" y2="76" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="1248" y="90" width="18" height="14" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="1270" y="90" width="18" height="14" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="1260" y="118" width="14" height="27" stroke="currentColor" strokeWidth="0.9" />
+          {/* 17. Right Curved Corner Plaza Building */}
+          <rect x="1860" y="66" width="85" height="79" />
+          <path d="M 1860 66 Q 1902 56 1945 66" stroke="currentColor" strokeWidth="1.3" fill="none" />
+          <line x1="1860" y1="84" x2="1945" y2="84" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="1860" y1="102" x2="1945" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="1860" y1="120" x2="1945" y2="120" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="1888" y1="66" x2="1888" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          <line x1="1917" y1="66" x2="1917" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
 
-          {/* 25. Luxury Villa with Cantilever */}
-          <rect x="1296" y="80" width="56" height="65" />
-          <rect x="1316" y="72" width="40" height="20" fill="var(--background)" stroke="currentColor" strokeWidth="1.1" />
-          <line x1="1322" y1="82" x2="1350" y2="82" stroke="currentColor" strokeWidth="1.3" opacity="0.8" />
-          <rect x="1306" y="104" width="16" height="22" stroke="currentColor" strokeWidth="1" opacity="0.8" />
-          <rect x="1330" y="104" width="14" height="16" stroke="currentColor" strokeWidth="0.9" opacity="0.7" />
+          {/* 18. Right Commercial Office Block with Sunshades */}
+          <rect x="1945" y="48" width="85" height="97" />
+          <line x1="1945" y1="66" x2="2030" y2="66" stroke="currentColor" strokeWidth="1" opacity="0.75" />
+          <line x1="1945" y1="84" x2="2030" y2="84" stroke="currentColor" strokeWidth="1" opacity="0.75" />
+          <line x1="1945" y1="102" x2="2030" y2="102" stroke="currentColor" strokeWidth="1" opacity="0.75" />
+          <line x1="1945" y1="120" x2="2030" y2="120" stroke="currentColor" strokeWidth="1" opacity="0.75" />
+          <line x1="1973" y1="48" x2="1973" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          <line x1="2002" y1="48" x2="2002" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
 
-          {/* 26. Curved Corner Plaza Building */}
-          <rect x="1348" y="70" width="54" height="75" />
-          <path d="M 1348 70 Q 1375 62 1402 70" stroke="currentColor" strokeWidth="1.2" fill="none" />
-          <line x1="1348" y1="88" x2="1402" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1348" y1="106" x2="1402" y2="106" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1348" y1="124" x2="1402" y2="124" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1366" y1="70" x2="1366" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1384" y1="70" x2="1384" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 19. Right Grand Needle Spire Skyscraper (Twin Anchor) */}
+          <rect x="2030" y="24" width="90" height="121" />
+          <rect x="2055" y="10" width="40" height="14" />
+          <line x1="2075" y1="-6" x2="2075" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <line x1="2066" y1="0" x2="2084" y2="0" stroke="currentColor" strokeWidth="1.2" />
+          <line x1="2030" y1="42" x2="2120" y2="42" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2030" y1="62" x2="2120" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2030" y1="82" x2="2120" y2="82" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2030" y1="102" x2="2120" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2030" y1="122" x2="2120" y2="122" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2052" y1="24" x2="2052" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2067" y1="24" x2="2067" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2083" y1="24" x2="2083" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2098" y1="24" x2="2098" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <rect x="2062" y="128" width="26" height="17" stroke="currentColor" strokeWidth="0.9" />
 
-          {/* 27. Commercial Gallery with Window Grids */}
-          <rect x="1398" y="64" width="52" height="81" />
-          <line x1="1398" y1="80" x2="1450" y2="80" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1398" y1="98" x2="1450" y2="98" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1398" y1="116" x2="1450" y2="116" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1415" y1="64" x2="1415" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1433" y1="64" x2="1433" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 20. Right Stepped High-Rise Tower with Dual Spires */}
+          <rect x="2120" y="32" width="85" height="113" />
+          <line x1="2143" y1="16" x2="2143" y2="32" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <line x1="2182" y1="16" x2="2182" y2="32" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <line x1="2148" y1="48" x2="2148" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
+          <line x1="2177" y1="48" x2="2177" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
+          <line x1="2120" y1="62" x2="2205" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2120" y1="90" x2="2205" y2="90" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2120" y1="118" x2="2205" y2="118" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
 
-          {/* 28. Stepped Boutique Residence with Balconies */}
-          <rect x="1446" y="72" width="48" height="73" />
-          <rect x="1466" y="66" width="28" height="6" />
-          <line x1="1462" y1="84" x2="1462" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1478" y1="84" x2="1478" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1446" y1="94" x2="1494" y2="94" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1446" y1="114" x2="1494" y2="114" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* 21. Right Angled Crown Skyscraper */}
+          <path d="M 2205 145 L 2205 18 L 2285 34 L 2285 145 Z" />
+          <line x1="2232" y1="23" x2="2232" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2258" y1="28" x2="2258" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2205" y1="50" x2="2285" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2205" y1="76" x2="2285" y2="76" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2205" y1="102" x2="2285" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2205" y1="126" x2="2285" y2="126" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
 
-          {/* ============================================================== */}
-          {/* ZONE 5: FAR RIGHT - Soaring Skyscraper Towers                   */}
-          {/* ============================================================== */}
-
-          {/* 29. Transition Mid-Rise */}
-          <rect x="1490" y="60" width="46" height="85" />
-          <line x1="1490" y1="78" x2="1536" y2="78" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1490" y1="98" x2="1536" y2="98" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1490" y1="118" x2="1536" y2="118" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1506" y1="60" x2="1506" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1522" y1="60" x2="1522" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-
-          {/* 30. Angled Facade High-Rise */}
-          <path d="M 1532 145 L 1532 38 L 1574 48 L 1574 145 Z" />
-          <line x1="1546" y1="46" x2="1546" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="1560" y1="50" x2="1560" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="1532" y1="74" x2="1574" y2="74" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1532" y1="102" x2="1574" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1532" y1="124" x2="1574" y2="124" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 31. Slender Spire Tower */}
-          <rect x="1570" y="36" width="42" height="109" />
-          <line x1="1591" y1="20" x2="1591" y2="36" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="1584" y1="48" x2="1584" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1598" y1="48" x2="1598" y2="138" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1570" y1="62" x2="1612" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1570" y1="88" x2="1612" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1570" y1="114" x2="1612" y2="114" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 32. Commercial Block with Sunshades */}
-          <rect x="1608" y="52" width="44" height="93" />
-          <line x1="1608" y1="68" x2="1652" y2="68" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="1608" y1="84" x2="1652" y2="84" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="1608" y1="100" x2="1652" y2="100" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="1608" y1="116" x2="1652" y2="116" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="1608" y1="132" x2="1652" y2="132" stroke="currentColor" strokeWidth="1" opacity="0.7" />
-          <line x1="1622" y1="52" x2="1622" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1638" y1="52" x2="1638" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-
-          {/* 33. Stepped High-Rise with Dual Spires */}
-          <rect x="1648" y="32" width="48" height="113" />
-          <line x1="1660" y1="18" x2="1660" y2="32" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="1684" y1="18" x2="1684" y2="32" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="1662" y1="46" x2="1662" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="1682" y1="46" x2="1682" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="1648" y1="62" x2="1696" y2="62" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1648" y1="88" x2="1696" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1648" y1="114" x2="1696" y2="114" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 34. Corporate Mid-Rise */}
-          <rect x="1692" y="44" width="44" height="101" />
-          <line x1="1706" y1="56" x2="1706" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="1722" y1="56" x2="1722" y2="138" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.7" />
-          <line x1="1692" y1="68" x2="1736" y2="68" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1692" y1="92" x2="1736" y2="92" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1692" y1="116" x2="1736" y2="116" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 35. Grand Needle Spire Skyscraper (Iconic Symmetrical Twin) */}
-          <rect x="1732" y="24" width="48" height="121" />
-          <rect x="1742" y="12" width="28" height="12" />
-          <line x1="1756" y1="-4" x2="1756" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <line x1="1750" y1="2" x2="1762" y2="2" stroke="currentColor" strokeWidth="1.2" />
-          {/* Vertical Louver/Fin Texture */}
-          <line x1="1732" y1="40" x2="1780" y2="40" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1732" y1="58" x2="1780" y2="58" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1732" y1="76" x2="1780" y2="76" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1732" y1="94" x2="1780" y2="94" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1732" y1="112" x2="1780" y2="112" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1732" y1="130" x2="1780" y2="130" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1742" y1="24" x2="1742" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1751" y1="24" x2="1751" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1761" y1="24" x2="1761" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1770" y1="24" x2="1770" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 36. Slender Angled Crown Skyscraper */}
-          <path d="M 1776 145 L 1776 20 L 1820 32 L 1820 145 Z" />
-          <line x1="1790" y1="24" x2="1790" y2="145" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
-          <line x1="1806" y1="28" x2="1806" y2="145" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
-          <line x1="1776" y1="52" x2="1820" y2="52" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1776" y1="78" x2="1820" y2="78" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1776" y1="104" x2="1820" y2="104" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1776" y1="126" x2="1820" y2="126" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 37. Stepped High-Rise Office Tower */}
-          <rect x="1816" y="38" width="46" height="107" />
-          <rect x="1826" y="28" width="26" height="10" />
-          <line x1="1839" y1="16" x2="1839" y2="28" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="1816" y1="52" x2="1862" y2="52" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1816" y1="68" x2="1862" y2="68" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1816" y1="84" x2="1862" y2="84" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1816" y1="100" x2="1862" y2="100" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1816" y1="116" x2="1862" y2="116" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1816" y1="130" x2="1862" y2="130" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1828" y1="38" x2="1828" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1839" y1="38" x2="1839" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1850" y1="38" x2="1850" y2="145" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-
-          {/* 38. Right Anchor Curved Cultural Center */}
-          <ellipse cx="1888" cy="74" rx="30" ry="8" />
-          <path d="M 1858 74 L 1858 145 L 1918 145 L 1918 74 Z" />
-          <path d="M 1858 86 Q 1888 94 1918 86" stroke="currentColor" strokeWidth="1" fill="none" />
-          <path d="M 1858 98 Q 1888 106 1918 98" stroke="currentColor" strokeWidth="1" fill="none" />
-          <path d="M 1858 110 Q 1888 118 1918 110" stroke="currentColor" strokeWidth="1" fill="none" />
-          <path d="M 1858 122 Q 1888 130 1918 122" stroke="currentColor" strokeWidth="1" fill="none" />
-          <path d="M 1858 134 Q 1888 142 1918 134" stroke="currentColor" strokeWidth="1" fill="none" />
-          <line x1="1870" y1="88" x2="1870" y2="142" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1882" y1="90" x2="1882" y2="144" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1894" y1="90" x2="1894" y2="144" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1906" y1="88" x2="1906" y2="142" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <rect x="1878" y="132" width="20" height="13" stroke="currentColor" strokeWidth="0.9" />
+          {/* 22. Far Right Iconic Curved Cultural Center (Bleeds off-frame on standard monitors) */}
+          <ellipse cx="2340" cy="74" rx="55" ry="11" />
+          <path d="M 2285 74 L 2285 145 L 2395 145 L 2395 74 Z" />
+          <path d="M 2285 88 Q 2340 98 2395 88" stroke="currentColor" strokeWidth="1" fill="none" />
+          <path d="M 2285 102 Q 2340 112 2395 102" stroke="currentColor" strokeWidth="1" fill="none" />
+          <path d="M 2285 116 Q 2340 126 2395 116" stroke="currentColor" strokeWidth="1" fill="none" />
+          <path d="M 2285 130 Q 2340 140 2395 130" stroke="currentColor" strokeWidth="1" fill="none" />
+          <line x1="2312" y1="91" x2="2312" y2="143" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2340" y1="94" x2="2340" y2="144" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <line x1="2368" y1="91" x2="2368" y2="143" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          <rect x="2325" y="130" width="30" height="15" stroke="currentColor" strokeWidth="0.9" />
         </g>
       </svg>
     </div>
