@@ -3904,25 +3904,43 @@ async function startServer() {
     if (!link) return null;
     try {
       const decoded = decodeURIComponent(link);
+      // Pattern 1: @lat,lon
       const matchAt = decoded.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
       if (matchAt) {
         const lat = parseFloat(matchAt[1]);
         const lon = parseFloat(matchAt[2]);
         if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
       }
-      const matchQ = decoded.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      // Pattern 2: q=lat,lon or query=lat,lon
+      const matchQ = decoded.match(/(?:q|query)=(-?\d+\.\d+),(-?\d+\.\d+)/);
       if (matchQ) {
         const lat = parseFloat(matchQ[1]);
         const lon = parseFloat(matchQ[2]);
         if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
       }
-      const matchPlace = decoded.match(/(?:place|search)\/(?:[^\/]+\/)?(-?\d+\.\d+),(-?\d+\.\d+)/);
+      // Pattern 3: !3dLAT!4dLON (Google Maps embed / data params)
+      const match3d4d = decoded.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+      if (match3d4d) {
+        const lat = parseFloat(match3d4d[1]);
+        const lon = parseFloat(match3d4d[2]);
+        if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+      }
+      // Pattern 4: ll=lat,lon or destination=lat,lon or daddr=lat,lon or center=lat,lon
+      const matchParam = decoded.match(/(?:ll|destination|daddr|saddr|center)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (matchParam) {
+        const lat = parseFloat(matchParam[1]);
+        const lon = parseFloat(matchParam[2]);
+        if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+      }
+      // Pattern 5: place/lat,lon or search/lat,lon
+      const matchPlace = decoded.match(/(?:place|search|dir)\/(?:[^\/]+\/)?(-?\d+\.\d+),(-?\d+\.\d+)/);
       if (matchPlace) {
         const lat = parseFloat(matchPlace[1]);
         const lon = parseFloat(matchPlace[2]);
         if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
       }
-      const matchCoords = decoded.match(/(-?\d+\.\d+),(-?\d+\.\d+)/);
+      // Pattern 6: direct coords in string
+      const matchCoords = decoded.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
       if (matchCoords) {
         const lat = parseFloat(matchCoords[1]);
         const lon = parseFloat(matchCoords[2]);
@@ -3933,6 +3951,62 @@ async function startServer() {
     } catch (_) {}
     return null;
   }
+
+  function extractNearbyPlaces(details: any): any[] {
+    if (!details) return [];
+    try {
+      const parsed = typeof details === 'string' ? JSON.parse(details) : details;
+      if (Array.isArray(parsed)) {
+        const found = parsed.find((item: any) => item?.key === '__nearbyPlaces__');
+        if (found && found.value) {
+          return typeof found.value === 'string' ? JSON.parse(found.value) : found.value;
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  // Resolve Google Maps link to coordinates (supports short links like maps.app.goo.gl)
+  app.get("/api/resolve-maps-coords", async (req, res) => {
+    const rawUrl = typeof req.query.url === 'string' ? req.query.url.trim() : '';
+    if (!rawUrl) {
+      return res.status(400).json({ error: "Missing url parameter" });
+    }
+
+    // First check direct URL regex
+    let coords = extractCoords(rawUrl);
+    if (coords) {
+      return res.json({ success: true, ...coords, resolvedUrl: rawUrl });
+    }
+
+    // Follow redirects for shortened links (maps.app.goo.gl, goo.gl/maps, bit.ly, etc.)
+    try {
+      const response = await fetch(rawUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        },
+        redirect: 'follow'
+      });
+
+      const finalUrl = response.url;
+      coords = extractCoords(finalUrl);
+
+      if (!coords) {
+        const html = await response.text();
+        coords = extractCoords(html);
+      }
+
+      if (coords) {
+        return res.json({ success: true, ...coords, resolvedUrl: finalUrl });
+      }
+    } catch (err: any) {
+      logger.warn(`Failed resolving map link: ${rawUrl}`, err?.message);
+    }
+
+    return res.status(404).json({ success: false, error: "Coordinates not found in link" });
+  });
 
   // PUBLIC Listings API - Zero Auth, Ultra Fast, Strictly Published Only
   app.get("/api/properties", async (req, res) => {
@@ -4397,11 +4471,13 @@ async function startServer() {
       }
 
       const coords = extractCoords(property.locationLink);
+      const nearbyPlaces = extractNearbyPlaces(property.details);
       res.json({
         ...property,
         buildingPhotos: resolvedBuildingPhotos,
         latitude: coords?.lat ?? null,
-        longitude: coords?.lon ?? null
+        longitude: coords?.lon ?? null,
+        nearbyPlaces
       });
     } catch (error) {
       logger.error(`Failed to fetch property by id: ${req.params.id}`, error);
@@ -5080,7 +5156,14 @@ async function startServer() {
         where: { id: req.params.id }
       });
       if (!project) return res.status(404).json({ error: "Project not found" });
-      res.json(project);
+      const coords = extractCoords(project.locationLink);
+      const nearbyPlaces = extractNearbyPlaces(project.details);
+      res.json({
+        ...project,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lon ?? null,
+        nearbyPlaces
+      });
     } catch (error) {
       logger.error(`Failed to fetch project by id: ${req.params.id}`, error);
       res.status(500).json({ error: "Failed to fetch project" });

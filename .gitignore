@@ -74,3 +74,5 @@ prisma/dev.db
 prisma/dev.db
 prisma/dev.db
 prisma/dev.db
+src/lib/mapRouting.ts
+src/components/NearbyPlacesEditor.tsx

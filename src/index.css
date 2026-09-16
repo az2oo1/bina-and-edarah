@@ -1,5 +1,20 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 @variant dark (&:where(.dark, .dark *));
+
+.architectural-dark-tiles {
+  /* High-clarity architectural dark palette: deep #1c1c1c charcoal canvas with smooth #546e7a slate-blue roads */
+  filter: contrast(1.15) brightness(0.42) sepia(12%) hue-rotate(160deg) saturate(180%);
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  background-color: #1c1c1c !important;
+}
 
 @font-face {
   font-family: 'Thmanyah Sans';
