@@ -91,6 +91,8 @@ model Project {
   features         String?  // Comma separated features
   propertyAge      Int      @default(0)
   imageUrls        String   @default("[]") // JSON stringified array of base64 images
+  floorplanUrl     String?  // Floorplan / layout image or URL
+  brochureUrl      String?  // Project brochure link or PDF URL
   createdAt        DateTime @default(now())
 }
 

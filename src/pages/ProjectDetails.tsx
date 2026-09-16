@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
-import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone } from 'lucide-react';
+import { MapPin, Maximize2, Calendar, Star, CheckCircle, ChevronRight, ChevronLeft, Building2, Layers, Phone, Compass, FileDown, Download } from 'lucide-react';
 import { ImageViewer } from '../components/ImageViewer';
 import { formatExternalLink } from '../utils/link';
+import { FlagshipScrollytelling } from '../components/FlagshipScrollytelling';
 
 
 export default function ProjectDetails() {
@@ -14,6 +15,7 @@ export default function ProjectDetails() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [floorplanViewerOpen, setFloorplanViewerOpen] = useState(false);
   const [settings, setSettings] = useState<any>({});
 
   const Arrow = language === 'ar' ? ChevronLeft : ChevronRight;
@@ -91,6 +93,10 @@ export default function ProjectDetails() {
     );
   }
 
+  if (project.tier === 'BIG') {
+    return <FlagshipScrollytelling project={project} settings={settings} />;
+  }
+
   const images = project.imageUrls && project.imageUrls.length > 0 ? project.imageUrls : ['https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070'];
   const currentMedia = images[currentImageIndex];
 
@@ -109,7 +115,21 @@ export default function ProjectDetails() {
             {language === 'ar' ? <ChevronRight className="w-3.5 h-3.5 text-primary" /> : <ChevronLeft className="w-3.5 h-3.5 text-primary" />}
             <span>{language === 'ar' ? 'العودة للمشاريع' : 'Back to Projects'}</span>
           </Link>
-          <div className="text-xs text-muted-foreground font-mono font-medium">#{project.id.split('-')[0]}</div>
+          <div className="flex items-center gap-3">
+            {project.brochureUrl && (
+              <a
+                href={project.brochureUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-full transition cursor-pointer shadow-2xs"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                <span>{language === 'ar' ? 'تحميل البروشور' : 'Brochure'}</span>
+              </a>
+            )}
+            <div className="text-xs text-muted-foreground font-mono font-medium">#{project.id.split('-')[0]}</div>
+          </div>
         </div>
       </div>
 
@@ -321,6 +341,44 @@ export default function ProjectDetails() {
               </div>
             )}
 
+            {/* Floorplan Section */}
+            {project.floorplanUrl && (
+              <div className="shadcn-card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-bold text-foreground tracking-tight flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-primary" />
+                    {language === 'ar' ? 'مخطط المشروع' : 'Project Floorplan'}
+                  </h2>
+                  <a
+                    href={project.floorplanUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="btn-outline text-xs h-8 px-3 gap-1.5 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-primary" />
+                    <span>{language === 'ar' ? 'تحميل المخطط' : 'Download Plan'}</span>
+                  </a>
+                </div>
+                <div className="rounded-xl overflow-hidden border border-border bg-muted/20 p-2 sm:p-4 flex items-center justify-center">
+                  {project.floorplanUrl.endsWith('.pdf') || project.floorplanUrl.startsWith('data:application/pdf') ? (
+                    <iframe 
+                      src={project.floorplanUrl} 
+                      className="w-full h-[450px] rounded-lg border border-border"
+                      title={language === 'ar' ? 'مخطط المشروع' : 'Project Floorplan'}
+                    />
+                  ) : (
+                    <img 
+                      src={project.floorplanUrl} 
+                      alt={language === 'ar' ? 'مخطط المشروع' : 'Project Floorplan'} 
+                      className="max-h-[500px] w-auto object-contain rounded-lg cursor-pointer hover:opacity-95 transition shadow-xs"
+                      onClick={() => setFloorplanViewerOpen(true)}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Location Link */}
             {project.locationLink && (
               <div className="shadcn-card p-5 flex items-center justify-between">
@@ -351,6 +409,19 @@ export default function ProjectDetails() {
                 <p className="text-xs text-muted-foreground mb-6">{language === 'ar' ? 'تواصل معنا للحصول على مزيد من التفاصيل' : 'Contact us for more details'}</p>
                 
                 <div className="flex flex-col gap-2">
+                  {project.brochureUrl && (
+                    <a
+                      href={project.brochureUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="btn-outline w-full text-xs h-9 justify-center gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-bold shadow-xs active:scale-[0.98]"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      {language === 'ar' ? 'تحميل البروشور' : 'Download Brochure'}
+                    </a>
+                  )}
+
                   <a
                     href={`tel:${(settings.callingNumber || '966500000000').replace(/\+/g, '')}`}
                     className="btn-primary w-full text-xs h-9 justify-center gap-1.5"
@@ -387,6 +458,15 @@ export default function ProjectDetails() {
         onClose={() => setIsViewerOpen(false)}
         language={language}
       />
+      {project.floorplanUrl && (
+        <ImageViewer
+          isOpen={floorplanViewerOpen}
+          items={[{ type: 'image', url: project.floorplanUrl }]}
+          initialIndex={0}
+          onClose={() => setFloorplanViewerOpen(false)}
+          language={language}
+        />
+      )}
     </div>
   );
 }

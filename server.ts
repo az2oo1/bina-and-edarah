@@ -5187,6 +5187,8 @@ async function startServer() {
           features: body.features || null,
           propertyAge: safeInt(body.propertyAge),
           imageUrls: processImageUrls(body.imageUrls),
+          floorplanUrl: body.floorplanUrl || null,
+          brochureUrl: body.brochureUrl || null,
         }
       });
       invalidateCache('projects');
@@ -5216,6 +5218,8 @@ async function startServer() {
           features: body.features || null,
           propertyAge: safeInt(body.propertyAge),
           imageUrls: processImageUrls(body.imageUrls),
+          floorplanUrl: body.floorplanUrl || null,
+          brochureUrl: body.brochureUrl || null,
         }
       });
       invalidateCache('projects');

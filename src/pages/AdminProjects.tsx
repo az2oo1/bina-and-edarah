@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../LanguageContext';
 import * as LucideIcons from 'lucide-react';
-import { PlusCircle, Loader2, Trash2, ImagePlus, X, Building2 } from 'lucide-react';
+import { 
+  PlusCircle, Loader2, Trash2, ImagePlus, X, Building2,
+  Check, Info, FileText, Sparkles, Image, ArrowRight, ArrowLeft,
+  Compass, Upload, FileDown, Download, ExternalLink
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { compressImage } from '../lib/image';
 import { useDialog } from '../context/DialogContext';
 import { CustomSelect } from '../components/CustomSelect';
@@ -11,6 +16,8 @@ interface Project {
   titleAr: string;
   titleEn: string;
   tier: string;
+  floorplanUrl?: string;
+  brochureUrl?: string;
 }
 
 const PREDEFINED_DETAILS = [
@@ -66,6 +73,8 @@ export default function AdminProjects() {
   const [fetching, setFetching] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 4;
 
   // Icon Picker States
   const [showIconPicker, setShowIconPicker] = useState(false);
@@ -85,6 +94,8 @@ export default function AdminProjects() {
     description: '',
     imageUrls: [] as string[],
     detailsList: [] as {id: string, key: string, value: string, icon?: string}[],
+    floorplanUrl: '',
+    brochureUrl: '',
   });
 
   const fetchProjects = async () => {
@@ -159,8 +170,102 @@ export default function AdminProjects() {
     setFormData(prev => ({ ...prev, imageUrls: newImages }));
   };
 
+  const [isUploadingFloorplan, setIsUploadingFloorplan] = useState(false);
+  const [isUploadingBrochure, setIsUploadingBrochure] = useState(false);
+
+  const handleFloorplanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingFloorplan(true);
+    try {
+      if (file.type.startsWith('image/')) {
+        const base64 = await compressImage(file);
+        setFormData(prev => ({ ...prev, floorplanUrl: base64 }));
+      } else {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (evt) => resolve(evt.target?.result as string);
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
+        setFormData(prev => ({ ...prev, floorplanUrl: base64 }));
+      }
+    } catch (err) {
+      console.error(err);
+      await showAlert(language === 'ar' ? 'فشل رفع ملف المخطط' : 'Failed to upload floorplan file');
+    } finally {
+      setIsUploadingFloorplan(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleBrochureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBrochure(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (evt) => resolve(evt.target?.result as string);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+      setFormData(prev => ({ ...prev, brochureUrl: base64 }));
+    } catch (err) {
+      console.error(err);
+      await showAlert(language === 'ar' ? 'فشل رفع ملف البروشور' : 'Failed to upload brochure file');
+    } finally {
+      setIsUploadingBrochure(false);
+      e.target.value = '';
+    }
+  };
+
+  const validateStep = async (step: number): Promise<boolean> => {
+    if (step === 1) {
+      if (!formData.titleAr.trim()) {
+        await showAlert(language === 'ar' ? 'الرجاء إدخال اسم المشروع بالعربية' : 'Please enter the project Arabic title');
+        return false;
+      }
+      if (!formData.titleEn.trim()) {
+        await showAlert(language === 'ar' ? 'الرجاء إدخال اسم المشروع بالإنجليزية' : 'Please enter the project English title');
+        return false;
+      }
+    }
+    if (step === 2) {
+      if (!formData.description.trim()) {
+        await showAlert(language === 'ar' ? 'الرجاء إدخال وصف المشروع' : 'Please enter the project description');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNextStep = async () => {
+    const isValid = await validateStep(currentStep);
+    if (!isValid) return;
+    if (currentStep < totalSteps) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.titleAr.trim()) {
+      setCurrentStep(1);
+      await showAlert(language === 'ar' ? 'الرجاء إدخال اسم المشروع بالعربية' : 'Please enter the project Arabic title');
+      return;
+    }
+    if (!formData.titleEn.trim()) {
+      setCurrentStep(1);
+      await showAlert(language === 'ar' ? 'الرجاء إدخال اسم المشروع بالإنجليزية' : 'Please enter the project English title');
+      return;
+    }
+    if (!formData.description.trim()) {
+      setCurrentStep(2);
+      await showAlert(language === 'ar' ? 'الرجاء إدخال وصف المشروع' : 'Please enter the project description');
+      return;
+    }
+
     setLoading(true);
 
     const payload = {
@@ -229,8 +334,11 @@ export default function AdminProjects() {
         featuresList: data.features ? JSON.parse(data.features) : [],
         detailsList: data.details ? JSON.parse(data.details) : [],
         imageUrls: data.imageUrls ? JSON.parse(data.imageUrls) : [],
+        floorplanUrl: data.floorplanUrl || '',
+        brochureUrl: data.brochureUrl || '',
       });
       setEditingId(id);
+      setCurrentStep(1);
       setShowAddForm(true);
     } catch (error) {
       console.error(error);
@@ -309,7 +417,9 @@ export default function AdminProjects() {
       titleAr: '', titleEn: '', tier: 'OTHER', propertyCategory: 'VILLA',
       area: '', locationLink: '', locationText: '', description: '',
       propertyAge: '', featuresList: [], imageUrls: [], detailsList: [],
+      floorplanUrl: '', brochureUrl: '',
     });
+    setCurrentStep(1);
   };
 
   return (
@@ -337,6 +447,7 @@ export default function AdminProjects() {
               setEditingId(null);
               resetForm();
             } else {
+              setCurrentStep(1);
               setShowAddForm(true);
             }
           }}
@@ -355,289 +466,715 @@ export default function AdminProjects() {
       </div>
 
       {showAddForm ? (
-        <form onSubmit={handleSubmit} className="admin-card p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Info'}</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="cn-label mb-2">{t('admin.placeholder.titleAr') || 'Title (Ar)'}</label>
-                  <input required type="text" value={formData.titleAr} onChange={(e) => setFormData({...formData, titleAr: e.target.value})} className="cn-input" dir="rtl" />
+        <form onSubmit={handleSubmit} className="admin-card p-6 relative">
+          {/* Step Indicator */}
+          {(() => {
+            const fillPercentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            return (
+              <div className="mb-10 max-w-xl mx-auto w-full select-none animate-in fade-in duration-300">
+                <div className="relative py-4">
+                  {/* Progress Line Track */}
+                  <div className="absolute top-1/2 -translate-y-1/2 left-6 right-6 h-0.5 bg-muted rounded-full z-0">
+                    {/* Active filled line */}
+                    <div 
+                      className="h-full bg-primary transition-all duration-500 ease-out rounded-full shadow-xs"
+                      style={{
+                        width: `${fillPercentage}%`,
+                        transformOrigin: language === 'ar' ? 'right' : 'left'
+                      }}
+                    />
+                  </div>
+
+                  {/* Step Circles Row */}
+                  <div className="relative flex justify-between items-center z-10 w-full">
+                    {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => {
+                      const isActive = currentStep === step;
+                      const isCompleted = currentStep > step;
+                      
+                      let StepIcon = Info;
+                      if (step === 2) StepIcon = FileText;
+                      if (step === 3) StepIcon = Sparkles;
+                      if (step === 4) StepIcon = Image;
+
+                      return (
+                        <div key={step} className="flex flex-col items-center">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (step < currentStep) {
+                                setCurrentStep(step);
+                              } else if (step > currentStep) {
+                                const isValid = await validateStep(currentStep);
+                                if (isValid) setCurrentStep(step);
+                              }
+                            }}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-350 cursor-pointer border shadow-xs ${
+                              isActive 
+                                ? 'bg-primary border-primary text-white ring-4 ring-primary/20 scale-110 shadow-md shadow-primary/20' 
+                                : isCompleted 
+                                ? 'wizard-step-completed shadow-md shadow-emerald-600/10' 
+                                : 'bg-card border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                            }`}
+                          >
+                            {isCompleted ? (
+                              <Check className="w-4 h-4 stroke-[3]" />
+                            ) : (
+                              <StepIcon className="w-4 h-4" />
+                            )}
+                          </button>
+                          
+                          {/* Step Label */}
+                          <span className={`text-[10px] font-bold mt-2.5 transition-colors duration-200 hidden xs:block ${
+                            isActive 
+                              ? 'text-primary' 
+                              : isCompleted 
+                              ? 'wizard-step-label-completed' 
+                              : 'text-muted-foreground'
+                          }`}>
+                            {step === 1 && (language === 'ar' ? 'المعلومات' : 'Basic Info')}
+                            {step === 2 && (language === 'ar' ? 'التفاصيل' : 'Details')}
+                            {step === 3 && (language === 'ar' ? 'المميزات' : 'Features')}
+                            {step === 4 && (language === 'ar' ? 'الوسائط' : 'Media')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div>
-                  <label className="cn-label mb-2">{t('admin.placeholder.titleEn') || 'Title (En)'}</label>
-                  <input required type="text" value={formData.titleEn} onChange={(e) => setFormData({...formData, titleEn: e.target.value})} className="cn-input" dir="ltr" />
+
+                <div className="text-center mt-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+                    {language === 'ar' ? `الخطوة ${currentStep} من ${totalSteps}` : `Step ${currentStep} of ${totalSteps}`}
+                  </p>
+                  <h3 className="text-lg font-bold text-foreground mt-0.5">
+                    {currentStep === 1 && (language === 'ar' ? 'المعلومات الأساسية والموقع' : 'Basic Info & Location')}
+                    {currentStep === 2 && (language === 'ar' ? 'الوصف والتفاصيل الإضافية' : 'Description & Custom Details')}
+                    {currentStep === 3 && (language === 'ar' ? 'المميزات والمرافق للمشروع' : 'Features & Amenities')}
+                    {currentStep === 4 && (language === 'ar' ? 'الصور ومقاطع الفيديو' : 'Photos & Videos')}
+                  </h3>
                 </div>
               </div>
+            );
+          })()}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="cn-label mb-2">{language === 'ar' ? 'تصنيف المشروع (Tier)' : 'Project Tier'}</label>
-                  <CustomSelect
-                    value={formData.tier}
-                    onChange={(val) => setFormData({...formData, tier: val})}
-                    options={[
-                      { value: 'BIG', label: language === 'ar' ? 'مشروع ريادي (Flagship)' : 'Flagship Project' },
-                      { value: 'MID', label: language === 'ar' ? 'مشروع مميز (Featured)' : 'Featured Project' },
-                      { value: 'OTHER', label: language === 'ar' ? 'مشاريع أخرى (Other)' : 'Other Projects' }
-                    ]}
-                  />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            >
+              {/* STEP 1: Basic Info & Location */}
+              {currentStep === 1 && (
+                <div className="space-y-8 animate-in fade-in duration-350">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                      <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Info'}</h3>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.titleAr') || 'Title (Ar)'} <span className="text-red-500">*</span></label>
+                          <input type="text" value={formData.titleAr} onChange={(e) => setFormData({...formData, titleAr: e.target.value})} className="cn-input" dir="rtl" />
+                        </div>
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.titleEn') || 'Title (En)'} <span className="text-red-500">*</span></label>
+                          <input type="text" value={formData.titleEn} onChange={(e) => setFormData({...formData, titleEn: e.target.value})} className="cn-input" dir="ltr" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="cn-label mb-2">{language === 'ar' ? 'تصنيف المشروع (Tier)' : 'Project Tier'}</label>
+                          <CustomSelect
+                            value={formData.tier}
+                            onChange={(val) => setFormData({...formData, tier: val})}
+                            options={[
+                              { value: 'BIG', label: language === 'ar' ? 'مشروع ريادي (Flagship)' : 'Flagship Project' },
+                              { value: 'MID', label: language === 'ar' ? 'مشروع مميز (Featured)' : 'Featured Project' },
+                              { value: 'OTHER', label: language === 'ar' ? 'مشاريع أخرى (Other)' : 'Other Projects' }
+                            ]}
+                          />
+                        </div>
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.category') || 'Property Category'}</label>
+                          <CustomSelect
+                            value={formData.propertyCategory}
+                            onChange={(val) => setFormData({...formData, propertyCategory: val})}
+                            options={[
+                              { value: 'VILLA', label: t('cat.VILLA') || 'Villa' },
+                              { value: 'APARTMENT', label: t('cat.APARTMENT') || 'Apartment' },
+                              { value: 'COMPOUND', label: t('cat.COMPOUND') || 'Compound' },
+                              { value: 'TOWER', label: t('cat.TOWER') || 'Tower' },
+                              { value: 'BUILDING', label: t('cat.BUILDING') || 'Building' },
+                              { value: 'MALL', label: t('cat.MALL') || 'Mall' },
+                              { value: 'SHOP', label: t('cat.SHOP') || 'Shop' },
+                              { value: 'OFFICE', label: t('cat.OFFICE') || 'Office' },
+                              { value: 'RESORT', label: t('cat.RESORT') || 'Resort' },
+                              { value: 'HOTEL', label: t('cat.HOTEL') || 'Hotel' },
+                              { value: 'HOSPITAL', label: t('cat.HOSPITAL') || 'Hospital' },
+                              { value: 'WAREHOUSE', label: t('cat.WAREHOUSE') || 'Warehouse' },
+                              { value: 'FARM', label: t('cat.FARM') || 'Farm' },
+                              { value: 'LAND', label: t('cat.LAND') || 'Land' },
+                              { value: 'ROOM', label: t('cat.ROOM') || 'Room' }
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'الموقع والمساحة' : 'Location & Area'}</h3>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.area') || 'Area'}</label>
+                          <input type="number" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} className="cn-input" />
+                        </div>
+                        <div>
+                          <label className="cn-label mb-2">{t('admin.placeholder.age') || 'Age'}</label>
+                          <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({...formData, propertyAge: e.target.value})} className="cn-input" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="cn-label mb-2">{t('admin.placeholder.locationLink') || 'Location Link'}</label>
+                        <input type="text" value={formData.locationLink} onChange={(e) => setFormData({...formData, locationLink: e.target.value})} className="cn-input" dir="ltr" />
+                      </div>
+                      
+                      <div>
+                        <label className="cn-label mb-2">{t('admin.placeholder.locationText') || 'Location Text'}</label>
+                        <input type="text" value={formData.locationText} onChange={(e) => setFormData({...formData, locationText: e.target.value})} className="cn-input" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="cn-label mb-2">{t('admin.placeholder.category') || 'Property Category'}</label>
-                  <CustomSelect
-                    value={formData.propertyCategory}
-                    onChange={(val) => setFormData({...formData, propertyCategory: val})}
-                    options={[
-                      { value: 'VILLA', label: t('cat.VILLA') || 'Villa' },
-                      { value: 'APARTMENT', label: t('cat.APARTMENT') || 'Apartment' },
-                      { value: 'COMPOUND', label: t('cat.COMPOUND') || 'Compound' },
-                      { value: 'TOWER', label: t('cat.TOWER') || 'Tower' },
-                      { value: 'BUILDING', label: t('cat.BUILDING') || 'Building' },
-                      { value: 'MALL', label: t('cat.MALL') || 'Mall' },
-                      { value: 'SHOP', label: t('cat.SHOP') || 'Shop' },
-                      { value: 'OFFICE', label: t('cat.OFFICE') || 'Office' },
-                      { value: 'RESORT', label: t('cat.RESORT') || 'Resort' },
-                      { value: 'HOTEL', label: t('cat.HOTEL') || 'Hotel' },
-                      { value: 'HOSPITAL', label: t('cat.HOSPITAL') || 'Hospital' },
-                      { value: 'WAREHOUSE', label: t('cat.WAREHOUSE') || 'Warehouse' },
-                      { value: 'FARM', label: t('cat.FARM') || 'Farm' },
-                      { value: 'LAND', label: t('cat.LAND') || 'Land' },
-                      { value: 'ROOM', label: t('cat.ROOM') || 'Room' }
-                    ]}
-                  />
-                </div>
-              </div>
+              )}
 
-              <div>
-                <label className="cn-label mb-2">{language === 'ar' ? 'الوصف (عربي أو إنجليزي)' : 'Description'}</label>
-                <textarea required rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="cn-input min-h-[100px] resize-y" dir="rtl" />
-              </div>
-            </div>
+              {/* STEP 2: Description & Custom Details */}
+              {currentStep === 2 && (
+                <div className="space-y-8 animate-in fade-in duration-350">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5 mb-4">{language === 'ar' ? 'الوصف' : 'Description'} <span className="text-red-500">*</span></h3>
+                    <textarea rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="cn-input min-h-[120px] resize-y" dir="rtl" placeholder={language === 'ar' ? 'أدخل وصفاً تفصيلياً للمشروع...' : 'Enter a detailed description for the project...'} />
+                  </div>
 
-            <div className="space-y-6">
-              <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'الموقع والمساحة' : 'Location & Area'}</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="cn-label mb-2">{t('admin.placeholder.area') || 'Area'}</label>
-                  <input type="number" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} className="cn-input" />
-                </div>
-                <div>
-                  <label className="cn-label mb-2">{t('admin.placeholder.age') || 'Age'}</label>
-                  <input type="number" value={formData.propertyAge} onChange={(e) => setFormData({...formData, propertyAge: e.target.value})} className="cn-input" />
-                </div>
-              </div>
+                  {/* Additional Details (Key-Value) Card */}
+                  <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-xs space-y-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
+                        <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">1</span>
+                        {language === 'ar' ? 'التفاصيل الإضافية للمشروع (خصائص بقيمة)' : 'Project Additional Details (Key & Value)'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {language === 'ar' 
+                          ? 'أدخل خصائص محددة بقيمة للمشروع، مثل: (الواجهة: شمالية، الضمانات: 10 سنوات). ملاحظة: عمر العقار والمساحة موجودان في البيانات الأساسية.'
+                          : 'Enter specific key-value properties for the project, e.g., (Facade: North, Warranties: 10 Years). Note: Property Age and Area are configured under Basic Information.'}
+                      </p>
+                    </div>
 
-              <div>
-                <label className="cn-label mb-2">{t('admin.placeholder.locationLink') || 'Location Link'}</label>
-                <input type="text" value={formData.locationLink} onChange={(e) => setFormData({...formData, locationLink: e.target.value})} className="cn-input" dir="ltr" />
-              </div>
-              
-              <div>
-                <label className="cn-label mb-2">{t('admin.placeholder.locationText') || 'Location Text'}</label>
-                <input type="text" value={formData.locationText} onChange={(e) => setFormData({...formData, locationText: e.target.value})} className="cn-input" />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 space-y-6">
-            <h3 className="text-sm font-bold text-foreground border-b border-border pb-1.5">{language === 'ar' ? 'الصور والفيديوهات' : 'Images & Videos'}</h3>
-            <div className="border border-dashed border-border rounded-lg p-6 text-center hover:bg-slate-50 transition-colors bg-slate-50/30">
-              <label className="cursor-pointer flex flex-col items-center">
-                {isUploadingImages ? (
-                  <Loader2 className="w-12 h-12 text-primary mb-4 animate-spin" />
-                ) : (
-                  <ImagePlus className="w-12 h-12 text-gray-400 mb-4" />
-                )}
-                <span className="text-muted-foreground font-medium mb-2">
-                  {isUploadingImages
-                    ? (language === 'ar'
-                        ? `جاري رفع الصور والفيديوهات... ${imageUploadProgress !== null ? `${imageUploadProgress}%` : ''}`
-                        : `Uploading media... ${imageUploadProgress !== null ? `${imageUploadProgress}%` : ''}`)
-                    : (language === 'ar' ? 'اضغط لاختيار الصور والفيديوهات' : 'Click to select images & videos')}
-                </span>
-                <input type="file" multiple accept="image/*,video/*" onChange={handleImageUpload} className="hidden" disabled={isUploadingImages} />
-              </label>
-            </div>
-            {formData.imageUrls.length > 0 && (
-              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4">
-                {formData.imageUrls.map((url, idx) => {
-                  const isVideo = url && (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm') || url.endsWith('.avi'));
-                  return (
-                    <div key={idx} className="relative aspect-square rounded-md border border-border overflow-hidden group shadow-xs">
-                      {isVideo ? (
-                        <video src={url} className="w-full h-full object-cover" muted playsInline />
-                      ) : (
-                        <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
-                      )}
-
-                      {/* Play overlay for video */}
-                      {isVideo && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
-                          <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white">
-                            <svg className="w-4 h-4 ml-0.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                          </div>
+                    <div className="flex flex-wrap gap-1.5 py-2">
+                      {PREDEFINED_DETAILS.map((d, i) => (
+                        <button 
+                          key={i} 
+                          type="button" 
+                          onClick={() => addDetail(language === 'ar' ? d.keyAr : d.keyEn)}
+                          className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-xs cursor-pointer"
+                        >
+                          + {language === 'ar' ? d.keyAr : d.keyEn}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {formData.detailsList.length > 0 && (
+                        <div className="grid grid-cols-[40px_1.5fr_3fr_auto] gap-3 px-1 text-xs font-semibold text-muted-foreground">
+                          <div>{language === 'ar' ? 'رمز' : 'Icon'}</div>
+                          <div>{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
+                          <div>{language === 'ar' ? 'القيمة' : 'Value'}</div>
+                          <div className="w-10"></div>
                         </div>
                       )}
-
-                      <button type="button" onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600" aria-label={language === 'ar' ? 'إزالة الصورة' : 'Remove Image'}>
-                        <X className="w-4 h-4" />
-                      </button>
+                      {formData.detailsList.map((detail) => (
+                        <div key={detail.id} className="grid grid-cols-[40px_1.5fr_3fr_auto] gap-3 items-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveDetailId(detail.id);
+                              setIconSearchQuery('');
+                              setShowIconPicker(true);
+                            }}
+                            className="w-10 h-10 bg-background border border-border rounded-lg flex items-center justify-center text-primary hover:bg-muted transition cursor-pointer hover:border-primary/50 shadow-xs"
+                            title={language === 'ar' ? 'اختر أيقونة' : 'Choose Icon'}
+                          >
+                            {renderIcon(detail.icon)}
+                          </button>
+                          <div>
+                            <input 
+                              type="text" 
+                              placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'} 
+                              value={detail.key} 
+                              onChange={(e) => updateDetail(detail.id, 'key', e.target.value)} 
+                              className="input-field text-sm" 
+                            />
+                          </div>
+                          <div>
+                            <input 
+                              type="text" 
+                              placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'} 
+                              value={detail.value} 
+                              onChange={(e) => updateDetail(detail.id, 'value', e.target.value)} 
+                              className="input-field text-sm" 
+                            />
+                          </div>
+                          <button type="button" onClick={() => removeDetail(detail.id)} className="p-2.5 text-red-500 hover:bg-red-50 rounded-lg border border-border transition cursor-pointer flex items-center justify-center h-10" aria-label={language === 'ar' ? 'إزالة التفاصيل' : 'Remove Detail'}>
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <button type="button" onClick={() => addDetail()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
+                          + {language === 'ar' ? 'إضافة تفصيل مخصص' : 'Add Custom Detail'}
+                        </button>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Features & Amenities */}
+              {currentStep === 3 && (
+                <div className="space-y-8 animate-in fade-in duration-350">
+                  <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-xs space-y-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
+                        <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">2</span>
+                        {language === 'ar' ? 'المميزات والمرافق للمشروع (نصوص فردية)' : 'Project Features & Amenities (Single Tags)'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {language === 'ar' 
+                          ? 'أدخل مميزات فردية أو خدمات عامة للمشروع، مثل: (مسبح، نادي رياضي، دخول ذكي، حديقة).' 
+                          : 'Enter individual amenities or facilities, e.g., (Pool, Gym, Smart Access, Garden).'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 py-2">
+                      {PREDEFINED_FEATURES.map((f, i) => (
+                        <button 
+                          key={i} 
+                          type="button" 
+                          onClick={() => addFeature(language === 'ar' ? f.keyAr : f.keyEn)}
+                          className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-xs cursor-pointer"
+                        >
+                          + {language === 'ar' ? f.keyAr : f.keyEn}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {formData.featuresList.length > 0 && (
+                        <div className="grid grid-cols-[1fr_auto] gap-4 px-1 text-xs font-semibold text-muted-foreground">
+                          <div>{language === 'ar' ? 'اسم الميزة' : 'Feature Name'}</div>
+                          <div className="w-10"></div>
+                        </div>
+                      )}
+                      {formData.featuresList.map((feature) => (
+                        <div key={feature.id} className="flex gap-4 items-center">
+                          <div className="flex-1">
+                            <input 
+                              type="text" 
+                              placeholder={language === 'ar' ? 'الميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'} 
+                              value={feature.value} 
+                              onChange={(e) => updateFeature(feature.id, e.target.value)} 
+                              className="input-field text-sm" 
+                            />
+                          </div>
+                          <button type="button" onClick={() => removeFeature(feature.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border transition cursor-pointer" aria-label={language === 'ar' ? 'إزالة الميزة' : 'Remove Feature'}>
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <button type="button" onClick={() => addFeature()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
+                          + {language === 'ar' ? 'إضافة ميزة مخصصة' : 'Add Custom Feature'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: Photos & Videos */}
+              {currentStep === 4 && (
+                <div className="space-y-8 animate-in fade-in duration-350">
+                  <div className="border-2 border-dashed border-border hover:border-primary/50 rounded-2xl p-8 text-center transition-all bg-muted/20 hover:bg-muted/40 group">
+                    <label className="cursor-pointer flex flex-col items-center">
+                      {isUploadingImages ? (
+                        <Loader2 className="w-12 h-12 text-primary mb-4 animate-spin" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                          <ImagePlus className="w-7 h-7 text-primary" />
+                        </div>
+                      )}
+                      <span className="text-foreground font-bold text-base mb-1">
+                        {isUploadingImages
+                          ? (language === 'ar'
+                              ? `جاري رفع ومعالجة الوسائط... ${imageUploadProgress !== null ? `${imageUploadProgress}%` : ''}`
+                              : `Uploading & Processing Media... ${imageUploadProgress !== null ? `${imageUploadProgress}%` : ''}`)
+                          : (language === 'ar' ? 'اسحب وأفلت الصور ومقاطع الفيديو هنا' : 'Drag & drop images and videos here')}
+                      </span>
+                      <span className="text-muted-foreground text-xs mb-4">
+                        {language === 'ar' ? 'يدعم الصور (PNG, JPG, WebP) ومقاطع الفيديو (MP4, WebM)' : 'Supports PNG, JPG, WebP images and MP4, WebM videos'}
+                      </span>
+                      
+                      {/* Explicit button inside the dropzone */}
+                      <span className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-xs hover:bg-primary/90 transition-all cursor-pointer pointer-events-none group-hover:shadow-md">
+                        <ImagePlus className="w-4 h-4" />
+                        <span>{language === 'ar' ? 'اضغط لاختيار الصور والفيديوهات' : 'Choose Media Files'}</span>
+                      </span>
+
+                      <input type="file" multiple accept="image/*,video/*" onChange={handleImageUpload} className="hidden" disabled={isUploadingImages} />
+                    </label>
+                  </div>
+                  {formData.imageUrls.length > 0 && (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4">
+                      {formData.imageUrls.map((url, idx) => {
+                        const isVideo = url && (url.startsWith('data:video') || url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm') || url.endsWith('.avi'));
+                        return (
+                          <div key={idx} className="relative aspect-square rounded-md border border-border overflow-hidden group shadow-xs">
+                            {isVideo ? (
+                              <video src={url} className="w-full h-full object-cover" muted playsInline />
+                            ) : (
+                              <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                            )}
+
+                            {/* Play overlay for video */}
+                            {isVideo && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
+                                <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white">
+                                  <svg className="w-4 h-4 ml-0.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                </div>
+                              </div>
+                            )}
+
+                            <button type="button" onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 cursor-pointer" aria-label={language === 'ar' ? 'إزالة الصورة' : 'Remove Image'}>
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Floorplan (المخطط) Section */}
+                  <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                          <Compass className="w-5 h-5 text-primary" />
+                          <span>{language === 'ar' ? 'مخطط المشروع (Floorplan / Masterplan)' : 'Project Floorplan & Masterplan'}</span>
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {language === 'ar' 
+                            ? 'ارفع صورة المسقط المعماري أو مخطط المشروع (PNG, JPG, WebP, PDF) أو ضع رابطاً مباشراً. سيظهر في صفحة المشروع فقط في حال إضافته.' 
+                            : 'Upload architectural layout or floorplan (PNG, JPG, WebP, PDF) or provide a direct URL. Displays on project page only if added.'}
+                        </p>
+                      </div>
+                      {formData.floorplanUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, floorplanUrl: '' }))}
+                          className="text-xs font-semibold text-red-500 hover:text-red-600 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{language === 'ar' ? 'حذف المخطط' : 'Remove Plan'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {formData.floorplanUrl ? (
+                      <div className="space-y-3">
+                        <div className="p-4 rounded-xl bg-background border border-border flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            {formData.floorplanUrl.startsWith('data:image') || (!formData.floorplanUrl.endsWith('.pdf') && !formData.floorplanUrl.startsWith('data:application/pdf')) ? (
+                              <img 
+                                src={formData.floorplanUrl} 
+                                alt="Floorplan preview" 
+                                className="w-14 h-14 object-cover rounded-lg border border-border shrink-0" 
+                              />
+                            ) : (
+                              <div className="w-14 h-14 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <FileText className="w-7 h-7" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-foreground truncate">
+                                {language === 'ar' ? 'تم إضافة مخطط المشروع بنجاح' : 'Floorplan attached successfully'}
+                              </p>
+                              <span className="text-[11px] text-muted-foreground font-mono truncate block max-w-xs sm:max-w-md">
+                                {formData.floorplanUrl.startsWith('data:') ? (language === 'ar' ? 'ملف مرفوع محلياً' : 'Local upload file') : formData.floorplanUrl}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a 
+                              href={formData.floorplanUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="btn-outline h-8 px-3 text-xs flex items-center gap-1 cursor-pointer"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>{language === 'ar' ? 'معاينة' : 'Preview'}</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, floorplanUrl: '' }))}
+                              className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                              title={language === 'ar' ? 'حذف' : 'Remove'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                            {language === 'ar' ? 'أو تعديل رابط المخطط المباشر:' : 'Or edit floorplan URL directly:'}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="https://..."
+                            value={formData.floorplanUrl.startsWith('data:') ? '' : formData.floorplanUrl}
+                            onChange={(e) => setFormData(prev => ({ ...prev, floorplanUrl: e.target.value }))}
+                            className="input-field text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-colors ${isUploadingFloorplan ? 'border-border bg-muted cursor-not-allowed' : 'border-primary/30 bg-background/50 hover:bg-muted/40'}`}>
+                          <input 
+                            type="file" 
+                            accept="image/*,.pdf" 
+                            onChange={handleFloorplanUpload} 
+                            className="hidden" 
+                            id="floorplan-upload" 
+                            disabled={isUploadingFloorplan} 
+                          />
+                          <label htmlFor="floorplan-upload" className={`flex flex-col items-center ${isUploadingFloorplan ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            {isUploadingFloorplan ? (
+                              <Loader2 className="w-8 h-8 text-primary mb-2 animate-spin" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2">
+                                <Compass className="w-5 h-5" />
+                              </div>
+                            )}
+                            <span className="font-bold text-xs text-foreground mb-1">
+                              {isUploadingFloorplan 
+                                ? (language === 'ar' ? 'جاري رفع المخطط...' : 'Uploading Floorplan...') 
+                                : (language === 'ar' ? 'اضغط لرفع صورة المخطط أو ملف PDF' : 'Click to upload Floorplan Image or PDF')}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {language === 'ar' ? 'يدعم PNG, JPG, WebP, SVG, PDF' : 'Supports PNG, JPG, WebP, SVG, PDF'}
+                            </span>
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{language === 'ar' ? 'أو ضع رابط المخطط:' : 'Or floorplan link:'}</span>
+                          <input
+                            type="text"
+                            placeholder="https://..."
+                            value={formData.floorplanUrl}
+                            onChange={(e) => setFormData(prev => ({ ...prev, floorplanUrl: e.target.value }))}
+                            className="input-field text-xs font-mono flex-1"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Brochure (البروشور) Section */}
+                  <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-primary" />
+                          <span>{language === 'ar' ? 'كتيب / بروشور المشروع (Project Brochure)' : 'Project Brochure (PDF)'}</span>
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {language === 'ar' 
+                            ? 'ارفع ملف البروشور أو كتيب المشروع (PDF) أو ضع رابط تحميل مباشر. لن يظهر زر التحميل في صفحة المشروع إذا لم يتم إرفاق بروشور.' 
+                            : 'Upload project brochure (PDF) or provide a download link. The brochure button will only appear on the project page if attached.'}
+                        </p>
+                      </div>
+                      {formData.brochureUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, brochureUrl: '' }))}
+                          className="text-xs font-semibold text-red-500 hover:text-red-600 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{language === 'ar' ? 'حذف البروشور' : 'Remove Brochure'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {formData.brochureUrl ? (
+                      <div className="space-y-3">
+                        <div className="p-4 rounded-xl bg-background border border-border flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="w-12 h-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                              <FileDown className="w-6 h-6" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-foreground truncate">
+                                {language === 'ar' ? 'تم ربط بروشور المشروع بنجاح' : 'Brochure attached successfully'}
+                              </p>
+                              <span className="text-[11px] text-muted-foreground font-mono truncate block max-w-xs sm:max-w-md">
+                                {formData.brochureUrl.startsWith('data:') ? (language === 'ar' ? 'ملف PDF مرفوع' : 'Uploaded PDF File') : formData.brochureUrl}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a 
+                              href={formData.brochureUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              download
+                              className="btn-outline h-8 px-3 text-xs flex items-center gap-1 cursor-pointer"
+                            >
+                              <Download className="w-3 h-3" />
+                              <span>{language === 'ar' ? 'تحميل' : 'Download'}</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, brochureUrl: '' }))}
+                              className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                              title={language === 'ar' ? 'حذف' : 'Remove'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                            {language === 'ar' ? 'أو تعديل رابط البروشور المباشر:' : 'Or edit brochure URL directly:'}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="https://..."
+                            value={formData.brochureUrl.startsWith('data:') ? '' : formData.brochureUrl}
+                            onChange={(e) => setFormData(prev => ({ ...prev, brochureUrl: e.target.value }))}
+                            className="input-field text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-colors ${isUploadingBrochure ? 'border-border bg-muted cursor-not-allowed' : 'border-primary/30 bg-background/50 hover:bg-muted/40'}`}>
+                          <input 
+                            type="file" 
+                            accept=".pdf,.doc,.docx" 
+                            onChange={handleBrochureUpload} 
+                            className="hidden" 
+                            id="brochure-upload" 
+                            disabled={isUploadingBrochure} 
+                          />
+                          <label htmlFor="brochure-upload" className={`flex flex-col items-center ${isUploadingBrochure ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            {isUploadingBrochure ? (
+                              <Loader2 className="w-8 h-8 text-primary mb-2 animate-spin" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2">
+                                <FileDown className="w-5 h-5" />
+                              </div>
+                            )}
+                            <span className="font-bold text-xs text-foreground mb-1">
+                              {isUploadingBrochure 
+                                ? (language === 'ar' ? 'جاري رفع البروشور...' : 'Uploading Brochure...') 
+                                : (language === 'ar' ? 'اضغط لرفع ملف البروشور (PDF)' : 'Click to upload Project Brochure (PDF)')}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {language === 'ar' ? 'يدعم ملفات PDF والمستندات' : 'Supports PDF and Document files'}
+                            </span>
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{language === 'ar' ? 'أو ضع رابط البروشور:' : 'Or brochure link:'}</span>
+                          <input
+                            type="text"
+                            placeholder="https://..."
+                            value={formData.brochureUrl}
+                            onChange={(e) => setFormData(prev => ({ ...prev, brochureUrl: e.target.value }))}
+                            className="input-field text-xs font-mono flex-1"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Action Navigation Footer */}
+          <div className="border-t border-border pt-6 mt-8 flex items-center justify-between gap-3 select-none">
+            {/* Cancel or Previous Button */}
+            {currentStep > 1 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(currentStep - 1)}
+                className="btn-outline h-10 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-2xs hover:bg-muted active:scale-[0.98]"
+              >
+                {language === 'ar' ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+                <span>{language === 'ar' ? 'السابق' : 'Previous'}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingId(null);
+                  resetForm();
+                }}
+                className="btn-outline h-10 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-2xs hover:bg-muted active:scale-[0.98]"
+              >
+                <span>{language === 'ar' ? 'إلغاء' : 'Cancel'}</span>
+              </button>
             )}
-          </div>
 
-          {/* Details & Features Container */}
-          <div className="mt-8 space-y-8">
-            {/* Additional Details (Key-Value) Card */}
-            <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
-                  <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">1</span>
-                  {language === 'ar' ? 'التفاصيل الإضافية للمشروع (خصائص بقيمة)' : 'Project Additional Details (Key & Value)'}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {language === 'ar' 
-                    ? 'أدخل خصائص محددة بقيمة للمشروع، مثل: (الواجهة: شمالية، الضمانات: 10 سنوات). ملاحظة: عمر العقار موجود في البيانات الأساسية.'
-                    : 'Enter specific key-value properties for the project, e.g., (Facade: North, Warranties: 10 Years). Note: Property Age is configured under Basic Information.'}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5 py-2">
-                {PREDEFINED_DETAILS.map((d, i) => (
-                  <button 
-                    key={i} 
-                    type="button" 
-                    onClick={() => addDetail(language === 'ar' ? d.keyAr : d.keyEn)}
-                    className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
-                  >
-                    + {language === 'ar' ? d.keyAr : d.keyEn}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="space-y-4">
-                {formData.detailsList.length > 0 && (
-                  <div className="grid grid-cols-[40px_1.5fr_3fr_auto] gap-3 px-1 text-xs font-semibold text-muted-foreground">
-                    <div>{language === 'ar' ? 'رمز' : 'Icon'}</div>
-                    <div>{language === 'ar' ? 'الخاصية / التفصيل' : 'Property / Detail'}</div>
-                    <div>{language === 'ar' ? 'القيمة' : 'Value'}</div>
-                    <div className="w-10"></div>
-                  </div>
+            {/* Next or Save Button */}
+            {currentStep < totalSteps ? (
+              <button
+                type="button"
+                onClick={handleNextStep}
+                className="btn-primary h-10 px-6 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs active:scale-[0.98]"
+              >
+                <span>{language === 'ar' ? 'التالي' : 'Next'}</span>
+                {language === 'ar' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading || isUploadingImages}
+                className="btn-primary h-10 px-7 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm active:scale-[0.98] disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 stroke-[2.5]" />
+                    <span>
+                      {editingId 
+                        ? (language === 'ar' ? 'حفظ التعديلات' : 'Save Changes') 
+                        : (language === 'ar' ? 'حفظ المشروع' : 'Save Project')}
+                    </span>
+                  </>
                 )}
-                {formData.detailsList.map((detail) => (
-                  <div key={detail.id} className="grid grid-cols-[40px_1.5fr_3fr_auto] gap-3 items-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveDetailId(detail.id);
-                        setIconSearchQuery('');
-                        setShowIconPicker(true);
-                      }}
-                      className="w-10 h-10 bg-background border border-border rounded-lg flex items-center justify-center text-primary hover:bg-muted transition cursor-pointer hover:border-primary/50 shadow-xs"
-                      title={language === 'ar' ? 'اختر أيقونة' : 'Choose Icon'}
-                    >
-                      {renderIcon(detail.icon)}
-                    </button>
-                    <div>
-                      <input 
-                        type="text" 
-                        placeholder={language === 'ar' ? 'الخاصية (مثال: الواجهة)' : 'Key (e.g. Facade)'} 
-                        value={detail.key} 
-                        onChange={(e) => updateDetail(detail.id, 'key', e.target.value)} 
-                        className="input-field text-sm" 
-                      />
-                    </div>
-                    <div>
-                      <input 
-                        type="text" 
-                        placeholder={language === 'ar' ? 'القيمة (مثال: شمالية)' : 'Value (e.g. North)'} 
-                        value={detail.value} 
-                        onChange={(e) => updateDetail(detail.id, 'value', e.target.value)} 
-                        className="input-field text-sm" 
-                      />
-                    </div>
-                    <button type="button" onClick={() => removeDetail(detail.id)} className="p-2.5 text-red-500 hover:bg-red-50 rounded-lg border border-border transition cursor-pointer flex items-center justify-center h-10" aria-label={language === 'ar' ? 'إزالة التفاصيل' : 'Remove Detail'}>
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <button type="button" onClick={() => addDetail()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
-                    + {language === 'ar' ? 'إضافة تفصيل مخصص' : 'Add Custom Detail'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Features & Amenities (Single Tags) Card */}
-            <div className="bg-card/50 border border-border/80 rounded-2xl p-6 shadow-sm space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2 mb-2">
-                  <span className="bg-primary/10 text-primary w-5 h-5 rounded-lg inline-flex items-center justify-center text-xs font-bold">2</span>
-                  {language === 'ar' ? 'المميزات والمرافق للمشروع (نصوص فردية)' : 'Project Features & Amenities (Single Tags)'}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {language === 'ar' 
-                    ? 'أدخل مميزات فردية أو خدمات عامة للمشروع، مثل: (مسبح، نادي رياضي، دخول ذكي، حديقة).' 
-                    : 'Enter individual amenities or facilities, e.g., (Pool, Gym, Smart Access, Garden).'}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5 py-2">
-                {PREDEFINED_FEATURES.map((f, i) => (
-                  <button 
-                    key={i} 
-                    type="button" 
-                    onClick={() => addFeature(language === 'ar' ? f.keyAr : f.keyEn)}
-                    className="bg-background border border-border text-foreground px-2.5 py-1 rounded-full text-xs font-medium hover:bg-muted flex items-center gap-1 transition shadow-sm"
-                  >
-                    + {language === 'ar' ? f.keyAr : f.keyEn}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="space-y-4">
-                {formData.featuresList.length > 0 && (
-                  <div className="grid grid-cols-[1fr_auto] gap-4 px-1 text-xs font-semibold text-muted-foreground">
-                    <div>{language === 'ar' ? 'اسم الميزة' : 'Feature Name'}</div>
-                    <div className="w-10"></div>
-                  </div>
-                )}
-                {formData.featuresList.map((feature) => (
-                  <div key={feature.id} className="flex gap-4 items-center">
-                    <div className="flex-1">
-                      <input 
-                        type="text" 
-                        placeholder={language === 'ar' ? 'الميزة (مثال: مسبح)' : 'Feature (e.g. Pool)'} 
-                        value={feature.value} 
-                        onChange={(e) => updateFeature(feature.id, e.target.value)} 
-                        className="input-field text-sm" 
-                      />
-                    </div>
-                    <button type="button" onClick={() => removeFeature(feature.id)} className="p-2 text-red-500 hover:bg-red-50 rounded border border-border transition" aria-label={language === 'ar' ? 'إزالة الميزة' : 'Remove Feature'}>
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <button type="button" onClick={() => addFeature()} className="btn-outline px-3 h-8 text-xs rounded-md shadow-xs cursor-pointer">
-                    + {language === 'ar' ? 'إضافة ميزة مخصصة' : 'Add Custom Feature'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-10 border-t pt-8">
-            <button type="submit" disabled={loading} className="btn-primary w-full h-10 text-sm rounded-md shadow-xs cursor-pointer active:scale-[0.97]">
-              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (editingId ? (language === 'ar' ? 'حفظ التعديلات' : 'Save Changes') : (language === 'ar' ? 'حفظ المشروع' : 'Save Project'))}
-            </button>
+              </button>
+            )}
           </div>
         </form>
       ) : (
