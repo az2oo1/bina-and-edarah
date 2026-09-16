@@ -9,708 +9,853 @@ export function CitySkylineGraphic({ className = "w-full h-28 sm:h-32 md:h-36 lg
     <div className={`relative w-full flex items-end justify-center select-none pointer-events-none overflow-hidden ${className}`}>
       
       {/* ========================================================================= */}
-      {/* MOBILE SKYLINE (Tailored for screens < 640px, High-Density 2D Line Art)    */}
+      {/* MOBILE SKYLINE (Tailored for screens < 640px, High-Fidelity 2D Line Art)   */}
       {/* ========================================================================= */}
       <svg
-        viewBox="0 0 620 120"
+        viewBox="0 0 600 120"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full block sm:hidden"
         preserveAspectRatio="xMidYMax slice"
       >
-        {/* Baseline Horizon */}
-        <line x1="0" y1="115" x2="620" y2="115" stroke="currentColor" strokeWidth="1.6" opacity="0.9" />
+        <defs>
+          <pattern id="archHatchMob" width="3" height="3" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="3" stroke="currentColor" strokeWidth="0.5" opacity="0.16" />
+          </pattern>
+        </defs>
 
-        {/* Soft Silhouette Background Layer */}
-        <g stroke="currentColor" strokeWidth="0.8" opacity="0.22" fill="currentColor" fillOpacity="0.05">
-          <rect x="20" y="32" width="34" height="83" />
-          <rect x="75" y="18" width="36" height="97" />
-          <line x1="93" y1="6" x2="93" y2="18" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <rect x="150" y="44" width="38" height="71" />
-          <rect x="432" y="44" width="38" height="71" />
-          <rect x="509" y="18" width="36" height="97" />
-          <line x1="527" y1="6" x2="527" y2="18" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <rect x="566" y="32" width="34" height="83" />
+        {/* Baseline Horizon & Sidewalk */}
+        <line x1="0" y1="110" x2="600" y2="110" stroke="currentColor" strokeWidth="1.6" />
+        <line x1="0" y1="112.5" x2="600" y2="112.5" stroke="currentColor" strokeWidth="0.6" opacity="0.45" />
+        <line x1="0" y1="116" x2="600" y2="116" stroke="currentColor" strokeWidth="0.5" opacity="0.25" strokeDasharray="10 5" />
+
+        {/* Background Silhouettes */}
+        <g stroke="currentColor" strokeWidth="0.7" opacity="0.14" fill="currentColor" fillOpacity="0.04">
+          <rect x="50" y="45" width="30" height="65" />
+          <rect x="120" y="30" width="32" height="80" />
+          <line x1="136" y1="22" x2="136" y2="30" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="420" y="35" width="32" height="75" />
+          <line x1="436" y1="27" x2="436" y2="35" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="490" y="50" width="28" height="60" />
         </g>
 
-        {/* Masterpiece Foreground 2D Architectural Drawing */}
-        <g stroke="currentColor" strokeWidth="1.1" fill="var(--background)" strokeLinejoin="round">
-          
-          {/* 1. Left Iconic Curved Pavilion (Spiral Ribbon Drum) */}
-          <ellipse cx="32" cy="56" rx="26" ry="6.5" />
-          <path d="M 6 56 L 6 115 L 58 115 L 58 56 Z" />
-          <path d="M 6 68 Q 32 75 58 68" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 6 80 Q 32 87 58 80" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 6 92 Q 32 99 58 92" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 6 104 Q 32 111 58 104" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          {/* Vertical mullions in each ribbon */}
-          {[14, 23, 32, 41, 50].map((x) => (
-            <React.Fragment key={x}>
-              <line x1={x} y1="58" x2={x} y2="114" stroke="currentColor" strokeWidth="0.7" opacity="0.65" />
-            </React.Fragment>
-          ))}
-          {/* Entrance */}
-          <rect x="24" y="103" width="16" height="12" stroke="currentColor" strokeWidth="0.9" />
-          <line x1="32" y1="103" x2="32" y2="115" stroke="currentColor" strokeWidth="0.7" />
+        {/* Foreground Buildings */}
+        {/* Left Spiral Pavilion */}
+        <g stroke="currentColor" strokeLinejoin="round">
+          <ellipse cx="33" cy="59" rx="23" ry="5" fill="var(--background)" strokeWidth="1.1" />
+          <path d="M 10 59 L 10 110 L 56 110 L 56 59 Z" fill="var(--background)" strokeWidth="1.2" />
+          <path d="M 10 72 Q 33 78 56 72" fill="none" strokeWidth="0.9" />
+          <path d="M 10 84 Q 33 90 56 84" fill="none" strokeWidth="0.9" />
+          <path d="M 10 96 Q 33 102 56 96" fill="none" strokeWidth="0.9" />
+          <rect x="25" y="99" width="16" height="11" fill="var(--background)" strokeWidth="0.9" />
+          <line x1="33" y1="99" x2="33" y2="110" strokeWidth="0.6" />
+        </g>
 
-          {/* 2. Left Landmark Skyscraper (Angled Crown & Antennas - 44w x 95h) */}
-          <path d="M 62 115 L 62 32 L 106 20 L 106 115 Z" />
-          {/* Rooftop Antenna Masts */}
-          <line x1="72" y1="8" x2="72" y2="29" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <line x1="96" y1="4" x2="96" y2="23" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          {/* Structural Vertical Piers */}
-          <line x1="76" y1="28" x2="76" y2="115" stroke="currentColor" strokeWidth="0.9" opacity="0.7" />
-          <line x1="92" y1="24" x2="92" y2="115" stroke="currentColor" strokeWidth="0.9" opacity="0.7" />
-          {/* Dense Window Floors */}
-          {[42, 54, 66, 78, 90, 102].map((y) => (
+        {/* Left Stepped Balcony Residence */}
+        <g stroke="currentColor" strokeLinejoin="round">
+          <rect x="64" y="56" width="50" height="54" fill="var(--background)" strokeWidth="1.2" />
+          <rect x="78" y="44" width="36" height="12" fill="var(--background)" strokeWidth="1.1" />
+          <line x1="82" y1="39" x2="110" y2="39" strokeWidth="1.1" strokeLinecap="round" />
+          <line x1="86" y1="39" x2="86" y2="44" strokeWidth="0.6" />
+          <line x1="94" y1="39" x2="94" y2="44" strokeWidth="0.6" />
+          <line x1="102" y1="39" x2="102" y2="44" strokeWidth="0.6" />
+          <rect x="68" y="64" width="12" height="9" fill="var(--background)" strokeWidth="0.75" />
+          <rect x="85" y="64" width="24" height="9" fill="url(#archHatchMob)" stroke="currentColor" strokeWidth="0.6" />
+          <line x1="83" y1="70" x2="111" y2="70" strokeWidth="0.9" />
+          <rect x="68" y="80" width="12" height="9" fill="var(--background)" strokeWidth="0.75" />
+          <rect x="85" y="80" width="24" height="9" fill="url(#archHatchMob)" stroke="currentColor" strokeWidth="0.6" />
+          <line x1="83" y1="86" x2="111" y2="86" strokeWidth="0.9" />
+          <rect x="70" y="98" width="12" height="12" fill="var(--background)" strokeWidth="0.9" />
+        </g>
+
+        {/* Left Tree & Street Lamp */}
+        <g stroke="currentColor">
+          <line x1="120" y1="110" x2="120" y2="102" strokeWidth="1" />
+          <circle cx="120" cy="96" r="6" fill="var(--background)" strokeWidth="1" />
+          <line x1="128" y1="110" x2="128" y2="94" strokeWidth="0.9" />
+          <path d="M 128 94 Q 128 91 131 91 L 133 91" fill="none" strokeWidth="0.9" />
+          <circle cx="133" cy="92" r="1" fill="currentColor" />
+        </g>
+
+        {/* Left Angled Skyscraper */}
+        <g stroke="currentColor" strokeLinejoin="round">
+          <polygon points="134,110 134,22 180,38 180,110" fill="var(--background)" strokeWidth="1.25" />
+          <line x1="144" y1="22" x2="144" y2="6" strokeWidth="1.4" strokeLinecap="round" />
+          <circle cx="144" cy="6" r="1.2" fill="currentColor" />
+          <line x1="148" y1="28" x2="148" y2="110" strokeWidth="0.75" opacity="0.8" />
+          <line x1="166" y1="34" x2="166" y2="110" strokeWidth="0.75" opacity="0.8" />
+          {[48, 62, 76, 90].map((y) => (
             <React.Fragment key={y}>
-              <line x1="62" y1={y} x2="106" y2={y} stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
-              <rect x="65" y={y - 8} width="8" height="6" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="80" y={y - 8} width="8" height="6" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="95" y={y - 8} width="8" height="6" stroke="currentColor" strokeWidth="0.7" />
+              <line x1="134" y1={y} x2="180" y2={y} strokeWidth="0.6" opacity="0.65" />
+              <rect x="137" y={y - 6} width="7" height="4" fill="var(--background)" strokeWidth="0.55" />
+              <rect x="151" y={y - 6} width="12" height="4" fill="var(--background)" strokeWidth="0.55" />
+              <rect x="169" y={y - 6} width="7" height="4" fill="var(--background)" strokeWidth="0.55" />
             </React.Fragment>
           ))}
-          <rect x="78" y="103" width="12" height="12" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="149" y="98" width="16" height="12" fill="var(--background)" strokeWidth="0.95" />
+        </g>
 
-          {/* 3. Mid-Rise Grid Building (38w x 67h) */}
-          <rect x="110" y="48" width="38" height="67" />
-          <rect x="120" y="42" width="18" height="6" />
-          <line x1="129" y1="36" x2="129" y2="42" stroke="currentColor" strokeWidth="1" />
-          {/* Array of 12 Individual Framed Windows */}
-          {[56, 68, 80, 92].map((y) => (
+        {/* Left Car */}
+        <g stroke="currentColor" strokeWidth="0.7" strokeLinejoin="round">
+          <path d="M 184 108 L 184 106 L 188 103 L 196 103 L 199 106 L 204 106 L 204 108 Z" fill="var(--background)" />
+          <circle cx="188" cy="108" r="1.8" fill="currentColor" />
+          <circle cx="200" cy="108" r="1.8" fill="currentColor" />
+        </g>
+
+        {/* Central Heritage Oasis: Left Palm Tree */}
+        <g stroke="currentColor">
+          <path d="M 210 110 Q 212 88 214 70 L 217 70 Q 215 88 214 110 Z" fill="var(--background)" strokeWidth="0.95" />
+          <path d="M 215 70 Q 198 56 186 72" fill="none" strokeWidth="1" />
+          <path d="M 215 70 Q 206 48 198 50" fill="none" strokeWidth="1" />
+          <path d="M 215 70 Q 215 45 220 47" fill="none" strokeWidth="1" />
+          <path d="M 215 70 Q 228 54 232 72" fill="none" strokeWidth="1" />
+        </g>
+
+        {/* Heritage Royal Tent */}
+        <g stroke="currentColor" strokeLinejoin="round">
+          {/* Guy Ropes */}
+          <line x1="228" y1="88" x2="214" y2="110" strokeWidth="0.8" strokeDasharray="3 2" />
+          <line x1="336" y1="88" x2="350" y2="110" strokeWidth="0.8" strokeDasharray="3 2" />
+          {/* Poles */}
+          <line x1="250" y1="64" x2="250" y2="88" strokeWidth="1.2" />
+          <circle cx="250" cy="64" r="1.8" fill="currentColor" />
+          <line x1="282" y1="60" x2="282" y2="88" strokeWidth="1.3" />
+          <circle cx="282" cy="60" r="2" fill="currentColor" />
+          <line x1="314" y1="64" x2="314" y2="88" strokeWidth="1.2" />
+          <circle cx="314" cy="64" r="1.8" fill="currentColor" />
+          {/* Canopy Roof */}
+          <path d="M 228 88 Q 238 68 250 66 Q 266 64 282 62 Q 298 64 314 66 Q 326 68 336 88 L 336 110 L 228 110 Z" fill="var(--background)" strokeWidth="1.3" />
+          {/* Sadu Woven Stripes */}
+          <path d="M 230 78 Q 282 76 334 78" fill="none" strokeWidth="0.9" strokeDasharray="5 2 1 2" opacity="0.8" />
+          <path d="M 230 84 Q 282 82 334 84" fill="none" strokeWidth="0.9" strokeDasharray="5 2 1 2" opacity="0.8" />
+          <path d="M 230 94 Q 282 92 334 94" fill="none" strokeWidth="0.9" strokeDasharray="5 2 1 2" opacity="0.8" />
+          <path d="M 230 100 Q 282 98 334 100" fill="none" strokeWidth="0.8" strokeDasharray="5 2 1 2" opacity="0.7" />
+          {/* Majlis Entrance & Lantern */}
+          <path d="M 270 110 L 270 92 Q 282 87 294 92 L 294 110 Z" fill="url(#archHatchMob)" stroke="currentColor" strokeWidth="1" />
+          <line x1="282" y1="62" x2="282" y2="90" strokeWidth="0.6" />
+          <polygon points="280,90 284,90 285,95 279,95" fill="currentColor" />
+          <rect x="272" y="105" width="9" height="4.5" rx="1" fill="var(--background)" strokeWidth="0.7" />
+          <rect x="283" y="105" width="9" height="4.5" rx="1" fill="var(--background)" strokeWidth="0.7" />
+        </g>
+
+        {/* Central Heritage Oasis: Right Palm Tree */}
+        <g stroke="currentColor">
+          <path d="M 350 110 Q 352 86 355 68 L 358 68 Q 355 86 353 110 Z" fill="var(--background)" strokeWidth="0.95" />
+          <path d="M 356 68 Q 372 54 384 70" fill="none" strokeWidth="1" />
+          <path d="M 356 68 Q 365 46 373 48" fill="none" strokeWidth="1" />
+          <path d="M 356 68 Q 352 43 346 45" fill="none" strokeWidth="1" />
+          <path d="M 356 68 Q 340 52 336 70" fill="none" strokeWidth="1" />
+        </g>
+
+        {/* Right Grand Spire Skyscraper */}
+        <g stroke="currentColor" strokeLinejoin="round">
+          <rect x="382" y="36" width="46" height="74" fill="var(--background)" strokeWidth="1.25" />
+          <rect x="386" y="20" width="38" height="16" fill="var(--background)" strokeWidth="1.1" />
+          <polygon points="392,20 405,8 418,20" fill="var(--background)" strokeWidth="1.15" />
+          <line x1="405" y1="8" x2="405" y2="-6" strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="405" cy="-6" r="1.2" fill="currentColor" />
+          <line x1="392" y1="20" x2="392" y2="110" strokeWidth="0.75" opacity="0.8" />
+          <line x1="405" y1="16" x2="405" y2="110" strokeWidth="0.9" />
+          <line x1="418" y1="20" x2="418" y2="110" strokeWidth="0.75" opacity="0.8" />
+          {[46, 60, 74, 88].map((y) => (
             <React.Fragment key={y}>
-              <rect x="114" y={y} width="7" height="8" stroke="currentColor" strokeWidth="0.8" />
-              <line x1="117.5" y1={y} x2="117.5" y2={y + 8} stroke="currentColor" strokeWidth="0.5" opacity="0.7" />
-              <rect x="125.5" y={y} width="7" height="8" stroke="currentColor" strokeWidth="0.8" />
-              <line x1="129" y1={y} x2="129" y2={y + 8} stroke="currentColor" strokeWidth="0.5" opacity="0.7" />
-              <rect x="137" y={y} width="7" height="8" stroke="currentColor" strokeWidth="0.8" />
-              <line x1="140.5" y1={y} x2="140.5" y2={y + 8} stroke="currentColor" strokeWidth="0.5" opacity="0.7" />
+              <line x1="382" y1={y} x2="428" y2={y} strokeWidth="0.6" opacity="0.65" />
+              <rect x="395" y={y - 6} width="5" height="4" fill="var(--background)" strokeWidth="0.5" />
+              <rect x="410" y={y - 6} width="5" height="4" fill="var(--background)" strokeWidth="0.5" />
             </React.Fragment>
           ))}
-          <rect x="122" y="103" width="14" height="12" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="397" y="97" width="16" height="13" fill="var(--background)" strokeWidth="0.95" />
+        </g>
 
-          {/* 4. Stepped Townhouse with Balcony Railings (42w x 55h) */}
-          <rect x="152" y="60" width="42" height="55" />
-          <rect x="152" y="54" width="26" height="6" />
-          {/* Balconies */}
-          <line x1="156" y1="74" x2="178" y2="74" stroke="currentColor" strokeWidth="1.1" />
-          <line x1="156" y1="78" x2="178" y2="78" stroke="currentColor" strokeWidth="0.6" />
-          <rect x="160" y="66" width="14" height="8" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="156" y1="94" x2="178" y2="94" stroke="currentColor" strokeWidth="1.1" />
-          <line x1="156" y1="98" x2="178" y2="98" stroke="currentColor" strokeWidth="0.6" />
-          <rect x="160" y="86" width="14" height="8" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="180" y1="60" x2="180" y2="115" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <rect x="184" y="70" width="8" height="15" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="184" y="94" width="8" height="21" stroke="currentColor" strokeWidth="0.8" />
+        {/* Right Lamp & Tree */}
+        <g stroke="currentColor">
+          <line x1="436" y1="110" x2="436" y2="94" strokeWidth="0.9" />
+          <path d="M 436 94 Q 436 91 439 91 L 441 91" fill="none" strokeWidth="0.9" />
+          <circle cx="441" cy="92" r="1" fill="currentColor" />
+          <line x1="446" y1="110" x2="446" y2="102" strokeWidth="1" />
+          <circle cx="446" cy="96" r="6" fill="var(--background)" strokeWidth="1" />
+        </g>
 
-          {/* 5. Modern Luxury Villa with Cantilever & Pergola (46w x 48h) */}
-          <rect x="198" y="67" width="46" height="48" />
-          <rect x="194" y="58" width="34" height="20" fill="var(--background)" stroke="currentColor" strokeWidth="1.15" />
-          {/* Pergola */}
-          <line x1="196" y1="50" x2="226" y2="50" stroke="currentColor" strokeWidth="1.3" />
-          <line x1="202" y1="50" x2="202" y2="58" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="212" y1="50" x2="212" y2="58" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="222" y1="50" x2="222" y2="58" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="198" y1="68" x2="224" y2="68" stroke="currentColor" strokeWidth="1.2" opacity="0.8" />
-          <rect x="202" y="86" width="14" height="29" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="224" y="86" width="14" height="16" stroke="currentColor" strokeWidth="0.8" />
-
-          {/* 6. Left Detailed Date Palms (2 Layered Palm Trees) */}
-          <g>
-            <line x1="254" y1="115" x2="254" y2="64" stroke="currentColor" strokeWidth="2" />
-            <line x1="251" y1="74" x2="257" y2="74" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="251" y1="84" x2="257" y2="84" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="251" y1="94" x2="257" y2="94" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="251" y1="104" x2="257" y2="104" stroke="currentColor" strokeWidth="0.8" />
-            {/* Feathery arching fronds */}
-            <path d="M 254 64 Q 238 52 222 58" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 254 64 Q 242 42 232 46" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 254 64 Q 254 36 254 34" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 254 64 Q 266 42 276 46" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 254 64 Q 270 52 286 58" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-          </g>
-
-          {/* 7. Centerpiece: Traditional Royal Marquee / Luxury Pavilion (بيت شعر ملكي فخم ومتقن) */}
-          <g>
-            {/* Main Tent Canopy (Proportions: 76w x 44h) */}
-            <polygon points="272,115 272,88 296,68 324,68 348,88 348,115" fill="var(--background)" stroke="currentColor" strokeWidth="1.5" />
-            {/* King Poles & Finials */}
-            <line x1="296" y1="68" x2="324" y2="68" stroke="currentColor" strokeWidth="1.4" />
-            <line x1="296" y1="56" x2="296" y2="68" stroke="currentColor" strokeWidth="1.2" />
-            <circle cx="296" cy="54" r="2" fill="currentColor" />
-            <line x1="324" y1="56" x2="324" y2="68" stroke="currentColor" strokeWidth="1.2" />
-            <circle cx="324" cy="54" r="2" fill="currentColor" />
-            {/* Hip ridges */}
-            <line x1="272" y1="88" x2="296" y2="68" stroke="currentColor" strokeWidth="1.2" />
-            <line x1="348" y1="88" x2="324" y2="68" stroke="currentColor" strokeWidth="1.2" />
-            {/* Authentic Woven Stripes */}
-            <line x1="272" y1="94" x2="348" y2="94" stroke="currentColor" strokeWidth="1.1" strokeDasharray="5 2.5" />
-            <line x1="272" y1="100" x2="348" y2="100" stroke="currentColor" strokeWidth="1.1" strokeDasharray="5 2.5" />
-            <line x1="272" y1="106" x2="348" y2="106" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
-            {/* Entrance drape & hanging brass lantern */}
-            <path d="M 304 115 L 310 92 L 316 115" stroke="currentColor" strokeWidth="1.3" fill="none" />
-            <line x1="310" y1="68" x2="310" y2="92" stroke="currentColor" strokeWidth="0.9" opacity="0.6" />
-            <circle cx="310" cy="85" r="2.2" fill="currentColor" opacity="0.85" />
-            {/* Guy-Ropes to Stakes */}
-            <line x1="272" y1="88" x2="260" y2="115" stroke="currentColor" strokeWidth="0.9" strokeDasharray="3 3" />
-            <line x1="348" y1="88" x2="360" y2="115" stroke="currentColor" strokeWidth="0.9" strokeDasharray="3 3" />
-          </g>
-
-          {/* 8. Right Detailed Date Palms */}
-          <g>
-            <line x1="366" y1="115" x2="366" y2="64" stroke="currentColor" strokeWidth="2" />
-            <line x1="363" y1="74" x2="369" y2="74" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="363" y1="84" x2="369" y2="84" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="363" y1="94" x2="369" y2="94" stroke="currentColor" strokeWidth="0.8" />
-            <line x1="363" y1="104" x2="369" y2="104" stroke="currentColor" strokeWidth="0.8" />
-            <path d="M 366 64 Q 350 52 334 58" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 366 64 Q 354 42 344 46" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 366 64 Q 366 36 366 34" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 366 64 Q 378 42 388 46" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-            <path d="M 366 64 Q 382 52 398 58" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-          </g>
-
-          {/* 9. Right Modern Luxury Villa (46w x 48h) */}
-          <rect x="376" y="67" width="46" height="48" />
-          <rect x="392" y="58" width="34" height="20" fill="var(--background)" stroke="currentColor" strokeWidth="1.15" />
-          <line x1="394" y1="50" x2="424" y2="50" stroke="currentColor" strokeWidth="1.3" />
-          <line x1="400" y1="50" x2="400" y2="58" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="410" y1="50" x2="410" y2="58" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="420" y1="50" x2="420" y2="58" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="396" y1="68" x2="422" y2="68" stroke="currentColor" strokeWidth="1.2" opacity="0.8" />
-          <rect x="382" y="86" width="14" height="16" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="404" y="86" width="14" height="29" stroke="currentColor" strokeWidth="0.9" />
-
-          {/* 10. Right Curved Corner Drum Building (42w x 55h) */}
-          <rect x="426" y="60" width="42" height="55" />
-          <path d="M 426 60 Q 447 52 468 60" stroke="currentColor" strokeWidth="1.2" fill="none" />
-          <line x1="426" y1="74" x2="468" y2="74" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
-          <line x1="426" y1="88" x2="468" y2="88" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
-          <line x1="426" y1="102" x2="468" y2="102" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
-          <line x1="440" y1="60" x2="440" y2="115" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="454" y1="60" x2="454" y2="115" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-
-          {/* 11. Right Mid-Rise Grid Building (38w x 67h) */}
-          <rect x="472" y="48" width="38" height="67" />
-          <rect x="482" y="42" width="18" height="6" />
-          {[56, 68, 80, 92].map((y) => (
+        {/* Right Corporate Fins Building */}
+        <g stroke="currentColor" strokeLinejoin="round">
+          <rect x="454" y="44" width="48" height="66" fill="var(--background)" strokeWidth="1.2" />
+          <rect x="462" y="38" width="32" height="6" fill="var(--background)" strokeWidth="0.8" />
+          {[52, 66, 80].map((y) => (
             <React.Fragment key={y}>
-              <rect x="476" y={y} width="7" height="8" stroke="currentColor" strokeWidth="0.8" />
-              <rect x="487.5" y={y} width="7" height="8" stroke="currentColor" strokeWidth="0.8" />
-              <rect x="499" y={y} width="7" height="8" stroke="currentColor" strokeWidth="0.8" />
+              <rect x="458" y={y} width="40" height="8" fill="url(#archHatchMob)" stroke="currentColor" strokeWidth="0.6" />
+              <line x1="466" y1={y} x2="466" y2={y + 8} strokeWidth="0.6" />
+              <line x1="474" y1={y} x2="474" y2={y + 8} strokeWidth="0.6" />
+              <line x1="482" y1={y} x2="482" y2={y + 8} strokeWidth="0.6" />
+              <line x1="490" y1={y} x2="490" y2={y + 8} strokeWidth="0.6" />
             </React.Fragment>
           ))}
-          <rect x="484" y="103" width="14" height="12" stroke="currentColor" strokeWidth="0.9" />
+          <rect x="470" y="97" width="16" height="13" fill="var(--background)" strokeWidth="0.9" />
+        </g>
 
-          {/* 12. Right Grand Needle Spire Skyscraper (44w x 105h) */}
-          <rect x="514" y="24" width="44" height="91" />
-          <rect x="524" y="12" width="24" height="12" />
-          <line x1="536" y1="-8" x2="536" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <line x1="530" y1="0" x2="542" y2="0" stroke="currentColor" strokeWidth="1.1" />
-          {/* Vertical Louver Ribs */}
-          <line x1="525" y1="24" x2="525" y2="115" stroke="currentColor" strokeWidth="0.8" opacity="0.7" />
-          <line x1="536" y1="24" x2="536" y2="115" stroke="currentColor" strokeWidth="0.9" opacity="0.8" />
-          <line x1="547" y1="24" x2="547" y2="115" stroke="currentColor" strokeWidth="0.8" opacity="0.7" />
-          {[38, 52, 66, 80, 94].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="514" y1={y} x2="558" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <rect x="526" y="101" width="20" height="14" stroke="currentColor" strokeWidth="0.9" />
+        {/* Right Spiral Pavilion */}
+        <g stroke="currentColor" strokeLinejoin="round">
+          <ellipse cx="536" cy="59" rx="24" ry="5" fill="var(--background)" strokeWidth="1.1" />
+          <path d="M 512 59 L 512 110 L 560 110 L 560 59 Z" fill="var(--background)" strokeWidth="1.2" />
+          <path d="M 512 72 Q 536 78 560 72" fill="none" strokeWidth="0.9" />
+          <path d="M 512 84 Q 536 90 560 84" fill="none" strokeWidth="0.9" />
+          <path d="M 512 96 Q 536 102 560 96" fill="none" strokeWidth="0.9" />
+          <rect x="528" y="99" width="16" height="11" fill="var(--background)" strokeWidth="0.9" />
+          <line x1="536" y1="99" x2="536" y2="110" strokeWidth="0.6" />
+        </g>
 
-          {/* 13. Right Curved Cultural Pavilion (Spiral Ribbon Drum) */}
-          <ellipse cx="588" cy="56" rx="26" ry="6.5" />
-          <path d="M 562 56 L 562 115 L 614 115 L 614 56 Z" />
-          <path d="M 562 68 Q 588 75 614 68" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 562 80 Q 588 87 614 80" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 562 92 Q 588 99 614 92" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 562 104 Q 588 111 614 104" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          {[570, 579, 588, 597, 606].map((x) => (
-            <React.Fragment key={x}>
-              <line x1={x} y1="58" x2={x} y2="114" stroke="currentColor" strokeWidth="0.7" opacity="0.65" />
-            </React.Fragment>
-          ))}
-          <rect x="580" y="103" width="16" height="12" stroke="currentColor" strokeWidth="0.9" />
+        {/* Right Car */}
+        <g stroke="currentColor" strokeWidth="0.7" strokeLinejoin="round">
+          <path d="M 570 108 L 570 106 L 574 103 L 582 103 L 585 106 L 590 106 L 590 108 Z" fill="var(--background)" />
+          <circle cx="574" cy="108" r="1.8" fill="currentColor" />
+          <circle cx="586" cy="108" r="1.8" fill="currentColor" />
         </g>
       </svg>
 
       {/* ========================================================================= */}
-      {/* DESKTOP SKYLINE (2000x160 Vector, Unrivaled 2D Architectural Detail)      */}
+      {/* DESKTOP SKYLINE (Screens >= 640px, Grand Architectural Panorama)          */}
       {/* ========================================================================= */}
       <svg
-        viewBox="0 0 2000 160"
+        viewBox="0 0 2000 180"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full hidden sm:block"
         preserveAspectRatio="xMidYMax slice"
       >
-        {/* Continuous Ground Baseline */}
-        <line x1="0" y1="150" x2="2000" y2="150" stroke="currentColor" strokeWidth="1.8" opacity="0.9" />
+        <defs>
+          <pattern id="archHatchDesk" width="4" height="4" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="4" stroke="currentColor" strokeWidth="0.5" opacity="0.14" />
+          </pattern>
+        </defs>
 
-        {/* Depth Silhouette Background Layer */}
-        <g stroke="currentColor" strokeWidth="0.8" opacity="0.2" fill="currentColor" fillOpacity="0.05">
-          <rect x="30" y="34" width="45" height="116" />
-          <rect x="120" y="20" width="48" height="130" />
-          <line x1="144" y1="6" x2="144" y2="20" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <rect x="220" y="42" width="46" height="108" />
-          <rect x="320" y="24" width="50" height="126" />
-          <line x1="345" y1="8" x2="345" y2="24" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <rect x="430" y="52" width="52" height="98" />
-          <rect x="540" y="38" width="50" height="112" />
-          <rect x="650" y="60" width="54" height="90" />
-          <rect x="760" y="50" width="52" height="100" />
-          <rect x="870" y="68" width="56" height="82" />
-          
-          {/* Backdrop behind center pavilion */}
-          <rect x="970" y="80" width="60" height="70" />
+        {/* Baseline Ground Plane & Sidewalk */}
+        <line x1="0" y1="168" x2="2000" y2="168" stroke="currentColor" strokeWidth="1.8" />
+        <line x1="0" y1="170" x2="2000" y2="170" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+        <line x1="0" y1="174" x2="2000" y2="174" stroke="currentColor" strokeWidth="0.6" opacity="0.3" strokeDasharray="16 8" />
 
-          <rect x="1074" y="68" width="56" height="82" />
-          <rect x="1188" y="50" width="52" height="100" />
-          <rect x="1296" y="60" width="54" height="90" />
-          <rect x="1410" y="38" width="50" height="112" />
-          <rect x="1518" y="52" width="52" height="98" />
-          <rect x="1630" y="24" width="50" height="126" />
-          <line x1="1655" y1="8" x2="1655" y2="24" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <rect x="1734" y="42" width="46" height="108" />
-          <rect x="1832" y="20" width="48" height="130" />
-          <line x1="1856" y1="6" x2="1856" y2="20" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <rect x="1925" y="34" width="45" height="116" />
+        {/* Background Silhouettes (Atmospheric Depth) */}
+        <g stroke="currentColor" strokeWidth="0.8" opacity="0.16" fill="currentColor" fillOpacity="0.04">
+          <rect x="95" y="73" width="46" height="95" />
+          <rect x="215" y="56" width="50" height="112" />
+          <rect x="345" y="80" width="42" height="88" />
+          <rect x="485" y="48" width="54" height="120" />
+          <rect x="645" y="73" width="44" height="95" />
+          <rect x="795" y="36" width="56" height="132" />
+          <line x1="823" y1="22" x2="823" y2="36" stroke="currentColor" strokeWidth="1" />
+          <rect x="1165" y="32" width="58" height="136" />
+          <line x1="1194" y1="18" x2="1194" y2="32" stroke="currentColor" strokeWidth="1" />
+          <rect x="1335" y="72" width="48" height="96" />
+          <rect x="1495" y="50" width="52" height="118" />
+          <rect x="1650" y="80" width="44" height="88" />
+          <rect x="1795" y="60" width="48" height="108" />
         </g>
 
-        {/* Foreground Layer: Pristine Hand-Drawn Architectural 2D Linework */}
-        <g stroke="currentColor" strokeWidth="1.15" fill="var(--background)" strokeLinejoin="round">
+        {/* Masterpiece Foreground Elevations */}
+        <g stroke="currentColor" strokeLinejoin="round">
           
-          {/* ============================================================== */}
-          {/* ZONE 1: FAR LEFT - Iconic Curved Center & Landmark Skyscrapers  */}
-          {/* ============================================================== */}
+          {/* 1. Leftmost Spiral Drum Pavilion (x=20) */}
+          <g>
+            <ellipse cx="57" cy="84" rx="33" ry="8" fill="var(--background)" strokeWidth="1.2" />
+            <ellipse cx="57" cy="81" rx="31" ry="8" fill="none" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.7" />
+            <path d="M 20 84 L 20 168 L 94 168 L 94 84 Z" fill="var(--background)" strokeWidth="1.3" />
+            {[98, 112, 126, 140, 152].map((ty) => (
+              <React.Fragment key={ty}>
+                <path d={`M 20 ${ty} Q 57 ${ty + 10} 94 ${ty}`} fill="none" strokeWidth="1.1" />
+                <path d={`M 20 ${ty + 3} Q 57 ${ty + 13} 94 ${ty + 3}`} fill="none" strokeWidth="0.6" opacity="0.6" />
+              </React.Fragment>
+            ))}
+            {[28, 35, 42, 49, 57, 65, 72, 79, 86].map((mx) => (
+              <line key={mx} x1={mx} y1="92" x2={mx} y2="152" strokeWidth="0.55" opacity="0.6" />
+            ))}
+            <rect x="46" y="154" width="22" height="14" fill="var(--background)" strokeWidth="1.1" />
+            <line x1="57" y1="154" x2="57" y2="168" strokeWidth="0.75" />
+          </g>
+
+          {/* 2. Curved Corner Modern Office (x=102) */}
+          <g>
+            <path d="M 102 88 Q 112 76 124 76 L 168 76 L 168 168 L 102 168 Z" fill="var(--background)" strokeWidth="1.3" />
+            {[90, 103, 116, 129, 142].map((fy) => (
+              <React.Fragment key={fy}>
+                <path d={`M 106 ${fy + 4} Q 112 ${fy} 122 ${fy} L 164 ${fy}`} fill="none" strokeWidth="1.05" />
+                <path d={`M 106 ${fy + 9} Q 112 ${fy + 6} 122 ${fy + 6} L 164 ${fy + 6}`} fill="none" strokeWidth="0.65" opacity="0.6" />
+              </React.Fragment>
+            ))}
+            <rect x="150" y="154" width="14" height="14" fill="var(--background)" strokeWidth="1" />
+            <line x1="157" y1="154" x2="157" y2="168" strokeWidth="0.7" />
+          </g>
+
+          {/* Street Tree & Sedan Car (x=176) */}
+          <g stroke="currentColor">
+            <line x1="176" y1="168" x2="176" y2="157" strokeWidth="1.15" />
+            <circle cx="176" cy="150" r="8" fill="var(--background)" strokeWidth="1.15" />
+            {/* Sedan facing left */}
+            <g strokeWidth="0.75" strokeLinejoin="round">
+              <path d="M 181 166 L 181 163 Q 183 161 188 161 L 192 158 L 201 158 L 204 161 L 207 161 L 207 166 Z" fill="var(--background)" />
+              <circle cx="186" cy="166" r="2.2" fill="currentColor" />
+              <circle cx="202" cy="166" r="2.2" fill="currentColor" />
+            </g>
+          </g>
+
+          {/* 3. Stepped Pergola Residence (x=214) */}
+          <g>
+            <rect x="214" y="86" width="66" height="82" fill="var(--background)" strokeWidth="1.3" />
+            <rect x="234" y="68" width="46" height="18" fill="var(--background)" strokeWidth="1.2" />
+            <line x1="238" y1="61" x2="276" y2="61" strokeWidth="1.3" strokeLinecap="round" />
+            {[240, 246, 252, 258, 264, 270, 274].map((px) => (
+              <line key={px} x1={px} y1="61" x2={px} y2="68" strokeWidth="0.7" />
+            ))}
+            <line x1="216" y1="79" x2="232" y2="79" strokeWidth="1" />
+            <line x1="216" y1="86" x2="232" y2="86" strokeWidth="1.2" />
+            {[96, 115, 134].map((by) => (
+              <React.Fragment key={by}>
+                <rect x="220" y={by} width="16" height="12" fill="var(--background)" strokeWidth="0.85" />
+                <line x1="228" y1={by} x2="228" y2={by + 12} strokeWidth="0.6" opacity="0.6" />
+                <rect x="242" y={by} width="32" height="12" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.7" />
+                <line x1="240" y1={by + 7} x2="276" y2={by + 7} strokeWidth="1" />
+                <line x1="240" y1={by + 12} x2="276" y2={by + 12} strokeWidth="1.4" />
+              </React.Fragment>
+            ))}
+            <rect x="222" y="153" width="15" height="15" fill="var(--background)" strokeWidth="1.05" />
+            <line x1="229.5" y1="153" x2="229.5" y2="168" strokeWidth="0.7" />
+          </g>
+
+          {/* Street Lamp (x=288) */}
+          <g>
+            <line x1="288" y1="168" x2="288" y2="148" strokeWidth="1.05" strokeLinecap="round" />
+            <path d="M 288 148 Q 288 144 292 144 L 294 144" fill="none" strokeWidth="1" />
+            <circle cx="294" cy="145" r="1.3" fill="currentColor" />
+          </g>
+
+          {/* 4. Corporate Fins Office (x=298) */}
+          <g>
+            <rect x="298" y="58" width="62" height="110" fill="var(--background)" strokeWidth="1.3" />
+            <rect x="308" y="50" width="42" height="8" fill="var(--background)" strokeWidth="0.95" />
+            {[70, 84, 98, 112, 126, 140].map((fy) => (
+              <React.Fragment key={fy}>
+                <rect x="302" y={fy} width="54" height="10" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.7" />
+                {[305, 310.5, 316, 321.5, 327, 332.5, 338, 343.5, 349].map((fx) => (
+                  <line key={fx} x1={fx} y1={fy} x2={fx} y2={fy + 10} strokeWidth="0.6" opacity="0.75" />
+                ))}
+              </React.Fragment>
+            ))}
+            <rect x="317" y="152" width="24" height="16" fill="var(--background)" strokeWidth="1.15" />
+            <line x1="329" y1="152" x2="329" y2="168" strokeWidth="0.8" />
+          </g>
+
+          {/* Street Tree (x=368) */}
+          <g>
+            <line x1="368" y1="168" x2="368" y2="157" strokeWidth="1.15" />
+            <circle cx="368" cy="150" r="8" fill="var(--background)" strokeWidth="1.15" />
+          </g>
+
+          {/* 5. Framed Window Block & SUV Car (x=378) */}
+          <g>
+            <rect x="378" y="66" width="60" height="102" fill="var(--background)" strokeWidth="1.3" />
+            <line x1="377" y1="69" x2="439" y2="69" strokeWidth="1" />
+            {[78, 94, 110, 126, 142].map((ry) => (
+              <React.Fragment key={ry}>
+                {[383, 399, 415].map((cx) => (
+                  <React.Fragment key={cx}>
+                    <rect x={cx} y={ry} width="13" height="11" fill="var(--background)" strokeWidth="0.9" />
+                    <rect x={cx + 2} y={ry + 2} width="9" height="7" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.55" />
+                    <line x1={cx + 6.5} y1={ry + 2} x2={cx + 6.5} y2={ry + 9} strokeWidth="0.5" />
+                  </React.Fragment>
+                ))}
+              </React.Fragment>
+            ))}
+            <rect x="398" y="153" width="20" height="15" fill="var(--background)" strokeWidth="1.1" />
+            <line x1="408" y1="153" x2="408" y2="168" strokeWidth="0.7" />
+            {/* SUV Car */}
+            <g strokeWidth="0.75" strokeLinejoin="round">
+              <path d="M 444 166 L 444 162 L 450 161 L 454 156 L 469 156 L 471 162 L 472 166 Z" fill="var(--background)" />
+              <circle cx="450" cy="166" r="2.5" fill="currentColor" />
+              <circle cx="467" cy="166" r="2.5" fill="currentColor" />
+            </g>
+          </g>
+
+          {/* Street Lamp (x=468) */}
+          <g>
+            <line x1="468" y1="168" x2="468" y2="148" strokeWidth="1.05" strokeLinecap="round" />
+            <path d="M 468 148 Q 468 144 472 144 L 474 144" fill="none" strokeWidth="1" />
+            <circle cx="474" cy="145" r="1.3" fill="currentColor" />
+          </g>
+
+          {/* 6. Curved Corner Right (x=478) */}
+          <g>
+            <path d="M 478 74 L 522 74 Q 534 74 544 86 L 544 168 L 478 168 Z" fill="var(--background)" strokeWidth="1.3" />
+            {[88, 101, 114, 127, 140].map((fy) => (
+              <React.Fragment key={fy}>
+                <path d={`M 482 ${fy} L 524 ${fy} Q 534 ${fy} 540 ${fy + 4}`} fill="none" strokeWidth="1.05" />
+                <path d={`M 482 ${fy + 6} L 524 ${fy + 6} Q 534 ${fy + 6} 540 ${fy + 9}`} fill="none" strokeWidth="0.65" opacity="0.6" />
+              </React.Fragment>
+            ))}
+            <rect x="484" y="154" width="14" height="14" fill="var(--background)" strokeWidth="1" />
+            <line x1="491" y1="154" x2="491" y2="168" strokeWidth="0.7" />
+          </g>
+
+          {/* Street Tree (x=552) */}
+          <g>
+            <line x1="552" y1="168" x2="552" y2="157" strokeWidth="1.15" />
+            <circle cx="552" cy="150" r="8" fill="var(--background)" strokeWidth="1.15" />
+          </g>
+
+          {/* 7. Stepped Pergola (x=564) */}
+          <g>
+            <rect x="564" y="80" width="68" height="88" fill="var(--background)" strokeWidth="1.3" />
+            <rect x="584" y="62" width="48" height="18" fill="var(--background)" strokeWidth="1.2" />
+            <line x1="588" y1="55" x2="628" y2="55" strokeWidth="1.3" strokeLinecap="round" />
+            {[590, 596, 602, 608, 614, 620, 626].map((px) => (
+              <line key={px} x1={px} y1="55" x2={px} y2="62" strokeWidth="0.7" />
+            ))}
+            {[90, 109, 128, 147].map((by) => (
+              <React.Fragment key={by}>
+                <rect x="570" y={by} width="16" height="12" fill="var(--background)" strokeWidth="0.85" />
+                <rect x="592" y={by} width="32" height="12" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.7" />
+                <line x1="590" y1={by + 7} x2="626" y2={by + 7} strokeWidth="1" />
+                <line x1="590" y1={by + 12} x2="626" y2={by + 12} strokeWidth="1.4" />
+              </React.Fragment>
+            ))}
+            <rect x="572" y="153" width="15" height="15" fill="var(--background)" strokeWidth="1.05" />
+            <line x1="579.5" y1="153" x2="579.5" y2="168" strokeWidth="0.7" />
+          </g>
+
+          {/* Street Lamp (x=640) */}
+          <g>
+            <line x1="640" y1="168" x2="640" y2="148" strokeWidth="1.05" strokeLinecap="round" />
+            <path d="M 640 148 Q 640 144 644 144 L 646 144" fill="none" strokeWidth="1" />
+            <circle cx="646" cy="145" r="1.3" fill="currentColor" />
+          </g>
+
+          {/* 8. Corporate Fins (x=650) */}
+          <g>
+            <rect x="650" y="54" width="62" height="114" fill="var(--background)" strokeWidth="1.3" />
+            <rect x="660" y="46" width="42" height="8" fill="var(--background)" strokeWidth="0.95" />
+            {[66, 80, 94, 108, 122, 136].map((fy) => (
+              <React.Fragment key={fy}>
+                <rect x="654" y={fy} width="54" height="10" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.7" />
+                {[657, 662.5, 668, 673.5, 679, 684.5, 690, 695.5, 701].map((fx) => (
+                  <line key={fx} x1={fx} y1={fy} x2={fx} y2={fy + 10} strokeWidth="0.6" opacity="0.75" />
+                ))}
+              </React.Fragment>
+            ))}
+            <rect x="669" y="152" width="24" height="16" fill="var(--background)" strokeWidth="1.15" />
+            <line x1="681" y1="152" x2="681" y2="168" strokeWidth="0.8" />
+          </g>
+
+          {/* Street Tree & Sedan Car (x=720) */}
+          <g stroke="currentColor">
+            <line x1="720" y1="168" x2="720" y2="157" strokeWidth="1.15" />
+            <circle cx="720" cy="150" r="8" fill="var(--background)" strokeWidth="1.15" />
+            <g strokeWidth="0.75" strokeLinejoin="round">
+              <path d="M 723 166 L 723 163 Q 725 161 730 161 L 734 158 L 743 158 L 746 161 L 749 161 L 749 166 Z" fill="var(--background)" />
+              <circle cx="728" cy="166" r="2.2" fill="currentColor" />
+              <circle cx="744" cy="166" r="2.2" fill="currentColor" />
+            </g>
+          </g>
+
+          {/* 9. LEFT SOARING LANDMARK: Grand Angled Crown Skyscraper (x=750) */}
+          <g>
+            <polygon points="750,168 750,10 806,36 806,168" fill="var(--background)" strokeWidth="1.35" />
+            {/* Twin Communications Masts */}
+            <line x1="762" y1="10" x2="762" y2="-16" strokeWidth="1.6" strokeLinecap="round" />
+            <circle cx="762" cy="-16" r="1.4" fill="currentColor" />
+            <line x1="758.5" y1="-4" x2="765.5" y2="-4" strokeWidth="0.8" />
+            <line x1="772" y1="16" x2="772" y2="-6" strokeWidth="1.2" strokeLinecap="round" />
+            {/* Structural Columns */}
+            <line x1="766" y1="16" x2="766" y2="168" strokeWidth="0.85" opacity="0.8" />
+            <line x1="790" y1="28" x2="790" y2="168" strokeWidth="0.85" opacity="0.8" />
+            {/* Louvers */}
+            {[16, 19.5, 23, 26.5, 30, 33.5].map((sy) => (
+              <line key={sy} x1="756" y1={sy} x2="800" y2={sy} strokeWidth="0.6" opacity="0.65" />
+            ))}
+            {/* Window Floors */}
+            {[48, 57, 66, 75, 84, 93, 102, 111, 120, 129, 138, 147].map((wy) => (
+              <React.Fragment key={wy}>
+                <line x1="750" y1={wy} x2="806" y2={wy} strokeWidth="0.65" opacity="0.65" />
+                <rect x="754" y={wy - 6} width="8" height="4.5" fill="var(--background)" strokeWidth="0.6" />
+                <rect x="770" y={wy - 6} width="16" height="4.5" fill="var(--background)" strokeWidth="0.6" />
+                <line x1="778" y1={wy - 6} x2="778" y2={wy - 1.5} strokeWidth="0.5" opacity="0.6" />
+                <rect x="794" y={wy - 6} width="8" height="4.5" fill="var(--background)" strokeWidth="0.6" />
+              </React.Fragment>
+            ))}
+            <rect x="768" y="153" width="20" height="15" fill="var(--background)" strokeWidth="1.1" />
+            <line x1="778" y1="153" x2="778" y2="168" strokeWidth="0.75" />
+          </g>
+
+          {/* 10. Framed Window Block (x=814) */}
+          <g>
+            <rect x="814" y="56" width="58" height="112" fill="var(--background)" strokeWidth="1.3" />
+            <line x1="813" y1="59" x2="873" y2="59" strokeWidth="1" />
+            {[68, 84, 100, 116, 132, 148].map((ry) => (
+              <React.Fragment key={ry}>
+                {[819, 835, 851].map((cx) => (
+                  <React.Fragment key={cx}>
+                    <rect x={cx} y={ry} width="13" height="11" fill="var(--background)" strokeWidth="0.9" />
+                    <rect x={cx + 2} y={ry + 2} width="9" height="7" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.55" />
+                    <line x1={cx + 6.5} y1={ry + 2} x2={cx + 6.5} y2={ry + 9} strokeWidth="0.5" />
+                  </React.Fragment>
+                ))}
+              </React.Fragment>
+            ))}
+            <rect x="833" y="153" width="20" height="15" fill="var(--background)" strokeWidth="1.1" />
+            <line x1="843" y1="153" x2="843" y2="168" strokeWidth="0.7" />
+          </g>
+
+          {/* Street Lamp (x=880) */}
+          <g>
+            <line x1="880" y1="168" x2="880" y2="148" strokeWidth="1.05" strokeLinecap="round" />
+            <path d="M 880 148 Q 880 144 884 144 L 886 144" fill="none" strokeWidth="1" />
+            <circle cx="886" cy="145" r="1.3" fill="currentColor" />
+          </g>
+
+          {/* ================================================================= */}
+          {/* THE CENTRAL HERITAGE OASIS: Royal Bedouin Tent & Date Palms       */}
+          {/* ================================================================= */}
           
-          {/* 1. Iconic Curved Modern Cultural Center (Exact photo match: 72w x 80h) */}
-          <ellipse cx="40" cy="74" rx="36" ry="9" />
-          <path d="M 4 74 L 4 150 L 76 150 L 76 74 Z" />
-          <path d="M 4 88 Q 40 96 76 88" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 4 102 Q 40 110 76 102" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 4 116 Q 40 124 76 116" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 4 130 Q 40 138 76 130" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 4 142 Q 40 148 76 142" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          {/* Dense vertical mullions */}
-          {[12, 20, 28, 36, 44, 52, 60, 68].map((x) => (
-            <React.Fragment key={x}>
-              <line x1={x} y1="76" x2={x} y2="149" stroke="currentColor" strokeWidth="0.65" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <rect x="28" y="132" width="24" height="18" stroke="currentColor" strokeWidth="1" />
-          <line x1="40" y1="132" x2="40" y2="150" stroke="currentColor" strokeWidth="0.7" />
-
-          {/* 2. Transition High-Rise with Corner Drum (58w x 100h) */}
-          <rect x="76" y="50" width="58" height="100" />
-          <rect x="86" y="42" width="38" height="8" />
-          <line x1="105" y1="32" x2="105" y2="42" stroke="currentColor" strokeWidth="1.3" />
-          {[62, 76, 90, 104, 118, 132].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="76" y1={y} x2="134" y2={y} stroke="currentColor" strokeWidth="0.75" opacity="0.6" />
-              <rect x="82" y={y - 8} width="9" height="7" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="95" y={y - 8} width="9" height="7" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="108" y={y - 8} width="9" height="7" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="121" y={y - 8} width="9" height="7" stroke="currentColor" strokeWidth="0.7" />
-            </React.Fragment>
-          ))}
-          <rect x="96" y="134" width="18" height="16" stroke="currentColor" strokeWidth="0.9" />
-
-          {/* 3. Stepped High-Rise Tower with Dual Spires (60w x 120h) */}
-          <rect x="134" y="30" width="60" height="120" />
-          <line x1="148" y1="12" x2="148" y2="30" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="180" y1="12" x2="180" y2="30" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="152" y1="46" x2="152" y2="142" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
-          <line x1="176" y1="46" x2="176" y2="142" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
-          {[48, 66, 84, 102, 120, 136].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="134" y1={y} x2="194" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <rect x="154" y="132" width="20" height="18" stroke="currentColor" strokeWidth="1" />
-
-          {/* 4. Left Landmark Skyscraper (Angled Crown & Antennas - 62w x 135h) */}
-          <path d="M 194 150 L 194 32 L 256 16 L 256 150 Z" />
-          <line x1="208" y1="4" x2="208" y2="28" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="242" y1="-2" x2="242" y2="20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="214" y1="26" x2="214" y2="150" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
-          <line x1="236" y1="20" x2="236" y2="150" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
-          {[44, 58, 72, 86, 100, 114, 128, 140].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="194" y1={y} x2="256" y2={y} stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
-              <rect x="198" y={y - 9} width="11" height="8" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="219" y={y - 9} width="12" height="8" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="241" y={y - 9} width="11" height="8" stroke="currentColor" strokeWidth="0.7" />
-            </React.Fragment>
-          ))}
-          <rect x="215" y="132" width="20" height="18" stroke="currentColor" strokeWidth="1" />
-
-          {/* 5. Modern Commercial Office Block with Sunshades (56w x 102h) */}
-          <rect x="256" y="48" width="56" height="102" />
-          {[66, 84, 102, 120, 136].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="256" y1={y} x2="312" y2={y} stroke="currentColor" strokeWidth="1" opacity="0.8" />
-              <line x1="256" y1={y + 3} x2="312" y2={y + 3} stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
-            </React.Fragment>
-          ))}
-          <line x1="274" y1="48" x2="274" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="294" y1="48" x2="294" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-
-          {/* 6. Curved Corner Plaza Building (56w x 86h) */}
-          <rect x="312" y="64" width="56" height="86" />
-          <path d="M 312 64 Q 340 54 368 64" stroke="currentColor" strokeWidth="1.3" fill="none" />
-          {[80, 96, 112, 128, 142].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="312" y1={y} x2="368" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <line x1="330" y1="64" x2="330" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="350" y1="64" x2="350" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-
-          {/* 7. Commercial Gallery with Window Arrays (56w x 92h) */}
-          <rect x="368" y="58" width="56" height="92" />
-          <rect x="378" y="50" width="36" height="8" />
-          {[72, 88, 104, 120, 134].map((y) => (
-            <React.Fragment key={y}>
-              <rect x="374" y={y - 9} width="9" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="387" y={y - 9} width="9" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="400" y={y - 9} width="9" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="412" y={y - 9} width="9" height="8" stroke="currentColor" strokeWidth="0.75" />
-            </React.Fragment>
-          ))}
-          <rect x="388" y="132" width="16" height="18" stroke="currentColor" strokeWidth="0.9" />
-
-          {/* 8. Modern Curved S-Facade Building (Photo Match: 60w x 88h) */}
-          <rect x="424" y="62" width="60" height="88" />
-          <path d="M 424 62 Q 454 54 484 62" stroke="currentColor" strokeWidth="1.3" fill="none" />
-          {[76, 92, 108, 124, 138].map((y) => (
-            <React.Fragment key={y}>
-              <path d={`M 424 ${y} Q 454 ${y - 6} 484 ${y}`} stroke="currentColor" strokeWidth="0.85" fill="none" />
-            </React.Fragment>
-          ))}
-          {[436, 448, 460, 472].map((x) => (
-            <React.Fragment key={x}>
-              <line x1={x} y1="62" x2={x} y2="150" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
-            </React.Fragment>
-          ))}
-
-          {/* 9. Stepped Townhouses with Balconies (58w x 84h) */}
-          <rect x="484" y="66" width="58" height="84" />
-          <rect x="484" y="58" width="36" height="8" />
-          <line x1="492" y1="80" x2="520" y2="80" stroke="currentColor" strokeWidth="1.2" />
-          <line x1="492" y1="85" x2="520" y2="85" stroke="currentColor" strokeWidth="0.65" />
-          <rect x="496" y="70" width="20" height="9" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="492" y1="106" x2="520" y2="106" stroke="currentColor" strokeWidth="1.2" />
-          <line x1="492" y1="111" x2="520" y2="111" stroke="currentColor" strokeWidth="0.65" />
-          <rect x="496" y="96" width="20" height="9" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="524" y1="66" x2="524" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <rect x="528" y="78" width="10" height="20" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="528" y="106" width="10" height="24" stroke="currentColor" strokeWidth="0.8" />
-
-          {/* 10. Modern Townhouses with Pergola Roof (58w x 78h) */}
-          <rect x="542" y="72" width="58" height="78" />
-          <line x1="548" y1="62" x2="594" y2="62" stroke="currentColor" strokeWidth="1.5" />
-          <line x1="554" y1="62" x2="554" y2="72" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="568" y1="62" x2="568" y2="72" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="582" y1="62" x2="582" y2="72" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="550" y="86" width="18" height="16" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="576" y="86" width="18" height="16" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="562" y="118" width="18" height="32" stroke="currentColor" strokeWidth="0.9" />
-
-          {/* 11. Mid-Rise Office Block (54w x 90h) */}
-          <rect x="600" y="60" width="54" height="90" />
-          {[74, 90, 106, 122, 138].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="600" y1={y} x2="654" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-              <rect x="606" y={y - 9} width="10" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="622" y={y - 9} width="10" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="638" y={y - 9} width="10" height="8" stroke="currentColor" strokeWidth="0.75" />
-            </React.Fragment>
-          ))}
-
-          {/* 12. Modern Commercial Block (56w x 84h) */}
-          <rect x="654" y="66" width="56" height="84" />
-          {[82, 98, 114, 130, 144].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="654" y1={y} x2="710" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <line x1="672" y1="66" x2="672" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="692" y1="66" x2="692" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-
-          {/* 13. Stepped Townhouses (54w x 78h) */}
-          <rect x="710" y="72" width="54" height="78" />
-          <rect x="710" y="66" width="32" height="6" />
-          <rect x="718" y="82" width="16" height="12" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="742" y="82" width="16" height="12" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="728" y="112" width="18" height="25" stroke="currentColor" strokeWidth="0.9" />
-
-          {/* 14. Modern Townhouses (56w x 74h) */}
-          <rect x="764" y="76" width="56" height="74" />
-          <line x1="764" y1="96" x2="820" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="764" y1="118" x2="820" y2="118" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="792" y1="76" x2="792" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-
-          {/* 15. Contemporary Villa with Cantilever (58w x 72h) */}
-          <rect x="820" y="78" width="58" height="72" />
-          <rect x="816" y="70" width="42" height="24" fill="var(--background)" stroke="currentColor" strokeWidth="1.15" />
-          <line x1="822" y1="82" x2="854" y2="82" stroke="currentColor" strokeWidth="1.3" opacity="0.8" />
-          <rect x="830" y="110" width="18" height="26" stroke="currentColor" strokeWidth="1" opacity="0.85" />
-          <rect x="856" y="110" width="18" height="18" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
-
-          {/* 16. Luxury Villa with Cantilever (60w x 72h) */}
-          <rect x="878" y="78" width="60" height="72" />
-          <rect x="874" y="70" width="44" height="24" fill="var(--background)" stroke="currentColor" strokeWidth="1.15" />
-          <line x1="880" y1="82" x2="914" y2="82" stroke="currentColor" strokeWidth="1.3" opacity="0.8" />
-          <rect x="888" y="110" width="20" height="28" stroke="currentColor" strokeWidth="1" opacity="0.85" />
-          <rect x="916" y="110" width="18" height="18" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
-
-          {/* 17. Left Architectural Date Palms (2 Detailed Date Palm Trees) */}
+          {/* Left Date Palms */}
           <g>
-            <line x1="952" y1="150" x2="952" y2="82" stroke="currentColor" strokeWidth="2.2" />
-            <line x1="948" y1="96" x2="956" y2="96" stroke="currentColor" strokeWidth="0.9" />
-            <line x1="948" y1="110" x2="956" y2="110" stroke="currentColor" strokeWidth="0.9" />
-            <line x1="948" y1="124" x2="956" y2="124" stroke="currentColor" strokeWidth="0.9" />
-            <line x1="948" y1="138" x2="956" y2="138" stroke="currentColor" strokeWidth="0.9" />
-            {/* Feathery fronds */}
-            <path d="M 952 82 Q 930 68 910 76" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 952 82 Q 936 56 924 62" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 952 82 Q 952 48 952 45" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-            <path d="M 952 82 Q 968 56 980 62" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 952 82 Q 974 68 994 76" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            {/* Tall Palm 1 (x=898) */}
+            <path d="M 895 168 Q 897 134 897 101 L 901 101 Q 899 134 897 168 Z" fill="var(--background)" strokeWidth="1.1" />
+            {[156, 146, 136, 126, 116, 106].map((ty) => (
+              <path key={ty} d={`M 895 ${ty + 1.5} Q 898 ${ty - 1.2} 901 ${ty + 1.5}`} fill="none" strokeWidth="0.8" opacity="0.85" />
+            ))}
+            <ellipse cx="895" cy="107" rx="2" ry="3.5" fill="currentColor" opacity="0.75" />
+            <ellipse cx="903" cy="107" rx="2" ry="3.5" fill="currentColor" opacity="0.75" />
+            {/* Fronds */}
+            <path d="M 899 101 Q 875 79 857 117" fill="none" strokeWidth="1.15" />
+            <path d="M 899 101 Q 879 73 864 93" fill="none" strokeWidth="1.15" />
+            <path d="M 899 101 Q 888 67 879 75" fill="none" strokeWidth="1.15" />
+            <path d="M 899 101 Q 899 63 899 69" fill="none" strokeWidth="1.15" />
+            <path d="M 899 101 Q 910 67 919 75" fill="none" strokeWidth="1.15" />
+            <path d="M 899 101 Q 919 73 934 93" fill="none" strokeWidth="1.15" />
+            <path d="M 899 101 Q 923 79 941 117" fill="none" strokeWidth="1.15" />
+            
+            {/* Flanking Palm 2 (x=918) */}
+            <path d="M 916 168 Q 917 142 917 116 L 920 116 Q 919 142 918 168 Z" fill="var(--background)" strokeWidth="0.95" />
+            <path d="M 918 116 Q 902 96 888 126" fill="none" strokeWidth="1" />
+            <path d="M 918 116 Q 910 88 900 102" fill="none" strokeWidth="1" />
+            <path d="M 918 116 Q 926 88 936 102" fill="none" strokeWidth="1" />
+            <path d="M 918 116 Q 934 96 948 126" fill="none" strokeWidth="1" />
           </g>
 
-          {/* ============================================================== */}
-          {/* ZONE 2: CENTERPIECE - Traditional Royal Marquee / Luxury Tent    */}
-          {/* (Proportion: 96w x 56h - Authentic, beautiful, perfectly scaled)*/}
-          {/* ============================================================== */}
+          {/* Royal Heritage Tent (بيت شعر ملكي - w=126, h=50) */}
           <g>
-            {/* Main Tent Canopy (x = 952 to 1048, centered at x = 1000) */}
-            <polygon points="952,150 952,112 978,92 1022,92 1048,112 1048,150" fill="var(--background)" stroke="currentColor" strokeWidth="1.6" />
-            {/* Ridge & Ornate Finials */}
-            <line x1="978" y1="92" x2="1022" y2="92" stroke="currentColor" strokeWidth="1.6" />
-            <line x1="978" y1="78" x2="978" y2="92" stroke="currentColor" strokeWidth="1.4" />
-            <circle cx="978" cy="76" r="2.2" fill="currentColor" />
-            <line x1="1022" y1="78" x2="1022" y2="92" stroke="currentColor" strokeWidth="1.4" />
-            <circle cx="1022" cy="76" r="2.2" fill="currentColor" />
-            {/* Center crown pole */}
-            <line x1="1000" y1="84" x2="1000" y2="92" stroke="currentColor" strokeWidth="1.2" />
-            <circle cx="1000" cy="82" r="1.8" fill="currentColor" />
-            {/* Hip ridges */}
-            <line x1="952" y1="112" x2="978" y2="92" stroke="currentColor" strokeWidth="1.2" />
-            <line x1="1048" y1="112" x2="1022" y2="92" stroke="currentColor" strokeWidth="1.2" />
-            {/* Authentic Woven Stripes */}
-            <line x1="952" y1="119" x2="1048" y2="119" stroke="currentColor" strokeWidth="1.2" strokeDasharray="6 3" />
-            <line x1="952" y1="126" x2="1048" y2="126" stroke="currentColor" strokeWidth="1.2" strokeDasharray="6 3" />
-            <line x1="952" y1="133" x2="1048" y2="133" stroke="currentColor" strokeWidth="0.9" opacity="0.65" />
-            <line x1="952" y1="140" x2="1048" y2="140" stroke="currentColor" strokeWidth="0.9" opacity="0.65" />
-            {/* Drape Entrance & Hanging Brass Lantern */}
-            <path d="M 992 150 L 1000 120 L 1008 150" stroke="currentColor" strokeWidth="1.4" fill="none" />
-            <line x1="1000" y1="92" x2="1000" y2="120" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-            <circle cx="1000" cy="112" r="2.6" fill="currentColor" opacity="0.85" />
-            {/* Guy-Ropes to Stakes */}
-            <line x1="952" y1="112" x2="938" y2="150" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
-            <line x1="1048" y1="112" x2="1062" y2="150" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
+            {/* Tension Guy Ropes anchored to ground */}
+            <line x1="934" y1="142" x2="908" y2="168" strokeWidth="0.9" strokeDasharray="4 2" />
+            <line x1="948" y1="142" x2="922" y2="168" strokeWidth="0.9" strokeDasharray="4 2" />
+            <line x1="1060" y1="142" x2="1086" y2="168" strokeWidth="0.9" strokeDasharray="4 2" />
+            <line x1="1046" y1="142" x2="1072" y2="168" strokeWidth="0.9" strokeDasharray="4 2" />
+
+            {/* Vertical Ridge Poles with Brass Finials */}
+            <line x1="962" y1="108" x2="962" y2="142" strokeWidth="1.4" />
+            <circle cx="962" cy="108" r="2" fill="currentColor" />
+            <line x1="997" y1="104" x2="997" y2="142" strokeWidth="1.4" />
+            <circle cx="997" cy="104" r="2.4" fill="currentColor" />
+            <line x1="1032" y1="108" x2="1032" y2="142" strokeWidth="1.4" />
+            <circle cx="1032" cy="108" r="2" fill="currentColor" />
+
+            {/* Canopy Roof Drapery */}
+            <path d="M 934 142 Q 948 124 962 118 Q 978 121 997 116 Q 1016 121 1032 118 Q 1046 124 1060 142 L 1060 168 L 934 168 Z" fill="var(--background)" strokeWidth="1.4" />
+
+            {/* Authentic Sadu Woven Horizontal Stripes */}
+            {[128, 134, 140, 148, 154, 160].map((sy) => (
+              <path key={sy} d={`M 938 ${sy} Q 997 ${sy - 2} 1056 ${sy}`} fill="none" strokeWidth="1.1" strokeDasharray="7 3 2 3" opacity="0.8" />
+            ))}
+
+            {/* Interior Majlis Shading & Traditional Floor Cushions */}
+            <path d="M 979 168 L 979 146 Q 997 138 1015 146 L 1015 168 Z" fill="url(#archHatchDesk)" stroke="none" />
+            <path d="M 979 168 L 979 146 Q 997 138 1015 146 L 1015 168 Z" fill="none" strokeWidth="1.2" />
+            <path d="M 979 146 Q 971 157 979 168" fill="none" strokeWidth="1" />
+            <path d="M 1015 146 Q 1023 157 1015 168" fill="none" strokeWidth="1" />
+            {/* Brass Hanging Lantern */}
+            <line x1="997" y1="116" x2="997" y2="147" strokeWidth="0.7" />
+            <polygon points="994.5,147 999.5,147 1000.5,153 993.5,153" fill="currentColor" opacity="0.85" />
+            {/* Traditional Cushions (مراكي) */}
+            <rect x="983" y="162" width="12" height="5.5" rx="1.5" fill="var(--background)" strokeWidth="0.85" />
+            <rect x="999" y="162" width="12" height="5.5" rx="1.5" fill="var(--background)" strokeWidth="0.85" />
+
+            {/* Courtyard low stone border wall */}
+            <line x1="916" y1="163" x2="928" y2="163" strokeWidth="1.2" />
+            <line x1="916" y1="168" x2="916" y2="163" strokeWidth="1.2" />
+            <line x1="928" y1="168" x2="928" y2="163" strokeWidth="1.2" />
+            <line x1="1066" y1="163" x2="1078" y2="163" strokeWidth="1.2" />
+            <line x1="1066" y1="168" x2="1066" y2="163" strokeWidth="1.2" />
+            <line x1="1078" y1="168" x2="1078" y2="163" strokeWidth="1.2" />
           </g>
 
-          {/* 18. Right Architectural Date Palms */}
+          {/* Right Date Palms */}
           <g>
-            <line x1="1076" y1="150" x2="1076" y2="82" stroke="currentColor" strokeWidth="2.2" />
-            <line x1="1072" y1="96" x2="1080" y2="96" stroke="currentColor" strokeWidth="0.9" />
-            <line x1="1072" y1="110" x2="1080" y2="110" stroke="currentColor" strokeWidth="0.9" />
-            <line x1="1072" y1="124" x2="1080" y2="124" stroke="currentColor" strokeWidth="0.9" />
-            <line x1="1072" y1="138" x2="1080" y2="138" stroke="currentColor" strokeWidth="0.9" />
-            <path d="M 1076 82 Q 1054 68 1034 76" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 1076 82 Q 1060 56 1048 62" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 1076 82 Q 1076 48 1076 45" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-            <path d="M 1076 82 Q 1092 56 1104 62" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-            <path d="M 1076 82 Q 1098 68 1118 76" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            {/* Flanking Palm 3 (x=1072) */}
+            <path d="M 1070 168 Q 1072 142 1073 116 L 1076 116 Q 1074 142 1072 168 Z" fill="var(--background)" strokeWidth="0.95" />
+            <path d="M 1074 116 Q 1058 96 1044 126" fill="none" strokeWidth="1" />
+            <path d="M 1074 116 Q 1066 88 1056 102" fill="none" strokeWidth="1" />
+            <path d="M 1074 116 Q 1082 88 1092 102" fill="none" strokeWidth="1" />
+            <path d="M 1074 116 Q 1090 96 1104 126" fill="none" strokeWidth="1" />
+
+            {/* Tall Palm 4 (x=1094) */}
+            <path d="M 1091 168 Q 1094 134 1097 99 L 1101 99 Q 1098 134 1095 168 Z" fill="var(--background)" strokeWidth="1.1" />
+            {[156, 146, 136, 126, 116, 106].map((ty) => (
+              <path key={ty} d={`M 1093 ${ty + 1.5} Q 1096 ${ty - 1.2} 1099 ${ty + 1.5}`} fill="none" strokeWidth="0.8" opacity="0.85" />
+            ))}
+            <ellipse cx="1095" cy="105" rx="2" ry="3.5" fill="currentColor" opacity="0.75" />
+            <ellipse cx="1103" cy="105" rx="2" ry="3.5" fill="currentColor" opacity="0.75" />
+            {/* Fronds */}
+            <path d="M 1099 99 Q 1075 77 1057 115" fill="none" strokeWidth="1.15" />
+            <path d="M 1099 99 Q 1079 71 1064 91" fill="none" strokeWidth="1.15" />
+            <path d="M 1099 99 Q 1088 65 1079 73" fill="none" strokeWidth="1.15" />
+            <path d="M 1099 99 Q 1099 61 1099 67" fill="none" strokeWidth="1.15" />
+            <path d="M 1099 99 Q 1110 65 1119 73" fill="none" strokeWidth="1.15" />
+            <path d="M 1099 99 Q 1119 71 1134 91" fill="none" strokeWidth="1.15" />
+            <path d="M 1099 99 Q 1123 77 1141 115" fill="none" strokeWidth="1.15" />
           </g>
 
-          {/* ============================================================== */}
-          {/* ZONE 3: MID-RIGHT TO FAR RIGHT - Towering Spires & City Horizon */}
-          {/* ============================================================== */}
+          {/* Street Lamp (x=1124) */}
+          <g>
+            <line x1="1124" y1="168" x2="1124" y2="148" strokeWidth="1.05" strokeLinecap="round" />
+            <path d="M 1124 148 Q 1124 144 1128 144 L 1130 144" fill="none" strokeWidth="1" />
+            <circle cx="1130" cy="145" r="1.3" fill="currentColor" />
+          </g>
 
-          {/* 19. Luxury Villa with Cantilever (60w x 72h) */}
-          <rect x="1090" y="78" width="60" height="72" />
-          <rect x="1102" y="70" width="44" height="24" fill="var(--background)" stroke="currentColor" strokeWidth="1.15" />
-          <line x1="1108" y1="82" x2="1142" y2="82" stroke="currentColor" strokeWidth="1.3" opacity="0.8" />
-          <rect x="1100" y="110" width="20" height="28" stroke="currentColor" strokeWidth="1" opacity="0.85" />
-          <rect x="1128" y="110" width="18" height="18" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
+          {/* 11. RIGHT SOARING LANDMARK: The Grand Needle Spire Skyscraper (x=1136) */}
+          <g>
+            <rect x="1136" y="46" width="54" height="122" fill="var(--background)" strokeWidth="1.35" />
+            <rect x="1141" y="24" width="44" height="22" fill="var(--background)" strokeWidth="1.2" />
+            <polygon points="1146,24 1163,2 1180,24" fill="var(--background)" strokeWidth="1.3" />
+            {/* High Needle Spire Antenna */}
+            <line x1="1163" y1="2" x2="1163" y2="-28" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="1163" cy="-28" r="1.6" fill="currentColor" />
+            <line x1="1159" y1="-10" x2="1167" y2="-10" strokeWidth="0.8" />
+            <line x1="1160" y1="-18" x2="1166" y2="-18" strokeWidth="0.8" />
+            {/* Structural Fluted Ribs */}
+            {[1143, 1152, 1161, 1165, 1174, 1183].map((rx) => (
+              <line key={rx} x1={rx} y1="24" x2={rx} y2="168" strokeWidth="0.8" opacity="0.8" />
+            ))}
+            {/* Dense Windows */}
+            {[56, 65, 74, 83, 92, 101, 110, 119, 128, 137, 146, 155].map((fy) => (
+              <React.Fragment key={fy}>
+                <line x1="1136" y1={fy} x2="1190" y2={fy} strokeWidth="0.65" opacity="0.65" />
+                {[1145, 1154, 1167, 1176].map((wx) => (
+                  <rect key={wx} x={wx} y={fy - 6.5} width="5" height="4.5" fill="var(--background)" strokeWidth="0.55" />
+                ))}
+              </React.Fragment>
+            ))}
+            {/* Crown Mechanical Louvers */}
+            {[28, 31.5, 35, 38.5, 42].map((ly) => (
+              <line key={ly} x1="1146" y1={ly} x2="1180" y2={ly} strokeWidth="0.6" opacity="0.65" />
+            ))}
+            <rect x="1152" y="152" width="22" height="16" fill="var(--background)" strokeWidth="1.15" />
+            <line x1="1163" y1="152" x2="1163" y2="168" strokeWidth="0.75" />
+          </g>
 
-          {/* 20. Contemporary Villa with Cantilever (58w x 72h) */}
-          <rect x="1150" y="78" width="58" height="72" />
-          <rect x="1162" y="70" width="42" height="24" fill="var(--background)" stroke="currentColor" strokeWidth="1.15" />
-          <line x1="1168" y1="82" x2="1200" y2="82" stroke="currentColor" strokeWidth="1.3" opacity="0.8" />
-          <rect x="1160" y="110" width="18" height="26" stroke="currentColor" strokeWidth="1" opacity="0.85" />
-          <rect x="1184" y="110" width="18" height="18" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
+          {/* 12. Corporate Fins Building & SUV (x=1198) */}
+          <g>
+            <rect x="1198" y="52" width="62" height="116" fill="var(--background)" strokeWidth="1.3" />
+            <rect x="1208" y="44" width="42" height="8" fill="var(--background)" strokeWidth="0.95" />
+            {[64, 78, 92, 106, 120, 134, 148].map((fy) => (
+              <React.Fragment key={fy}>
+                <rect x="1202" y={fy} width="54" height="10" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.7" />
+                {[1205, 1210.5, 1216, 1221.5, 1227, 1232.5, 1238, 1243.5, 1249].map((fx) => (
+                  <line key={fx} x1={fx} y1={fy} x2={fx} y2={fy + 10} strokeWidth="0.6" opacity="0.75" />
+                ))}
+              </React.Fragment>
+            ))}
+            <rect x="1217" y="152" width="24" height="16" fill="var(--background)" strokeWidth="1.15" />
+            <line x1="1229" y1="152" x2="1229" y2="168" strokeWidth="0.8" />
+            {/* Street Tree */}
+            <line x1="1268" y1="168" x2="1268" y2="157" strokeWidth="1.15" />
+            <circle cx="1268" cy="150" r="8" fill="var(--background)" strokeWidth="1.15" />
+            {/* SUV facing right */}
+            <g strokeWidth="0.75" strokeLinejoin="round">
+              <path d="M 1276 166 L 1276 162 L 1282 161 L 1286 156 L 1301 156 L 1303 162 L 1304 166 Z" fill="var(--background)" />
+              <circle cx="1282" cy="166" r="2.5" fill="currentColor" />
+              <circle cx="1299" cy="166" r="2.5" fill="currentColor" />
+            </g>
+          </g>
 
-          {/* 21. Modern Townhouses (56w x 74h) */}
-          <rect x="1208" y="76" width="56" height="74" />
-          <line x1="1208" y1="96" x2="1264" y2="96" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1208" y1="118" x2="1264" y2="118" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1236" y1="76" x2="1236" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 13. Angled Skyscraper Mirror (x=1304) */}
+          <g>
+            <polygon points="1304,168 1304,36 1360,10 1360,168" fill="var(--background)" strokeWidth="1.35" />
+            <line x1="1348" y1="10" x2="1348" y2="-16" strokeWidth="1.6" strokeLinecap="round" />
+            <circle cx="1348" cy="-16" r="1.4" fill="currentColor" />
+            <line x1="1344.5" y1="-4" x2="1351.5" y2="-4" strokeWidth="0.8" />
+            <line x1="1338" y1="16" x2="1338" y2="-6" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="1320" y1="28" x2="1320" y2="168" strokeWidth="0.85" opacity="0.8" />
+            <line x1="1344" y1="16" x2="1344" y2="168" strokeWidth="0.85" opacity="0.8" />
+            {[48, 57, 66, 75, 84, 93, 102, 111, 120, 129, 138, 147].map((wy) => (
+              <React.Fragment key={wy}>
+                <line x1="1304" y1={wy} x2="1360" y2={wy} strokeWidth="0.65" opacity="0.65" />
+                <rect x="1308" y={wy - 6} width="8" height="4.5" fill="var(--background)" strokeWidth="0.6" />
+                <rect x="1324" y={wy - 6} width="16" height="4.5" fill="var(--background)" strokeWidth="0.6" />
+                <line x1="1332" y1={wy - 6} x2="1332" y2={wy - 1.5} strokeWidth="0.5" opacity="0.6" />
+                <rect x="1348" y={wy - 6} width="8" height="4.5" fill="var(--background)" strokeWidth="0.6" />
+              </React.Fragment>
+            ))}
+            <rect x="1322" y="153" width="20" height="15" fill="var(--background)" strokeWidth="1.1" />
+            <line x1="1332" y1="153" x2="1332" y2="168" strokeWidth="0.75" />
+          </g>
 
-          {/* 22. Stepped Townhouses (54w x 78h) */}
-          <rect x="1264" y="72" width="54" height="78" />
-          <rect x="1286" y="66" width="32" height="6" />
-          <rect x="1272" y="82" width="16" height="12" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="1296" y="82" width="16" height="12" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="1282" y="112" width="18" height="25" stroke="currentColor" strokeWidth="0.9" />
+          {/* Street Lamp (x=1370) */}
+          <g>
+            <line x1="1370" y1="168" x2="1370" y2="148" strokeWidth="1.05" strokeLinecap="round" />
+            <path d="M 1370 148 Q 1370 144 1374 144 L 1376 144" fill="none" strokeWidth="1" />
+            <circle cx="1376" cy="145" r="1.3" fill="currentColor" />
+          </g>
 
-          {/* 23. Modern Commercial Block (56w x 84h) */}
-          <rect x="1318" y="66" width="56" height="84" />
-          {[82, 98, 114, 130, 144].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="1318" y1={y} x2="1374" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <line x1="1336" y1="66" x2="1336" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1356" y1="66" x2="1356" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 14. Stepped Pergola (x=1380) */}
+          <g>
+            <rect x="1380" y="82" width="68" height="86" fill="var(--background)" strokeWidth="1.3" />
+            <rect x="1400" y="64" width="48" height="18" fill="var(--background)" strokeWidth="1.2" />
+            <line x1="1404" y1="57" x2="1444" y2="57" strokeWidth="1.3" strokeLinecap="round" />
+            {[1406, 1412, 1418, 1424, 1430, 1436, 1442].map((px) => (
+              <line key={px} x1={px} y1="57" x2={px} y2="64" strokeWidth="0.7" />
+            ))}
+            {[92, 111, 130, 149].map((by) => (
+              <React.Fragment key={by}>
+                <rect x="1386" y={by} width="16" height="12" fill="var(--background)" strokeWidth="0.85" />
+                <rect x="1408" y={by} width="32" height="12" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.7" />
+                <line x1="1406" y1={by + 7} x2="1442" y2={by + 7} strokeWidth="1" />
+                <line x1="1406" y1={by + 12} x2="1442" y2={by + 12} strokeWidth="1.4" />
+              </React.Fragment>
+            ))}
+            <rect x="1388" y="153" width="15" height="15" fill="var(--background)" strokeWidth="1.05" />
+            <line x1="1395.5" y1="153" x2="1395.5" y2="168" strokeWidth="0.7" />
+          </g>
 
-          {/* 24. Mid-Rise Office Block (54w x 90h) */}
-          <rect x="1374" y="60" width="54" height="90" />
-          {[74, 90, 106, 122, 138].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="1374" y1={y} x2="1428" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-              <rect x="1380" y={y - 9} width="10" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="1396" y={y - 9} width="10" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="1412" y={y - 9} width="10" height="8" stroke="currentColor" strokeWidth="0.75" />
-            </React.Fragment>
-          ))}
+          {/* Street Tree (x=1456) */}
+          <g>
+            <line x1="1456" y1="168" x2="1456" y2="157" strokeWidth="1.15" />
+            <circle cx="1456" cy="150" r="8" fill="var(--background)" strokeWidth="1.15" />
+          </g>
 
-          {/* 25. Modern Townhouses with Pergola Roof (58w x 78h) */}
-          <rect x="1428" y="72" width="58" height="78" />
-          <line x1="1434" y1="62" x2="1480" y2="62" stroke="currentColor" strokeWidth="1.5" />
-          <line x1="1440" y1="62" x2="1440" y2="72" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="1454" y1="62" x2="1454" y2="72" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="1468" y1="62" x2="1468" y2="72" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="1436" y="86" width="18" height="16" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="1462" y="86" width="18" height="16" stroke="currentColor" strokeWidth="0.9" />
-          <rect x="1448" y="118" width="18" height="32" stroke="currentColor" strokeWidth="0.9" />
+          {/* 15. Framed Window Block (x=1468) */}
+          <g>
+            <rect x="1468" y="66" width="60" height="102" fill="var(--background)" strokeWidth="1.3" />
+            <line x1="1467" y1="69" x2="1529" y2="69" strokeWidth="1" />
+            {[78, 94, 110, 126, 142].map((ry) => (
+              <React.Fragment key={ry}>
+                {[1473, 1489, 1505].map((cx) => (
+                  <React.Fragment key={cx}>
+                    <rect x={cx} y={ry} width="13" height="11" fill="var(--background)" strokeWidth="0.9" />
+                    <rect x={cx + 2} y={ry + 2} width="9" height="7" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.55" />
+                    <line x1={cx + 6.5} y1={ry + 2} x2={cx + 6.5} y2={ry + 9} strokeWidth="0.5" />
+                  </React.Fragment>
+                ))}
+              </React.Fragment>
+            ))}
+            <rect x="1488" y="153" width="20" height="15" fill="var(--background)" strokeWidth="1.1" />
+            <line x1="1498" y1="153" x2="1498" y2="168" strokeWidth="0.7" />
+          </g>
 
-          {/* 26. Stepped Townhouses with Balconies (58w x 84h) */}
-          <rect x="1486" y="66" width="58" height="84" />
-          <rect x="1508" y="58" width="36" height="8" />
-          <line x1="1514" y1="80" x2="1542" y2="80" stroke="currentColor" strokeWidth="1.2" />
-          <line x1="1514" y1="85" x2="1542" y2="85" stroke="currentColor" strokeWidth="0.65" />
-          <rect x="1518" y="70" width="20" height="9" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="1514" y1="106" x2="1542" y2="106" stroke="currentColor" strokeWidth="1.2" />
-          <line x1="1514" y1="111" x2="1542" y2="111" stroke="currentColor" strokeWidth="0.65" />
-          <rect x="1518" y="96" width="20" height="9" stroke="currentColor" strokeWidth="0.8" />
-          <line x1="1510" y1="66" x2="1510" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <rect x="1492" y="78" width="10" height="20" stroke="currentColor" strokeWidth="0.8" />
-          <rect x="1492" y="106" width="10" height="24" stroke="currentColor" strokeWidth="0.8" />
+          {/* Street Lamp (x=1536) */}
+          <g>
+            <line x1="1536" y1="168" x2="1536" y2="148" strokeWidth="1.05" strokeLinecap="round" />
+            <path d="M 1536 148 Q 1536 144 1540 144 L 1542 144" fill="none" strokeWidth="1" />
+            <circle cx="1542" cy="145" r="1.3" fill="currentColor" />
+          </g>
 
-          {/* 27. Modern Curved S-Facade Building (Photo Match: 60w x 88h) */}
-          <rect x="1544" y="62" width="60" height="88" />
-          <path d="M 1544 62 Q 1574 54 1604 62" stroke="currentColor" strokeWidth="1.3" fill="none" />
-          {[76, 92, 108, 124, 138].map((y) => (
-            <React.Fragment key={y}>
-              <path d={`M 1544 ${y} Q 1574 ${y - 6} 1604 ${y}`} stroke="currentColor" strokeWidth="0.85" fill="none" />
-            </React.Fragment>
-          ))}
-          {[1556, 1568, 1580, 1592].map((x) => (
-            <React.Fragment key={x}>
-              <line x1={x} y1="62" x2="150" y2="150" stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
-            </React.Fragment>
-          ))}
+          {/* 16. Curved Corner Left (x=1546) */}
+          <g>
+            <path d="M 1546 88 Q 1556 76 1568 76 L 1612 76 L 1612 168 L 1546 168 Z" fill="var(--background)" strokeWidth="1.3" />
+            {[90, 103, 116, 129, 142].map((fy) => (
+              <React.Fragment key={fy}>
+                <path d={`M 1550 ${fy + 4} Q 1556 ${fy} 1566 ${fy} L 1608 ${fy}`} fill="none" strokeWidth="1.05" />
+                <path d={`M 1550 ${fy + 9} Q 1556 ${fy + 6} 1566 ${fy + 6} L 1608 ${fy + 6}`} fill="none" strokeWidth="0.65" opacity="0.6" />
+              </React.Fragment>
+            ))}
+            <rect x="1594" y="154" width="14" height="14" fill="var(--background)" strokeWidth="1" />
+            <line x1="1601" y1="154" x2="1601" y2="168" strokeWidth="0.7" />
+          </g>
 
-          {/* 28. Commercial Gallery with Window Arrays (56w x 92h) */}
-          <rect x="1604" y="58" width="56" height="92" />
-          <rect x="1614" y="50" width="36" height="8" />
-          {[72, 88, 104, 120, 134].map((y) => (
-            <React.Fragment key={y}>
-              <rect x="1610" y={y - 9} width="9" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="1623" y={y - 9} width="9" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="1636" y={y - 9} width="9" height="8" stroke="currentColor" strokeWidth="0.75" />
-              <rect x="1648" y={y - 9} width="9" height="8" stroke="currentColor" strokeWidth="0.75" />
-            </React.Fragment>
-          ))}
-          <rect x="1624" y="132" width="16" height="18" stroke="currentColor" strokeWidth="0.9" />
+          {/* Street Tree & Sedan Car (x=1620) */}
+          <g stroke="currentColor">
+            <line x1="1620" y1="168" x2="1620" y2="157" strokeWidth="1.15" />
+            <circle cx="1620" cy="150" r="8" fill="var(--background)" strokeWidth="1.15" />
+            <g strokeWidth="0.75" strokeLinejoin="round">
+              <path d="M 1630 166 L 1630 163 Q 1632 161 1637 161 L 1641 158 L 1650 158 L 1653 161 L 1656 161 L 1656 166 Z" fill="var(--background)" />
+              <circle cx="1635" cy="166" r="2.2" fill="currentColor" />
+              <circle cx="1651" cy="166" r="2.2" fill="currentColor" />
+            </g>
+          </g>
 
-          {/* 29. Curved Corner Plaza Building (56w x 86h) */}
-          <rect x="1660" y="64" width="56" height="86" />
-          <path d="M 1660 64 Q 1688 54 1716 64" stroke="currentColor" strokeWidth="1.3" fill="none" />
-          {[80, 96, 112, 128, 142].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="1660" y1={y} x2="1716" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <line x1="1678" y1="64" x2="1678" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
-          <line x1="1698" y1="64" x2="1698" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
+          {/* 17. Corporate Fins (x=1656) */}
+          <g>
+            <rect x="1656" y="58" width="62" height="110" fill="var(--background)" strokeWidth="1.3" />
+            <rect x="1666" y="50" width="42" height="8" fill="var(--background)" strokeWidth="0.95" />
+            {[70, 84, 98, 112, 126, 140].map((fy) => (
+              <React.Fragment key={fy}>
+                <rect x="1660" y={fy} width="54" height="10" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.7" />
+                {[1663, 1668.5, 1674, 1679.5, 1685, 1690.5, 1696, 1701.5, 1707].map((fx) => (
+                  <line key={fx} x1={fx} y1={fy} x2={fx} y2={fy + 10} strokeWidth="0.6" opacity="0.75" />
+                ))}
+              </React.Fragment>
+            ))}
+            <rect x="1675" y="152" width="24" height="16" fill="var(--background)" strokeWidth="1.15" />
+            <line x1="1687" y1="152" x2="1687" y2="168" strokeWidth="0.8" />
+          </g>
 
-          {/* 30. Modern Commercial Office Block with Sunshades (56w x 102h) */}
-          <rect x="1716" y="48" width="56" height="102" />
-          {[66, 84, 102, 120, 136].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="1716" y1={y} x2="1772" y2={y} stroke="currentColor" strokeWidth="1" opacity="0.8" />
-              <line x1="1716" y1={y + 3} x2="1772" y2={y + 3} stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
-            </React.Fragment>
-          ))}
-          <line x1="1734" y1="48" x2="1734" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-          <line x1="1754" y1="48" x2="1754" y2="150" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+          {/* Street Lamp (x=1726) */}
+          <g>
+            <line x1="1726" y1="168" x2="1726" y2="148" strokeWidth="1.05" strokeLinecap="round" />
+            <path d="M 1726 148 Q 1726 144 1730 144 L 1732 144" fill="none" strokeWidth="1" />
+            <circle cx="1732" cy="145" r="1.3" fill="currentColor" />
+          </g>
 
-          {/* 31. Right Grand Needle Spire Skyscraper (The Majestic Tower in Photo: 64w x 140h) */}
-          <rect x="1772" y="22" width="64" height="128" />
-          <rect x="1788" y="10" width="32" height="12" />
-          <line x1="1804" y1="-10" x2="1804" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <line x1="1796" y1="-1" x2="1812" y2="-1" stroke="currentColor" strokeWidth="1.3" />
-          {/* Vertical Rib Mullions */}
-          <line x1="1786" y1="22" x2="1786" y2="150" stroke="currentColor" strokeWidth="0.9" opacity="0.8" />
-          <line x1="1804" y1="22" x2="1804" y2="150" stroke="currentColor" strokeWidth="1" opacity="0.9" />
-          <line x1="1822" y1="22" x2="1822" y2="150" stroke="currentColor" strokeWidth="0.9" opacity="0.8" />
-          {[36, 50, 64, 78, 92, 106, 120, 134].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="1772" y1={y} x2="1836" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <rect x="1792" y="130" width="24" height="20" stroke="currentColor" strokeWidth="1" />
+          {/* 18. Stepped Pergola (x=1736) */}
+          <g>
+            <rect x="1736" y="86" width="66" height="82" fill="var(--background)" strokeWidth="1.3" />
+            <rect x="1756" y="68" width="46" height="18" fill="var(--background)" strokeWidth="1.2" />
+            <line x1="1760" y1="61" x2="1798" y2="61" strokeWidth="1.3" strokeLinecap="round" />
+            {[1762, 1768, 1774, 1780, 1786, 1792, 1796].map((px) => (
+              <line key={px} x1={px} y1="61" x2={px} y2="68" strokeWidth="0.7" />
+            ))}
+            {[96, 115, 134].map((by) => (
+              <React.Fragment key={by}>
+                <rect x="1742" y={by} width="16" height="12" fill="var(--background)" strokeWidth="0.85" />
+                <rect x="1764" y={by} width="32" height="12" fill="url(#archHatchDesk)" stroke="currentColor" strokeWidth="0.7" />
+                <line x1="1762" y1={by + 7} x2="1798" y2={by + 7} strokeWidth="1" />
+                <line x1="1762" y1={by + 12} x2="1798" y2={by + 12} strokeWidth="1.4" />
+              </React.Fragment>
+            ))}
+            <rect x="1744" y="153" width="15" height="15" fill="var(--background)" strokeWidth="1.05" />
+            <line x1="1751.5" y1="153" x2="1751.5" y2="168" strokeWidth="0.7" />
+          </g>
 
-          {/* 32. Stepped High-Rise Tower with Dual Spires (60w x 120h) */}
-          <rect x="1836" y="30" width="60" height="120" />
-          <line x1="1850" y1="12" x2="1850" y2="30" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="1882" y1="12" x2="1882" y2="30" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="1854" y1="46" x2="1854" y2="142" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
-          <line x1="1878" y1="46" x2="1878" y2="142" stroke="currentColor" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.7" />
-          {[48, 66, 84, 102, 120, 136].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="1836" y1={y} x2="1896" y2={y} stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <rect x="1856" y="132" width="20" height="18" stroke="currentColor" strokeWidth="1" />
+          {/* Street Tree (x=1810) */}
+          <g>
+            <line x1="1810" y1="168" x2="1810" y2="157" strokeWidth="1.15" />
+            <circle cx="1810" cy="150" r="8" fill="var(--background)" strokeWidth="1.15" />
+          </g>
 
-          {/* 33. Right Landmark Skyscraper (Angled Crown & Antennas - 62w x 135h) */}
-          <path d="M 1896 150 L 1896 16 L 1958 32 L 1958 150 Z" />
-          <line x1="1910" y1="-2" x2="1910" y2="20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="1944" y1="4" x2="1944" y2="28" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="1916" y1="20" x2="1916" y2="150" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
-          <line x1="1938" y1="26" x2="1938" y2="150" stroke="currentColor" strokeWidth="0.9" opacity="0.75" />
-          {[44, 58, 72, 86, 100, 114, 128, 140].map((y) => (
-            <React.Fragment key={y}>
-              <line x1="1896" y1={y} x2="1958" y2={y} stroke="currentColor" strokeWidth="0.7" opacity="0.6" />
-              <rect x="1900" y={y - 9} width="11" height="8" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="1921" y={y - 9} width="12" height="8" stroke="currentColor" strokeWidth="0.7" />
-              <rect x="1943" y={y - 9} width="11" height="8" stroke="currentColor" strokeWidth="0.7" />
-            </React.Fragment>
-          ))}
-          <rect x="1917" y="132" width="20" height="18" stroke="currentColor" strokeWidth="1" />
+          {/* 19. Curved Corner Right (x=1822) */}
+          <g>
+            <path d="M 1822 76 L 1866 76 Q 1878 76 1888 88 L 1888 168 L 1822 168 Z" fill="var(--background)" strokeWidth="1.3" />
+            {[90, 103, 116, 129, 142].map((fy) => (
+              <React.Fragment key={fy}>
+                <path d={`M 1826 ${fy} L 1868 ${fy} Q 1878 ${fy} 1884 ${fy + 4}`} fill="none" strokeWidth="1.05" />
+                <path d={`M 1826 ${fy + 6} L 1868 ${fy + 6} Q 1878 ${fy + 6} 1884 ${fy + 9}`} fill="none" strokeWidth="0.65" opacity="0.6" />
+              </React.Fragment>
+            ))}
+            <rect x="1828" y="154" width="14" height="14" fill="var(--background)" strokeWidth="1" />
+            <line x1="1835" y1="154" x2="1835" y2="168" strokeWidth="0.7" />
+          </g>
 
-          {/* 34. Far Right Iconic Curved Cultural Center (Exact photo match: 72w x 80h) */}
-          <ellipse cx="1960" cy="74" rx="36" ry="9" />
-          <path d="M 1924 74 L 1924 150 L 1996 150 L 1996 74 Z" />
-          <path d="M 1924 88 Q 1960 96 1996 88" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 1924 102 Q 1960 110 1996 102" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 1924 116 Q 1960 124 1996 116" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 1924 130 Q 1960 138 1996 130" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          <path d="M 1924 142 Q 1960 148 1996 142" stroke="currentColor" strokeWidth="0.9" fill="none" />
-          {[1932, 1940, 1948, 1956, 1964, 1972, 1980, 1988].map((x) => (
-            <React.Fragment key={x}>
-              <line x1={x} y1="76" x2={x} y2="149" stroke="currentColor" strokeWidth="0.65" opacity="0.6" />
-            </React.Fragment>
-          ))}
-          <rect x="1948" y="132" width="24" height="18" stroke="currentColor" strokeWidth="1" />
-          <line x1="1960" y1="132" x2="1960" y2="150" stroke="currentColor" strokeWidth="0.7" />
+          {/* 20. Rightmost Spiral Drum Pavilion (x=1898) */}
+          <g>
+            <ellipse cx="1936" cy="84" rx="34" ry="8" fill="var(--background)" strokeWidth="1.2" />
+            <ellipse cx="1936" cy="81" rx="32" ry="8" fill="none" strokeWidth="0.7" strokeDasharray="3 2" opacity="0.7" />
+            <path d="M 1898 84 L 1898 168 L 1974 168 L 1974 84 Z" fill="var(--background)" strokeWidth="1.3" />
+            {[98, 112, 126, 140, 152].map((ty) => (
+              <React.Fragment key={ty}>
+                <path d={`M 1898 ${ty} Q 1936 ${ty + 10} 1974 ${ty}`} fill="none" strokeWidth="1.1" />
+                <path d={`M 1898 ${ty + 3} Q 1936 ${ty + 13} 1974 ${ty + 3}`} fill="none" strokeWidth="0.6" opacity="0.6" />
+              </React.Fragment>
+            ))}
+            {[1906, 1913, 1920, 1928, 1936, 1944, 1952, 1959, 1966].map((mx) => (
+              <line key={mx} x1={mx} y1="92" x2={mx} y2="152" strokeWidth="0.55" opacity="0.6" />
+            ))}
+            <rect x="1925" y="154" width="22" height="14" fill="var(--background)" strokeWidth="1.1" />
+            <line x1="1936" y1="154" x2="1936" y2="168" strokeWidth="0.75" />
+          </g>
+
         </g>
       </svg>
     </div>
