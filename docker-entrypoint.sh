@@ -22,10 +22,12 @@ for i in $(seq 1 $MAX_RETRIES); do
 
   echo "[entrypoint] Applying schema updates..."
   # Apply diff with a timeout so a stalled DDL job never hangs container startup
-  if echo "$DIFF_SQL" | timeout 15 npx --no-update-notifier prisma db execute --schema=prisma/schema.prisma --stdin; then
+  if echo "$DIFF_SQL" | timeout 45 npx --no-update-notifier prisma db execute --schema=prisma/schema.prisma --stdin; then
     echo "[entrypoint] ✅ Database schema is ready."
     break
   fi
+  # Clean up any orphaned schema-engine processes left by timeout
+  pkill -9 -f schema-engine 2>/dev/null || true
 
   if [ "$i" -eq "$MAX_RETRIES" ]; then
     echo "[entrypoint] ⚠️ Schema sync could not complete within $MAX_RETRIES attempts. Continuing to start application..."

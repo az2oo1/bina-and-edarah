@@ -5138,9 +5138,22 @@ async function startServer() {
         logger.info("Serving projects from cache");
         return res.json(dbCache.projects);
       }
-      const projects = await prisma.project.findMany({
-        orderBy: { createdAt: 'desc' }
-      });
+      let projects;
+      try {
+        projects = await prisma.project.findMany({
+          orderBy: { createdAt: 'desc' }
+        });
+      } catch (prismaErr) {
+        logger.warn("Prisma project.findMany failed, falling back to raw query:", prismaErr);
+        projects = await prisma.$queryRawUnsafe(`
+          SELECT id, "titleAr", "titleEn", tier, "propertyCategory", area, details,
+                 "locationLink", "locationText", description, features, "propertyAge",
+                 "imageUrls", "createdAt", "floorplanUrl",
+                 NULL as "brochureUrl"
+          FROM public."Project"
+          ORDER BY "createdAt" DESC;
+        `);
+      }
       dbCache.projects = projects;
       logger.info("Serving projects from database & saving to cache");
       res.json(projects);
@@ -5152,9 +5165,23 @@ async function startServer() {
 
   app.get("/api/projects/:id", async (req, res) => {
     try {
-      const project = await prisma.project.findUnique({
-        where: { id: req.params.id }
-      });
+      let project;
+      try {
+        project = await prisma.project.findUnique({
+          where: { id: req.params.id }
+        });
+      } catch (prismaErr) {
+        logger.warn(`Prisma project.findUnique failed for ${req.params.id}, falling back to raw query:`, prismaErr);
+        const rows: any[] = await prisma.$queryRawUnsafe(`
+          SELECT id, "titleAr", "titleEn", tier, "propertyCategory", area, details,
+                 "locationLink", "locationText", description, features, "propertyAge",
+                 "imageUrls", "createdAt", "floorplanUrl",
+                 NULL as "brochureUrl"
+          FROM public."Project"
+          WHERE id = $1 LIMIT 1;
+        `, req.params.id);
+        project = rows[0] || null;
+      }
       if (!project) return res.status(404).json({ error: "Project not found" });
       const coords = extractCoords(project.locationLink);
       const nearbyPlaces = extractNearbyPlaces(project.details);

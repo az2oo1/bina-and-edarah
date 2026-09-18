@@ -113,18 +113,19 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
       />
 
       {/* Sub-Navigation Bar */}
-      <div className="relative z-20 bg-card/60 backdrop-blur-md border-b border-border/50 transition-all duration-300">
+      <div className="relative z-20 bg-card/85 dark:bg-card/60 backdrop-blur-md border-b border-border transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link 
               to="/projects" 
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/80 hover:bg-muted border border-border px-3.5 py-1.5 rounded-full shadow-xs active:scale-[0.97]"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-foreground/80 hover:text-foreground transition-all cursor-pointer bg-muted/70 hover:bg-muted border border-border px-3.5 py-1.5 rounded-full shadow-2xs active:scale-[0.97]"
             >
               {language === 'ar' ? <ChevronRight className="w-4 h-4 text-primary" /> : <ChevronLeft className="w-4 h-4 text-primary" />}
               <span>{language === 'ar' ? 'المشاريع' : 'Projects'}</span>
             </Link>
 
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded font-semibold text-xs bg-primary/10 text-primary border border-primary/20">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               <span>{language === 'ar' ? 'مشروع ريادي' : 'Flagship Project'}</span>
             </span>
           </div>
@@ -146,7 +147,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
 
             <button
               onClick={handleCopyLink}
-              className="h-9 px-3 rounded-full text-xs font-semibold border border-border bg-card/60 hover:bg-muted transition flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
+              className="h-9 px-3 rounded-full text-xs font-semibold border border-border bg-card/80 hover:bg-muted transition flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer shadow-2xs"
               title={language === 'ar' ? 'نسخ الرابط' : 'Copy link'}
             >
               {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
@@ -167,7 +168,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
       </div>
 
       {/* 1. CINEMATIC HERO COVER */}
-      <section className="relative min-h-[calc(100vh-3.5rem)] w-full flex items-center overflow-hidden select-none py-12 sm:py-16">
+      <section className="relative min-h-[calc(100vh-3.5rem)] w-full flex items-center overflow-hidden select-none py-12 sm:py-16 bg-black">
         {/* Parallax Media Background */}
         <motion.div 
           className="absolute inset-0 w-full h-full"
@@ -189,9 +190,11 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
               className="w-full h-full object-cover" 
             />
           )}
-          {/* Luxury Multi-layer Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-black/50" />
-          <div className="absolute inset-0 bg-radial from-transparent via-black/20 to-black/70" />
+          {/* True Luxury Dark Scrim: Media & typography maintain crisp contrast in both themes */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40" />
+          <div className="absolute inset-0 bg-radial from-transparent via-black/30 to-black/80" />
+          {/* Seamless bottom fade into page background */}
+          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent" />
         </motion.div>
 
         {/* Hero Content */}
@@ -202,28 +205,28 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="max-w-3xl space-y-4"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-primary/20 text-primary border border-primary/30 backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <span>{language === 'ar' ? 'مشروع ريادي' : 'Flagship Project'}</span>
             </div>
 
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.15] drop-shadow-lg">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.15] drop-shadow-md">
               {title}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-200 pt-1 font-medium">
-              <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-100 pt-1 font-medium">
+              <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 shadow-xs">
                 <MapPin className="w-4 h-4 text-amber-400" />
                 <span>{project.locationText || (language === 'ar' ? 'المملكة العربية السعودية' : 'Saudi Arabia')}</span>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-sm">
+              <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 shadow-xs">
                 <Building2 className="w-4 h-4 text-amber-400" />
                 <span>{t(`cat.${project.propertyCategory}`) || project.propertyCategory}</span>
               </div>
 
               {project.area && (
-                <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-sm">
+                <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 shadow-xs">
                   <Maximize2 className="w-4 h-4 text-amber-400" />
                   <span>{project.area} م²</span>
                 </div>
@@ -247,7 +250,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
                   target="_blank"
                   rel="noopener noreferrer"
                   download
-                  className="h-11 px-6 rounded-full text-xs font-bold bg-white/90 hover:bg-white text-black transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                  className="h-11 px-6 rounded-full text-xs font-bold bg-white text-slate-950 hover:bg-white/90 border border-white/30 transition-all shadow-lg active:scale-95 flex items-center gap-2"
                 >
                   <FileDown className="w-4 h-4 text-primary" />
                   <span>{language === 'ar' ? 'تحميل البروشور' : 'Download Brochure'}</span>
@@ -262,7 +265,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 1 }}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/70 text-xs font-semibold pointer-events-none"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/90 text-xs font-bold drop-shadow-sm pointer-events-none z-10"
         >
           <span>{language === 'ar' ? 'مرر لاكتشاف القصة' : 'Scroll to explore'}</span>
           <motion.div
@@ -275,25 +278,25 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
       </section>
 
       {/* 2. THE CONCEPT & VISION NARRATIVE CHAPTER (SCROLLYTELLING STAGE) */}
-      <section className="py-24 sm:py-32 relative bg-card/40 border-b border-border/60">
+      <section className="py-24 sm:py-32 relative bg-card/30 dark:bg-card/20 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
             
             {/* Sticky Narrative Showcase Image */}
             <div className="lg:col-span-6 lg:sticky lg:top-28">
-              <div className="relative rounded-3xl overflow-hidden border border-border/80 shadow-2xl bg-muted aspect-4/3 sm:aspect-16/10 group cursor-pointer" onClick={() => openViewerAt(0)}>
+              <div className="relative rounded-3xl overflow-hidden border border-border shadow-xl bg-muted aspect-4/3 sm:aspect-16/10 group cursor-pointer" onClick={() => openViewerAt(0)}>
                 <img 
                   src={images[0]} 
                   alt="Architecture vision" 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-6 sm:p-8">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent flex items-end p-6 sm:p-8">
                   <div className="text-white space-y-1">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400">{language === 'ar' ? 'المفهوم المعماري' : 'Architectural Concept'}</span>
                     <h3 className="text-lg font-bold">{title}</h3>
                   </div>
                 </div>
-                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-xs">
                   <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
                   <span>{language === 'ar' ? 'عرض مكبّر' : 'Expand'}</span>
                 </div>
@@ -312,14 +315,14 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
                 </h2>
               </div>
 
-              <div className="prose dark:prose-invert max-w-none text-muted-foreground text-base sm:text-lg leading-relaxed whitespace-pre-wrap font-normal">
+              <div className="prose dark:prose-invert max-w-none text-foreground/85 dark:text-muted-foreground text-base sm:text-lg leading-relaxed whitespace-pre-wrap font-normal">
                 {project.description}
               </div>
 
               {/* Highlights Quote Box */}
-              <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-                <p className="text-sm font-semibold text-foreground italic relative z-10 leading-relaxed">
+              <div className="p-6 sm:p-8 rounded-3xl bg-amber-500/5 dark:bg-primary/5 border border-amber-500/20 dark:border-primary/20 relative overflow-hidden shadow-xs">
+                <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 dark:bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+                <p className="text-sm sm:text-base font-semibold text-foreground/90 italic relative z-10 leading-relaxed">
                   "{language === 'ar' 
                     ? 'صُمم هذا المشروع الريادي ليكون علامة فارقة تجسد أعلى معايير الجودة والاستدامة، مقدماً بيئة متكاملة تجمع بين الفخامة والعملية.'
                     : 'Crafted as a landmark defining superior quality and sustainability, providing an integrated environment of prestige and performance.'}"
@@ -344,25 +347,25 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <div className="bg-card/70 border border-border/80 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-xs hover:border-primary/50 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Maximize2 className="w-6 h-6 text-primary" />
+            <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-xs hover:border-primary/50 transition-all hover:shadow-md group">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 dark:bg-primary/10 text-amber-600 dark:text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-2xs">
+                <Maximize2 className="w-6 h-6" />
               </div>
               <span className="text-xs text-muted-foreground font-semibold mb-1">{language === 'ar' ? 'المساحة الإجمالية' : 'Total Area'}</span>
               <span className="text-2xl sm:text-3xl font-black text-foreground">{project.area || '—'} م²</span>
             </div>
 
-            <div className="bg-card/70 border border-border/80 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-xs hover:border-primary/50 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Building2 className="w-6 h-6 text-primary" />
+            <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-xs hover:border-primary/50 transition-all hover:shadow-md group">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 dark:bg-primary/10 text-amber-600 dark:text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-2xs">
+                <Building2 className="w-6 h-6" />
               </div>
               <span className="text-xs text-muted-foreground font-semibold mb-1">{language === 'ar' ? 'نوع التصنيف المعماري' : 'Property Typology'}</span>
               <span className="text-2xl sm:text-3xl font-black text-foreground line-clamp-1">{t(`cat.${project.propertyCategory}`) || project.propertyCategory}</span>
             </div>
 
-            <div className="bg-card/70 border border-border/80 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-xs hover:border-primary/50 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Calendar className="w-6 h-6 text-primary" />
+            <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-xs hover:border-primary/50 transition-all hover:shadow-md group">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 dark:bg-primary/10 text-amber-600 dark:text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-2xs">
+                <Calendar className="w-6 h-6" />
               </div>
               <span className="text-xs text-muted-foreground font-semibold mb-1">{language === 'ar' ? 'عمر المشروع والحالة' : 'Age & Status'}</span>
               <span className="text-2xl sm:text-3xl font-black text-foreground">
@@ -372,12 +375,12 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
               </span>
             </div>
 
-            <div className="bg-card/70 border border-border/80 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-xs hover:border-primary/50 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Award className="w-6 h-6 text-primary" />
+            <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-xs hover:border-amber-500/50 transition-all hover:shadow-md group">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-2xs">
+                <Award className="w-6 h-6" />
               </div>
               <span className="text-xs text-muted-foreground font-semibold mb-1">{language === 'ar' ? 'الفئة المعتمدة' : 'Tier Classification'}</span>
-              <span className="text-2xl sm:text-3xl font-black text-primary">
+              <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400">
                 {language === 'ar' ? 'مشروع ريادي' : 'Flagship Tier'}
               </span>
             </div>
@@ -387,7 +390,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
 
       {/* 4. BLUEPRINT SPECIFICATIONS (KEY-VALUE WITH ICONS) */}
       {project.detailsList && project.detailsList.length > 0 && (
-        <section className="py-20 sm:py-28 relative bg-muted/20 border-y border-border/60">
+        <section className="py-20 sm:py-28 relative bg-muted/40 dark:bg-muted/10 border-y border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             <div className="text-center max-w-2xl mx-auto space-y-2">
               <span className="text-xs font-black uppercase tracking-widest text-primary flex items-center justify-center gap-1.5">
@@ -403,9 +406,9 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
               {project.detailsList.map((detail, idx) => (
                 <div 
                   key={idx}
-                  className="p-5 rounded-2xl bg-card border border-border/80 hover:border-primary/40 transition-all flex items-center gap-4 shadow-2xs group"
+                  className="p-5 rounded-2xl bg-card border border-border hover:border-primary/40 hover:shadow-sm transition-all flex items-center gap-4 shadow-2xs group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shadow-2xs">
                     {renderIcon(detail.icon)}
                   </div>
                   <div className="overflow-hidden">
@@ -437,7 +440,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
               {project.featuresList.map((feature, idx) => (
                 <div 
                   key={idx}
-                  className="p-4 rounded-2xl bg-card/60 border border-border/70 hover:border-primary/50 transition-all flex items-center gap-3 shadow-2xs group hover:bg-card"
+                  className="p-4 rounded-2xl bg-card border border-border hover:border-emerald-500/40 hover:shadow-xs transition-all flex items-center gap-3 shadow-2xs group"
                 >
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                     <CheckCircle className="w-4 h-4 stroke-[2.5]" />
@@ -451,7 +454,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
       )}
 
       {/* 6. IMMERSIVE VISUAL GALLERY & MEDIA TOUR */}
-      <section className="py-20 sm:py-28 relative bg-card/40 border-t border-border/60">
+      <section className="py-20 sm:py-28 relative bg-card/40 dark:bg-card/20 border-t border-border/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
@@ -465,7 +468,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
             
             <button
               onClick={() => openViewerAt(0)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold bg-card hover:bg-muted border border-border shadow-xs transition cursor-pointer self-start sm:self-auto"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold bg-card hover:bg-muted border border-border shadow-xs transition cursor-pointer self-start sm:self-auto text-foreground"
             >
               <Maximize2 className="w-4 h-4 text-primary" />
               <span>{language === 'ar' ? `عرض كل الصور (${images.length})` : `View All Media (${images.length})`}</span>
@@ -509,8 +512,8 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
                   )}
 
                   {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="bg-black/80 backdrop-blur-xs text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                    <div className="bg-black/80 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 transition-transform shadow-lg border border-white/20">
                       <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
                       <span>{language === 'ar' ? 'عرض مكبّر' : 'Expand'}</span>
                     </div>
@@ -524,7 +527,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
 
       {/* 7. ARCHITECTURAL FLOORPLAN / MASTERPLAN */}
       {project.floorplanUrl && (
-        <section className="py-20 sm:py-28 relative bg-card/40 border-t border-border/60">
+        <section className="py-20 sm:py-28 relative bg-card/40 dark:bg-card/20 border-t border-border/60">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
@@ -542,7 +545,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
                   target="_blank"
                   rel="noopener noreferrer"
                   download
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-card hover:bg-muted border border-border shadow-xs transition cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-card hover:bg-muted border border-border shadow-xs transition cursor-pointer text-foreground"
                 >
                   <Download className="w-3.5 h-3.5 text-primary" />
                   <span>{language === 'ar' ? 'تحميل المخطط' : 'Download Plan'}</span>
@@ -550,12 +553,12 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
               </div>
             </div>
 
-            <div className="relative rounded-3xl overflow-hidden border border-border bg-card shadow-md group">
-              <div className="p-4 sm:p-8 flex items-center justify-center bg-muted/20">
+            <div className="relative rounded-3xl overflow-hidden border border-border bg-white dark:bg-card shadow-md group">
+              <div className="p-4 sm:p-8 flex items-center justify-center bg-slate-50/80 dark:bg-card/40">
                 {project.floorplanUrl.endsWith('.pdf') || project.floorplanUrl.startsWith('data:application/pdf') ? (
                   <iframe 
                     src={project.floorplanUrl} 
-                    className="w-full h-[520px] rounded-2xl border border-border"
+                    className="w-full h-[520px] rounded-2xl border border-border bg-white"
                     title={language === 'ar' ? 'مخطط المشروع' : 'Project Floorplan'}
                   />
                 ) : (
@@ -575,7 +578,7 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
       {project.locationLink && (
         <section className="py-20 sm:py-24 relative border-t border-border/60">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="rounded-3xl p-8 sm:p-12 bg-card border border-border/80 shadow-md flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="rounded-3xl p-8 sm:p-12 bg-card border border-border shadow-md flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="space-y-3 max-w-xl">
                 <span className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
                   <MapPin className="w-4 h-4" />
@@ -606,11 +609,11 @@ export function FlagshipScrollytelling({ project, settings = {} }: FlagshipScrol
         </section>
       )}
 
-      {/* 8. VIP CONSULTATION & INQUIRY FOOTER CTA */}
-      <section className="py-24 relative bg-gradient-to-b from-background to-muted/40 border-t border-border/60">
+      {/* 9. VIP CONSULTATION & INQUIRY FOOTER CTA */}
+      <section className="py-24 relative bg-gradient-to-b from-background via-muted/30 to-muted/50 border-t border-border/60">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
-          <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center mx-auto shadow-inner border border-primary/20">
-            <Award className="w-8 h-8 text-primary" />
+          <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner border border-amber-500/20">
+            <Award className="w-8 h-8" />
           </div>
 
           <div className="space-y-3">
