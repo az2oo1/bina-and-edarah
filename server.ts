@@ -2926,6 +2926,57 @@ async function startServer() {
     }
   });
 
+  // Mark messages as delivered to the renter's device (called by the app when a push notification arrives)
+  app.post('/api/maintenance-reports/:id/messages/delivered', async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const report = await prisma.maintenanceReport.findFirst({
+        where: {
+          OR: [
+            { id },
+            { requestCode: id }
+          ]
+        }
+      });
+
+      if (!report) {
+        return res.status(404).json({ error: "البلاغ غير موجود" });
+      }
+
+      // Stamp deliveredAt on all admin/technician messages that haven't been stamped yet
+      const updated = await prisma.maintenanceMessage.updateMany({
+        where: {
+          reportId: report.id,
+          senderRole: { not: 'RENTER' },
+          deliveredAt: null,
+        },
+        data: {
+          deliveredAt: new Date(),
+        }
+      });
+
+      // Broadcast delivery receipt over Socket.IO
+      const io = req.app.get("io");
+      if (io) {
+        const payload = {
+          reportId: report.id,
+          requestCode: report.requestCode,
+        };
+        io.to(`ticket_${report.id}`).emit("messages_delivered", payload);
+        if (report.requestCode && report.requestCode !== report.id) {
+          io.to(`ticket_${report.requestCode}`).emit("messages_delivered", payload);
+        }
+        io.to("admin_room").emit("messages_delivered", payload);
+      }
+
+      res.json({ success: true, count: updated.count });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "فشل تحديث التسليم" });
+    }
+  });
+
   app.put('/api/admin/maintenance-reports/:id', requirePermission('renters'), async (req, res) => {
     try {
       const { id } = req.params;

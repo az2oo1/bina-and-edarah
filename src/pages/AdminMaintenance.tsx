@@ -533,6 +533,28 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
       }
     });
 
+    socket.on('messages_delivered', (data: { reportId?: string; requestCode?: string }) => {
+      if (data && (data.reportId || data.requestCode)) {
+        const matches = (r: MaintenanceReport) =>
+          (data.reportId && (r.id === data.reportId || r.requestCode === data.reportId)) ||
+          (data.requestCode && (r.id === data.requestCode || r.requestCode === data.requestCode));
+
+        const now = new Date().toISOString();
+        const stampDelivered = (msgs: MaintenanceMessage[]) =>
+          msgs.map((m) => (!m.deliveredAt ? { ...m, deliveredAt: now } : m));
+
+        setReports((prev) =>
+          prev.map((r) => (matches(r) ? { ...r, messages: stampDelivered(r.messages || []) } : r))
+        );
+        setChatPopupReport((prev) =>
+          prev && matches(prev) ? { ...prev, messages: stampDelivered(prev.messages || []) } : prev
+        );
+        setDetailsModalReport((prev) =>
+          prev && matches(prev) ? { ...prev, messages: stampDelivered(prev.messages || []) } : prev
+        );
+      }
+    });
+
     // 3-second auto-poll fallback timer when an active chat modal is open
     const pollInterval = setInterval(() => {
       const activeId = detailsModalReport?.id || chatPopupReport?.id;
@@ -2134,7 +2156,13 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
                                   : 'text-muted-foreground'
                               }`}>
                                 <span>{new Date(msg.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                                {isMe && (msg.isRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300 font-bold" /> : <Check className="w-3 h-3 opacity-70" />)}
+                                {isMe && (
+                                  msg.isRead
+                                    ? <CheckCheck className="w-3.5 h-3.5 text-sky-300 font-bold" />
+                                    : msg.deliveredAt
+                                    ? <CheckCheck className="w-3 h-3 opacity-60" />
+                                    : <Check className="w-3 h-3 opacity-70" />
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2304,7 +2332,13 @@ export default function AdminMaintenance({ buildingIdFilter }: { buildingIdFilte
                             : 'text-muted-foreground'
                         }`}>
                           <span>{new Date(msg.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                          {isMe && (msg.isRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300 font-bold" /> : <Check className="w-3 h-3 opacity-70" />)}
+                          {isMe && (
+                            msg.isRead
+                              ? <CheckCheck className="w-3.5 h-3.5 text-sky-300 font-bold" />
+                              : msg.deliveredAt
+                              ? <CheckCheck className="w-3 h-3 opacity-60" />
+                              : <Check className="w-3 h-3 opacity-70" />
+                          )}
                         </div>
                       </div>
                     </div>
