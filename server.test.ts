@@ -3,7 +3,27 @@ import * as assert from 'node:assert';
 
 process.env.JWT_SECRET = 'test-secret';
 
-import { serializeMeta } from './server.ts';
+import { serializeMeta, getGlobalSettings, dbCache } from './server.ts';
+
+describe('getGlobalSettings caching & performance', () => {
+  it('should return cached settings directly when dbCache.settingsCached is true', async () => {
+    // Populate cache manually
+    const mockSettings = { id: 'global', whatsappNumber: '966500000000', email: 'test@example.com' };
+    dbCache.settings = mockSettings;
+    dbCache.settingsCached = true;
+
+    // Benchmark cached access
+    const start = performance.now();
+    for (let i = 0; i < 1000; i++) {
+      const settings = await getGlobalSettings();
+      assert.strictEqual(settings, mockSettings);
+    }
+    const duration = performance.now() - start;
+
+    // 1000 in-memory calls should complete in under 10ms (sub-microsecond per call)
+    assert.ok(duration < 10, `1000 cached calls took ${duration.toFixed(2)}ms (expected < 10ms)`);
+  });
+});
 
 describe('serializeMeta', () => {
   it('should return empty string for empty array', () => {
