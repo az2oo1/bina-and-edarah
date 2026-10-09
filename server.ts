@@ -5351,7 +5351,7 @@ async function startServer() {
 
     // Raw fallback queries
     try {
-      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "Settings" WHERE id = 'global' LIMIT 1`);
+      const rows = await prisma.$queryRaw<any[]>`SELECT * FROM "Settings" WHERE id = 'global' LIMIT 1`;
       if (rows && rows.length > 0) {
         dbCache.settings = rows[0];
         dbCache.settingsCached = true;
@@ -5359,7 +5359,7 @@ async function startServer() {
       }
     } catch (_) {}
     try {
-      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM Settings WHERE id = 'global' LIMIT 1`);
+      const rows = await prisma.$queryRaw<any[]>`SELECT * FROM Settings WHERE id = 'global' LIMIT 1`;
       if (rows && rows.length > 0) {
         dbCache.settings = rows[0];
         dbCache.settingsCached = true;
