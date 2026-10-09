@@ -152,7 +152,7 @@ export function getSiteUrl(req?: any): string {
 
 async function sendCallbackEmailNotification(req?: any) {
   try {
-    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const settings = await getGlobalSettings();
     
     // Fetch all admin/staff users with configured emails
     const admins = await prisma.admin.findMany({
@@ -325,7 +325,7 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
       return;
     }
 
-    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const settings = await getGlobalSettings();
     const host = settings?.smtpHost || process.env.SMTP_HOST;
     const port = settings?.smtpPort || Number(process.env.SMTP_PORT) || 587;
     const user = settings?.smtpUser || process.env.SMTP_USER;
@@ -590,7 +590,7 @@ async function syncInboundEmails() {
   isSyncing = true;
   
   try {
-    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const settings = await getGlobalSettings();
     const host = settings?.imapHost;
     const port = settings?.imapPort || 993;
     const user = settings?.smtpUser;
@@ -777,13 +777,119 @@ interface CacheStore {
   settings: any | null;
   settingsCached: boolean;
 }
-const dbCache: CacheStore = {
+export const dbCache: CacheStore = {
   propertiesAdmin: null,
   propertiesPublic: null,
   projects: null,
   settings: null,
   settingsCached: false
 };
+
+export async function getGlobalSettings() {
+  if (dbCache.settingsCached) return dbCache.settings;
+  let result: any = null;
+  try {
+    const s = await prisma.settings.findUnique({ where: { id: "global" } });
+    if (s) {
+      dbCache.settings = s;
+      dbCache.settingsCached = true;
+      return s;
+    }
+  } catch (err) {
+    logger.warn("Prisma Settings query failed, using raw SQL query:", err);
+  }
+
+  // Raw fallback queries
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "Settings" WHERE id = 'global' LIMIT 1`);
+    if (rows && rows.length > 0) {
+      dbCache.settings = rows[0];
+      dbCache.settingsCached = true;
+      return rows[0];
+    }
+  } catch (_) {}
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM Settings WHERE id = 'global' LIMIT 1`);
+    if (rows && rows.length > 0) {
+      dbCache.settings = rows[0];
+      dbCache.settingsCached = true;
+      return rows[0];
+    }
+  } catch (_) {}
+
+  return null;
+}
+
+export async function updateGlobalSettings(data: any) {
+  // Invalidate the settings cache so the next read is fresh
+  dbCache.settingsCached = false;
+  const fields = Object.keys(data).filter(k => data[k] !== undefined);
+  if (fields.length === 0) return getGlobalSettings();
+
+  try {
+    const updated = await prisma.settings.update({
+      where: { id: "global" },
+      data
+    });
+    dbCache.settings = updated;
+    dbCache.settingsCached = true;
+    return updated;
+  } catch (err) {
+    logger.warn("Prisma client settings update failed, falling back to raw SQL updates:", err);
+  }
+
+  // Allowed fields for Settings from schema to prevent SQL injection
+  const allowedFields = [
+    'whatsappNumber', 'callingNumber', 'whatsappMessage', 'otpWebhookUrl',
+    'otpMessageTemplate', 'otpWebhookPayload', 'homeImages', 'logoUrl',
+    'email', 'instagramUrl', 'twitterUrl', 'facebookUrl', 'linkedinUrl',
+    'youtubeUrl', 'tiktokUrl', 'snapchatUrl', 'notificationEmail',
+    'smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom',
+    'imapHost', 'imapPort', 'analyticsScript', 'analyticsDashboardUrl',
+    'addressAr', 'addressEn', 'addressMapLink', 'techhubEnabled',
+    'techhubClientId', 'techhubClientSecret', 'techhubApiKey',
+    'techhubSandboxMode', 'verifyKitEnabled', 'verifyKitAppKey',
+    'verifyKitDomain', 'verifyKitDeeplink',
+    'authenticaEnabled', 'authenticaApiKey', 'authenticaMethod', 'authenticaTemplateId',
+    'indexNowKey'
+  ];
+
+  // Fallback: update fields one-by-one using raw SQL
+  for (const field of fields) {
+    if (!allowedFields.includes(field)) {
+      logger.warn(`Skipping invalid field in Settings update: ${field}`);
+      continue;
+    }
+    const val = data[field];
+    try {
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+        try {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = ${val} WHERE id = 'global'`);
+        } catch (e: any) {
+          if (e.message?.includes('syntax') || e.message?.includes('table') || e.code?.startsWith('P2')) {
+            await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`);
+          } else {
+            throw e;
+          }
+        }
+      } else if (val === null) {
+        try {
+          await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = NULL WHERE id = 'global'`);
+        } catch (e: any) {
+          if (e.message?.includes('syntax') || e.message?.includes('table') || e.code?.startsWith('P2')) {
+            await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = NULL WHERE id = 'global'`);
+          } else {
+            throw e;
+          }
+        }
+      }
+    } catch (e) {
+      logger.error(`Raw SQL update failed for Settings.${field}:`, e);
+    }
+  }
+
+  return getGlobalSettings();
+}
 
 function invalidateCache(type: 'properties' | 'projects') {
   if (type === 'properties') {
@@ -1295,7 +1401,7 @@ async function startServer() {
   // Serves settings logo as SVG for email clients (all clients can load a hosted SVG via <img>)
   app.get('/settings-logo.svg', async (req, res) => {
     try {
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const settings = await getGlobalSettings();
       if (settings?.logoUrl) {
         const base64Data = settings.logoUrl;
         // If it's a stored base64 image, serve it directly
@@ -1337,7 +1443,7 @@ async function startServer() {
   // Serves settings logo as binary image
   app.get('/settings-logo.png', async (req, res) => {
     try {
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const settings = await getGlobalSettings();
       if (!settings || !settings.logoUrl) {
         return res.sendFile(path.join(process.cwd(), 'public', 'logo-default.png'));
       }
@@ -1383,7 +1489,7 @@ async function startServer() {
   // Serves settings hero image as binary image
   app.get('/settings-hero.jpg', async (req, res) => {
     try {
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const settings = await getGlobalSettings();
       let heroData = null;
       if (settings?.homeImages) {
         try {
@@ -3621,7 +3727,7 @@ async function startServer() {
       // Use Authentica SMS / WhatsApp Gateway Service.
       // Do NOT send the OTP code back in the JSON response (no in-site popup).
       // ==========================================
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const settings = await getGlobalSettings();
       const webhookUrl = settings?.otpWebhookUrl || process.env.WHATOMATE_WEBHOOK_URL;
 
       // 1. Authentica Saudi SMS & WhatsApp Gateway Integration
@@ -5322,112 +5428,6 @@ async function startServer() {
       res.status(500).json({ error: "Failed to delete project" });
     }
   });
-
-  async function getGlobalSettings() {
-    if (dbCache.settingsCached) return dbCache.settings;
-    let result: any = null;
-    try {
-      const s = await prisma.settings.findUnique({ where: { id: "global" } });
-      if (s) {
-        dbCache.settings = s;
-        dbCache.settingsCached = true;
-        return s;
-      }
-    } catch (err) {
-      logger.warn("Prisma Settings query failed, using raw SQL query:", err);
-    }
-
-    // Raw fallback queries
-    try {
-      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "Settings" WHERE id = 'global' LIMIT 1`);
-      if (rows && rows.length > 0) {
-        dbCache.settings = rows[0];
-        dbCache.settingsCached = true;
-        return rows[0];
-      }
-    } catch (_) {}
-    try {
-      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM Settings WHERE id = 'global' LIMIT 1`);
-      if (rows && rows.length > 0) {
-        dbCache.settings = rows[0];
-        dbCache.settingsCached = true;
-        return rows[0];
-      }
-    } catch (_) {}
-
-    return null;
-  }
-
-  async function updateGlobalSettings(data: any) {
-    // Invalidate the settings cache so the next read is fresh
-    dbCache.settingsCached = false;
-    const fields = Object.keys(data).filter(k => data[k] !== undefined);
-    if (fields.length === 0) return getGlobalSettings();
-
-    try {
-      const updated = await prisma.settings.update({
-        where: { id: "global" },
-        data
-      });
-      dbCache.settings = updated;
-      dbCache.settingsCached = true;
-      return updated;
-    } catch (err) {
-      logger.warn("Prisma client settings update failed, falling back to raw SQL updates:", err);
-    }
-
-    // Allowed fields for Settings from schema to prevent SQL injection
-    const allowedFields = [
-      'whatsappNumber', 'callingNumber', 'whatsappMessage', 'otpWebhookUrl',
-      'otpMessageTemplate', 'otpWebhookPayload', 'homeImages', 'logoUrl',
-      'email', 'instagramUrl', 'twitterUrl', 'facebookUrl', 'linkedinUrl',
-      'youtubeUrl', 'tiktokUrl', 'snapchatUrl', 'notificationEmail',
-      'smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom',
-      'imapHost', 'imapPort', 'analyticsScript', 'analyticsDashboardUrl',
-      'addressAr', 'addressEn', 'addressMapLink', 'techhubEnabled',
-      'techhubClientId', 'techhubClientSecret', 'techhubApiKey',
-      'techhubSandboxMode', 'verifyKitEnabled', 'verifyKitAppKey',
-      'verifyKitDomain', 'verifyKitDeeplink',
-      'authenticaEnabled', 'authenticaApiKey', 'authenticaMethod', 'authenticaTemplateId',
-      'indexNowKey'
-    ];
-
-    // Fallback: update fields one-by-one using raw SQL
-    for (const field of fields) {
-      if (!allowedFields.includes(field)) {
-        logger.warn(`Skipping invalid field in Settings update: ${field}`);
-        continue;
-      }
-      const val = data[field];
-      try {
-        if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
-          try {
-            await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = ${val} WHERE id = 'global'`);
-          } catch (e: any) {
-            if (e.message?.includes('syntax') || e.message?.includes('table') || e.code?.startsWith('P2')) {
-              await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`);
-            } else {
-              throw e;
-            }
-          }
-        } else if (val === null) {
-          try {
-            await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = NULL WHERE id = 'global'`);
-          } catch (e: any) {
-            if (e.message?.includes('syntax') || e.message?.includes('table') || e.code?.startsWith('P2')) {
-              await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = NULL WHERE id = 'global'`);
-            } else {
-              throw e;
-            }
-          }
-        }
-      } catch (e) {
-        logger.error(`Raw SQL update failed for Settings.${field}:`, e);
-      }
-    }
-
-    return getGlobalSettings();
-  }
 
   // Settings
   app.get("/api/settings", async (req, res) => {
