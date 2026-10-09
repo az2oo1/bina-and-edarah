@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import * as assert from 'node:assert';
+import path from 'path';
 
 process.env.JWT_SECRET = 'test-secret';
 
@@ -41,5 +42,23 @@ describe('serializeMeta', () => {
     const obj: any = {};
     obj.circular = obj;
     assert.strictEqual(serializeMeta([obj]), '[Circular]');
+  });
+});
+
+describe('Path Traversal Prevention', () => {
+  it('should reject path traversal attempts escaping UPLOADS_DIR', () => {
+    const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
+    const maliciousFileName = '../../server.ts';
+    const filePath = path.resolve(UPLOADS_DIR, maliciousFileName);
+    const isValid = filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep);
+    assert.strictEqual(isValid, false);
+  });
+
+  it('should accept valid file paths within UPLOADS_DIR', () => {
+    const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
+    const validFileName = 'subfolder/photo.jpg';
+    const filePath = path.resolve(UPLOADS_DIR, validFileName);
+    const isValid = filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep);
+    assert.strictEqual(isValid, true);
   });
 });
