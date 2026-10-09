@@ -3,7 +3,7 @@ import * as assert from 'node:assert';
 
 process.env.JWT_SECRET = 'test-secret';
 
-import { serializeMeta } from './server.ts';
+import { serializeMeta, getAllowedOrigins, isOriginAllowed } from './server.ts';
 
 describe('serializeMeta', () => {
   it('should return empty string for empty array', () => {
@@ -41,5 +41,85 @@ describe('serializeMeta', () => {
     const obj: any = {};
     obj.circular = obj;
     assert.strictEqual(serializeMeta([obj]), '[Circular]');
+  });
+});
+
+describe('CORS helper functions', () => {
+  it('getAllowedOrigins includes local defaults', () => {
+    const origins = getAllowedOrigins();
+    assert.ok(origins.includes('http://localhost:3000'));
+    assert.ok(origins.includes('http://localhost:5173'));
+    assert.ok(origins.includes('http://127.0.0.1:3000'));
+    assert.ok(origins.includes('http://127.0.0.1:5173'));
+  });
+
+  it('getAllowedOrigins parses ALLOWED_ORIGINS env var', () => {
+    const oldAllowed = process.env.ALLOWED_ORIGINS;
+    try {
+      process.env.ALLOWED_ORIGINS = 'https://example.com, https://app.benaa.com';
+      const origins = getAllowedOrigins();
+      assert.ok(origins.includes('https://example.com'));
+      assert.ok(origins.includes('https://app.benaa.com'));
+    } finally {
+      if (oldAllowed !== undefined) {
+        process.env.ALLOWED_ORIGINS = oldAllowed;
+      } else {
+        delete process.env.ALLOWED_ORIGINS;
+      }
+    }
+  });
+
+  it('getAllowedOrigins includes APP_URL when configured', () => {
+    const oldAppUrl = process.env.APP_URL;
+    try {
+      process.env.APP_URL = 'https://my-custom-domain.com/';
+      const origins = getAllowedOrigins();
+      assert.ok(origins.includes('https://my-custom-domain.com'));
+    } finally {
+      if (oldAppUrl !== undefined) {
+        process.env.APP_URL = oldAppUrl;
+      } else {
+        delete process.env.APP_URL;
+      }
+    }
+  });
+
+  it('isOriginAllowed correctly validates origins', () => {
+    const oldAllowed = process.env.ALLOWED_ORIGINS;
+    try {
+      process.env.ALLOWED_ORIGINS = 'https://trusted-domain.com';
+
+      // Undefined origin (non-browser requests or same origin)
+      assert.strictEqual(isOriginAllowed(undefined), true);
+
+      // Trusted domain
+      assert.strictEqual(isOriginAllowed('https://trusted-domain.com'), true);
+
+      // Local default domain
+      assert.strictEqual(isOriginAllowed('http://localhost:3000'), true);
+
+      // Untrusted domain
+      assert.strictEqual(isOriginAllowed('https://evil-attacker.com'), false);
+    } finally {
+      if (oldAllowed !== undefined) {
+        process.env.ALLOWED_ORIGINS = oldAllowed;
+      } else {
+        delete process.env.ALLOWED_ORIGINS;
+      }
+    }
+  });
+
+  it('isOriginAllowed allows any origin if ALLOWED_ORIGINS contains *', () => {
+    const oldAllowed = process.env.ALLOWED_ORIGINS;
+    try {
+      process.env.ALLOWED_ORIGINS = '*';
+      assert.strictEqual(isOriginAllowed('https://any-domain.com'), true);
+    } finally {
+      if (oldAllowed !== undefined) {
+        process.env.ALLOWED_ORIGINS = oldAllowed;
+      } else {
+        delete process.env.ALLOWED_ORIGINS;
+      }
+    }
   });
 });

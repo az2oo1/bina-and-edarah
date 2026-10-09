@@ -45,6 +45,44 @@ export function isUnitName(name: string): boolean {
   return unitRegex.test(trimmed);
 }
 
+export function getAllowedOrigins(): string[] {
+  const origins: string[] = [];
+
+  if (process.env.ALLOWED_ORIGINS) {
+    process.env.ALLOWED_ORIGINS.split(',')
+      .map(o => o.trim())
+      .filter(Boolean)
+      .forEach(o => {
+        if (!origins.includes(o)) origins.push(o);
+      });
+  }
+
+  if (process.env.APP_URL && process.env.APP_URL !== "MY_APP_URL") {
+    const cleanUrl = process.env.APP_URL.replace(/\/$/, "");
+    if (!origins.includes(cleanUrl)) origins.push(cleanUrl);
+  }
+
+  const defaults = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173"
+  ];
+
+  for (const def of defaults) {
+    if (!origins.includes(def)) origins.push(def);
+  }
+
+  return origins;
+}
+
+export function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true;
+  const allowedOrigins = getAllowedOrigins();
+  if (allowedOrigins.includes('*')) return true;
+  return allowedOrigins.includes(origin);
+}
+
 
 export async function resetAdminPassword(targetUsername = "admin"): Promise<{ username: string; newPassword: string }> {
   const newPassword = generateRandomPassword(12);
@@ -1095,10 +1133,26 @@ async function startServer() {
 
   // Global CORS middleware for mobile app and web clients
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    const origin = req.headers.origin;
+    const allowedOrigins = getAllowedOrigins();
+
+    if (origin) {
+      if (allowedOrigins.includes('*')) {
+        res.header('Access-Control-Allow-Origin', '*');
+      } else if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Vary', 'Origin');
+        res.header('Access-Control-Allow-Credentials', 'true');
+      }
+    }
+
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+
     if (req.method === 'OPTIONS') {
+      if (origin && !allowedOrigins.includes('*') && !allowedOrigins.includes(origin)) {
+        return res.status(403).json({ error: 'CORS policy: Origin not allowed' });
+      }
       return res.sendStatus(200);
     }
     next();
@@ -7034,7 +7088,16 @@ async function startServer() {
   httpServer.headersTimeout = 66 * 1000;
 
   const io = new SocketIOServer(httpServer, {
-    cors: { origin: "*" },
+    cors: {
+      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        if (isOriginAllowed(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("CORS policy: Origin not allowed"));
+        }
+      },
+      credentials: true
+    },
     maxHttpBufferSize: 1e7
   });
 
