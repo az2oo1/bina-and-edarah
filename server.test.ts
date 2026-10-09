@@ -1,9 +1,14 @@
-import { describe, it } from 'node:test';
+import { describe, it, after } from 'node:test';
 import * as assert from 'node:assert';
 
 process.env.JWT_SECRET = 'test-secret';
 
-import { serializeMeta } from './server.ts';
+import { serializeMeta, isSafeUploadPath } from './server.ts';
+import { prisma } from './src/lib/db.js';
+
+after(async () => {
+  await prisma.$disconnect();
+});
 
 describe('serializeMeta', () => {
   it('should return empty string for empty array', () => {
@@ -41,5 +46,24 @@ describe('serializeMeta', () => {
     const obj: any = {};
     obj.circular = obj;
     assert.strictEqual(serializeMeta([obj]), '[Circular]');
+  });
+});
+
+describe('isSafeUploadPath', () => {
+  const baseDir = '/app/uploads';
+
+  it('should allow valid filenames inside the base directory', () => {
+    assert.strictEqual(isSafeUploadPath(baseDir, 'photo.jpg'), true);
+    assert.strictEqual(isSafeUploadPath(baseDir, 'subfolder/photo.png'), true);
+  });
+
+  it('should block path traversal attempts using ../', () => {
+    assert.strictEqual(isSafeUploadPath(baseDir, '../etc/passwd'), false);
+    assert.strictEqual(isSafeUploadPath(baseDir, '../../secret.txt'), false);
+    assert.strictEqual(isSafeUploadPath(baseDir, 'subfolder/../../secret.txt'), false);
+  });
+
+  it('should block path traversal trying to escape into sibling directories', () => {
+    assert.strictEqual(isSafeUploadPath(baseDir, '../uploads-other/secret.txt'), false);
   });
 });

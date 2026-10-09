@@ -4,7 +4,7 @@ import { useLanguage } from '../LanguageContext';
 import { 
   Lock, User, AlertTriangle, Loader2, ArrowLeft, ArrowRight, KeyRound, Smartphone, ShieldCheck
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useDialog } from '../context/DialogContext';
 import RenterDashboard, { RenterUnit } from '../components/renter/RenterDashboard';
 
