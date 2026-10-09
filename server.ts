@@ -78,10 +78,10 @@ export async function resetAdminPassword(targetUsername = "admin"): Promise<{ us
   return { username: targetUsername, newPassword };
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
 if (!process.env.JWT_SECRET) {
-  console.warn("⚠️ [WARN] JWT_SECRET environment variable is not set. Using default fallback secret.");
+  throw new Error("FATAL: JWT_SECRET environment variable is not set. Please set JWT_SECRET in environment variables.");
 }
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
@@ -815,6 +815,12 @@ const UPLOADS_DIR = fs.existsSync('/data')
   ? '/data/uploads' 
   : path.resolve(process.cwd(), 'uploads');
 
+export function isSafeUploadPath(baseDir: string, fileName: string): boolean {
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedPath = path.resolve(baseDir, fileName);
+  return resolvedPath.startsWith(resolvedBase + path.sep);
+}
+
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
@@ -859,40 +865,42 @@ const rawS3Bucket = process.env.S3_BUCKET || "binaassets";
 const S3_BUCKET = rawS3Bucket === "bina-assets" ? "binaassets" : rawS3Bucket;
 
 // Ensure bucket exists in Object Storage on startup and configure public-read access
-(async () => {
-  try {
-    await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
-  } catch (_) {
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
     try {
-      await s3Client.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
-      logger.info(`Created ${storageProviderName} bucket '${S3_BUCKET}'`);
-    } catch (e) {
-      logger.warn(`Could not auto-create ${storageProviderName} bucket '${S3_BUCKET}':`, (e as any)?.message);
+      await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
+    } catch (_) {
+      try {
+        await s3Client.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
+        logger.info(`Created ${storageProviderName} bucket '${S3_BUCKET}'`);
+      } catch (e) {
+        logger.warn(`Could not auto-create ${storageProviderName} bucket '${S3_BUCKET}':`, (e as any)?.message);
+      }
     }
-  }
 
-  // Set public-read policy so assets can be retrieved directly or via proxy
-  try {
-    const publicPolicy = {
-      Version: "2012-10-17",
-      Statement: [
-        {
-          Sid: "PublicReadGetObject",
-          Effect: "Allow",
-          Principal: "*",
-          Action: ["s3:GetObject"],
-          Resource: [`arn:aws:s3:::${S3_BUCKET}/*`]
-        }
-      ]
-    };
-    await s3Client.send(new PutBucketPolicyCommand({
-      Bucket: S3_BUCKET,
-      Policy: JSON.stringify(publicPolicy)
-    }));
-  } catch (_) {
-    // Policy configuration is optional depending on underlying storage driver
-  }
-})();
+    // Set public-read policy so assets can be retrieved directly or via proxy
+    try {
+      const publicPolicy = {
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "PublicReadGetObject",
+            Effect: "Allow",
+            Principal: "*",
+            Action: ["s3:GetObject"],
+            Resource: [`arn:aws:s3:::${S3_BUCKET}/*`]
+          }
+        ]
+      };
+      await s3Client.send(new PutBucketPolicyCommand({
+        Bucket: S3_BUCKET,
+        Policy: JSON.stringify(publicPolicy)
+      }));
+    } catch (_) {
+      // Policy configuration is optional depending on underlying storage driver
+    }
+  })();
+}
 
 function uploadToStorage(buffer: Buffer, filename: string, contentType: string): string {
   // Try saving locally if directory exists (non-blocking)
@@ -1197,7 +1205,7 @@ async function startServer() {
       if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
         const fileName = imgData.replace(/^\/?uploads\//, '');
         const filePath = path.resolve(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -1261,7 +1269,7 @@ async function startServer() {
       if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
         const fileName = imgData.replace(/^\/?uploads\//, '');
         const filePath = path.resolve(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -2195,7 +2203,9 @@ async function startServer() {
     }
   }
 
-  syncRentersToUsers();
+  if (process.env.NODE_ENV !== 'test') {
+    syncRentersToUsers();
+  }
 
   app.get('/api/admin/renters', requirePermission('renters'), async (req, res) => {
     try {
@@ -2507,7 +2517,9 @@ async function startServer() {
       console.error("Failed to ensure maintenance request codes:", err);
     }
   }
-  ensureMaintenanceRequestCodes();
+  if (process.env.NODE_ENV !== 'test') {
+    ensureMaintenanceRequestCodes();
+  }
 
   // --- Maintenance Reports API ---
   app.post('/api/renter/maintenance-reports', async (req, res) => {
@@ -5339,7 +5351,7 @@ async function startServer() {
 
     // Raw fallback queries
     try {
-      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "Settings" WHERE id = 'global' LIMIT 1`);
+      const rows = await prisma.$queryRaw<any[]>`SELECT * FROM "Settings" WHERE id = 'global' LIMIT 1`;
       if (rows && rows.length > 0) {
         dbCache.settings = rows[0];
         dbCache.settingsCached = true;
@@ -5347,7 +5359,7 @@ async function startServer() {
       }
     } catch (_) {}
     try {
-      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM Settings WHERE id = 'global' LIMIT 1`);
+      const rows = await prisma.$queryRaw<any[]>`SELECT * FROM Settings WHERE id = 'global' LIMIT 1`;
       if (rows && rows.length > 0) {
         dbCache.settings = rows[0];
         dbCache.settingsCached = true;
