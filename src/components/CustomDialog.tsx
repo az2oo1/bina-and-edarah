@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, Info } from 'lucide-react';
 import { Button } from './ui/Button';
