@@ -78,10 +78,10 @@ export async function resetAdminPassword(targetUsername = "admin"): Promise<{ us
   return { username: targetUsername, newPassword };
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
 if (!process.env.JWT_SECRET) {
-  console.warn("⚠️ [WARN] JWT_SECRET environment variable is not set. Using default fallback secret.");
+  throw new Error("FATAL: JWT_SECRET environment variable is not set. Please set JWT_SECRET in environment variables.");
 }
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
