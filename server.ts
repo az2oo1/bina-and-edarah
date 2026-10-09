@@ -78,10 +78,10 @@ export async function resetAdminPassword(targetUsername = "admin"): Promise<{ us
   return { username: targetUsername, newPassword };
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "bina-edara-jwt-secret-key-1337";
 if (!process.env.JWT_SECRET) {
-  console.warn("⚠️ [WARN] JWT_SECRET environment variable is not set. Using default fallback secret.");
+  throw new Error("FATAL: JWT_SECRET environment variable is not set. Please set JWT_SECRET in environment variables.");
 }
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const LOG_FILE = fs.existsSync('/data') 
   ? '/data/server.log' 
@@ -859,40 +859,42 @@ const rawS3Bucket = process.env.S3_BUCKET || "binaassets";
 const S3_BUCKET = rawS3Bucket === "bina-assets" ? "binaassets" : rawS3Bucket;
 
 // Ensure bucket exists in Object Storage on startup and configure public-read access
-(async () => {
-  try {
-    await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
-  } catch (_) {
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
     try {
-      await s3Client.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
-      logger.info(`Created ${storageProviderName} bucket '${S3_BUCKET}'`);
-    } catch (e) {
-      logger.warn(`Could not auto-create ${storageProviderName} bucket '${S3_BUCKET}':`, (e as any)?.message);
+      await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
+    } catch (_) {
+      try {
+        await s3Client.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
+        logger.info(`Created ${storageProviderName} bucket '${S3_BUCKET}'`);
+      } catch (e) {
+        logger.warn(`Could not auto-create ${storageProviderName} bucket '${S3_BUCKET}':`, (e as any)?.message);
+      }
     }
-  }
 
-  // Set public-read policy so assets can be retrieved directly or via proxy
-  try {
-    const publicPolicy = {
-      Version: "2012-10-17",
-      Statement: [
-        {
-          Sid: "PublicReadGetObject",
-          Effect: "Allow",
-          Principal: "*",
-          Action: ["s3:GetObject"],
-          Resource: [`arn:aws:s3:::${S3_BUCKET}/*`]
-        }
-      ]
-    };
-    await s3Client.send(new PutBucketPolicyCommand({
-      Bucket: S3_BUCKET,
-      Policy: JSON.stringify(publicPolicy)
-    }));
-  } catch (_) {
-    // Policy configuration is optional depending on underlying storage driver
-  }
-})();
+    // Set public-read policy so assets can be retrieved directly or via proxy
+    try {
+      const publicPolicy = {
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "PublicReadGetObject",
+            Effect: "Allow",
+            Principal: "*",
+            Action: ["s3:GetObject"],
+            Resource: [`arn:aws:s3:::${S3_BUCKET}/*`]
+          }
+        ]
+      };
+      await s3Client.send(new PutBucketPolicyCommand({
+        Bucket: S3_BUCKET,
+        Policy: JSON.stringify(publicPolicy)
+      }));
+    } catch (_) {
+      // Policy configuration is optional depending on underlying storage driver
+    }
+  })();
+}
 
 function uploadToStorage(buffer: Buffer, filename: string, contentType: string): string {
   // Try saving locally if directory exists (non-blocking)

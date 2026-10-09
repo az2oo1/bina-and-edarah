@@ -5,6 +5,25 @@ process.env.JWT_SECRET = 'test-secret';
 
 import { serializeMeta } from './server.ts';
 
+describe('JWT_SECRET validation', () => {
+  it('should throw an error if JWT_SECRET is missing or empty', async () => {
+    // Delete JWT_SECRET temporarily in a subshell or fresh module import test
+    const originalSecret = process.env.JWT_SECRET;
+    delete process.env.JWT_SECRET;
+
+    await assert.rejects(async () => {
+      // Re-importing server.ts with timestamp cache-buster to trigger module evaluation without JWT_SECRET
+      await import(`./server.ts?update=${Date.now()}`);
+    }, (err: any) => {
+      assert.match(err.message, /FATAL: JWT_SECRET environment variable is not set/);
+      return true;
+    });
+
+    // Restore JWT_SECRET
+    process.env.JWT_SECRET = originalSecret;
+  });
+});
+
 describe('serializeMeta', () => {
   it('should return empty string for empty array', () => {
     assert.strictEqual(serializeMeta([]), '');
