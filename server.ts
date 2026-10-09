@@ -1197,7 +1197,7 @@ async function startServer() {
       if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
         const fileName = imgData.replace(/^\/?uploads\//, '');
         const filePath = path.resolve(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
@@ -1261,7 +1261,7 @@ async function startServer() {
       if (imgData.startsWith('/uploads/') || imgData.startsWith('uploads/')) {
         const fileName = imgData.replace(/^\/?uploads\//, '');
         const filePath = path.resolve(UPLOADS_DIR, fileName);
-        if (fs.existsSync(filePath)) {
+        if (filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep) && fs.existsSync(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           return res.sendFile(filePath);
         }
