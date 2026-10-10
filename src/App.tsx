@@ -22,6 +22,7 @@ const Contact = lazy(() => import('./pages/Contact'));
 const Services = lazy(() => import('./pages/Services'));
 const About = lazy(() => import('./pages/About'));
 const DesignSystem = lazy(() => import('./pages/DesignSystem'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
 let settingsPromise: Promise<any> | null = null;
 function getCachedSettings() {
@@ -645,6 +646,11 @@ function Footer() {
             <SocialIconsRow links={socialLinks} size="sm" />
           </div>
         </div>
+        <div className="mt-2 text-center">
+          <Link to="/privacy-policy" className="text-[10px] hover:text-foreground transition-colors">
+            {language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}
+          </Link>
+        </div>
       </div>
     </footer>
   );
@@ -743,6 +749,7 @@ function AppContent() {
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/design-system" element={<DesignSystem />} />
             <Route path="/buttons" element={<DesignSystem />} />
           </Routes>

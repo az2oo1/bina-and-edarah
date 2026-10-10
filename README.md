@@ -10,7 +10,7 @@ Full-stack real estate and property management platform built with React 19, Vit
 - **Backend:** Express + TypeScript + Socket.IO (Real-time engine)
 - **Database:** CockroachDB (PostgreSQL-compatible distributed DB) via Prisma ORM
 - **Object Storage:** RustFS / S3-compatible high-performance storage (Videos, Assets, Images)
-- **Integrations:** Google Gemini AI, Authentica (Saudi SMS/OTP Gateway), IMAP Inbound Email Sync
+- **Integrations:** Authentica (Saudi SMS/OTP Gateway), IMAP Inbound Email Sync
 
 ---
 
@@ -40,9 +40,6 @@ S3_BUCKET="bina-assets"
 S3_ACCESS_KEY="rustfsaccesskey"
 S3_SECRET_KEY="rustfssecretkey"
 S3_REGION="us-east-1"
-
-# AI Integration
-GEMINI_API_KEY="your-gemini-api-key"
 
 # Authentica Saudi SMS & WhatsApp Gateway
 AUTHENTICA_API_KEY="$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG"
