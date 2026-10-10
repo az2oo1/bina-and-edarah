@@ -1,5 +1,6 @@
 import { describe, it, after } from 'node:test';
 import * as assert from 'node:assert';
+import path from 'path';
 
 process.env.JWT_SECRET = 'test-secret';
 
