@@ -171,6 +171,7 @@ export const ImagesSettingsTab: React.FC<ImagesSettingsTabProps> = ({
                       onClick={slot.onRemove}
                       className="h-9 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 border border-red-500/20 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95"
                       title={language === 'ar' ? 'حذف الوسائط' : 'Remove media'}
+                      aria-label={language === 'ar' ? 'حذف الوسائط' : 'Remove media'}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

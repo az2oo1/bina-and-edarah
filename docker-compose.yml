@@ -25,7 +25,6 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY:-garagesecretkey}
       - S3_REGION=${S3_REGION:-garage}
 
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - JWT_SECRET=${JWT_SECRET:-bina-edara-jwt-secret-key-1337}
       - AUTHENTICA_API_KEY=${AUTHENTICA_API_KEY:-$2y$10$qtRuMVdslBE8aQDUvWoiJuPYCRYt/mw95knxkg5d9WfnfYcZrKrSG}
       - AUTHENTICA_ENABLED=${AUTHENTICA_ENABLED:-true}

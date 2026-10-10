@@ -183,6 +183,7 @@ export const OtpSettingsTab: React.FC<OtpSettingsTabProps> = ({
                     type="button"
                     onClick={() => setShowAuthenticaApiKey?.(!showAuthenticaApiKey)}
                     className="absolute inset-y-0 end-0 flex items-center pe-3 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                    aria-label={showAuthenticaApiKey ? (language === 'ar' ? 'إخفاء مفتاح API' : 'Hide API key') : (language === 'ar' ? 'إظهار مفتاح API' : 'Show API key')}
                   >
                     {showAuthenticaApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
