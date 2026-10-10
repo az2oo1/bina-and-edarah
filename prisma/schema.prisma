@@ -49,6 +49,10 @@ model Property {
   parentId         String?
   parent           Property?  @relation("SubProperties", fields: [parentId], references: [id], onDelete: Cascade)
   subProperties    Property[] @relation("SubProperties")
+
+  transferDetails  String?
+  units            RenterUnit[]
+  assignedMaintenanceUsers Admin[] @relation("PropertyMaintenanceUsers")
 }
 
 model Service {
@@ -65,7 +69,7 @@ model Admin {
   name              String     @default("Administrator")
   role              String     @default("ADMIN") // ADMIN, MANAGER, AGENT, MAINTENANCE
   email             String?
-  assignedBuildings Building[] @relation("BuildingMaintenanceUsers")
+  assignedProperties Property[] @relation("PropertyMaintenanceUsers")
   createdAt         DateTime   @default(now())
 }
 
@@ -160,17 +164,6 @@ model PageView {
   createdAt  DateTime @default(now())
 }
 
-model Building {
-  id              String   @id @default(uuid())
-  name            String
-  transferDetails String?
-  photos          String?  @default("[]")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  units           RenterUnit[]
-  assignedUsers   Admin[]  @relation("BuildingMaintenanceUsers")
-}
-
 model Renter {
   id                  String    @id @default(uuid())
   name                String
@@ -186,8 +179,8 @@ model Renter {
 
 model RenterUnit {
   id              String   @id @default(uuid())
-  buildingId      String
-  building        Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  propertyId      String
+  property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   unitNumber      String
   renterId        String?
   renter          Renter?  @relation(fields: [renterId], references: [id], onDelete: SetNull)

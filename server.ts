@@ -1594,25 +1594,8 @@ async function startServer() {
   // --- Admin Buildings (Renter Portal Setup) ---
   app.get('/api/admin/buildings', requirePermission('buildings'), async (req, res) => {
     try {
-      try {
-        const topProperties = await prisma.property.findMany({
-          where: { parentId: null },
-          select: { id: true, titleAr: true, titleEn: true, propertyCategory: true }
-        });
-        for (const p of topProperties) {
-          const name = (p.titleAr || p.titleEn || '').trim();
-          if (name && !isUnitName(name)) {
-            const exists = await prisma.building.findFirst({ where: { name } });
-            if (!exists) {
-              await prisma.building.create({ data: { name } });
-            }
-          }
-        }
-      } catch (syncErr) {
-        logger.warn("Auto-sync top-level properties to buildings warning:", syncErr);
-      }
-
-      const buildings = await prisma.building.findMany({
+      const properties = await prisma.property.findMany({
+        where: { parentId: null },
         include: {
           _count: {
             select: { units: true }
@@ -1621,9 +1604,20 @@ async function startServer() {
         orderBy: { createdAt: 'desc' }
       });
 
-      const validBuildings = buildings.filter(b => b.name && !isUnitName(b.name));
+      const validBuildings = properties
+        .filter(p => (p.titleAr || p.titleEn) && !isUnitName(p.titleAr || p.titleEn))
+        .map(p => ({
+          id: p.id,
+          name: p.titleAr || p.titleEn,
+          transferDetails: p.transferDetails,
+          photos: p.imageUrls || '[]',
+          propertyCategory: p.propertyCategory,
+          createdAt: p.createdAt,
+          _count: p._count
+        }));
       res.json(validBuildings);
     } catch (error) {
+      logger.error("Failed to fetch buildings", error);
       res.status(500).json({ error: "Failed to fetch buildings" });
     }
   });
@@ -1637,18 +1631,41 @@ async function startServer() {
       if (isUnitName(name.trim())) {
         return res.status(400).json({ error: "لا يمكن إضافة اسم وحدة كمبنى رئيسي" });
       }
-      const existing = await prisma.building.findFirst({
-        where: { name: name.trim() }
+      const existing = await prisma.property.findFirst({
+        where: {
+          OR: [
+            { titleAr: name.trim() },
+            { titleEn: name.trim() }
+          ]
+        }
       });
       if (existing) {
-        return res.status(200).json(existing);
+        return res.status(200).json({
+          id: existing.id,
+          name: existing.titleAr || existing.titleEn,
+          transferDetails: existing.transferDetails,
+          photos: existing.imageUrls
+        });
       }
-      const building = await prisma.building.create({
-        data: { name: name.trim() }
+      const prop = await prisma.property.create({
+        data: {
+          titleAr: name.trim(),
+          titleEn: name.trim(),
+          type: 'RENT',
+          propertyCategory: 'BUILDING',
+          description: name.trim(),
+          price: 0
+        }
       });
-      await logAction(req, "ADD_BUILDING", `Added building: ${building.name} (${building.id})`);
-      res.status(201).json(building);
+      await logAction(req, "ADD_BUILDING", `Added building: ${prop.titleAr} (${prop.id})`);
+      res.status(201).json({
+        id: prop.id,
+        name: prop.titleAr,
+        transferDetails: prop.transferDetails,
+        photos: prop.imageUrls
+      });
     } catch (error) {
+      logger.error("Failed to create building", error);
       res.status(500).json({ error: "Failed to create building" });
     }
   });
@@ -1656,12 +1673,20 @@ async function startServer() {
   app.put('/api/admin/buildings/:id', requirePermission('buildings'), async (req, res) => {
     try {
       const { transferDetails, photos } = req.body;
-      const building = await prisma.building.update({
+      const prop = await prisma.property.update({
         where: { id: req.params.id },
-        data: { transferDetails, photos: processImageUrls(photos) }
+        data: {
+          ...(transferDetails !== undefined && { transferDetails }),
+          ...(photos !== undefined && { imageUrls: processImageUrls(photos) })
+        }
       });
-      await logAction(req, "UPDATE_BUILDING", `Updated details for building: ${building.name} (${req.params.id})`);
-      res.json(building);
+      await logAction(req, "UPDATE_BUILDING", `Updated details for building: ${prop.titleAr} (${req.params.id})`);
+      res.json({
+        id: prop.id,
+        name: prop.titleAr || prop.titleEn,
+        transferDetails: prop.transferDetails,
+        photos: prop.imageUrls
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to update building" });
     }
@@ -1889,7 +1914,7 @@ async function startServer() {
           }
 
           newUnitsData.push({
-            buildingId: id,
+            propertyId: id,
             unitNumber: (unitNumber || '').toString().trim(),
             renterName: finalRenterName,
             renterPhone: finalRenterPhone,
@@ -1906,9 +1931,9 @@ async function startServer() {
       for (const u of newUnitsData) {
         const { history, ...unitData } = u;
         try {
-          // Look up if unit already exists by buildingId and unitNumber
+          // Look up if unit already exists by propertyId and unitNumber
           const existingUnit = await prisma.renterUnit.findFirst({
-            where: { buildingId: id, unitNumber: unitData.unitNumber }
+            where: { propertyId: id, unitNumber: unitData.unitNumber }
           });
           
           if (existingUnit) {
@@ -1993,12 +2018,12 @@ async function startServer() {
 
   app.delete('/api/admin/buildings/:id', requirePermission('buildings'), async (req, res) => {
     try {
-      const building = await prisma.building.findUnique({ where: { id: req.params.id } });
-      if (!building) return res.status(404).json({ error: "Building not found" });
+      const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
+      if (!prop) return res.status(404).json({ error: "Building not found" });
 
       await prisma.$transaction(async (tx) => {
         const units = await tx.renterUnit.findMany({
-          where: { buildingId: req.params.id },
+          where: { propertyId: req.params.id },
           select: { id: true }
         });
         const unitIds = units.map(u => u.id);
@@ -2007,15 +2032,15 @@ async function startServer() {
             where: { renterUnitId: { in: unitIds } }
           });
           await tx.renterUnit.deleteMany({
-            where: { buildingId: req.params.id }
+            where: { propertyId: req.params.id }
           });
         }
-        await tx.building.delete({
+        await tx.property.delete({
           where: { id: req.params.id }
         });
       });
 
-      await logAction(req, "DELETE_BUILDING", `Deleted building: ${building.name} (${req.params.id})`);
+      await logAction(req, "DELETE_BUILDING", `Deleted building: ${prop.titleAr || prop.titleEn} (${req.params.id})`);
       res.json({ success: true });
     } catch (error) {
       console.error(error);
@@ -2116,56 +2141,34 @@ async function startServer() {
           });
         }
 
-        let buildingName = "";
-        if (pUnit.parent) {
-          buildingName = pUnit.parent.titleAr || pUnit.parent.titleEn;
-        } else if (pUnit.parentId) {
-          const parentProp = await prisma.property.findUnique({ where: { id: pUnit.parentId } });
-          if (parentProp) {
-            buildingName = parentProp.titleAr || parentProp.titleEn;
-          }
-        } else if (!isUnitName(pUnit.titleAr)) {
-          buildingName = pUnit.titleAr || pUnit.titleEn;
-        }
+        const targetPropId = pUnit.parentId || pUnit.id;
+        const unitNum = pUnit.parentId
+          ? (pUnit.titleAr || pUnit.titleEn || 'وحدة')
+          : 'كامل العقار';
 
-        if (buildingName && !isUnitName(buildingName)) {
-          let building = await prisma.building.findFirst({
-            where: { name: buildingName.trim() }
+        let rUnit = await prisma.renterUnit.findFirst({
+          where: { propertyId: targetPropId, unitNumber: unitNum }
+        });
+        if (!rUnit) {
+          await prisma.renterUnit.create({
+            data: {
+              propertyId: targetPropId,
+              unitNumber: unitNum,
+              renterId: renter.id,
+              renterName: pUnit.renterName || renter.name,
+              renterPhone: normalized,
+              rentAmount: pUnit.price || null
+            }
           });
-          if (!building) {
-            building = await prisma.building.create({
-              data: { name: buildingName.trim() }
-            });
-          }
-
-          const unitNum = pUnit.parent
-            ? (pUnit.titleAr || pUnit.titleEn || 'وحدة')
-            : 'كامل العقار';
-
-          let rUnit = await prisma.renterUnit.findFirst({
-            where: { buildingId: building.id, unitNumber: unitNum }
+        } else if (!rUnit.renterId) {
+          await prisma.renterUnit.update({
+            where: { id: rUnit.id },
+            data: {
+              renterId: renter.id,
+              renterName: pUnit.renterName || renter.name,
+              renterPhone: normalized
+            }
           });
-          if (!rUnit) {
-            await prisma.renterUnit.create({
-              data: {
-                buildingId: building.id,
-                unitNumber: unitNum,
-                renterId: renter.id,
-                renterName: pUnit.renterName || renter.name,
-                renterPhone: normalized,
-                rentAmount: pUnit.price || null
-              }
-            });
-          } else if (!rUnit.renterId) {
-            await prisma.renterUnit.update({
-              where: { id: rUnit.id },
-              data: {
-                renterId: renter.id,
-                renterName: pUnit.renterName || renter.name,
-                renterPhone: normalized
-              }
-            });
-          }
         }
       }
     } catch (err) {
@@ -2180,7 +2183,7 @@ async function startServer() {
       });
       const seen = new Map<string, string>();
       for (const u of allUnits) {
-        const key = `${u.buildingId}___${(u.unitNumber || '').trim().toLowerCase()}`;
+        const key = `${u.propertyId}___${(u.unitNumber || '').trim().toLowerCase()}`;
         if (seen.has(key)) {
           const primaryId = seen.get(key)!;
           await prisma.rentHistory.updateMany({
@@ -2210,10 +2213,15 @@ async function startServer() {
   app.get('/api/admin/renters', requirePermission('renters'), async (req, res) => {
     try {
       const renters = await prisma.renterUnit.findMany({
-        include: { building: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } },
+        include: { property: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } },
         orderBy: { renterName: 'asc' }
       });
-      res.json(renters);
+      const mappedRenters = renters.map(u => ({
+        ...u,
+        buildingId: u.propertyId,
+        building: u.property ? { id: u.property.id, name: u.property.titleAr || u.property.titleEn } : null
+      }));
+      res.json(mappedRenters);
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Failed to fetch renters" });
@@ -2226,20 +2234,24 @@ async function startServer() {
       const renters = await prisma.renter.findMany({
         include: {
           units: {
-            include: { building: true }
+            include: { property: true }
           },
           maintenanceReports: true
         },
         orderBy: { name: 'asc' }
       });
 
-      // Deduplicate units per renter by buildingId + unitNumber
+      // Deduplicate units per renter by propertyId + unitNumber
       const deduplicatedRenters = renters.map(r => {
         const uniqueUnits = new Map<string, any>();
         for (const u of r.units) {
-          const key = `${u.buildingId}___${(u.unitNumber || '').trim().toLowerCase()}`;
+          const key = `${u.propertyId}___${(u.unitNumber || '').trim().toLowerCase()}`;
           if (!uniqueUnits.has(key)) {
-            uniqueUnits.set(key, u);
+            uniqueUnits.set(key, {
+              ...u,
+              buildingId: u.propertyId,
+              building: u.property ? { id: u.property.id, name: u.property.titleAr || u.property.titleEn } : null
+            });
           }
         }
         return {
@@ -2521,6 +2533,23 @@ async function startServer() {
     ensureMaintenanceRequestCodes();
   }
 
+  function formatReportWithBuilding(rep: any) {
+    if (!rep) return rep;
+    return {
+      ...rep,
+      renterUnit: rep.renterUnit ? {
+        ...rep.renterUnit,
+        buildingId: rep.renterUnit.propertyId,
+        building: rep.renterUnit.property ? {
+          id: rep.renterUnit.property.id,
+          name: rep.renterUnit.property.titleAr || rep.renterUnit.property.titleEn,
+          transferDetails: rep.renterUnit.property.transferDetails,
+          photos: rep.renterUnit.property.imageUrls || '[]'
+        } : null
+      } : null
+    };
+  }
+
   // --- Maintenance Reports API ---
   app.post('/api/renter/maintenance-reports', async (req, res) => {
     try {
@@ -2578,7 +2607,7 @@ async function startServer() {
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } }
+          renterUnit: { include: { property: true } }
         }
       });
 
@@ -2593,7 +2622,7 @@ async function startServer() {
         }
       });
 
-      res.json(report);
+      res.json(formatReportWithBuilding(report));
     } catch (err) {
       console.error("Error creating maintenance report:", err);
       res.status(500).json({ error: "فشل إرسال بلاغ الصيانة" });
@@ -2628,14 +2657,14 @@ async function startServer() {
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         },
         orderBy: { createdAt: 'desc' }
       });
 
-      res.json(reports);
+      res.json(reports.map(formatReportWithBuilding));
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch maintenance reports" });
@@ -2656,12 +2685,12 @@ async function startServer() {
       if (userRole === 'MAINTENANCE' && userId) {
         const maintenanceUser = await prisma.admin.findUnique({
           where: { id: userId },
-          include: { assignedBuildings: true }
+          include: { assignedProperties: true }
         });
-        if (maintenanceUser && maintenanceUser.assignedBuildings && maintenanceUser.assignedBuildings.length > 0) {
-          const buildingIds = maintenanceUser.assignedBuildings.map(b => b.id);
+        if (maintenanceUser && maintenanceUser.assignedProperties && maintenanceUser.assignedProperties.length > 0) {
+          const propertyIds = maintenanceUser.assignedProperties.map(p => p.id);
           whereClause.OR = [
-            { renterUnit: { buildingId: { in: buildingIds } } },
+            { renterUnit: { propertyId: { in: propertyIds } } },
             { assignedToId: userId }
           ];
         } else {
@@ -2673,24 +2702,23 @@ async function startServer() {
         where: whereClause,
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         },
         orderBy: { createdAt: 'desc' }
       });
 
+      const mappedReports = allReports.map(formatReportWithBuilding);
+
       if (!buildingId) {
-        return res.json(allReports);
+        return res.json(mappedReports);
       }
 
       const bIdStr = String(buildingId);
       const property = await prisma.property.findUnique({
         where: { id: bIdStr },
         include: { subProperties: true, parent: true }
-      });
-      const buildingObj = await prisma.building.findUnique({
-        where: { id: bIdStr }
       });
 
       const cleanStr = (s?: string | null) => (s || '').toLowerCase().replace(/[,.#!$%^&*;:{}=\-_`~()]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -2714,15 +2742,11 @@ async function startServer() {
         }
       }
 
-      if (buildingObj && buildingObj.name) {
-        namesToMatch.push(cleanStr(buildingObj.name));
-      }
-
-      const matched = allReports.filter(rep => {
-        const bId = rep.renterUnit?.buildingId;
+      const matched = mappedReports.filter(rep => {
+        const bId = rep.renterUnit?.propertyId || rep.renterUnit?.buildingId;
         if (bId === bIdStr) return true;
 
-        const bName = cleanStr(rep.renterUnit?.building?.name);
+        const bName = cleanStr(rep.renterUnit?.building?.name || rep.renterUnit?.property?.titleAr || rep.renterUnit?.property?.titleEn);
         const uNum = cleanStr(rep.renterUnit?.unitNumber);
         const rPhone = normalize(rep.renter?.phone || rep.renterUnit?.renterPhone);
         const rName = cleanStr(rep.renter?.name || rep.renterUnit?.renterName);
@@ -2765,13 +2789,13 @@ async function startServer() {
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
       });
       if (!report) return res.status(404).json({ error: "Report not found" });
-      res.json(report);
+      res.json(formatReportWithBuilding(report));
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch maintenance report" });
@@ -3095,7 +3119,7 @@ async function startServer() {
         data: updateData,
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
@@ -3168,7 +3192,7 @@ async function startServer() {
         });
       }
 
-      res.json(updated);
+      res.json(formatReportWithBuilding(updated));
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to update maintenance report" });
@@ -3191,7 +3215,7 @@ async function startServer() {
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
@@ -3206,7 +3230,7 @@ async function startServer() {
         }
       });
 
-      res.json(updated);
+      res.json(formatReportWithBuilding(updated));
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "فشل حفظ التقييم" });
@@ -3226,7 +3250,7 @@ async function startServer() {
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
@@ -3241,7 +3265,7 @@ async function startServer() {
         }
       });
 
-      res.json(updated);
+      res.json(formatReportWithBuilding(updated));
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "فشل الاستحواذ على التذكرة" });
@@ -3261,7 +3285,7 @@ async function startServer() {
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
@@ -3276,7 +3300,7 @@ async function startServer() {
         }
       });
 
-      res.json(updated);
+      res.json(formatReportWithBuilding(updated));
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "فشل إلغاء الاستحواذ" });
@@ -3334,14 +3358,20 @@ async function startServer() {
       const { buildingId } = req.query;
       
       // Return STRICTLY users with MAINTENANCE role (maintenance crew only)
-      const staffList = await prisma.admin.findMany({
+      const rawStaffList = await prisma.admin.findMany({
         where: { role: 'MAINTENANCE' },
         select: {
           id: true, name: true, username: true, role: true, email: true,
-          assignedBuildings: { select: { id: true, name: true } }
+          assignedProperties: { select: { id: true, titleAr: true, titleEn: true } }
         },
         orderBy: { name: 'asc' }
       });
+
+      const staffList = rawStaffList.map(s => ({
+        ...s,
+        assignedProperties: s.assignedProperties,
+        assignedBuildings: s.assignedProperties.map(p => ({ id: p.id, name: p.titleAr || p.titleEn }))
+      }));
 
       if (buildingId) {
         const bIdStr = String(buildingId);
@@ -3390,7 +3420,7 @@ async function startServer() {
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
@@ -3432,13 +3462,13 @@ async function startServer() {
         where: { id },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
       });
 
-      res.json(finalUpdated);
+      res.json(formatReportWithBuilding(finalUpdated));
     } catch (err) {
       logger.error("Failed to approve maintenance report:", err);
       res.status(500).json({ error: "فشل قبول بلاغ الصيانة" });
@@ -3490,13 +3520,13 @@ async function startServer() {
         where: { id },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
       });
 
-      res.json(finalUpdated);
+      res.json(formatReportWithBuilding(finalUpdated));
     } catch (err) {
       logger.error("Failed to deny maintenance report:", err);
       res.status(500).json({ error: "فشل رفض بلاغ الصيانة" });
@@ -3528,7 +3558,7 @@ async function startServer() {
         },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: { include: { property: true } },
           messages: { orderBy: { createdAt: 'asc' } },
           logs: { orderBy: { createdAt: 'asc' } }
         }
@@ -3543,7 +3573,7 @@ async function startServer() {
         }
       });
 
-      res.json(updated);
+      res.json(formatReportWithBuilding(updated));
     } catch (err) {
       logger.error("Failed to assign maintenance report:", err);
       res.status(500).json({ error: "فشل تعيين بلاغ الصيانة" });
@@ -3786,40 +3816,17 @@ async function startServer() {
           { renter: { phone: { in: phoneVariants } } }
         ]
       },
-      include: { building: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } }
+      include: { property: true, renter: true, rentHistory: { orderBy: { dueDate: 'asc' } } }
     });
 
     const parsedUnits = await Promise.all((units || []).map(async unit => {
-      let bPhotos = unit.building?.photos || '[]';
-
-      // If building.photos is empty or '[]', search Property table for a matching building property with imageUrls
-      if (!bPhotos || bPhotos === '[]') {
-        const bName = unit.building?.name;
-        if (bName) {
-          try {
-            const matchingProp = await prisma.property.findFirst({
-              where: {
-                OR: [
-                  { titleAr: bName },
-                  { titleEn: bName },
-                  { titleAr: { contains: bName } },
-                  { titleEn: { contains: bName } }
-                ],
-                imageUrls: { not: '[]' }
-              },
-              select: { imageUrls: true }
-            });
-            if (matchingProp && matchingProp.imageUrls && matchingProp.imageUrls !== '[]') {
-              bPhotos = matchingProp.imageUrls;
-            }
-          } catch (_) {}
-        }
-      }
-
+      let bPhotos = unit.property?.imageUrls || '[]';
       const uPhotos = unit.photos && unit.photos !== '[]' ? unit.photos : bPhotos;
 
       return {
         id: unit.id,
+        buildingId: unit.propertyId,
+        building: unit.property ? { id: unit.property.id, name: unit.property.titleAr || unit.property.titleEn } : null,
         unitNumber: unit.unitNumber,
         renterName: unit.renter?.name || unit.renterName || 'المستأجر',
         renterPhone: unit.renter?.phone || unit.renterPhone || normalizedPhone,
@@ -3827,8 +3834,8 @@ async function startServer() {
         nextRentDue: unit.nextRentDue,
         rentAmount: unit.rentAmount,
         isTanfeeth: unit.isTanfeeth,
-        propertyName: unit.building?.name || 'مبنى غير معروف',
-        transferDetails: unit.building?.transferDetails || null,
+        propertyName: unit.property?.titleAr || unit.property?.titleEn || 'مبنى غير معروف',
+        transferDetails: unit.property?.transferDetails || null,
         buildingPhotos: bPhotos,
         bedrooms: unit.bedrooms ?? 2,
         bathrooms: unit.bathrooms ?? 2,
@@ -3953,10 +3960,19 @@ async function startServer() {
       const history = await prisma.rentHistory.update({
         where: { id: historyId },
         data: { receiptUrl: processedUrl, paidDate: isoDate },
-        include: { renterUnit: { include: { building: true } } }
+        include: { renterUnit: { include: { property: true } } }
       });
 
-      res.json(history);
+      const mappedHistory = {
+        ...history,
+        renterUnit: history.renterUnit ? {
+          ...history.renterUnit,
+          buildingId: history.renterUnit.propertyId,
+          building: history.renterUnit.property ? { id: history.renterUnit.property.id, name: history.renterUnit.property.titleAr || history.renterUnit.property.titleEn } : null
+        } : null
+      };
+
+      res.json(mappedHistory);
     } catch (err) {
       res.status(500).json({ error: "Failed to upload receipt" });
     }
@@ -4472,18 +4488,14 @@ async function startServer() {
         } catch (_) {}
       }
 
-      // 2. If still empty, search Building table by matching building name
-      if (resolvedBuildingPhotos.length === 0) {
+      // 2. If still empty, search parent Property
+      if (resolvedBuildingPhotos.length === 0 && !property.parentId) {
         const candidateNames: string[] = [];
-        if (property.parent?.titleAr) candidateNames.push(property.parent.titleAr.trim());
-        if (property.parent?.titleEn) candidateNames.push(property.parent.titleEn.trim());
         if (property.titleAr) {
-          candidateNames.push(property.titleAr.trim());
           const splitAr = property.titleAr.split(/\s*[-–—]\s*/);
           if (splitAr.length > 1) candidateNames.push(splitAr[0].trim());
         }
         if (property.titleEn) {
-          candidateNames.push(property.titleEn.trim());
           const splitEn = property.titleEn.split(/\s*[-–—]\s*/);
           if (splitEn.length > 1) candidateNames.push(splitEn[0].trim());
         }
@@ -4491,42 +4503,20 @@ async function startServer() {
         for (const name of candidateNames) {
           if (!name) continue;
           try {
-            const building = await prisma.building.findFirst({
-              where: {
-                OR: [
-                  { name: { equals: name, mode: 'insensitive' } },
-                  { name: { contains: name, mode: 'insensitive' } }
-                ]
-              }
-            });
-            if (building?.photos) {
-              const bPhotos = JSON.parse(building.photos);
-              if (Array.isArray(bPhotos) && bPhotos.length > 0) {
-                resolvedBuildingPhotos = bPhotos.filter(Boolean);
-                break;
-              }
-            }
-          } catch (_) {}
-        }
-      }
-
-      // 3. If parent was null but title has a building prefix, search parent Property
-      if (resolvedBuildingPhotos.length === 0 && !property.parentId) {
-        const splitAr = property.titleAr ? property.titleAr.split(/\s*[-–—]\s*/)[0].trim() : '';
-        if (splitAr && splitAr !== property.titleAr) {
-          try {
             const parentProp = await prisma.property.findFirst({
               where: {
                 OR: [
-                  { titleAr: { contains: splitAr, mode: 'insensitive' } },
-                  { titleEn: { contains: splitAr, mode: 'insensitive' } }
-                ]
+                  { titleAr: { contains: name, mode: 'insensitive' } },
+                  { titleEn: { contains: name, mode: 'insensitive' } }
+                ],
+                parentId: null
               }
             });
             if (parentProp?.imageUrls) {
-              const pImgs = JSON.parse(parentProp.imageUrls);
-              if (Array.isArray(pImgs) && pImgs.length > 0) {
-                resolvedBuildingPhotos = pImgs.filter(Boolean);
+              const pPhotos = JSON.parse(parentProp.imageUrls);
+              if (Array.isArray(pPhotos) && pPhotos.length > 0) {
+                resolvedBuildingPhotos = pPhotos.filter(Boolean);
+                break;
               }
             }
           } catch (_) {}
@@ -4781,76 +4771,56 @@ async function startServer() {
         data: updateData
       });
 
-      // Auto-sync with Building and RenterUnit models (for both sub-units and whole properties)
+      // Auto-sync with RenterUnit model directly on Property
       if ('renterId' in body || 'renterName' in body || 'renterPhone' in body) {
         try {
-          let buildingName = "";
-          let unitNum = "";
+          const targetPropId = updatedProperty.parentId || updatedProperty.id;
+          const unitNum = updatedProperty.parentId
+            ? (updatedProperty.titleAr || updatedProperty.titleEn || "وحدة")
+            : "كامل العقار";
 
-          if (updatedProperty.parentId) {
-            const parentProp = await prisma.property.findUnique({ where: { id: updatedProperty.parentId } });
-            if (parentProp) {
-              buildingName = parentProp.titleAr || parentProp.titleEn;
-              unitNum = updatedProperty.titleAr || updatedProperty.titleEn || "وحدة";
+          let normalizedPhone = (updatedProperty.renterPhone || '').trim().replace(/\D/g, '');
+          if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
+          normalizedPhone = normalizedPhone.replace(/^0+/, '');
+
+          let rId = updatedProperty.renterId || null;
+          if (!rId && normalizedPhone) {
+            let existingRenter = await prisma.renter.findUnique({ where: { phone: normalizedPhone } });
+            if (!existingRenter) {
+              existingRenter = await prisma.renter.create({
+                data: {
+                  name: updatedProperty.renterName || 'مستأجر',
+                  phone: normalizedPhone
+                }
+              });
             }
-          } else if (!isUnitName(updatedProperty.titleAr)) {
-            buildingName = updatedProperty.titleAr || updatedProperty.titleEn;
-            unitNum = "كامل العقار";
+            rId = existingRenter.id;
           }
 
-          if (buildingName && !isUnitName(buildingName)) {
-            let building = await prisma.building.findFirst({
-              where: { name: buildingName.trim() }
-            });
-            if (!building) {
-              building = await prisma.building.create({
-                data: { name: buildingName.trim() }
-              });
-            }
+          let rUnit = await prisma.renterUnit.findFirst({
+            where: { propertyId: targetPropId, unitNumber: unitNum }
+          });
 
-            let rUnit = await prisma.renterUnit.findFirst({
-              where: { buildingId: building.id, unitNumber: unitNum }
-            });
-
-            let normalizedPhone = (updatedProperty.renterPhone || '').trim().replace(/\D/g, '');
-            if (normalizedPhone.startsWith('966')) normalizedPhone = normalizedPhone.substring(3);
-            normalizedPhone = normalizedPhone.replace(/^0+/, '');
-
-            let rId = updatedProperty.renterId || null;
-            if (!rId && normalizedPhone) {
-              let existingRenter = await prisma.renter.findUnique({ where: { phone: normalizedPhone } });
-              if (!existingRenter) {
-                existingRenter = await prisma.renter.create({
-                  data: {
-                    name: updatedProperty.renterName || 'مستأجر',
-                    phone: normalizedPhone
-                  }
-                });
+          if (!rUnit) {
+            await prisma.renterUnit.create({
+              data: {
+                propertyId: targetPropId,
+                unitNumber: unitNum,
+                renterId: rId,
+                renterName: updatedProperty.renterName || null,
+                renterPhone: normalizedPhone || null,
+                rentAmount: updatedProperty.price || null
               }
-              rId = existingRenter.id;
-            }
-
-            if (!rUnit) {
-              await prisma.renterUnit.create({
-                data: {
-                  buildingId: building.id,
-                  unitNumber: unitNum,
-                  renterId: rId,
-                  renterName: updatedProperty.renterName || null,
-                  renterPhone: normalizedPhone || null,
-                  rentAmount: updatedProperty.price || null
-                }
-              });
-            } else {
-              await prisma.renterUnit.update({
-                where: { id: rUnit.id },
-                data: {
-                  renterId: rId,
-                  renterName: updatedProperty.renterName || null,
-                  renterPhone: normalizedPhone || null
-                }
-              });
-            }
+            });
+          } else {
+            await prisma.renterUnit.update({
+              where: { id: rUnit.id },
+              data: {
+                renterId: rId,
+                renterName: updatedProperty.renterName || null,
+                renterPhone: normalizedPhone || null
+              }
+            });
           }
         } catch (syncErr) {
           logger.error("Failed auto-syncing property to RenterUnit:", syncErr);
@@ -5736,26 +5706,34 @@ async function startServer() {
       // 1. Sync Properties (Buildings & Units)
       for (const thProj of thProperties) {
         if (!thProj.nameAr) continue;
-        let building = await prisma.building.findFirst({
-          where: { name: thProj.nameAr.trim() }
+        let property = await prisma.property.findFirst({
+          where: { titleAr: thProj.nameAr.trim(), parentId: null }
         });
 
-        if (!building) {
-          building = await prisma.building.create({
-            data: { name: thProj.nameAr.trim() }
+        if (!property) {
+          property = await prisma.property.create({
+            data: {
+              titleAr: thProj.nameAr.trim(),
+              titleEn: thProj.nameAr.trim(),
+              description: thProj.nameAr.trim(),
+              price: 0,
+              locationText: "الرياض",
+              type: "RENT",
+              propertyCategory: "BUILDING"
+            }
           });
           buildingsSynced++;
         }
 
         for (const thUnit of thProj.units) {
           const existingUnit = await prisma.renterUnit.findFirst({
-            where: { buildingId: building.id, unitNumber: thUnit.unitNumber }
+            where: { propertyId: property.id, unitNumber: thUnit.unitNumber }
           });
 
           if (!existingUnit) {
             await prisma.renterUnit.create({
               data: {
-                buildingId: building.id,
+                propertyId: property.id,
                 unitNumber: thUnit.unitNumber,
                 renterName: "متاح للتأجير",
                 renterPhone: "",
@@ -5779,13 +5757,21 @@ async function startServer() {
       // 2. Sync Contracts (Renter details & RentHistory installments)
       for (const thContract of thContracts) {
         if (!thContract.buildingName) continue;
-        let building = await prisma.building.findFirst({
-          where: { name: thContract.buildingName.trim() }
+        let property = await prisma.property.findFirst({
+          where: { titleAr: thContract.buildingName.trim(), parentId: null }
         });
 
-        if (!building) {
-          building = await prisma.building.create({
-            data: { name: thContract.buildingName.trim() }
+        if (!property) {
+          property = await prisma.property.create({
+            data: {
+              titleAr: thContract.buildingName.trim(),
+              titleEn: thContract.buildingName.trim(),
+              description: thContract.buildingName.trim(),
+              price: 0,
+              locationText: "الرياض",
+              type: "RENT",
+              propertyCategory: "BUILDING"
+            }
           });
           buildingsSynced++;
         }
@@ -5803,7 +5789,7 @@ async function startServer() {
         }
 
         let renterUnit = await prisma.renterUnit.findFirst({
-          where: { buildingId: building.id, unitNumber: thContract.unitNumber }
+          where: { propertyId: property.id, unitNumber: thContract.unitNumber }
         });
 
         let nextRentDue: string | null = null;
@@ -5829,7 +5815,7 @@ async function startServer() {
         } else {
           renterUnit = await prisma.renterUnit.create({
             data: {
-              buildingId: building.id,
+              propertyId: property.id,
               unitNumber: thContract.unitNumber,
               renterName: thContract.renterName,
               renterPhone: normalizedPhone,
@@ -5969,7 +5955,11 @@ async function startServer() {
       const dbData = {
         properties: await prisma.property.findMany(),
         projects: await prisma.project.findMany(),
-        buildings: await prisma.building.findMany(),
+        buildings: (await prisma.property.findMany({ select: { id: true, titleAr: true, transferDetails: true } })).map(p => ({
+          id: p.id,
+          name: p.titleAr,
+          transferDetails: p.transferDetails
+        })),
         renters: await prisma.renter.findMany(),
         renterUnits: await prisma.renterUnit.findMany(),
         rentHistory: await prisma.rentHistory.findMany(),
@@ -6150,7 +6140,6 @@ async function startServer() {
         await tx.rentHistory.deleteMany();
         await tx.renterUnit.deleteMany();
         await tx.renter.deleteMany();
-        await tx.building.deleteMany();
         await tx.property.deleteMany();
         await tx.project.deleteMany();
         await tx.settings.deleteMany();
@@ -6237,8 +6226,31 @@ async function startServer() {
             }
           }
         }
-        const buildingsToInsert = (dbData.buildings || []).map((i: any) => sanitizeModelData(i, 'Building'));
-        const buildingIds = new Set(buildingsToInsert.map((b: any) => b.id));
+        // Legacy building support: if backup contains buildings that aren't properties yet, restore them as Property
+        if (dbData.buildings && dbData.buildings.length > 0) {
+          const existingPropertyIds = new Set((dbData.properties || []).map((p: any) => p.id));
+          for (const b of dbData.buildings) {
+            if (!existingPropertyIds.has(b.id)) {
+              await tx.property.create({
+                data: {
+                  id: b.id,
+                  titleAr: b.name || "عقار",
+                  titleEn: b.name || "Property",
+                  description: b.name || "",
+                  price: 0,
+                  locationText: "الرياض",
+                  type: "RENT",
+                  propertyCategory: "BUILDING",
+                  transferDetails: b.transferDetails || null
+                }
+              }).catch(() => {});
+              existingPropertyIds.add(b.id);
+            }
+          }
+        }
+
+        const allCurrentProperties = await tx.property.findMany({ select: { id: true } });
+        const allPropertyIds = new Set(allCurrentProperties.map((p: any) => p.id));
 
         const rentersToInsert = (dbData.renters || []).map((i: any) => sanitizeModelData(i, 'Renter'));
         const renterIds = new Set(rentersToInsert.map((r: any) => r.id));
@@ -6250,11 +6262,13 @@ async function startServer() {
           if (cleaned.renterId && !renterIds.has(cleaned.renterId)) {
             cleaned.renterId = null;
           }
-          // Ensure buildingId points to a valid building or fallback
-          if (cleaned.buildingId && !buildingIds.has(cleaned.buildingId)) {
-            if (buildingsToInsert.length > 0) {
-              cleaned.buildingId = buildingsToInsert[0].id;
-            }
+          // Support legacy buildingId mapping to propertyId
+          const targetPropertyId = cleaned.propertyId || cleaned.buildingId;
+          delete cleaned.buildingId;
+          if (targetPropertyId && allPropertyIds.has(targetPropertyId)) {
+            cleaned.propertyId = targetPropertyId;
+          } else if (allPropertyIds.size > 0) {
+            cleaned.propertyId = Array.from(allPropertyIds)[0];
           }
           return cleaned;
         });
@@ -6298,9 +6312,6 @@ async function startServer() {
         const rawCallbackNotes = (dbData.callbackNotes || []).map((i: any) => sanitizeModelData(i, 'CallbackNote'));
         const callbackNotesToInsert = rawCallbackNotes.filter((n: any) => n.callbackRequestId && callbackRequestIds.has(n.callbackRequestId));
 
-        if (buildingsToInsert.length > 0) {
-          await insertBatch(tx.building, buildingsToInsert);
-        }
         if (rentersToInsert.length > 0) {
           await insertBatch(tx.renter, rentersToInsert);
         }
@@ -6597,13 +6608,19 @@ async function startServer() {
         data: { internalNote },
         include: {
           renter: true,
-          renterUnit: { include: { building: true } },
+          renterUnit: {
+            include: {
+              property: {
+                select: { id: true, titleAr: true, titleEn: true }
+              }
+            }
+          },
           messages: { orderBy: { createdAt: 'asc' } }
         }
       });
       
       await logAction(req, "UPDATE_INTERNAL_NOTE", `Updated internal note for maintenance report ID ${id}`);
-      res.json(updatedReport);
+      res.json(formatReportWithBuilding(updatedReport));
     } catch (error) {
       logger.error("Failed to update maintenance internal note", error);
       res.status(500).json({ error: "Failed to update internal note" });
@@ -6733,11 +6750,15 @@ async function startServer() {
         const users = await prisma.admin.findMany({
           select: { 
             id: true, username: true, name: true, role: true, email: true, createdAt: true,
-            assignedBuildings: { select: { id: true, name: true } }
+            assignedProperties: { select: { id: true, titleAr: true, titleEn: true } }
           },
           orderBy: { createdAt: 'desc' }
         });
-        return res.json(users);
+        const formatted = users.map(u => ({
+          ...u,
+          assignedBuildings: u.assignedProperties.map(p => ({ id: p.id, name: p.titleAr || p.titleEn }))
+        }));
+        return res.json(formatted);
       } catch (err) {
         logger.warn("Prisma fetch platform users failed, falling back to raw SQL:", err);
       }
@@ -6751,7 +6772,7 @@ async function startServer() {
           users = await prisma.$queryRawUnsafe<any[]>(`SELECT id, username, name, role, email, createdAt FROM Admin ORDER BY createdAt DESC`);
         } catch (_) {}
       }
-      res.json(users);
+      res.json(users.map(u => ({ ...u, assignedBuildings: [], assignedProperties: [] })));
     } catch (error) {
       logger.error("Failed to fetch platform users", error);
       res.status(500).json({ error: "Failed to fetch users" });
@@ -6760,7 +6781,7 @@ async function startServer() {
 
   app.post("/api/admin/users", requirePermission('users'), async (req, res) => {
     try {
-      const { username, password, name, role, email, assignedBuildingIds } = req.body;
+      const { username, password, name, role, email, assignedBuildingIds, assignedPropertyIds } = req.body;
       if (!username || !password || !name) {
         return res.status(400).json({ error: "All fields are required" });
       }
@@ -6768,6 +6789,10 @@ async function startServer() {
       if (existing) {
         return res.status(400).json({ error: "Username already exists" });
       }
+
+      const propIds: string[] = Array.isArray(assignedPropertyIds)
+        ? assignedPropertyIds
+        : (Array.isArray(assignedBuildingIds) ? assignedBuildingIds : []);
 
       // Try Prisma client first
       try {
@@ -6778,17 +6803,20 @@ async function startServer() {
             name,
             role: role || "ADMIN",
             email,
-            assignedBuildings: Array.isArray(assignedBuildingIds) && assignedBuildingIds.length > 0
-              ? { connect: assignedBuildingIds.map((bId: string) => ({ id: bId })) }
+            assignedProperties: propIds.length > 0
+              ? { connect: propIds.map((bId: string) => ({ id: bId })) }
               : undefined
           },
           select: {
             id: true, username: true, name: true, role: true, email: true,
-            assignedBuildings: { select: { id: true, name: true } }
+            assignedProperties: { select: { id: true, titleAr: true, titleEn: true } }
           }
         });
         await logAction(req, "ADD_PLATFORM_USER", `Created platform user: ${username} (${role || "ADMIN"})`);
-        return res.status(201).json(newUser);
+        return res.status(201).json({
+          ...newUser,
+          assignedBuildings: newUser.assignedProperties.map(p => ({ id: p.id, name: p.titleAr || p.titleEn }))
+        });
       } catch (err) {
         logger.warn("Prisma user creation failed, falling back to raw SQL:", err);
       }
@@ -6807,7 +6835,7 @@ async function startServer() {
       }
 
       await logAction(req, "ADD_PLATFORM_USER", `Created platform user (raw SQL): ${username} (${role || "ADMIN"})`);
-      res.status(201).json({ id: uuid, username, name, role: role || "ADMIN", email, assignedBuildings: [] });
+      res.status(201).json({ id: uuid, username, name, role: role || "ADMIN", email, assignedBuildings: [], assignedProperties: [] });
     } catch (error) {
       logger.error("Failed to create platform user", error);
       res.status(500).json({ error: "Failed to create user" });
@@ -6817,7 +6845,7 @@ async function startServer() {
   app.put("/api/admin/users/:id", requirePermission('users'), async (req, res) => {
     try {
       const { id } = req.params;
-      const { username, password, name, role, email, assignedBuildingIds } = req.body;
+      const { username, password, name, role, email, assignedBuildingIds, assignedPropertyIds } = req.body;
       
       const existing = await prisma.admin.findUnique({ where: { id } });
       if (!existing) {
@@ -6830,6 +6858,10 @@ async function startServer() {
         if (clash) return res.status(400).json({ error: "Username already taken" });
       }
 
+      const propIds = Array.isArray(assignedPropertyIds)
+        ? assignedPropertyIds
+        : (Array.isArray(assignedBuildingIds) ? assignedBuildingIds : null);
+
       // Try Prisma client first
       try {
         const updated = await prisma.admin.update({
@@ -6840,17 +6872,20 @@ async function startServer() {
             name: name || undefined,
             role: role || undefined,
             email: email !== undefined ? email : undefined,
-            assignedBuildings: Array.isArray(assignedBuildingIds)
-              ? { set: assignedBuildingIds.map((bId: string) => ({ id: bId })) }
+            assignedProperties: propIds !== null
+              ? { set: propIds.map((bId: string) => ({ id: bId })) }
               : undefined
           },
           select: {
             id: true, username: true, name: true, role: true, email: true,
-            assignedBuildings: { select: { id: true, name: true } }
+            assignedProperties: { select: { id: true, titleAr: true, titleEn: true } }
           }
         });
         await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details: ${updated.username}`);
-        return res.json(updated);
+        return res.json({
+          ...updated,
+          assignedBuildings: updated.assignedProperties.map(p => ({ id: p.id, name: p.titleAr || p.titleEn }))
+        });
       } catch (err) {
         logger.warn("Prisma user update failed, falling back to raw SQL:", err);
       }
@@ -6899,7 +6934,7 @@ async function startServer() {
       }
 
       await logAction(req, "UPDATE_PLATFORM_USER", `Updated platform user details (raw SQL): ${username || existing.username}`);
-      res.json({ id, username: username || existing.username, name: name || existing.name, role: role || existing.role, email: email !== undefined ? email : (existing as any).email });
+      res.json({ id, username: username || existing.username, name: name || existing.name, role: role || existing.role, email: email !== undefined ? email : (existing as any).email, assignedBuildings: [] });
     } catch (error) {
       logger.error("Failed to update platform user", error);
       res.status(500).json({ error: "Failed to update user" });
@@ -6919,7 +6954,7 @@ async function startServer() {
       // Disconnect relations first to prevent foreign key errors
       await prisma.admin.update({
         where: { id },
-        data: { assignedBuildings: { set: [] } }
+        data: { assignedProperties: { set: [] } }
       }).catch(() => {});
 
       await prisma.admin.delete({ where: { id } });
