@@ -138,6 +138,35 @@ const logger = {
   }
 };
 
+function isReplicaGcThresholdError(error: any): boolean {
+  const message = String(error?.message || error).toLowerCase();
+  return message.includes("replica gc threshold") && message.includes("batch timestamp");
+}
+
+async function withReplicaGcRetry<T>(operation: () => Promise<T>): Promise<T> {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (!isReplicaGcThresholdError(error) || attempt === maxAttempts) {
+        throw error;
+      }
+
+      const delayMs = attempt * 250;
+      logger.warn(`[DB] Settings operation hit a replica GC threshold; retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxAttempts}).`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw new Error("Settings operation failed after retries.");
+}
+
+async function findGlobalSettingsWithRetry() {
+  return withReplicaGcRetry(() => prisma.settings.findUnique({ where: { id: "global" } }));
+}
+
 export function getSiteUrl(req?: any): string {
   if (process.env.APP_URL && process.env.APP_URL !== "MY_APP_URL") {
     return process.env.APP_URL.replace(/\/$/, "");
@@ -152,7 +181,7 @@ export function getSiteUrl(req?: any): string {
 
 async function sendCallbackEmailNotification(req?: any) {
   try {
-    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const settings = await findGlobalSettingsWithRetry();
     
     // Fetch all admin/staff users with configured emails
     const admins = await prisma.admin.findMany({
@@ -325,7 +354,7 @@ async function sendReplyEmailNotification(callbackRequest: any, replyText: strin
       return;
     }
 
-    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const settings = await findGlobalSettingsWithRetry();
     const host = settings?.smtpHost || process.env.SMTP_HOST;
     const port = settings?.smtpPort || Number(process.env.SMTP_PORT) || 587;
     const user = settings?.smtpUser || process.env.SMTP_USER;
@@ -590,7 +619,7 @@ async function syncInboundEmails() {
   isSyncing = true;
   
   try {
-    const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+    const settings = await findGlobalSettingsWithRetry();
     const host = settings?.imapHost;
     const port = settings?.imapPort || 993;
     const user = settings?.smtpUser;
@@ -613,7 +642,10 @@ async function syncInboundEmails() {
         name: 'Benaa & Edara Inbound Sync'
       }
     });
-    
+    client.on("error", (error) => {
+      logger.error("[IMAP CLIENT ERROR] IMAP connection emitted an error:", error);
+    });
+
     await client.connect();
     const lock = await client.getMailboxLock('INBOX');
     
@@ -742,7 +774,9 @@ async function syncInboundEmails() {
       }
     } finally {
       lock.release();
-      await client.logout();
+      await client.logout().catch(error => {
+        logger.warn("[IMAP SYNC] Failed to close IMAP connection cleanly:", error);
+      });
     }
   } catch (error) {
     logger.error("[IMAP SYNC ERROR] Failed during IMAP connection or polling:", error);
@@ -1156,14 +1190,37 @@ async function startServer() {
       return next();
     } catch (err: any) {
       const localFilePath = path.join(UPLOADS_DIR, filename);
-      const isConnError = err?.code === 'ECONNREFUSED' || err?.code === 'ENOTFOUND' || err?.name === 'TimeoutError' || err?.name === 'EndpointConnectionError' || (err?.message && String(err.message).toLowerCase().includes('fetch failed'));
-      
-      if (isConnError || !fs.existsSync(localFilePath)) {
+      const errorCode = err?.$metadata?.httpStatusCode || err?.code;
+      const isMissingObject =
+        err?.name === 'NoSuchKey' ||
+        err?.name === 'NotFound' ||
+        errorCode === 'NoSuchKey' ||
+        errorCode === 404 ||
+        String(err?.message || '').toLowerCase().includes('specified key does not exist');
+      const isConnectionError =
+        err?.code === 'ECONNREFUSED' ||
+        err?.code === 'ENOTFOUND' ||
+        err?.name === 'TimeoutError' ||
+        err?.name === 'EndpointConnectionError' ||
+        (err?.message && String(err.message).toLowerCase().includes('fetch failed'));
+
+      if (isMissingObject) {
+        logger.warn(`${storageProviderName} object not found for '${filename}'.`);
+        return res.status(404).send('File not found');
+      }
+
+      if (isConnectionError) {
         logger.error(`${storageProviderName} connection failure or file missing:`, err?.message || err);
         return res.status(503).json({
           error: `وحدة التخزين السحابي (${storageProviderName}) غير متصلة. حدث خطأ ما (${storageProviderName} is offline. Something went wrong.)`
         });
       }
+
+      if (!fs.existsSync(localFilePath)) {
+        logger.warn(`${storageProviderName} object retrieval failed for '${filename}':`, err?.message || err);
+        return res.status(404).send('File not found');
+      }
+
       return next();
     }
   });
@@ -1303,7 +1360,7 @@ async function startServer() {
   // Serves settings logo as SVG for email clients (all clients can load a hosted SVG via <img>)
   app.get('/settings-logo.svg', async (req, res) => {
     try {
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const settings = await findGlobalSettingsWithRetry();
       if (settings?.logoUrl) {
         const base64Data = settings.logoUrl;
         // If it's a stored base64 image, serve it directly
@@ -1345,7 +1402,7 @@ async function startServer() {
   // Serves settings logo as binary image
   app.get('/settings-logo.png', async (req, res) => {
     try {
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const settings = await findGlobalSettingsWithRetry();
       if (!settings || !settings.logoUrl) {
         return res.sendFile(path.join(process.cwd(), 'public', 'logo-default.png'));
       }
@@ -1391,7 +1448,7 @@ async function startServer() {
   // Serves settings hero image as binary image
   app.get('/settings-hero.jpg', async (req, res) => {
     try {
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const settings = await findGlobalSettingsWithRetry();
       let heroData = null;
       if (settings?.homeImages) {
         try {
@@ -1403,7 +1460,7 @@ async function startServer() {
       }
 
       if (!heroData) {
-        return res.sendFile(path.join(process.cwd(), 'public', 'skyscrapers.png'));
+        return res.sendFile(path.join(process.cwd(), 'public', 'og-image.png'));
       }
 
       // Case 1: Base64 data URL
@@ -1440,7 +1497,7 @@ async function startServer() {
         return res.sendFile(directPath);
       }
 
-      return res.sendFile(path.join(process.cwd(), 'public', 'skyscrapers.png'));
+      return res.sendFile(path.join(process.cwd(), 'public', 'og-image.png'));
     } catch (err) {
       logger.error("Failed to serve settings hero:", err);
       return res.status(500).send('Internal Error');
@@ -3633,7 +3690,7 @@ async function startServer() {
       // Use Authentica SMS / WhatsApp Gateway Service.
       // Do NOT send the OTP code back in the JSON response (no in-site popup).
       // ==========================================
-      const settings = await prisma.settings.findUnique({ where: { id: "global" } });
+      const settings = await findGlobalSettingsWithRetry();
       const webhookUrl = settings?.otpWebhookUrl || process.env.WHATOMATE_WEBHOOK_URL;
 
       // 1. Authentica Saudi SMS & WhatsApp Gateway Integration
@@ -5339,7 +5396,7 @@ async function startServer() {
     if (dbCache.settingsCached) return dbCache.settings;
     let result: any = null;
     try {
-      const s = await prisma.settings.findUnique({ where: { id: "global" } });
+      const s = await findGlobalSettingsWithRetry();
       if (s) {
         dbCache.settings = s;
         dbCache.settingsCached = true;
@@ -5377,10 +5434,10 @@ async function startServer() {
     if (fields.length === 0) return getGlobalSettings();
 
     try {
-      const updated = await prisma.settings.update({
+      const updated = await withReplicaGcRetry(() => prisma.settings.update({
         where: { id: "global" },
         data
-      });
+      }));
       dbCache.settings = updated;
       dbCache.settingsCached = true;
       return updated;
@@ -5405,6 +5462,7 @@ async function startServer() {
     ];
 
     // Fallback: update fields one-by-one using raw SQL
+    let fallbackError: unknown = null;
     for (const field of fields) {
       if (!allowedFields.includes(field)) {
         logger.warn(`Skipping invalid field in Settings update: ${field}`);
@@ -5414,20 +5472,20 @@ async function startServer() {
       try {
         if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
           try {
-            await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = ${val} WHERE id = 'global'`);
+            await withReplicaGcRetry(() => prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = ${val} WHERE id = 'global'`));
           } catch (e: any) {
             if (e.message?.includes('syntax') || e.message?.includes('table') || e.code?.startsWith('P2')) {
-              await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`);
+              await withReplicaGcRetry(() => prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = ${val} WHERE id = 'global'`));
             } else {
               throw e;
             }
           }
         } else if (val === null) {
           try {
-            await prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = NULL WHERE id = 'global'`);
+            await withReplicaGcRetry(() => prisma.$executeRaw(Prisma.sql`UPDATE "Settings" SET "${Prisma.raw(field)}" = NULL WHERE id = 'global'`));
           } catch (e: any) {
             if (e.message?.includes('syntax') || e.message?.includes('table') || e.code?.startsWith('P2')) {
-              await prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = NULL WHERE id = 'global'`);
+              await withReplicaGcRetry(() => prisma.$executeRaw(Prisma.sql`UPDATE Settings SET ${Prisma.raw(field)} = NULL WHERE id = 'global'`));
             } else {
               throw e;
             }
@@ -5435,7 +5493,12 @@ async function startServer() {
         }
       } catch (e) {
         logger.error(`Raw SQL update failed for Settings.${field}:`, e);
+        fallbackError ??= e;
       }
+    }
+
+    if (fallbackError) {
+      throw fallbackError;
     }
 
     return getGlobalSettings();
