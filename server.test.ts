@@ -1,9 +1,14 @@
-import { describe, it } from 'node:test';
+import { describe, it, after } from 'node:test';
 import * as assert from 'node:assert';
 
 process.env.JWT_SECRET = 'test-secret';
 
 import { serializeMeta, getAllowedOrigins, isOriginAllowed } from './server.ts';
+import { prisma } from './src/lib/db.js';
+
+after(async () => {
+  await prisma.$disconnect();
+});
 
 describe('serializeMeta', () => {
   it('should return empty string for empty array', () => {
