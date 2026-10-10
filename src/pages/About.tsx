@@ -4,7 +4,7 @@ import { Building2, ShieldCheck, KeySquare, ArrowLeft, ArrowRight } from 'lucide
 import { Link } from 'react-router';
 
 export default function About() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const Arrow = language === 'ar' ? ArrowRight : ArrowLeft;
 
   return (
@@ -21,39 +21,33 @@ export default function About() {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground mb-8 transition-all cursor-pointer bg-card/60 backdrop-blur-xs hover:bg-muted border border-border/80 px-4 py-2 rounded-full shadow-xs active:scale-[0.97] select-none"
         >
           {language === 'ar' ? <ArrowRight className="w-3.5 h-3.5 text-primary" /> : <ArrowLeft className="w-3.5 h-3.5 text-primary" />}
-          <span>{language === 'ar' ? 'العودة للرئيسية' : 'Back to Home'}</span>
+          <span>{t('about.backToHome')}</span>
         </Link>
 
         {/* Header Section */}
         <div className="text-center mb-16 space-y-4">
           <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3 select-none">
-            {language === 'ar' ? 'عن الشركة' : 'ABOUT US'}
+            {t('about.label')}
           </p>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
-            {language === 'ar' ? 'التميز في التطوير العقاري وإدارة الأملاك' : 'Excellence in Real Estate Development & Property Management'}
+            {t('about.title')}
           </h1>
           <p className="max-w-3xl mx-auto text-muted-foreground text-sm sm:text-base leading-relaxed">
-            {language === 'ar' 
-              ? 'نعمل في شركة بناء وإدارة العقارية على تقديم خدمات عقارية متكاملة تشمل التطوير وإدارة الأملاك والاستشارات العقارية وفق أعلى معايير الجودة والمهنية لتلبية تطلعات عملائنا في المملكة.'
-              : 'At Benaa & Edara Real Estate, we provide integrated property development, management, and consulting services according to the highest quality and professional standards to meet our clients\' goals in the Kingdom.'}
+            {t('about.intro')}
           </p>
         </div>
 
         {/* Detailed Brand Story */}
         <div className="bg-card/40 border border-border/60 rounded-2xl p-8 sm:p-10 mb-16 backdrop-blur-md">
           <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6">
-            {language === 'ar' ? 'عن شركة بناء وإدارة العقارية' : 'About Benaa & Edara Real Estate'}
+            {t('about.companyTitle')}
           </h2>
           <div className="space-y-4 text-xs sm:text-sm text-muted-foreground leading-relaxed text-justify">
             <p>
-              {language === 'ar'
-                ? 'تأسست شركة بناء وإدارة العقارية في قلب العاصمة الرياض لتكون شريكاً عقارياً موثوقاً وملبيًا لتطلعات التطوير العقاري الحديث في المملكة العربية السعودية. على مر السنوات، نجحنا في تطوير وإدارة باقة من أرقى المشاريع السكنية والتجارية التي تلبي تطلعات الباحثين عن الفخامة والعملية والاستقرار الاستثماري.'
-                : 'Benaa & Edara Real Estate was established in the heart of Riyadh to be a trusted real estate partner, meeting the aspirations of modern real estate development in the Kingdom of Saudi Arabia. Over the years, we have successfully developed and managed a portfolio of premium residential and commercial projects.'}
+              {t('about.story')}
             </p>
             <p>
-              {language === 'ar'
-                ? 'نحن نوفر حلولاً عقارية متكاملة تشمل التطوير والتسويق، والتأجير والمبيعات، وإدارة الأملاك الاحترافية، والتقييم والاستشارات المدروسة. يقود أعمالنا فريق من الخبراء المحترفين والكوادر الوطنية المؤهلة لضمان جودة الأداء وتحقيق عوائد استثمارية مستهدفة لشركائنا وعملائنا.'
-                : 'We offer integrated real estate solutions including development & marketing, sales & leasing, professional property management, and calculated consulting. Our work is driven by a team of professional experts to guarantee execution quality.'}
+              {t('about.services')}
             </p>
           </div>
         </div>
@@ -68,12 +62,10 @@ export default function About() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground mb-2 group-hover:text-sky-400 transition-colors">
-                {language === 'ar' ? 'رؤيتنا' : 'Our Vision'}
+                {t('about.vision')}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {language === 'ar' 
-                  ? 'أن نكون الشريك العقاري المفضل في خدمات التطوير وإدارة الأملاك على مستوى المملكة.' 
-                  : 'To be the preferred real estate partner for development and property management services in the Kingdom.'}
+                {t('about.visionDescription')}
               </p>
             </div>
           </div>
@@ -85,12 +77,10 @@ export default function About() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground mb-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                {language === 'ar' ? 'رسالتنا' : 'Our Mission'}
+                {t('about.mission')}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {language === 'ar' 
-                  ? 'تقديم خدمات عقارية موثوقة تلبي احتياجات عملائنا وتحافظ على القيمة الاستثمارية لأملاكهم.' 
-                  : 'Providing reliable real estate services that meet our clients\' needs and preserve the investment value of their assets.'}
+                {t('about.missionDescription')}
               </p>
             </div>
           </div>
@@ -102,12 +92,10 @@ export default function About() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground mb-2 group-hover:text-sky-400 transition-colors">
-                {language === 'ar' ? 'قيمنا' : 'Our Values'}
+                {t('about.values')}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {language === 'ar' 
-                  ? 'الالتزام التام بالمهنية والشفافية وبناء علاقات طويلة الأمد مع الملاك والمستأجرين.' 
-                  : 'Total commitment to professionalism, transparency, and building long-term relations with owners and tenants.'}
+                {t('about.valuesDescription')}
               </p>
             </div>
           </div>
@@ -117,18 +105,16 @@ export default function About() {
         {/* Call to action */}
         <div className="bg-muted/20 border border-border rounded-2xl p-8 text-center max-w-3xl mx-auto">
           <h3 className="text-lg font-bold text-foreground mb-2">
-            {language === 'ar' ? 'هل لديك أي استفسار عقاري؟' : 'Have any real estate inquiry?'}
+            {t('about.ctaTitle')}
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-            {language === 'ar' 
-              ? 'يسعدنا دائماً تواصلك معنا والإجابة على متطلباتك العقارية بكافة تفاصيلها.' 
-              : 'We are always glad to connect and assist you with your real estate needs and aspirations.'}
+            {t('about.ctaDescription')}
           </p>
           <Link 
             to="/contact" 
             className="btn-primary px-6 h-11 text-xs font-bold rounded-lg shadow-sm cursor-pointer inline-flex items-center gap-2"
           >
-            <span>{language === 'ar' ? 'تواصل معنا الآن' : 'Contact Us Now'}</span>
+            <span>{t('about.contactUs')}</span>
             <Arrow className="w-4 h-4 text-white" />
           </Link>
         </div>
